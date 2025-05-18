@@ -18,7 +18,7 @@ class NightscoutManager {
       method: "GET",
       headers: {
         accept: "application/json",
-        "api-secret": nightscoutStorage.get("api_secret"),
+        "api-secret": nightscoutStorage.get("apiSecret"),
         "x-requested-with": "XMLHttpRequest",
       },
       mode: "cors",
@@ -35,7 +35,7 @@ class NightscoutManager {
       headers: {
         accept: "*/*",
         "accept-language": "en-US,en;q=0.9",
-        "api-secret": nightscoutStorage.get("api_secret"),
+        "api-secret": nightscoutStorage.get("apiSecret"),
         "content-type": "application/json; charset=UTF-8",
         "x-requested-with": "XMLHttpRequest",
       },
@@ -66,7 +66,7 @@ class NightscoutManager {
       ((timestampB.getTime() - timestampA.getTime()) *
         convertDimensions(Unit.Time.Millis, Unit.Time.Minute)) /
       nightscoutStorage.get("minutesPerReading");
-    this.get(
+    return this.get(
       `entries/sgv.json?find[date][$gte]=${timestampA.getTime()}&find[date][$lte]=${timestampB.getTime()}&count=${count}`
     );
   }
