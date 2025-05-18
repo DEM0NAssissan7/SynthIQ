@@ -1,0 +1,32 @@
+import { profile } from "../lib/metabolism";
+import MetaFunctions, { metaKernel } from "./metaFunctions";
+
+export default class Glucose {
+  caps: number;
+  grams: number;
+  timestamp: Date;
+  constructor(timestamp: Date, caps: number) {
+    this.caps = caps;
+    this.grams = caps * profile.get("mlsPerCap") * profile.get("gramsPerMl");
+    this.timestamp = timestamp;
+  }
+  deltaBG(t: number): number {
+    return metaKernel(
+      t,
+      this.grams * profile.get("ecarbs"),
+      profile.get("nglucose"),
+      profile.get("pglucose"),
+      MetaFunctions.G
+    );
+  }
+  static stringify(g: Glucose): string {
+    return JSON.stringify({
+      caps: g.caps,
+      timestamp: g.timestamp,
+    });
+  }
+  static parse(s: string): Glucose {
+    let o = JSON.parse(s);
+    return new Glucose(new Date(o.timestamp), o.caps);
+  }
+}
