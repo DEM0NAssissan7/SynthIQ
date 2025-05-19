@@ -33,7 +33,7 @@ export class Food {
     return metaKernel(
       t,
       this.getCarbs() * metaProfile.get("ecarbs"),
-      metaProfile.get("ninsulin"),
+      metaProfile.get("ncarbs"),
       metaProfile.get("pcarbs") * (defaultGI / this.GI),
       MetaFunctions.G
     );
