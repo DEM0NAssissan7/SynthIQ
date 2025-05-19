@@ -46,8 +46,8 @@ export class Food {
   }
 
   static createFromImport(food: any): Food {
-    let unit: Unit.Food;
-    switch (food.unit) {
+    let unit: Unit.Food = Unit.Food.Percent;
+    switch (food.units) {
       case "unit":
       case 1:
       case "1":
@@ -59,10 +59,6 @@ export class Food {
 
       case "percent":
       case "100grams":
-        unit = Unit.Food.Percent;
-        break;
-
-      default:
         unit = Unit.Food.Percent;
         break;
     }
