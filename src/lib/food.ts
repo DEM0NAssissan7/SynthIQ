@@ -90,8 +90,7 @@ export class Food {
     });
   }
   static parse(string: string): Food {
-    // TODO
-    return JSON.parse(string).map((food: any) => {
+    let food = JSON.parse(string);
       let newFood: Food;
       try {
         newFood = getFoodByName(food.name);
@@ -101,8 +100,6 @@ export class Food {
       }
       newFood.amount = food.amount || 0;
       return newFood;
-    });
-    // return new Food();
   }
 }
 
