@@ -33,6 +33,31 @@ class Meal {
     );
     return retval;
   }
+
+  static stringify(meal: Meal): string {
+    return JSON.stringify({
+      timestamp: meal.timestamp,
+      carbsOffset: meal.carbsOffset,
+      proteinOffset: meal.proteinOffset,
+      foods: meal.foods.map((a) => Food.stringify(a)),
+      insulin: meal.insulin.map((a) => Insulin.stringify(a)),
+      glucose: meal.glucose.map((a) => Glucose.stringify(a)),
+    });
+  }
+  static parse(string: string): Meal {
+    let o = JSON.parse(string);
+    let timestamp = new Date(o.timestamp);
+    let foods = o.foods.map((a: any) => Food.parse(a));
+    let insulin = o.insulin.map((a: any) => Insulin.parse(a));
+    let glucose = o.glucose.map((a: any) => Glucose.parse(a));
+    let newMeal = new Meal(timestamp);
+    newMeal.carbsOffset = o.carbsOffset;
+    newMeal.proteinOffset = o.proteinOffset;
+    newMeal.foods = foods;
+    newMeal.insulin = insulin;
+    newMeal.glucose = glucose;
+    return newMeal;
+  }
 }
 
 export default Meal;
