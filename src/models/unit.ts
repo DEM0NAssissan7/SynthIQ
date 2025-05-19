@@ -1,7 +1,7 @@
 namespace Unit {
   export enum Food {
     Unit = 1,
-    Grams = 100,
+    Percent = 100,
   }
 
   export enum Glucose {
