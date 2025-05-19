@@ -105,7 +105,15 @@ export class Food {
   static parse(string: string): Food {
     // TODO
     return JSON.parse(string).map((food: any) => {
-      return Food.createFromImport(food);
+      let newFood: Food;
+      try {
+        newFood = getFoodByName(food.name);
+      } catch (e: any) {
+        console.warn(`${e} - using hardcoded info`);
+        newFood = Food.createFromImport(food);
+      }
+      newFood.amount = food.amount || 0;
+      return newFood;
     });
     // return new Food();
   }
