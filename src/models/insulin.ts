@@ -22,7 +22,7 @@ export default class Insulin {
     // Change in blood sugar over time
     return metaKernel(
       t,
-      this.units * metaProfile.get("einsulin"),
+      -this.units * metaProfile.get("einsulin"),
       metaProfile.get("ninsulin"),
       metaProfile.get("pinsulin"),
       MetaFunctions.H // Half life decay

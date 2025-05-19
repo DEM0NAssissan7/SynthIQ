@@ -1,19 +1,29 @@
-import Graph from "./components/Graph";
-import ReadingSeries from "./models/readingSeries";
-import { Color } from "./models/series";
+import { Routes, Route, Navigate } from "react-router";
+import SetupPage from "./setup";
+import ProfilerPage from "./profiler";
+import { nightscoutStorage } from "./lib/nightscoutManager";
+import TopBar from "./TopBar";
 
 function App() {
-  const time = new Date("14:59 5-18-2025");
-  let s = new ReadingSeries(Color.Blue, time);
-  s.populate(new Date("14:00 5-18-2025"), new Date("20:00 5-18-2025"));
-
-  console.log(s);
-  const carbs = 10;
-  const protein = 40;
+  const condition = nightscoutStorage.get("url") !== null; // Replace this with your actual condition
 
   return (
     <div>
-      <Graph series={[s]}></Graph>
+      <TopBar></TopBar>
+      <Routes>
+        <Route
+          path="/"
+          element={
+            condition ? (
+              <Navigate to="/hub" replace />
+            ) : (
+              <Navigate to="/setup" replace />
+            )
+          }
+        />
+        <Route path="/profiler" element={<ProfilerPage />} />
+        <Route path="/setup" element={<SetupPage />} />
+      </Routes>
     </div>
   );
 }

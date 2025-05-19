@@ -1,12 +1,12 @@
 import StorageNode from "./storageNode";
-import { convertDimensions } from "./util";
+import { convertDimensions, getTimestampFromOffset } from "./util";
 import Unit from "../models/unit";
 
 export const nightscoutStorage = new StorageNode("nightscout");
 nightscoutStorage.add("url", "NULL");
 nightscoutStorage.add("apiSecret", "");
 nightscoutStorage.add("profileID", 0);
-nightscoutStorage.add("minutesPerReading", 10);
+nightscoutStorage.add("minutesPerReading", 5);
 
 class NightscoutManager {
   // Basic request stuff
@@ -57,6 +57,15 @@ class NightscoutManager {
   }
   static async verifyAuth() {
     return this.get("verifyauth");
+  }
+  static async getSugarAt(timestamp: Date) {
+    return this.getReadings(
+      timestamp,
+      getTimestampFromOffset(
+        timestamp,
+        nightscoutStorage.get("minutesPerReading") / 60
+      )
+    ).then(console.log);
   }
   static async getCurrentSugar() {
     return this.get("entries").then((a) => a[0].sgv);

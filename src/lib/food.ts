@@ -28,27 +28,14 @@ export class Food {
     this.unit = unit;
     this.GI = GI;
   }
-  deltaBG(t: number): number {
+  carbsDeltaBG(t: number): number {
     //
-    return (
-      metaKernel(
-        t,
-        this.getCarbs() * metaProfile.get("ecarbs"),
-        metaProfile.get("ninsulin"),
-        metaProfile.get("pcarbs") * (defaultGI / this.GI),
-        MetaFunctions.G
-      ) +
-      metaKernel(
-        t,
-        this.getProtein() * metaProfile.get("eprotein"),
-        metaProfile.get("nprotein"),
-        [
-          metaProfile.get("rprotein"), // Rise
-          metaProfile.get("pprotein"), // Plateu
-          metaProfile.get("fprotein"), // Fall
-        ],
-        MetaFunctions.P
-      )
+    return metaKernel(
+      t,
+      this.getCarbs() * metaProfile.get("ecarbs"),
+      metaProfile.get("ninsulin"),
+      metaProfile.get("pcarbs") * (defaultGI / this.GI),
+      MetaFunctions.G
     );
   }
   getCarbs(): number {

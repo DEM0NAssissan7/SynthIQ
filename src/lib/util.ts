@@ -1,5 +1,7 @@
+import Unit from "../models/unit";
+
 export function convertDimensions(source: number, destination: number): number {
-  return destination / source;
+  return source / destination;
 }
 
 // General Number Operations
@@ -17,8 +19,19 @@ export function genUUID(): number {
 
 // Timestamp
 export function getEpochMinutes(date: Date): number {
-  return Math.round(date.getTime() / 1000 / 60);
+  return Math.round(
+    date.getTime() * convertDimensions(Unit.Time.Millis, Unit.Time.Minute)
+  );
+}
+export function getEpochHours(date: Date): number {
+  return date.getTime() * convertDimensions(Unit.Time.Millis, Unit.Time.Hour);
 }
 export function getHourDiff(timestampA: Date, timestampB: Date): number {
   return (getEpochMinutes(timestampB) - getEpochMinutes(timestampA)) / 60;
+}
+export function getTimestampFromOffset(timestamp: Date, offset: number): Date {
+  let unixTimestamp = timestamp.getTime();
+  let offsetMillis =
+    offset * convertDimensions(Unit.Time.Hour, Unit.Time.Millis);
+  return new Date(unixTimestamp + offsetMillis);
 }

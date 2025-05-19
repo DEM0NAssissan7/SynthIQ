@@ -10,7 +10,7 @@ metaProfile.add("gramsPerMl", 1 / 3);
 
 // Inuslin Pharmacodynamics
 metaProfile.add("einsulin", 28); // Insulin point effect / unit
-metaProfile.add("pinsulin", 0.028); // insulin half-life in blood
+metaProfile.add("pinsulin", 3); // insulin half-life in blood
 metaProfile.add("ninsulin", 0.5); // hrs delay before insulin starts working
 
 // Carbohydrate Metabolism
@@ -25,3 +25,11 @@ metaProfile.add("nprotein", 0.0);
 metaProfile.add("rprotein", 3.6); // Rise time
 metaProfile.add("pprotein", 0.0351); // Plateau Time Rate (hours / gram)
 metaProfile.add("fprotein", 1.83); // Fall time
+
+export function getInsulin(carbs: number, protein: number) {
+  return (
+    (carbs * metaProfile.get("ecarbs") +
+      protein * metaProfile.get("eprotein")) /
+    metaProfile.get("einsulin")
+  );
+}
