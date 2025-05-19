@@ -1,7 +1,24 @@
+const appID = "synthiq";
 const storageBackend = {
   // Allow for use with alternative storage APIs
-  getItem: (key: string) => localStorage.getItem(key),
-  setItem: (key: string, value: string) => localStorage.setItem(key, value),
+  getItem: (key: string) => {
+    if (typeof window !== "undefined" && window.localStorage) {
+      return localStorage.getItem(key);
+    } else {
+      console.error(
+        "StorageNode: Something went wrong with the storage backend (getItem)"
+      );
+    }
+  },
+  setItem: (key: string, value: string) => {
+    if (typeof window !== "undefined" && window.localStorage) {
+      localStorage.setItem(key, value);
+    } else {
+      console.error(
+        "StorageNode: Something went wrong with the storage backend (setItem)"
+      );
+    }
+  },
 };
 
 type ReadHandler = (val: string) => any;
@@ -50,23 +67,26 @@ class StorageEntry {
   }
 
   // Storage Abstraction (through handlers and try/catch)
-  read() {
-    let val = this.getFromStorage();
-    if (val === null) {
+  read(): void {
+    let val: string;
+    try {
+      val = this.getFromStorage();
+    } catch {
       console.warn(
         `StorageEntry: did not find an entry in localstorage for ${this.getLocalstorageId()}. Creating new entry...`
       );
-      val = this.defaultValue;
-    } else {
-      try {
-        this.import(val);
-      } catch (e) {
-        throw new Error(
-          `StorageEntry[${this.getLocalstorageId()}]: Read handler is invalid: ${e}`
-        );
-      }
+      this.write();
+      return;
     }
-    this.value = val;
+
+    // Import value from storage
+    try {
+      this.import(val);
+    } catch (e) {
+      throw new Error(
+        `StorageEntry[${this.getLocalstorageId()}]: Read handler is invalid: ${e}`
+      );
+    }
   }
   write() {
     try {
@@ -88,9 +108,9 @@ class StorageEntry {
 
   // Storage API
   private writeToStorage(value: any) {
-    if (typeof value === "string")
+    if (typeof value === "string") {
       storageBackend.setItem(this.getLocalstorageId(), value);
-    else {
+    } else {
       console.log(value);
       throw new Error(
         `StorageEntry[${this.getLocalstorageId()}]: Cannot write non-string to localstorage.`
@@ -98,10 +118,16 @@ class StorageEntry {
     }
   }
   private getFromStorage() {
-    return storageBackend.getItem(this.getLocalstorageId());
+    let retval: any;
+    retval = storageBackend.getItem(this.getLocalstorageId());
+    if (retval === null)
+      throw new Error(
+        `StorageEntry[${this.getLocalstorageId()}]: Failed to retrieve key`
+      );
+    return retval;
   }
   getLocalstorageId() {
-    return `${this.nodeName}.${this.id}`;
+    return `${appID}.${this.nodeName}.${this.id}`;
   }
 
   // Subscriptions
