@@ -3,9 +3,12 @@ import "./index.scss";
 import App from "./App.tsx";
 
 import { BrowserRouter } from "react-router";
+import { StrictMode } from "react";
 
 createRoot(document.getElementById("root")!).render(
-  <BrowserRouter>
-    <App />
-  </BrowserRouter>
+  <StrictMode>
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
+  </StrictMode>
 );
