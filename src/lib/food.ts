@@ -1,5 +1,5 @@
 import Unit from "../models/unit";
-import { profile } from "./metabolism";
+import { metaProfile } from "./metabolism";
 import MetaFunctions from "../models/metaFunctions";
 import { metaKernel } from "../models/metaFunctions";
 import * as importedFoods from "../../public/foods.json";
@@ -33,19 +33,19 @@ export class Food {
     return (
       metaKernel(
         t,
-        this.getCarbs() * profile.get("ecarbs"),
-        profile.get("ninsulin"),
-        profile.get("pcarbs") * (defaultGI / this.GI),
+        this.getCarbs() * metaProfile.get("ecarbs"),
+        metaProfile.get("ninsulin"),
+        metaProfile.get("pcarbs") * (defaultGI / this.GI),
         MetaFunctions.G
       ) +
       metaKernel(
         t,
-        this.getProtein() * profile.get("eprotein"),
-        profile.get("nprotein"),
+        this.getProtein() * metaProfile.get("eprotein"),
+        metaProfile.get("nprotein"),
         [
-          profile.get("rprotein"), // Rise
-          profile.get("pprotein"), // Plateu
-          profile.get("fprotein"), // Fall
+          metaProfile.get("rprotein"), // Rise
+          metaProfile.get("pprotein"), // Plateu
+          metaProfile.get("fprotein"), // Fall
         ],
         MetaFunctions.P
       )

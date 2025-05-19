@@ -1,4 +1,4 @@
-import { profile } from "../lib/metabolism";
+import { metaProfile } from "../lib/metabolism";
 import MetaFunctions, { metaKernel } from "./metaFunctions";
 
 export default class Glucose {
@@ -7,15 +7,16 @@ export default class Glucose {
   timestamp: Date;
   constructor(timestamp: Date, caps: number) {
     this.caps = caps;
-    this.grams = caps * profile.get("mlsPerCap") * profile.get("gramsPerMl");
+    this.grams =
+      caps * metaProfile.get("mlsPerCap") * metaProfile.get("gramsPerMl");
     this.timestamp = timestamp;
   }
   deltaBG(t: number): number {
     return metaKernel(
       t,
-      this.grams * profile.get("ecarbs"),
-      profile.get("nglucose"),
-      profile.get("pglucose"),
+      this.grams * metaProfile.get("ecarbs"),
+      metaProfile.get("nglucose"),
+      metaProfile.get("pglucose"),
       MetaFunctions.G
     );
   }

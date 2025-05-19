@@ -1,4 +1,4 @@
-import { profile } from "../lib/metabolism";
+import { metaProfile } from "../lib/metabolism";
 import MetaFunctions, { metaKernel } from "./metaFunctions";
 
 export enum InsulinType {
@@ -22,9 +22,9 @@ export default class Insulin {
     // Change in blood sugar over time
     return metaKernel(
       t,
-      this.units * profile.get("einsulin"),
-      profile.get("ninsulin"),
-      profile.get("pinsulin"),
+      this.units * metaProfile.get("einsulin"),
+      metaProfile.get("ninsulin"),
+      metaProfile.get("pinsulin"),
       MetaFunctions.H // Half life decay
     );
   }
