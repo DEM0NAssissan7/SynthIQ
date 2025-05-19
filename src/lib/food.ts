@@ -2,7 +2,7 @@ import Unit from "../models/unit";
 import { metaProfile } from "./metabolism";
 import MetaFunctions from "../models/metaFunctions";
 import { metaKernel } from "../models/metaFunctions";
-import * as importedFoods from "../../public/foods.json";
+import * as importedFoods from "../assets/foods.json";
 
 const defaultGI = 20;
 
@@ -87,15 +87,15 @@ export class Food {
   }
   static parse(string: string): Food {
     let food = JSON.parse(string);
-      let newFood: Food;
-      try {
-        newFood = getFoodByName(food.name);
-      } catch (e: any) {
-        console.warn(`${e} - using hardcoded info`);
-        newFood = Food.createFromImport(food);
-      }
-      newFood.amount = food.amount || 0;
-      return newFood;
+    let newFood: Food;
+    try {
+      newFood = getFoodByName(food.name);
+    } catch (e: any) {
+      console.warn(`${e} - using hardcoded info`);
+      newFood = Food.createFromImport(food);
+    }
+    newFood.amount = food.amount || 0;
+    return newFood;
   }
 }
 
