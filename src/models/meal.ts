@@ -1,4 +1,4 @@
-import Food from "./food";
+import Food from "../lib/food";
 import { getEpochMinutes } from "../lib/util";
 import type Series from "./series";
 import type Glucose from "./glucose";
