@@ -128,6 +128,14 @@ export function importFoods(): void {
 }
 
 function getFoodByName(name: string): Food {
-  for (let food of foods) if (food.name === name) return food;
+  for (let food of foods)
+    if (food.name === name)
+      return new Food(
+        food.name,
+        food.carbsRate,
+        food.proteinRate,
+        food.unit,
+        food.GI
+      );
   throw new Error(`Foods: could not find food with name ${name}`);
 }
