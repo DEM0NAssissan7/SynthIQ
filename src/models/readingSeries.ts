@@ -19,7 +19,6 @@ class ReadingSeries extends Series {
       result.forEach((r: any) => {
         let sugar: number = r.sgv;
         let timestamp: Date = new Date(r.date);
-        console.log(r, sugar);
         this.point(getHourDiff(this.timestamp, timestamp), sugar);
       });
     });
