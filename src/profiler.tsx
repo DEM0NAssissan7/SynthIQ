@@ -1,4 +1,5 @@
 import Graph from "./components/Graph";
+import ProfileSlider from "./components/ProfileSlider";
 import NightscoutManager from "./lib/nightscoutManager";
 import Meal from "./models/meal";
 
@@ -12,10 +13,37 @@ function ProfilerPage() {
 
   let initialGlucose = 120;
   meal.getInitialGlucose().then((a: any) => (initialGlucose = a));
-  const s = meal.createSeriesList(initialGlucose, 10);
+  const s = meal.createSeriesList(initialGlucose, -1, 10);
   console.log(s);
 
-  return <Graph series={s}></Graph>;
+  return (
+    <>
+      <ProfileSlider variable="einsulin"></ProfileSlider>
+      <ProfileSlider variable="pinsulin"></ProfileSlider>
+      <ProfileSlider variable="ninsulin"></ProfileSlider>
+      <br></br>
+      <ProfileSlider variable="ecarbs"></ProfileSlider>
+      <ProfileSlider variable="pcarbs"></ProfileSlider>
+      <ProfileSlider variable="ncarbs"></ProfileSlider>
+      <br></br>
+      <ProfileSlider variable="eprotein"></ProfileSlider>
+      <ProfileSlider variable="nprotein"></ProfileSlider>
+      <ProfileSlider
+        variable="rprotein"
+        prettyName="Protein Rise"
+      ></ProfileSlider>
+      <ProfileSlider
+        variable="pprotein"
+        prettyName="Protein Plateau"
+      ></ProfileSlider>
+      <ProfileSlider
+        variable="fprotein"
+        prettyName="Protein Fall"
+      ></ProfileSlider>
+      <br></br>
+      <Graph series={s} width="100%" height={200} xmax={12}></Graph>
+    </>
+  );
 }
 
 export default ProfilerPage;

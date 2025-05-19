@@ -24,6 +24,7 @@ const storageBackend = {
 type ReadHandler = (val: string) => any;
 type WriteHandler = (val: any) => string;
 type SubscriptionCallback = (val: any) => void;
+type GeneralSubscriptionCallback = () => void;
 
 const defaultReadHandler: ReadHandler = JSON.parse;
 const defaultWriteHandler: WriteHandler = JSON.stringify;
@@ -60,7 +61,7 @@ class StorageEntry {
   set(value: any) {
     this.value = value;
     this.write();
-    this.runSubscriptions();
+    this.notify();
   }
   reset() {
     this.set(this.defaultValue);
@@ -83,6 +84,7 @@ class StorageEntry {
     try {
       this.import(val);
     } catch (e) {
+      console.error(e);
       throw new Error(
         `StorageEntry[${this.getLocalstorageId()}]: Read handler is invalid: ${e}`
       );
@@ -126,7 +128,7 @@ class StorageEntry {
       );
     return retval;
   }
-  getLocalstorageId() {
+  private getLocalstorageId() {
     return `${appID}.${this.nodeName}.${this.id}`;
   }
 
@@ -134,7 +136,7 @@ class StorageEntry {
   subscribe(callback: SubscriptionCallback) {
     this.subscriptions.push(callback);
   }
-  runSubscriptions() {
+  private notify() {
     this.subscriptions.forEach((callback) => {
       try {
         callback(this.value);
@@ -150,6 +152,7 @@ class StorageEntry {
 
 class StorageNode {
   name: string;
+  generalSubscriptions: GeneralSubscriptionCallback[] = [];
   private entries: StorageEntry[] = [];
   constructor(name: string) {
     this.name = name;
@@ -157,7 +160,8 @@ class StorageNode {
 
   // Bread and butter
   set(id: string, value: any): void {
-    return this.getEntryById(id).set(value);
+    this.getEntryById(id).set(value);
+    this.notifyGeneral();
   }
   get(id: string): any {
     return this.getEntryById(id).get();
@@ -169,7 +173,7 @@ class StorageNode {
     writeHandler: WriteHandler = defaultWriteHandler
   ): void {
     try {
-      this.getEntryById(id);
+      this.getEntryById(id); // Try to see if it already exists
     } catch {
       const entry = new StorageEntry(
         id,
@@ -206,6 +210,14 @@ class StorageNode {
   // Callbacks
   subscribe(id: string, callback: SubscriptionCallback): void {
     this.getEntryById(id).subscribe(callback);
+  }
+
+  // General Subscriptions
+  subscribeGeneral(callback: GeneralSubscriptionCallback): void {
+    this.generalSubscriptions.push(callback);
+  }
+  private notifyGeneral() {
+    this.generalSubscriptions.forEach((callback) => callback());
   }
 
   // Exporting and importing

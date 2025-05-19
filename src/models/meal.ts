@@ -12,7 +12,6 @@ import ReadingSeries from "./readingSeries";
 import MathSeries from "./mathSeries";
 import NightscoutManager, { nightscoutStorage } from "../lib/nightscoutManager";
 import { Color } from "./series";
-import Unit from "./unit";
 import { metaProfile } from "../lib/metabolism";
 import MetaFunctions, { metaKernel } from "./metaFunctions";
 
@@ -80,9 +79,9 @@ class Meal {
       this.getMealInfo().protein * metaProfile.get("eprotein"),
       metaProfile.get("nprotein"),
       [
-        metaProfile.get("rprotein"), // Rise
-        metaProfile.get("pprotein"), // Plateu
-        metaProfile.get("fprotein"), // Fall
+        metaProfile.get("rprotein"), // Rise (gram / hour)
+        this.getMealInfo().protein / metaProfile.get("pprotein"), // Plateu (gram / hour)
+        metaProfile.get("fprotein"), // Fall (gram / hour)
       ],
       MetaFunctions.P
     );
@@ -100,9 +99,13 @@ class Meal {
   }
 
   // Graphing
-  createSeriesList(initialGlucose: number, until: number): Series[] {
+  createSeriesList(
+    initialGlucose: number,
+    from: number,
+    until: number
+  ): Series[] {
     let readingSeries = new ReadingSeries(Color.Black, this.timestamp);
-    const A = getTimestampFromOffset(this.timestamp, -1);
+    const A = getTimestampFromOffset(this.timestamp, from);
     const B = getTimestampFromOffset(this.timestamp, until);
     console.log(A, B);
     readingSeries.populate(A, B);
@@ -110,11 +113,17 @@ class Meal {
     let predictionSeries = new MathSeries(Color.Blue, [
       (t) => this.deltaBG(t, initialGlucose),
     ]);
-    predictionSeries.populate(
-      -1,
-      until,
-      nightscoutStorage.get("minutesPerReading") / 60
-    );
+    const predictionCallback = () => {
+      requestAnimationFrame(() => {
+        predictionSeries.populate(
+          from,
+          until,
+          nightscoutStorage.get("minutesPerReading") / 60
+        );
+      });
+    };
+    predictionCallback();
+    metaProfile.subscribeGeneral(predictionCallback);
 
     return [readingSeries, predictionSeries];
   }

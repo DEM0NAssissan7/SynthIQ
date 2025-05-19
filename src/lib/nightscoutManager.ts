@@ -6,7 +6,10 @@ export const nightscoutStorage = new StorageNode("nightscout");
 nightscoutStorage.add("url", "NULL");
 nightscoutStorage.add("apiSecret", "");
 nightscoutStorage.add("profileID", 0);
+
+// CGM
 nightscoutStorage.add("minutesPerReading", 5);
+nightscoutStorage.add("cgmDelay", 5);
 
 class NightscoutManager {
   // Basic request stuff
@@ -14,7 +17,7 @@ class NightscoutManager {
     return `${nightscoutStorage.get("url")}/api/v1/${api}`;
   }
   private static async get(api: string, options?: any) {
-    return fetch(this.getApiPath(api), {
+    return await fetch(this.getApiPath(api), {
       method: "GET",
       headers: {
         accept: "application/json",
@@ -24,11 +27,17 @@ class NightscoutManager {
       mode: "cors",
       credentials: "omit",
       ...options, // allows override or extension
-    })
-      .then((a) => a.json())
-      .catch(console.error);
+    }).then((a) => {
+      if (a.ok) {
+        if (a) return a.json();
+        else throw new Error("Nightscout: GET request gave invalid data");
+      } else
+        throw new Error(
+          `Nightscout: GET request failed - HTTP status code '${a.status}'`
+        );
+    });
   }
-  private static async post(api: string, payload: any) {
+  private static post(api: string, payload: any) {
     payload.enteredBy = "Ringsight";
     payload.timestamp = Date.now();
     return fetch(this.getApiPath(api), {
@@ -44,22 +53,22 @@ class NightscoutManager {
       method: "POST",
       mode: "cors",
       credentials: "omit",
-    }).catch(console.error);
+    });
   }
 
   static addTreatment(treatment: object): void {
     this.post("treatments", treatment);
   }
   static async getProfile() {
-    return this.get("profile").then(
+    return await this.get("profile").then(
       (a) => a[nightscoutStorage.get("profileID")]
     );
   }
   static async verifyAuth() {
-    return this.get("verifyauth");
+    return await this.get("verifyauth");
   }
   static async getSugarAt(timestamp: Date) {
-    return this.getReadings(
+    return await this.getReadings(
       timestamp,
       getTimestampFromOffset(
         timestamp,
@@ -68,14 +77,14 @@ class NightscoutManager {
     ).then(console.log);
   }
   static async getCurrentSugar() {
-    return this.get("entries").then((a) => a[0].sgv);
+    return await this.get("entries").then((a) => a[0].sgv);
   }
   static async getReadings(timestampA: Date, timestampB: Date) {
     let count =
       ((timestampB.getTime() - timestampA.getTime()) *
         convertDimensions(Unit.Time.Millis, Unit.Time.Minute)) /
       nightscoutStorage.get("minutesPerReading");
-    return this.get(
+    return await this.get(
       `entries/sgv.json?find[date][$gte]=${timestampA.getTime()}&find[date][$lte]=${timestampB.getTime()}&count=${count}`
     );
   }

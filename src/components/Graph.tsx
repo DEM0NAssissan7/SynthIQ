@@ -1,51 +1,87 @@
 import { useEffect, useState } from "react";
 import Series from "../models/series";
 
-import { LineChart, Line, CartesianGrid, XAxis, YAxis } from "recharts";
+import {
+  LineChart,
+  Line,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  ResponsiveContainer,
+} from "recharts";
 
 interface GraphProps {
   series: Series[];
-  min?: string;
+  ymin?: string | number;
+  width?: string | number;
+  height?: string | number;
+  xmin?: number;
+  xmax?: number;
 }
 
-export default function Graph({ series, min }: GraphProps) {
+export default function Graph({
+  series,
+  ymin = "auto",
+  width = 600,
+  height = 200,
+  xmin = -1,
+  xmax = 9,
+}: GraphProps) {
   const [, setVersion] = useState(0);
 
   useEffect(() => {
-    // for each series, subscribe once on mount...
-    const callbacks = series.map(() => () => setVersion((v) => v + 1));
+    let animationFrameId: number | null = null;
 
-    series.forEach((s, i) => {
-      s.subscribe(callbacks[i]);
-    });
+    const callback = () => {
+      if (animationFrameId === null) {
+        animationFrameId = requestAnimationFrame(() => {
+          setVersion((v) => v + 1);
+          animationFrameId = null;
+        });
+      }
+    };
+
+    series.forEach((s) => s.subscribe(callback));
 
     return () => {
-      series.forEach((s, i) => {
-        s.unsubscribe(callbacks[i]);
-      });
+      if (animationFrameId !== null) {
+        cancelAnimationFrame(animationFrameId);
+      }
+      series.forEach((s) => s.unsubscribe(callback));
     };
-  });
+  }, [series]);
 
   return (
-    <LineChart width={600} height={300}>
-      <CartesianGrid stroke="#ccc" strokeDasharray="5 5" />
+    <div style={{ width, height }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart>
+          <CartesianGrid stroke="#ccc" strokeDasharray="10 5" />
 
-      {
-        // Create a line set for each piece of data
-        series.map((s) => {
-          return (
-            <Line
-              type="monotone"
-              data={s.getRechartData()}
-              dataKey="y"
-              stroke={s.color}
-            ></Line>
-          );
-        })
-      }
+          {
+            // Create a line set for each piece of data
+            series.map((s) => {
+              return (
+                <Line
+                  type="monotone"
+                  data={s.getRechartData()}
+                  dataKey="y"
+                  stroke={s.color}
+                  dot={false}
+                ></Line>
+              );
+            })
+          }
 
-      <XAxis type="number" dataKey="x" domain={["auto", "auto"]} />
-      <YAxis type="number" domain={[min || "auto", "auto"]} />
-    </LineChart>
+          <XAxis
+            type="number"
+            dataKey="x"
+            domain={[xmin, xmax]}
+            allowDataOverflow={true}
+            tickCount={xmax - xmin + 1}
+          />
+          <YAxis type="number" domain={[ymin, "auto"]} />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
   );
 }
