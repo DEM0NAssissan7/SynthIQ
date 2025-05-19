@@ -79,22 +79,34 @@ export class Food {
         unit = Unit.Food.Percent;
         break;
     }
-    return new Food(
+    const newFood = new Food(
       food.name,
       food.carbs,
       food.protein,
       unit,
       food.GI || defaultGI
     );
+    newFood.amount = food.amount || 0;
+    return newFood;
   }
 
-  static stringify(f: Food, discludeAmount: boolean = false): string {
+  static stringify(food: Food, discludeAmount: boolean = false): string {
     // TODO
-    return "";
+    return JSON.stringify({
+      name: food.name,
+      carbs: food.carbsRate,
+      protein: food.proteinRate,
+      fat: food.fatRate,
+      units: food.unit,
+      GI: food.GI,
+      amount: food.amount && !discludeAmount,
+    });
   }
   static parse(string: string): Food {
     // TODO
-    return;
+    return JSON.parse(string).map((food: any) => {
+      return Food.createFromImport(food);
+    });
     // return new Food();
   }
 }
@@ -104,8 +116,8 @@ let isImported: boolean = false;
 
 export function importFoods(): void {
   if (!isImported) {
-    importedFoods.foods.forEach((f) => {
-      foods.push(Food.createFromImport(f));
+    importedFoods.foods.forEach((food) => {
+      foods.push(Food.createFromImport(food));
     });
     return;
   } else {
