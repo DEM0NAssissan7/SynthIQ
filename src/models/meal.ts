@@ -1,8 +1,8 @@
-import Food from "../lib/food";
+import { Food } from "../lib/food";
 import { getEpochMinutes } from "../lib/util";
 import type Series from "./series";
-import type Glucose from "./glucose";
-import type Insulin from "./insulin";
+import Glucose from "./glucose";
+import Insulin from "./insulin";
 
 class Meal {
   timestamp: Date;
