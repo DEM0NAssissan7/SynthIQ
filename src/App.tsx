@@ -9,10 +9,11 @@ import WizardMealPage from "./wizard/WizardMealPage";
 import WizardInsulinPage from "./wizard/WizardInsulinPage";
 import SettingsPage from "./SettingsPage";
 import HubPage from "./hub";
+import WizardManager from "./lib/wizardManager";
+import WizardSummaryPage from "./wizard/WizardSummaryPage";
 
 function App() {
   const condition = nightscoutStorage.get("url") !== null; // Replace this with your actual condition
-
   return (
     <div>
       <TopBar />
@@ -22,7 +23,11 @@ function App() {
             path="/"
             element={
               condition ? (
-                <Navigate to="/hub" replace />
+                WizardManager.isActive() ? (
+                  <Navigate to="/wizard" replace />
+                ) : (
+                  <Navigate to="/hub" replace />
+                )
               ) : (
                 <Navigate to="/setup" replace />
               )
@@ -38,6 +43,7 @@ function App() {
           <Route path="/wizard/intro" element={<WizardIntroPage />} />
           <Route path="/wizard/meal" element={<WizardMealPage />} />
           <Route path="/wizard/insulin" element={<WizardInsulinPage />} />
+          <Route path="/wizard/summary" element={<WizardSummaryPage />} />
         </Routes>
       </div>
     </div>
