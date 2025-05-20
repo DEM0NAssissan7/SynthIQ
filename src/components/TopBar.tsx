@@ -30,6 +30,13 @@ function TopBar() {
       <Navbar expand="lg" className="bg-body-tertiary" expanded={expanded}>
         <Container>
           <Navbar.Brand as={Link} to="/">
+            <img
+              src="/favicon.png"
+              alt="Logo"
+              width="30"
+              height="30"
+              className="d-inline-block align-top me-2"
+            />
             SynthIQ
           </Navbar.Brand>
           <Navbar.Toggle
