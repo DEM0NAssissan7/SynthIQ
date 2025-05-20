@@ -56,7 +56,7 @@ export default function FoodDisplay({
     <ListGroup.Item key={food.name} className="d-flex flex-column gap-3 p-3">
       <div className="d-flex justify-content-between align-items-center">
         <span className="fw-bold">{food.name}</span>
-        {added && (
+        {added ? (
           <span className="text-muted">
             {round(food.getCarbs(), 2)}g carbs
             <br />
@@ -64,8 +64,7 @@ export default function FoodDisplay({
             <br />
             {round(getInsulin(food.getCarbs(), food.getProtein()), 2)}u insulin
           </span>
-        )}
-        {!added && (
+        ) : (
           <span className="text-muted">
             {food.carbsRate}g carbs
             <br />
@@ -86,14 +85,13 @@ export default function FoodDisplay({
               onInput={handleInput}
             />
           </Form.Group>
-          {!added && (
-            <Button variant="secondary" onClick={handleButtonPress}>
-              Add
-            </Button>
-          )}
-          {added && (
+          {added ? (
             <Button variant="danger" onClick={handleButtonPress}>
               Remove
+            </Button>
+          ) : (
+            <Button variant="secondary" onClick={handleButtonPress}>
+              Add
             </Button>
           )}
         </div>
