@@ -29,9 +29,9 @@ export function getEpochHours(date: Date): number {
 export function getHourDiff(timestampA: Date, timestampB: Date): number {
   return (getEpochMinutes(timestampB) - getEpochMinutes(timestampA)) / 60;
 }
-export function getTimestampFromOffset(timestamp: Date, offset: number): Date {
+export function getTimestampFromOffset(timestamp: Date, hours: number): Date {
   let unixTimestamp = timestamp.getTime();
   let offsetMillis =
-    offset * convertDimensions(Unit.Time.Hour, Unit.Time.Millis);
+    hours * convertDimensions(Unit.Time.Hour, Unit.Time.Millis);
   return new Date(unixTimestamp + offsetMillis);
 }
