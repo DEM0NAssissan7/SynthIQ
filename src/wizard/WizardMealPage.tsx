@@ -53,8 +53,15 @@ export default function WizardMealPage() {
     };
   }, []);
   function addFood(food: Food, amount: number) {
-    food.amount = amount;
-    meal.addFood(food);
+    const newFood = new Food(
+      food.name,
+      food.carbsRate,
+      food.proteinRate,
+      food.unit,
+      food.GI
+    );
+    newFood.amount = amount;
+    meal.addFood(newFood);
     setQuery("");
   }
   function removeFood(food: Food) {
