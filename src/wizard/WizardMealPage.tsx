@@ -144,6 +144,12 @@ export default function WizardMealPage() {
     if (getNInsulin() < 0 || WizardManager.getInsulinMarked()) return "primary";
     return "secondary";
   }
+  function getRelativeEatTime(): number {
+    return (
+      getEpochMinutes(new Date()) -
+      getEpochMinutes(getOptimalInsulinTiming(meal, meal.getInsulin(), -2, 6))
+    );
+  }
 
   // Current Glucose
   const [currentGlucose, setCurrentGlucose] = useState<any>(0);
@@ -197,11 +203,14 @@ export default function WizardMealPage() {
   function beginEating() {
     if (confirm("Are you ready to start eating?")) {
       WizardManager.markMeal();
-      WizardManager.moveToPage(WizardState.Insulin, navigate); // Move onto taking insulin
+      if (WizardManager.getInsulinMarked()) {
+        WizardManager.moveToPage(WizardState.Summary, navigate);
+      } else {
+        WizardManager.moveToPage(WizardState.Insulin, navigate); // Move onto taking insulin
+      }
     }
   }
   function takeInsulin() {
-    meal.insulins = [];
     WizardManager.moveToPage(WizardState.Insulin, navigate);
   }
 
@@ -293,6 +302,7 @@ export default function WizardMealPage() {
                       }
                     }}
                   />
+                  <span className="input-group-text">g</span>
                 </div>
               </Form.Group>
             </ListGroup.Item>
@@ -317,6 +327,7 @@ export default function WizardMealPage() {
                       }
                     }}
                   />
+                  <span className="input-group-text">g</span>
                 </div>
               </Form.Group>
             </ListGroup.Item>
@@ -330,78 +341,86 @@ export default function WizardMealPage() {
             <ListGroup.Item>
               {round(mealCarbs, 2)}g carbs<br></br>
               {round(mealProtein, 2)}g protein<br></br>
-              {!WizardManager.getInsulinMarked() && (
+              {WizardManager.getInsulinMarked() ? (
+                <>
+                  <b>{round(meal.getInsulin(), 2)}u</b> insulin (
+                  {round(
+                    Math.abs(
+                      getEpochMinutes(new Date()) -
+                        getEpochMinutes(meal.insulins[0].timestamp)
+                    ),
+                    0
+                  )}{" "}
+                  minutes ago)
+                </>
+              ) : (
                 <>
                   <b>{round(insulinNeed, 2)}u insulin</b> (
                   {round(insulinCorrection, 2)}u correction)
                 </>
               )}
-              {WizardManager.getInsulinMarked() && (
-                <>
-                  <b>{round(meal.getInsulin(), 2)}u insulin</b>
-                </>
-              )}
             </ListGroup.Item>
-            <ListGroup.Item>
-              {!WizardManager.getInsulinMarked() && (
-                <>
-                  Consider taking <b>{round(insulinNeed, 2)}u</b> of insulin{" "}
-                  <b>
-                    {getPrettyTimeDiff(
-                      new Date(),
-                      insulinTime,
-                      Unit.Time.Minute
-                    )}
-                  </b>{" "}
-                  {mealCarbs !== 0 && mealProtein !== 0 && "you start eating"}
-                </>
-              )}
-              {WizardManager.getInsulinMarked() && (
-                <>
-                  You took {meal.getInsulin()}u insulin{" "}
-                  {round(
-                    getEpochMinutes(new Date()) -
-                      getEpochMinutes(meal.insulins[0].timestamp),
-                    0
-                  )}{" "}
-                  minutes ago
-                </>
-              )}
-            </ListGroup.Item>
-            <ListGroup.Item>
-              <Form.Group controlId="current-glucose" className="mb-3">
-                <Form.Label className="text-muted">
-                  Current Blood Sugar
-                </Form.Label>
-                <div className="input-group">
-                  <span className="input-group-text">
-                    <i className="bi bi-droplet"></i>
-                  </span>
-                  <Form.Control
-                    type="number"
-                    value={currentGlucose} // controlled value
-                    onChange={(e) => {
-                      const value = parseFloat(e.target.value);
-                      if (!isNaN(value)) {
-                        setCurrentGlucose(value);
-                        meal.setInitialGlucose(value);
-                      } else {
-                        setCurrentGlucose("");
-                      }
-                    }}
-                  />
-                  <Button variant="primary" onClick={pullCurrentGlucose}>
-                    Auto
-                  </Button>
-                </div>
-              </Form.Group>
-            </ListGroup.Item>
+            {(getRelativeEatTime() >= 0 ||
+              !WizardManager.getInsulinMarked()) && (
+              <ListGroup.Item>
+                {WizardManager.getInsulinMarked() ? (
+                  <>
+                    Consider eating in <b>{getRelativeEatTime()} minutes</b>
+                  </>
+                ) : (
+                  <>
+                    Consider taking <b>{round(insulinNeed, 2)}u</b> of insulin{" "}
+                    <b>
+                      {getPrettyTimeDiff(
+                        new Date(),
+                        insulinTime,
+                        Unit.Time.Minute
+                      )}
+                    </b>{" "}
+                    {mealCarbs !== 0 && mealProtein !== 0 && "you start eating"}
+                  </>
+                )}
+              </ListGroup.Item>
+            )}
+            {!WizardManager.getInsulinMarked() && (
+              <ListGroup.Item>
+                <Form.Group controlId="current-glucose" className="mb-3">
+                  <Form.Label className="text-muted">
+                    Current Blood Sugar
+                  </Form.Label>
+                  <div className="input-group">
+                    <span className="input-group-text">
+                      <i className="bi bi-droplet"></i>
+                    </span>
+                    <Form.Control
+                      type="number"
+                      value={currentGlucose} // controlled value
+                      onChange={(e) => {
+                        const value = parseFloat(e.target.value);
+                        if (!isNaN(value)) {
+                          setCurrentGlucose(value);
+                          meal.setInitialGlucose(value);
+                        } else {
+                          setCurrentGlucose("");
+                        }
+                      }}
+                    />
+                    <Button variant="primary" onClick={pullCurrentGlucose}>
+                      Auto
+                    </Button>
+                  </div>
+                </Form.Group>
+              </ListGroup.Item>
+            )}
           </ListGroup>
         </div>
       </div>
       <div className="card mb-4" id="meal-summary">
         <div className="card-body">
-          <Form.Label>Predicted Blood Sugar</Form.Label>
+          <Form.Label>
+            Predicted Blood Sugar{" "}
+            {WizardManager.getInsulinMarked() && "(if you eat now)"}
+          </Form.Label>
           <MealGraph meal={meal} from={-1} until={16} width="100%"></MealGraph>
         </div>
       </div>
