@@ -8,7 +8,7 @@ import WizardIntroPage from "./wizard/WizardIntroPage";
 import WizardMealPage from "./wizard/WizardMealPage";
 import WizardInsulinPage from "./wizard/WizardInsulinPage";
 import SettingsPage from "./SettingsPage";
-import HubPage from "./hub";
+import HubPage from "./HubPage";
 import WizardManager from "./lib/wizardManager";
 import WizardSummaryPage from "./wizard/WizardSummaryPage";
 
