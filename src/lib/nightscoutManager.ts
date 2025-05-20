@@ -108,7 +108,12 @@ class NightscoutManager {
       eventType: "Meal Bolus",
     });
   }
-  static markGlucose(grams: number): void {}
+  static markGlucose(grams: number): void {
+    this.post("treatments", {
+      carbs: grams,
+      eventType: "Glucose Shot",
+    });
+  }
 
   // Meals
   /** This will store the ENTIRE meal
