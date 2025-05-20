@@ -1,17 +1,17 @@
-import MealGraph from "./components/MealGraph";
 import ProfileSlider from "./components/ProfileSlider";
 import Meal from "./models/meal";
+import ProfilerMealDisplay from "./components/ProfilerMealDisplay";
+import { useEffect, useState } from "react";
+import NightscoutManager from "./lib/nightscoutManager";
 
 function ProfilerPage() {
-  const time = new Date("14:59 5-18-2025");
-  const meal = new Meal(time);
-  const carbs = 10;
-  const protein = 40;
+  const [importedMeals, setImportedMeals] = useState<Meal[]>([]);
 
-  meal.setCarbsOffset(carbs);
-  meal.setProteinOffset(protein);
-  meal.insulin(new Date("14:53 5-18-2025"), 4.5);
-  meal.getInitialGlucose();
+  useEffect(() => {
+    NightscoutManager.getAllMeals().then((m) => {
+      setImportedMeals(m);
+    });
+  }, []);
 
   return (
     <>
@@ -27,18 +27,20 @@ function ProfilerPage() {
       <ProfileSlider variable="nprotein"></ProfileSlider>
       <ProfileSlider
         variable="cprotein"
-        prettyName="Protein Rise"
+        prettyName="Protein Minimum Digestion Time (hours)"
       ></ProfileSlider>
       <ProfileSlider
         variable="pprotein"
-        prettyName="Protein Plateau"
-      ></ProfileSlider>
-      <ProfileSlider
-        variable="fprotein"
-        prettyName="Protein Fall"
+        prettyName="Protein Sustain Rate (hours/gram)"
       ></ProfileSlider>
       <br></br>
-      <MealGraph meal={meal} from={-1} until={24}></MealGraph>
+      {importedMeals.map((meal) => (
+        <ProfilerMealDisplay
+          meal={meal}
+          from={-1}
+          until={24}
+        ></ProfilerMealDisplay>
+      ))}
     </>
   );
 }
