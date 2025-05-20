@@ -232,6 +232,13 @@
       "GI": 20
     },
     {
+      "name": "Sausage Link",
+      "carbs": 0.5,
+      "protein": 8,
+      "units": "unit",
+      "GI": 20
+    },
+    {
       "name": "Steak (ribeye)",
       "carbs": 0,
       "protein": 24,
