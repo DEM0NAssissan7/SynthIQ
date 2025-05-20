@@ -98,13 +98,13 @@ export default function WizardMealPage() {
       if (!executing && !WizardManager.getInsulinMarked()) {
         executing = true;
         let insulin = getTotalInsulin();
-        console.log(
-          insulin,
-          meal.getCarbs(),
-          meal.getProtein(),
-          meal.initialGlucose,
-          currentGlucose
-        );
+        // console.log(
+        //   insulin,
+        //   meal.getCarbs(),
+        //   meal.getProtein(),
+        //   meal.initialGlucose,
+        //   currentGlucose
+        // );
         setInsulin([insulin, getInsulinCorrection()]);
         meal.insulins = [];
         const optimalInsulinTimestamp = getOptimalInsulinTiming(

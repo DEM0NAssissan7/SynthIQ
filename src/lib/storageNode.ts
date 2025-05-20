@@ -113,7 +113,6 @@ class StorageEntry {
     if (typeof value === "string") {
       storageBackend.setItem(this.getLocalstorageId(), value);
     } else {
-      console.log(value);
       throw new Error(
         `StorageEntry[${this.getLocalstorageId()}]: Cannot write non-string to localstorage.`
       );

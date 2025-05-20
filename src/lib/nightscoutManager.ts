@@ -155,7 +155,7 @@ class NightscoutManager {
      */
     let meals: Meal[] = [];
     let treatments = await this.get("treatments");
-    console.log(treatments);
+    // console.log(treatments);
     treatments.forEach((t: any) => {
       if (
         t.eventType === mealStoreEventType &&
