@@ -77,14 +77,17 @@ class Meal {
     this.timestamp = timestamp;
     this.notify();
   }
-  getSimStartOffset(): number {
+  getStartTimestamp() {
     let timestamp = this.timestamp;
     const callback = (t: Date) => {
       if (getHourDiff(timestamp, t) < 0) timestamp = t;
     };
     this.insulins.forEach((a) => callback(a.timestamp));
     this.glucoses.forEach((a) => callback(a.timestamp));
-    return this.getN(timestamp);
+    return timestamp;
+  }
+  getSimStartOffset(): number {
+    return this.getN(this.getStartTimestamp());
   }
 
   // Metabolism
@@ -164,8 +167,10 @@ class Meal {
     );
     return predictionSeries;
   }
-  async getInitialGlucose() {
-    return NightscoutManager.getSugarAt(this.timestamp).then((a: any) => {
+  async getInitialGlucose(useTrueStart: boolean = true) {
+    let timestamp = this.getStartTimestamp();
+    if (!useTrueStart) timestamp = this.timestamp;
+    return NightscoutManager.getSugarAt(timestamp).then((a: any) => {
       this.setInitialGlucose(a.sgv);
       return a;
     });
