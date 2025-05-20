@@ -62,11 +62,11 @@ export function getOptimalInsulinTiming(
   let time: Date = new Date();
   const previousInsulins = meal.insulins;
   const threshold = metaProfile.get("minThreshold");
-  console.log(
-    -unitsInsulin * metaProfile.get("einsulin") +
-      meal.getCarbs() * metaProfile.get("ecarbs") +
-      meal.getProtein() * metaProfile.get("eprotein")
-  );
+  // console.log(
+  //   -unitsInsulin * metaProfile.get("einsulin") +
+  //     meal.getCarbs() * metaProfile.get("ecarbs") +
+  //     meal.getProtein() * metaProfile.get("eprotein")
+  // );
   for (let n = from; n <= until; n += 1 / 60) {
     // All insulin timings [within one minute] (from -> until)
 
