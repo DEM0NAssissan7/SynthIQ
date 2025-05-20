@@ -1,7 +1,5 @@
 import { Food } from "../lib/food";
 import {
-  convertDimensions,
-  getEpochHours,
   getEpochMinutes,
   getHourDiff,
   getTimestampFromOffset,

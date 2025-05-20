@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Button, Form, ListGroup } from "react-bootstrap";
 import { Food, foods } from "../lib/food";
 import FoodDisplay from "../components/FoodDisplay";

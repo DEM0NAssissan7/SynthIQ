@@ -1,12 +1,7 @@
 import { Button, Form, ListGroup } from "react-bootstrap";
 import { getFoodUnitPrettyName } from "../models/unit";
 import type { Food } from "../lib/food";
-import {
-  useEffect,
-  useState,
-  type BaseSyntheticEvent,
-  type FormEventHandler,
-} from "react";
+import { useState, type BaseSyntheticEvent } from "react";
 import { getInsulin } from "../lib/metabolism";
 import { round } from "../lib/util";
 

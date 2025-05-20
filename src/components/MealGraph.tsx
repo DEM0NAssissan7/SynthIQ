@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type Meal from "../models/meal";
 import Graph from "./Graph";
-import Series, { Color } from "../models/series";
+import { Color } from "../models/series";
 import ReadingSeries from "../models/readingSeries";
 import MathSeries from "../models/mathSeries";
 

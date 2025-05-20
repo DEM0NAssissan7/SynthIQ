@@ -1,5 +1,4 @@
 import Meal from "../models/meal";
-import { Food } from "./food";
 import StorageNode from "./storageNode";
 import type { NavigateFunction } from "react-router";
 

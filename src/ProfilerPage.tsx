@@ -1,7 +1,5 @@
-import Graph from "./components/Graph";
 import MealGraph from "./components/MealGraph";
 import ProfileSlider from "./components/ProfileSlider";
-import NightscoutManager from "./lib/nightscoutManager";
 import Meal from "./models/meal";
 
 function ProfilerPage() {
