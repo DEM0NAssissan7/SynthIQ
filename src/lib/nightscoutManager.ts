@@ -4,7 +4,7 @@ import Unit from "../models/unit";
 import Meal from "../models/meal";
 
 export const nightscoutStorage = new StorageNode("nightscout");
-nightscoutStorage.add("url", "NULL");
+nightscoutStorage.add("url", null);
 nightscoutStorage.add("apiSecret", "");
 nightscoutStorage.add("profileID", 0);
 
