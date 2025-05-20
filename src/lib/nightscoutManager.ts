@@ -94,7 +94,7 @@ class NightscoutManager {
   }
 
   /* Complex Requests */
-  static markMeal(carbs: number, protein: number, meal?: Meal): void {
+  static markMeal(carbs: number, protein: number): void {
     this.post("treatments", {
       notes: `${carbs}/${protein}`,
       carbs: carbs,
