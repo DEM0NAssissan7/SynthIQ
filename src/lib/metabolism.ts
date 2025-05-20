@@ -1,5 +1,6 @@
 import Insulin from "../models/insulin";
 import type Meal from "../models/meal";
+import MetaFunctions, { metaKernel } from "../models/metaFunctions";
 import StorageNode from "./storageNode";
 import { getTimestampFromOffset } from "./util";
 
@@ -42,6 +43,49 @@ export function getInsulin(carbs: number, protein: number) {
 }
 export function getCorrectionInsulin(glucose: number) {
   return (glucose - metaProfile.get("target")) / metaProfile.get("einsulin");
+}
+
+// Metabolism Simulations
+export const defaultGI = 20;
+
+export class MetabolismFunction {
+  static carbs(t: number, carbs: number, GI: number): number {
+    return metaKernel(
+      t,
+      carbs * metaProfile.get("ecarbs"),
+      metaProfile.get("ncarbs"),
+      metaProfile.get("pcarbs") * (defaultGI / GI),
+      MetaFunctions.G
+    );
+  }
+  static protein(t: number, protein: number) {
+    return metaKernel(
+      t,
+      protein * metaProfile.get("eprotein"),
+      metaProfile.get("nprotein"),
+      metaProfile.get("cprotein") /* The minimum time protein can take */ +
+        protein / metaProfile.get("pprotein"), // Plateu (gram / hour)
+      MetaFunctions.C
+    );
+  }
+  static insulin(t: number, units: number) {
+    return metaKernel(
+      t,
+      -units * metaProfile.get("einsulin"),
+      metaProfile.get("ninsulin"),
+      metaProfile.get("pinsulin"),
+      MetaFunctions.H // Half life decay
+    );
+  }
+  static glucose(t: number, grams: number) {
+    return metaKernel(
+      t,
+      grams * metaProfile.get("ecarbs"),
+      metaProfile.get("nglucose"),
+      metaProfile.get("pglucose"),
+      MetaFunctions.G
+    );
+  }
 }
 
 /** This function figures out the optimal meal timing by using the

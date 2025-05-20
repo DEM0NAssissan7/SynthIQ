@@ -1,10 +1,6 @@
 import Unit from "../models/unit";
-import { metaProfile } from "./metabolism";
-import MetaFunctions from "../models/metaFunctions";
-import { metaKernel } from "../models/metaFunctions";
+import { defaultGI, MetabolismFunction } from "./metabolism";
 import * as importedFoods from "../assets/foods.json";
-
-const defaultGI = 20;
 
 export class Food {
   name: string;
@@ -29,14 +25,7 @@ export class Food {
     this.GI = GI;
   }
   carbsDeltaBG(t: number): number {
-    //
-    return metaKernel(
-      t,
-      this.getCarbs() * metaProfile.get("ecarbs"),
-      metaProfile.get("ncarbs"),
-      metaProfile.get("pcarbs") * (defaultGI / this.GI),
-      MetaFunctions.G
-    );
+    return MetabolismFunction.carbs(t, this.getCarbs(), this.GI);
   }
   getCarbs(): number {
     return (this.carbsRate / this.unit) * this.amount;

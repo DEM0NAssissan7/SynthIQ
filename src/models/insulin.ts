@@ -1,5 +1,4 @@
-import { metaProfile } from "../lib/metabolism";
-import MetaFunctions, { metaKernel } from "./metaFunctions";
+import { MetabolismFunction } from "../lib/metabolism";
 
 export enum InsulinType {
   Regular,
@@ -20,13 +19,7 @@ export default class Insulin {
   }
   deltaBG(t: number): number {
     // Change in blood sugar over time
-    return metaKernel(
-      t,
-      -this.units * metaProfile.get("einsulin"),
-      metaProfile.get("ninsulin"),
-      metaProfile.get("pinsulin"),
-      MetaFunctions.H // Half life decay
-    );
+    return MetabolismFunction.insulin(t, this.units);
   }
   static stringify(i: Insulin): string {
     return JSON.stringify({

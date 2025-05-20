@@ -12,8 +12,7 @@ import ReadingSeries from "./readingSeries";
 import MathSeries from "./mathSeries";
 import NightscoutManager, { nightscoutStorage } from "../lib/nightscoutManager";
 import { Color } from "./series";
-import { metaProfile } from "../lib/metabolism";
-import MetaFunctions, { metaKernel } from "./metaFunctions";
+import { MetabolismFunction } from "../lib/metabolism";
 
 function createCarbsOffset() {
   return new Food("Carbs Offset", 1, 0, 1);
@@ -132,14 +131,7 @@ class Meal {
 
     // Protein metabolism accounts for the total meal protein, so we have to collect all of it
     const protein = this.getProtein();
-    retval += metaKernel(
-      t,
-      protein * metaProfile.get("eprotein"),
-      metaProfile.get("nprotein"),
-      metaProfile.get("cprotein") /* The minimum time protein can take */ +
-        protein * metaProfile.get("pprotein"), // Plateu (gram / hour)
-      MetaFunctions.C
-    );
+    retval += MetabolismFunction.protein(t, protein);
 
     // Insulin
     this.insulins.forEach(
