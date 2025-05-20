@@ -136,6 +136,11 @@ class StorageEntry {
   subscribe(callback: SubscriptionCallback) {
     this.subscriptions.push(callback);
   }
+  unsubscribe(callback: SubscriptionCallback) {
+    this.subscriptions = this.subscriptions.filter(
+      (subscriber) => subscriber !== callback
+    );
+  }
   private notify() {
     this.subscriptions.forEach((callback) => {
       try {
@@ -207,14 +212,22 @@ class StorageNode {
     this.getEntryById(id).write();
   }
 
-  // Callbacks
+  // Entry Subscriptions
   subscribe(id: string, callback: SubscriptionCallback): void {
     this.getEntryById(id).subscribe(callback);
+  }
+  unsubscribe(id: string, callback: SubscriptionCallback): void {
+    this.getEntryById(id).unsubscribe(callback);
   }
 
   // General Subscriptions
   subscribeGeneral(callback: GeneralSubscriptionCallback): void {
     this.generalSubscriptions.push(callback);
+  }
+  unsubscribeGeneral(callback: GeneralSubscriptionCallback) {
+    this.generalSubscriptions = this.generalSubscriptions.filter(
+      (subscriber) => subscriber !== callback
+    );
   }
   private notifyGeneral() {
     this.generalSubscriptions.forEach((callback) => callback());
