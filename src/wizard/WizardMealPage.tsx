@@ -309,9 +309,6 @@ export default function WizardMealPage() {
                   Current Blood Sugar
                 </Form.Label>
                 <div className="input-group">
-                  <Button variant="primary" onClick={pullCurrentGlucose}>
-                    Auto
-                  </Button>
                   <span className="input-group-text">
                     <i className="bi bi-droplet"></i>
                   </span>
@@ -328,6 +325,9 @@ export default function WizardMealPage() {
                       }
                     }}
                   />
+                  <Button variant="primary" onClick={pullCurrentGlucose}>
+                    Auto
+                  </Button>
                 </div>
               </Form.Group>
             </ListGroup.Item>
