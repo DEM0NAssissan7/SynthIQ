@@ -1,4 +1,3 @@
-type Point = [number, number];
 export enum Color {
   Black = "black",
   White = "white",
@@ -11,6 +10,14 @@ export enum Color {
 
 type SubscriberCallback = () => void;
 
+class Point {
+  x: number;
+  y: number;
+  constructor(x: number, y: number) {
+    this.x = x;
+    this.y = y;
+  }
+}
 class Series {
   points: Point[] = [];
   color: Color;
@@ -21,13 +28,13 @@ class Series {
   }
   point(x: number, y: number): void {
     for (let p of this.points) {
-      if (p[0] === x) {
-        p[1] = y;
+      if (p.x === x) {
+        p.y = y;
         this.notify();
         return;
       }
     }
-    let point: Point = [x, y];
+    let point = new Point(x, y);
     this.points.push(point);
     this.notify();
   }
@@ -37,10 +44,10 @@ class Series {
     let diff: number = Infinity;
     let d;
     this.points.forEach((p) => {
-      d = Math.abs(p[0] - x);
+      d = Math.abs(p.x - x);
       if (d < diff) {
         diff = d;
-        y = p[1];
+        y = p.y;
       }
     });
     return y;
@@ -48,8 +55,8 @@ class Series {
   getRechartData(): object {
     return this.points.map((p) => {
       return {
-        x: p[0],
-        y: p[1],
+        x: p.x,
+        y: p.y,
       };
     });
   }
