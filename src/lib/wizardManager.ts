@@ -81,11 +81,17 @@ export default class WizardManager {
   }
 
   // Confirmations
+  static getMealMarked() {
+    return wizardStorage.get("mealMarked");
+  }
   static markMeal() {
     const meal: Meal = wizardStorage.get("meal");
     meal.timestamp = new Date();
     wizardStorage.set("mealMarked", true);
     NightscoutManager.markMeal(meal.getCarbs(), meal.getProtein());
+  }
+  static getInsulinMarked() {
+    return wizardStorage.get("insulinMarked");
   }
   static markInsulin(units: number) {
     const meal: Meal = wizardStorage.get("meal");
