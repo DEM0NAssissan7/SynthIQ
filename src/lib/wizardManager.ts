@@ -84,6 +84,9 @@ export default class WizardManager {
   static isActive() {
     return this.getMealMarked() || this.getInsulinMarked();
   }
+  static isComplete() {
+    return this.getMealMarked() && this.getInsulinMarked();
+  }
 
   // Confirmations
   static getMealMarked() {
