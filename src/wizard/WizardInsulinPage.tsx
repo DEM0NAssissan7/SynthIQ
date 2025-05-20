@@ -36,7 +36,7 @@ export default function WizardInsulinPage() {
   const [mealTiming, setMealTiming] = useState(getMealTiming());
 
   function getMealTiming(): number {
-    let timestamp = WizardManager.getMealMarked() ? meal.timestamp : new Date();
+    let timestamp = WizardManager.getMealMarked() ? new Date() : new Date();
     return round(
       getHourDiff(
         getOptimalInsulinTiming(meal, meal.getInsulin(), -2, 6),
@@ -45,9 +45,15 @@ export default function WizardInsulinPage() {
       0
     );
   }
+
+  const [timeEaten, setTimeEaten] = useState(0);
+  function getWhenEaten() {
+    return round(getHourDiff(meal.timestamp, new Date()) * 60, 0);
+  }
   useEffect(() => {
     setInterval(() => {
       setMealTiming(getMealTiming());
+      if (WizardManager.getMealMarked()) setTimeEaten(getWhenEaten());
     });
   }, []);
 
@@ -69,6 +75,11 @@ export default function WizardInsulinPage() {
         <p>
           Likewise, eat whenever you feel is best. Our algorithm suggests that
           you eat in <b>{mealTiming} minutes</b>.
+        </p>
+      )}
+      {WizardManager.getMealMarked() && (
+        <p>
+          You ate <b>{timeEaten} minutes</b> ago.
         </p>
       )}
       <InputGroup className="mb-3">
