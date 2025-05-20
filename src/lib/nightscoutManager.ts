@@ -39,7 +39,7 @@ class NightscoutManager {
     });
   }
   private static post(api: string, payload: any) {
-    payload.enteredBy = "Ringsight";
+    payload.enteredBy = "SynthIQ";
     payload.timestamp = Date.now();
     return fetch(this.getApiPath(api), {
       headers: {
