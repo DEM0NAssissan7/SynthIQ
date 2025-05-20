@@ -17,22 +17,21 @@ metaProfile.add("mlsPerCap", 5);
 metaProfile.add("gramsPerMl", 1 / 3);
 
 // Inuslin Pharmacodynamics
-metaProfile.add("einsulin", 28); // Insulin point effect / unit
-metaProfile.add("pinsulin", 3); // insulin half-life in blood
+metaProfile.add("einsulin", 19); // Insulin point effect / unit
+metaProfile.add("pinsulin", 2.5); // insulin half-life in blood
 metaProfile.add("ninsulin", 0.5); // hrs delay before insulin starts working
 
 // Carbohydrate Metabolism
 metaProfile.add("ecarbs", 4.11); // Rise per gram of carbs
 metaProfile.add("ncarbs", 0.0);
-metaProfile.add("pcarbs", 1.61);
+metaProfile.add("pcarbs", 1.17);
 
 // Protein Gluconeogenesis Metabolism
-metaProfile.add("eprotein", 1.19); // Rise per gram of protein
-metaProfile.add("nprotein", 0.0);
+metaProfile.add("eprotein", 1.14); // Rise per gram of protein
+metaProfile.add("nprotein", 2.0);
 // Metabolism Characteristics
-metaProfile.add("cprotein", 3.6); // Rise time
-metaProfile.add("pprotein", 0.0351); // Plateau Time Rate (hours / gram)
-metaProfile.add("fprotein", 1.83); // Fall time
+metaProfile.add("cprotein", 2); // Minimum digestion duration
+metaProfile.add("pprotein", 0.205); // Plateau Time Rate (hours / gram)
 
 export function getInsulin(carbs: number, protein: number) {
   return (
@@ -49,6 +48,9 @@ export function getCorrectionInsulin(glucose: number) {
 export const defaultGI = 20;
 
 export class MetabolismFunction {
+  /** Carbohydrates tend to follow a parabolic curve that peaks and falls off
+   * This function attempts to mimic that behavior
+   */
   static carbs(t: number, carbs: number, GI: number): number {
     return metaKernel(
       t,
@@ -58,16 +60,22 @@ export class MetabolismFunction {
       MetaFunctions.G
     );
   }
+  /** Protein seems to have a continuous, steady release
+   * that gets longer the more protein injected.
+   * Protein's blood sugar increase rate doesn't seem to increase at all,
+   * only the duration it happens for. That's why we extend the duration on this too.
+   */
   static protein(t: number, protein: number) {
     return metaKernel(
       t,
       protein * metaProfile.get("eprotein"),
       metaProfile.get("nprotein"),
       metaProfile.get("cprotein") /* The minimum time protein can take */ +
-        protein / metaProfile.get("pprotein"), // Plateu (gram / hour)
+        protein * metaProfile.get("pprotein"), // Plateu (hour / gram)
       MetaFunctions.C
     );
   }
+  /** Insulin is best modeled by a half life decaying function */
   static insulin(t: number, units: number) {
     return metaKernel(
       t,
@@ -77,6 +85,9 @@ export class MetabolismFunction {
       MetaFunctions.H // Half life decay
     );
   }
+  /** Glucose is released very quickly in the blood and quickly tapers off.
+   * This has not yet been tested.
+   */
   static glucose(t: number, grams: number) {
     return metaKernel(
       t,
