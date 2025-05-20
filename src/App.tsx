@@ -13,7 +13,7 @@ import WizardManager from "./lib/wizardManager";
 import WizardSummaryPage from "./wizard/WizardSummaryPage";
 
 function App() {
-  const condition = nightscoutStorage.get("url") !== null; // Replace this with your actual condition
+  const condition = nightscoutStorage.get("url") !== null;
   return (
     <div>
       <TopBar />
