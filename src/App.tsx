@@ -13,6 +13,7 @@ import WizardManager from "./lib/wizardManager";
 import WizardSummaryPage from "./wizard/WizardSummaryPage";
 
 function App() {
+  nightscoutStorage.read("url");
   const condition = nightscoutStorage.get("url") !== null;
   return (
     <div>
