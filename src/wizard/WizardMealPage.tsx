@@ -355,8 +355,10 @@ export default function WizardMealPage() {
                 </>
               ) : (
                 <>
-                  <b>{round(insulinNeed, 2)}u insulin</b> (
-                  {round(insulinCorrection, 2)}u correction)
+                  <b>{round(insulinNeed, 2)}u insulin</b>{" "}
+                  {(mealCarbs !== 0 || mealProtein !== 0) && (
+                    <>{round(insulinCorrection, 2)}u correction)</>
+                  )}
                 </>
               )}
             </ListGroup.Item>
@@ -369,15 +371,20 @@ export default function WizardMealPage() {
                   </>
                 ) : (
                   <>
-                    Consider taking <b>{round(insulinNeed, 2)}u</b> of insulin{" "}
-                    <b>
-                      {getPrettyTimeDiff(
-                        new Date(),
-                        insulinTime,
-                        Unit.Time.Minute
-                      )}
-                    </b>{" "}
-                    {mealCarbs !== 0 && mealProtein !== 0 && "you start eating"}
+                    Consider taking <b>{round(insulinNeed, 2)}u</b> of insulin
+                    {(mealCarbs !== 0 || mealProtein !== 0) && (
+                      <>
+                        {" "}
+                        <b>
+                          {getPrettyTimeDiff(
+                            new Date(),
+                            insulinTime,
+                            Unit.Time.Minute
+                          )}
+                        </b>{" "}
+                        you start eating
+                      </>
+                    )}
                   </>
                 )}
               </ListGroup.Item>
