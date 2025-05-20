@@ -12,6 +12,17 @@ nightscoutStorage.add("profileID", 0);
 nightscoutStorage.add("minutesPerReading", 5);
 nightscoutStorage.add("cgmDelay", 5);
 
+// Meals
+nightscoutStorage.add("ignoredUUIDs", []);
+
+const selfID = "SynthIQ";
+
+// Event types
+const mealStoreEventType = "Meal Storage";
+const insulinEventType = "Meal Bolus";
+const mealEventType = "Meal";
+const glucoseEventType = "Glucose Shot";
+
 class NightscoutManager {
   // Basic request stuff
   private static getApiPath(api: string): string {
@@ -39,7 +50,7 @@ class NightscoutManager {
     });
   }
   private static post(api: string, payload: any) {
-    payload.enteredBy = "SynthIQ";
+    payload.enteredBy = selfID;
     payload.timestamp = Date.now();
     return fetch(this.getApiPath(api), {
       headers: {
@@ -99,19 +110,19 @@ class NightscoutManager {
       notes: `${carbs}/${protein}`,
       carbs: carbs,
       protein: protein,
-      eventType: "Meal",
+      eventType: mealEventType,
     });
   }
   static markInsulin(units: number): void {
     this.post("treatments", {
       insulin: units,
-      eventType: "Meal Bolus",
+      eventType: insulinEventType,
     });
   }
   static markGlucose(grams: number): void {
     this.post("treatments", {
       carbs: grams,
-      eventType: "Glucose Shot",
+      eventType: glucoseEventType,
     });
   }
 
@@ -124,9 +135,38 @@ class NightscoutManager {
   static storeMeal(meal: Meal) {
     this.post("treatments", {
       uuid: meal.uuid,
-      eventType: "Meal Storage",
-      meal: Meal.stringify(meal),
+      eventType: mealStoreEventType,
+      mealString: Meal.stringify(meal),
     });
+  }
+  static ignoreUUID(uuid: number) {
+    let ignored = nightscoutStorage.get("ignoredUUIDs");
+    ignored.push(uuid);
+    nightscoutStorage.set("ignoredUUIDs", ignored);
+  }
+  static uuidIsIgnored(uuid: number) {
+    let ignored = nightscoutStorage.get("ignoredUUIDs");
+    for (let u of ignored) if (uuid === u) return true;
+    return false;
+  }
+  static async getAllMeals() {
+    /** We pull meals from nightscout that have been previously saved
+     * This is crucial to do analysis.
+     */
+    let meals: Meal[] = [];
+    let treatments = await this.get("treatments");
+    console.log(treatments);
+    treatments.forEach((t: any) => {
+      if (
+        t.eventType === mealStoreEventType &&
+        t.enteredBy === selfID &&
+        t.uuid
+      ) {
+        if (this.uuidIsIgnored(t.uuid)) return;
+        meals.push(Meal.parse(t.mealString));
+      }
+    });
+    return meals;
   }
 }
 
