@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button, Form, InputGroup } from "react-bootstrap";
 import WizardManager, {
   WizardState,
@@ -27,31 +27,48 @@ export default function WizardInsulinPage() {
   function getInsulin() {
     return round(meal.getInsulin(), 2).toString();
   }
-  function getMealTiming() {
-    return round(
-      getHourDiff(
-        getOptimalInsulinTiming(meal, meal.getInsulin(), -2, 3),
-        new Date()
-      ) * 60,
-      0
-    );
-  }
 
   function goBack() {
     WizardManager.moveToPage(WizardState.Meal, navigate);
   }
+
+  // Timing
+  const [mealTiming, setMealTiming] = useState(getMealTiming());
+
+  function getMealTiming(): number {
+    let timestamp = WizardManager.getMealMarked() ? meal.timestamp : new Date();
+    return round(
+      getHourDiff(
+        getOptimalInsulinTiming(meal, meal.getInsulin(), -2, 6),
+        timestamp
+      ) * 60,
+      0
+    );
+  }
+  useEffect(() => {
+    setInterval(() => {
+      setMealTiming(getMealTiming());
+    });
+  }, []);
 
   return (
     <div>
       <h1>Insulin Dosing</h1>
       <p>
         Take however much insulin you wish. However, our algorithm think you
-        should take <b>{getInsulin()}</b> units.
+        should take <b>{getInsulin()}</b> units
+        {WizardManager.getMealMarked() && mealTiming < 0 && (
+          <>
+            {" "}
+            in <b>{-mealTiming} minutes</b>
+          </>
+        )}
+        .
       </p>
-      {getMealTiming() > 0 && (
+      {mealTiming > 0 && (
         <p>
           Likewise, eat whenever you feel is best. Our algorithm suggests that
-          you eat in <b>{getMealTiming()} minutes</b>.
+          you eat in <b>{mealTiming} minutes</b>.
         </p>
       )}
       <InputGroup className="mb-3">
