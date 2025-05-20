@@ -18,7 +18,7 @@ const stateNames: StateNameKey[] = [
   [WizardState.Intro, "intro"],
   [WizardState.Meal, "meal"],
   [WizardState.Insulin, "insulin"],
-  [WizardState.MealConfirm, "mealconfirm"],
+  [WizardState.Summary, "summary"],
 ];
 
 // Persistent Storage
@@ -80,6 +80,11 @@ export default class WizardManager {
     wizardStorage.reset("state");
   }
 
+  // Activity
+  static isActive() {
+    return this.getMealMarked() || this.getInsulinMarked();
+  }
+
   // Confirmations
   static getMealMarked() {
     return wizardStorage.get("mealMarked");
@@ -95,8 +100,17 @@ export default class WizardManager {
   }
   static markInsulin(units: number) {
     const meal: Meal = wizardStorage.get("meal");
+    meal.insulins = [];
     meal.insulin(new Date(), units);
     wizardStorage.set("insulinMarked", true);
     NightscoutManager.markInsulin(units);
   }
+  static startNew() {
+    // NightscoutManager.storeMeal(meal); // Store meal to analyze later
+    wizardStorage.set("mealMarked", false);
+    wizardStorage.set("insulinMarked", false);
+    wizardStorage.set("meal", new Meal(new Date()));
+    this.setState(WizardState.Meal);
+  }
+  static restart() {}
 }
