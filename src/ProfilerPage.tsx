@@ -1,4 +1,5 @@
 import Graph from "./components/Graph";
+import MealGraph from "./components/MealGraph";
 import ProfileSlider from "./components/ProfileSlider";
 import NightscoutManager from "./lib/nightscoutManager";
 import Meal from "./models/meal";
@@ -10,11 +11,7 @@ function ProfilerPage() {
   const protein = 40;
   meal.setOffsets(carbs, protein);
   meal.insulin(new Date("14:53 5-18-2025"), 4.5);
-
-  let initialGlucose = 120;
-  meal.getInitialGlucose().then((a: any) => (initialGlucose = a));
-  const s = meal.createSeriesList(initialGlucose, -1, 10);
-  console.log(s);
+  meal.getInitialGlucose();
 
   return (
     <>
@@ -41,7 +38,7 @@ function ProfilerPage() {
         prettyName="Protein Fall"
       ></ProfileSlider>
       <br></br>
-      <Graph series={s} width="100%" height={200} xmax={12}></Graph>
+      <MealGraph meal={meal} from={-1} until={24}></MealGraph>
     </>
   );
 }

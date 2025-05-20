@@ -19,7 +19,7 @@ export class Food {
     name: string,
     carbsRate: number,
     proteinRate: number,
-    unit: Unit.Food = Unit.Food.Percent,
+    unit: Unit.Food = Unit.Food.HundredGrams,
     GI: number = defaultGI
   ) {
     this.name = name;
@@ -46,7 +46,7 @@ export class Food {
   }
 
   static createFromImport(food: any): Food {
-    let unit: Unit.Food = Unit.Food.Percent;
+    let unit: Unit.Food = Unit.Food.HundredGrams;
     switch (food.units) {
       case "unit":
       case 1:
@@ -59,7 +59,7 @@ export class Food {
 
       case "percent":
       case "100grams":
-        unit = Unit.Food.Percent;
+        unit = Unit.Food.HundredGrams;
         break;
     }
     const newFood = new Food(
@@ -73,7 +73,7 @@ export class Food {
     return newFood;
   }
 
-  static stringify(food: Food, discludeAmount: boolean = false): string {
+  static stringify(food: Food): string {
     // TODO
     return JSON.stringify({
       name: food.name,
@@ -82,7 +82,7 @@ export class Food {
       fat: food.fatRate,
       units: food.unit,
       GI: food.GI,
-      amount: food.amount && !discludeAmount,
+      amount: food.amount,
     });
   }
   static parse(string: string): Food {
@@ -102,17 +102,14 @@ export class Food {
 export const foods: Food[] = [];
 let isImported: boolean = false;
 
-export function importFoods(): void {
-  if (!isImported) {
-    importedFoods.foods.forEach((food) => {
-      foods.push(Food.createFromImport(food));
-    });
-    return;
-  } else {
-    console.warn(
-      `Foods: Refusing to import foods - already imported for this session.`
-    );
-  }
+if (!isImported) {
+  importedFoods.foods.forEach((food) => {
+    foods.push(Food.createFromImport(food));
+  });
+} else {
+  console.warn(
+    `Foods: Refusing to import foods - already imported for this session.`
+  );
 }
 
 function getFoodByName(name: string): Food {

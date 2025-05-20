@@ -1,7 +1,7 @@
 namespace Unit {
   export enum Food {
     Unit = 1,
-    Percent = 100,
+    HundredGrams = 100,
   }
 
   export enum Glucose {
@@ -18,3 +18,25 @@ namespace Unit {
 }
 
 export default Unit;
+
+export function getFoodUnitPrettyName(unit: Unit.Food): string {
+  switch (unit) {
+    case Unit.Food.Unit:
+      return "u";
+    case Unit.Food.HundredGrams:
+      return "100g";
+  }
+}
+
+export function getTimeUnitPrettyName(unit: Unit.Time): string {
+  switch (unit) {
+    case Unit.Time.Second:
+      return "seconds";
+    case Unit.Time.Millis:
+      return "milliseconds";
+    case Unit.Time.Minute:
+      return "minutes";
+    case Unit.Time.Hour:
+      return "hours";
+  }
+}

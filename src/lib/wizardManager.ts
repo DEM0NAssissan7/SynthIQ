@@ -1,4 +1,5 @@
 import Meal from "../models/meal";
+import { Food } from "./food";
 import StorageNode from "./storageNode";
 import type { NavigateFunction } from "react-router";
 
@@ -7,6 +8,7 @@ export enum WizardState {
   Meal,
   Insulin,
   MealConfirm,
+  Summary,
   Final, // This is always at the end
 }
 
@@ -20,9 +22,25 @@ const stateNames: StateNameKey[] = [
 ];
 
 // Persistent Storage
-const wizardStorage = new StorageNode("wizard");
+export const wizardStorage = new StorageNode("wizard");
 wizardStorage.add("state", WizardState.Intro, getStateFromName, getStateName);
-wizardStorage.add("meal", new Meal(new Date()), Meal.parse, Meal.stringify);
+const meal = new Meal(new Date());
+const mealStorageName = "meal";
+wizardStorage.add(mealStorageName, meal, Meal.parse, Meal.stringify);
+const wizardStorageWriteHandler = () => {
+  console.log("Writing Storage");
+  wizardStorage.write(mealStorageName);
+};
+wizardStorage.get(mealStorageName).subscribe(wizardStorageWriteHandler);
+// Extend the Window interface to include the 'storage' property
+declare global {
+  interface Window {
+    storage: StorageNode;
+    meal: Meal;
+  }
+}
+window.storage = wizardStorage;
+
 // Storage Transience
 function getStateName(state: WizardState): string {
   for (let a of stateNames) if (a[0] === state) return a[1];

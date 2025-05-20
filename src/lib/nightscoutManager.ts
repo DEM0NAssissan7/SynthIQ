@@ -1,6 +1,7 @@
 import StorageNode from "./storageNode";
 import { convertDimensions, getTimestampFromOffset } from "./util";
 import Unit from "../models/unit";
+import type Meal from "../models/meal";
 
 export const nightscoutStorage = new StorageNode("nightscout");
 nightscoutStorage.add("url", "NULL");
@@ -56,6 +57,7 @@ class NightscoutManager {
     });
   }
 
+  // Basic Queries
   static addTreatment(treatment: object): void {
     this.post("treatments", treatment);
   }
@@ -72,9 +74,10 @@ class NightscoutManager {
       timestamp,
       getTimestampFromOffset(
         timestamp,
-        nightscoutStorage.get("minutesPerReading") / 60
+        nightscoutStorage.get("minutesPerReading") *
+          convertDimensions(Unit.Time.Minute, Unit.Time.Hour)
       )
-    ).then(console.log);
+    ).then((a) => a[0]);
   }
   static async getCurrentSugar() {
     return await this.get("entries").then((a) => a[0].sgv);
@@ -88,6 +91,19 @@ class NightscoutManager {
       `entries/sgv.json?find[date][$gte]=${timestampA.getTime()}&find[date][$lte]=${timestampB.getTime()}&count=${count}`
     );
   }
+
+  /* Complex Requests */
+  static markMeal(carbs: number, protein: number): void {}
+  static markInsulin(units: number): void {}
+  static markGlucose(grams: number): void {}
+
+  // Meals
+  /** This will store the ENTIRE meal
+   * This includes its glucose, insulin, and foods
+   * However, on nightscout, this will simply appear as a normal meal
+   * This exists so that we can analyze an ENTIRE meal's data later
+   */
+  static storeMeal(meal: Meal) {}
 }
 
 export default NightscoutManager;

@@ -15,8 +15,8 @@ interface GraphProps {
   ymin?: string | number;
   width?: string | number;
   height?: string | number;
-  xmin?: number;
-  xmax?: number;
+  xmin: number;
+  xmax: number;
 }
 
 export default function Graph({
@@ -24,29 +24,21 @@ export default function Graph({
   ymin = "auto",
   width = 600,
   height = 200,
-  xmin = -1,
-  xmax = 9,
+  xmin,
+  xmax,
 }: GraphProps) {
   const [, setVersion] = useState(0);
 
   useEffect(() => {
-    let animationFrameId: number | null = null;
+    // let animationFrameId: number | null = null;
 
     const callback = () => {
-      if (animationFrameId === null) {
-        animationFrameId = requestAnimationFrame(() => {
-          setVersion((v) => v + 1);
-          animationFrameId = null;
-        });
-      }
+      setVersion((v) => v + 1);
     };
 
     series.forEach((s) => s.subscribe(callback));
 
     return () => {
-      if (animationFrameId !== null) {
-        cancelAnimationFrame(animationFrameId);
-      }
       series.forEach((s) => s.unsubscribe(callback));
     };
   }, [series]);

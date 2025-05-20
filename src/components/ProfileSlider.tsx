@@ -1,6 +1,6 @@
-import { Button, Form } from "react-bootstrap";
+import { Form } from "react-bootstrap";
 import { metaProfile } from "../lib/metabolism";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 interface ProfileSliderProps {
   variable: string;
@@ -8,6 +8,7 @@ interface ProfileSliderProps {
 }
 
 let initialValue: number;
+let initialized: boolean = false;
 
 function ProfileSlider({
   variable,
@@ -16,22 +17,25 @@ function ProfileSlider({
   const [val, changeVal] = useState(metaProfile.get(variable));
 
   function changeVar(val: number) {
-    // changeVal(val);
+    changeVal(val);
     metaProfile.set(variable, val);
   }
   function updateValue(e: any) {
     changeVar(parseFloat(e.target.value));
   }
-  if (!initialValue) initialValue = metaProfile.get(variable);
+  if (!initialized) {
+    initialValue = metaProfile.get(variable);
+    initialized = true;
+  }
   // console.log(initialValue);
   return (
-    <div style={{ width: "25%" }}>
+    <div style={{ width: "50%" }}>
       <Form.Label>
         {prettyName} [{val}]
       </Form.Label>
       <Form.Range
         onChange={updateValue}
-        max={metaProfile.get(variable) * 2 || 1}
+        max={initialValue * 2 || 1}
         step={0.01}
         // value={val}
       />
