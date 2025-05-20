@@ -12,10 +12,16 @@ import {
   getInsulin,
   getOptimalInsulinTiming,
 } from "../lib/metabolism";
-import { getPrettyTimeDiff, round } from "../lib/util";
+import {
+  getEpochMinutes,
+  getHourDiff,
+  getPrettyTimeDiff,
+  round,
+} from "../lib/util";
 import NightscoutManager from "../lib/nightscoutManager";
 import MealGraph from "../components/MealGraph";
 import Unit from "../models/unit";
+import { useNavigate } from "react-router";
 
 export default function WizardMealPage() {
   const meal: Meal = wizardStorage.get("meal");
@@ -89,7 +95,7 @@ export default function WizardMealPage() {
   useEffect(() => {
     let executing = false;
     const insulinNeedHandler = () => {
-      if (!executing) {
+      if (!executing && !WizardManager.getInsulinMarked()) {
         executing = true;
         let insulin = getTotalInsulin();
         console.log(
@@ -126,6 +132,17 @@ export default function WizardMealPage() {
   }
   function getInsulinCorrection() {
     return getCorrectionInsulin(meal.initialGlucose);
+  }
+  function getNInsulin(): number {
+    return getHourDiff(insulinTime, new Date());
+  }
+  function getTakeInsulinVariant(): string {
+    if (getNInsulin() >= 0) return "primary";
+    return "secondary";
+  }
+  function getBeginEatingVariant(): string {
+    if (getNInsulin() < 0 || WizardManager.getInsulinMarked()) return "primary";
+    return "secondary";
   }
 
   // Current Glucose
@@ -174,6 +191,19 @@ export default function WizardMealPage() {
     // Set wizard state to meal page
     WizardManager.setState(WizardState.Meal);
   }, []);
+
+  // Wizard
+  const navigate = useNavigate();
+  function beginEating() {
+    if (confirm("Are you ready to start eating?")) {
+      WizardManager.markMeal();
+      WizardManager.moveToPage(WizardState.Insulin, navigate); // Move onto taking insulin
+    }
+  }
+  function takeInsulin() {
+    meal.insulins = [];
+    WizardManager.moveToPage(WizardState.Insulin, navigate);
+  }
 
   return (
     <>
@@ -300,15 +330,43 @@ export default function WizardMealPage() {
             <ListGroup.Item>
               {round(mealCarbs, 2)}g carbs<br></br>
               {round(mealProtein, 2)}g protein<br></br>
-              <b>{round(insulinNeed, 2)}u insulin</b> (
-              {round(insulinCorrection, 2)}u correction)
+              {!WizardManager.getInsulinMarked() && (
+                <>
+                  <b>{round(insulinNeed, 2)}u insulin</b> (
+                  {round(insulinCorrection, 2)}u correction)
+                </>
+              )}
+              {WizardManager.getInsulinMarked() && (
+                <>
+                  <b>{round(meal.getInsulin(), 2)}u insulin</b>
+                </>
+              )}
             </ListGroup.Item>
             <ListGroup.Item>
-              Take <b>{round(insulinNeed, 2)}u</b> of insulin{" "}
-              <b>
-                {getPrettyTimeDiff(new Date(), insulinTime, Unit.Time.Minute)}
-              </b>{" "}
-              {mealCarbs !== 0 && mealProtein !== 0 && "you start eating"}
+              {!WizardManager.getInsulinMarked() && (
+                <>
+                  Consider taking <b>{round(insulinNeed, 2)}u</b> of insulin{" "}
+                  <b>
+                    {getPrettyTimeDiff(
+                      new Date(),
+                      insulinTime,
+                      Unit.Time.Minute
+                    )}
+                  </b>{" "}
+                  {mealCarbs !== 0 && mealProtein !== 0 && "you start eating"}
+                </>
+              )}
+              {WizardManager.getInsulinMarked() && (
+                <>
+                  You took {meal.getInsulin()}u insulin{" "}
+                  {round(
+                    getEpochMinutes(new Date()) -
+                      getEpochMinutes(meal.insulins[0].timestamp),
+                    0
+                  )}{" "}
+                  minutes ago
+                </>
+              )}
             </ListGroup.Item>
             <ListGroup.Item>
               <Form.Group controlId="current-glucose" className="mb-3">
@@ -346,6 +404,22 @@ export default function WizardMealPage() {
           <Form.Label>Predicted Blood Sugar</Form.Label>
           <MealGraph meal={meal} from={-1} until={16} width="100%"></MealGraph>
         </div>
+      </div>
+      <div className="d-flex justify-content-end">
+        {!WizardManager.getInsulinMarked() && (
+          <>
+            <Button
+              variant={getTakeInsulinVariant()}
+              onClick={takeInsulin}
+              className="me-2"
+            >
+              Take Insulin
+            </Button>
+          </>
+        )}
+        <Button variant={getBeginEatingVariant()} onClick={beginEating}>
+          Begin Eating
+        </Button>
       </div>
     </>
   );
