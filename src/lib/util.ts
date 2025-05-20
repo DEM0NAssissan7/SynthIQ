@@ -43,7 +43,7 @@ export function getPrettyTimeDiff(
   let timediff =
     getHourDiff(timestamp, timestampVictim) *
     convertDimensions(Unit.Time.Hour, unit);
-  if (timediff === 0) return "immediately";
+  if (timediff === 0) return "as soon as";
   const prefix = `${Math.abs(round(timediff, 0))} ${getTimeUnitPrettyName(
     unit
   )}`;

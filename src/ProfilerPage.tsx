@@ -9,7 +9,9 @@ function ProfilerPage() {
   const meal = new Meal(time);
   const carbs = 10;
   const protein = 40;
-  meal.setOffsets(carbs, protein);
+
+  meal.setCarbsOffset(carbs);
+  meal.setProteinOffset(protein);
   meal.insulin(new Date("14:53 5-18-2025"), 4.5);
   meal.getInitialGlucose();
 
@@ -26,7 +28,7 @@ function ProfilerPage() {
       <ProfileSlider variable="eprotein"></ProfileSlider>
       <ProfileSlider variable="nprotein"></ProfileSlider>
       <ProfileSlider
-        variable="rprotein"
+        variable="cprotein"
         prettyName="Protein Rise"
       ></ProfileSlider>
       <ProfileSlider

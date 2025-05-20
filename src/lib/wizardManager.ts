@@ -28,7 +28,7 @@ const meal = new Meal(new Date());
 const mealStorageName = "meal";
 wizardStorage.add(mealStorageName, meal, Meal.parse, Meal.stringify);
 const wizardStorageWriteHandler = () => {
-  console.log("Writing Storage");
+  // Subscribe to meal so anything that happens to it gets persisted
   wizardStorage.write(mealStorageName);
 };
 wizardStorage.get(mealStorageName).subscribe(wizardStorageWriteHandler);

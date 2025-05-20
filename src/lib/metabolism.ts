@@ -29,7 +29,7 @@ metaProfile.add("pcarbs", 1.61);
 metaProfile.add("eprotein", 1.19); // Rise per gram of protein
 metaProfile.add("nprotein", 0.0);
 // Metabolism Characteristics
-metaProfile.add("rprotein", 3.6); // Rise time
+metaProfile.add("cprotein", 3.6); // Rise time
 metaProfile.add("pprotein", 0.0351); // Plateau Time Rate (hours / gram)
 metaProfile.add("fprotein", 1.83); // Fall time
 
@@ -62,6 +62,11 @@ export function getOptimalInsulinTiming(
   let time: Date = new Date();
   const previousInsulins = meal.insulins;
   const threshold = metaProfile.get("minThreshold");
+  console.log(
+    -unitsInsulin * metaProfile.get("einsulin") +
+      meal.getCarbs() * metaProfile.get("ecarbs") +
+      meal.getProtein() * metaProfile.get("eprotein")
+  );
   for (let n = from; n <= until; n += 1 / 60) {
     // All insulin timings [within one minute] (from -> until)
 
@@ -80,7 +85,10 @@ export function getOptimalInsulinTiming(
         let y = meal.deltaBG(t);
 
         // Ignore if we go below threshold
-        if (y < threshold) return;
+        if (y < threshold) {
+          // console.log(testTime, y, t);
+          return;
+        }
 
         // If we have a smaller maximum
         if (y > funcMax) {
@@ -93,7 +101,6 @@ export function getOptimalInsulinTiming(
       }
     })();
   }
-  console.log(time);
   meal.insulins = previousInsulins;
   return time;
 }

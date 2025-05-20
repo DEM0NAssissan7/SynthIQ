@@ -19,6 +19,7 @@ import MetaFunctions, { metaKernel } from "./metaFunctions";
 class Meal {
   timestamp: Date;
   initialGlucose: number = 83;
+
   subscriptions: (() => void)[] = [];
   foods: Food[] = [
     new Food("carbs offset", 1, 0, 1), // Carbs offset food
@@ -34,10 +35,19 @@ class Meal {
   }
 
   // Meal Tasks
-  setOffsets(carbs: number, protein: number) {
-    this.foods[0].amount = carbs;
-    this.foods[1].amount = protein;
+  setCarbsOffset(grams: number) {
+    this.foods[0].amount = grams;
     this.notify();
+  }
+  setProteinOffset(grams: number) {
+    this.foods[1].amount = grams;
+    this.notify();
+  }
+  getCarbsOffset() {
+    return this.foods[0].amount;
+  }
+  getProteinOffset() {
+    return this.foods[1].amount;
   }
   insulin(timestamp: Date, units: number): void {
     this.insulins.push(new Insulin(timestamp, units));
@@ -115,13 +125,10 @@ class Meal {
     retval += metaKernel(
       t,
       protein * metaProfile.get("eprotein"),
-      metaProfile.get("nprotein") + offset,
-      [
-        metaProfile.get("rprotein"), // Rise (gram / hour)
-        protein / metaProfile.get("pprotein"), // Plateu (gram / hour)
-        metaProfile.get("fprotein"), // Fall (gram / hour)
-      ],
-      MetaFunctions.P
+      metaProfile.get("nprotein"),
+      metaProfile.get("cprotein") /* The minimum time protein can take */ +
+        protein * metaProfile.get("pprotein"), // Plateu (gram / hour)
+      MetaFunctions.C
     );
 
     // Insulin
@@ -161,8 +168,7 @@ class Meal {
   }
   async getInitialGlucose() {
     return NightscoutManager.getSugarAt(this.timestamp).then((a: any) => {
-      this.setInitialGlucose(a);
-      console.log(`Sugar: ${a}`);
+      this.setInitialGlucose(a.sgv);
       return a;
     });
   }

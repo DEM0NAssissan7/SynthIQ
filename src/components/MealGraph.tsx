@@ -22,7 +22,6 @@ function MealGraph({ meal, from, until, width, height }: MealGraphProps) {
     new MathSeries(Color.Blue, [])
   );
 
-  console.log(meal);
   useEffect(() => {
     const mealGraphHandler = () => {
       // if (initialGlucose) meal.setInitialGlucose(initialGlucose);

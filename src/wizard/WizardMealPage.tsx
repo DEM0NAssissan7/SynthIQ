@@ -98,7 +98,7 @@ export default function WizardMealPage() {
           meal,
           insulin,
           -2,
-          3
+          6
         );
         meal.insulin(optimalInsulinTimestamp, insulin);
         setInsulinTime(optimalInsulinTimestamp);
@@ -140,6 +140,23 @@ export default function WizardMealPage() {
       setCurrentGlucose(g);
     });
   }
+
+  // Additional Nutrients
+  const [extraCarbs, setExtraCarbs] = useState(0);
+  const [extraProtein, setExtraProtein] = useState(0);
+  useEffect(() => {
+    const extraNutrientsHandler = () => {
+      setExtraCarbs(meal.getCarbsOffset());
+      setExtraProtein(meal.getProteinOffset());
+    };
+
+    meal.subscribe(extraNutrientsHandler);
+    return () => {
+      meal.unsubscribe(extraNutrientsHandler);
+    };
+  }, []);
+
+  // General Startup Tasks
   useEffect(() => {
     // Set meal timestamp to now upon page start
     meal.setTimestamp(new Date());
@@ -216,6 +233,61 @@ export default function WizardMealPage() {
       </div>
       <div className="card mb-4" id="meal-summary">
         <div className="card-body">
+          <Form.Label>Additional Nutrition</Form.Label>
+          <ListGroup>
+            <ListGroup.Item>
+              <Form.Group controlId="carbs-offset" className="mb-3">
+                <Form.Label className="text-muted">Carbs</Form.Label>
+                <div className="input-group">
+                  <span className="input-group-text">
+                    <i className="bi bi-cookie"></i>
+                  </span>
+                  <Form.Control
+                    type="number"
+                    value={extraCarbs} // controlled value
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value);
+                      if (!isNaN(value)) {
+                        meal.setCarbsOffset(value);
+                        setExtraCarbs(value);
+                      } else {
+                        meal.setCarbsOffset(0);
+                        setExtraCarbs(value);
+                      }
+                    }}
+                  />
+                </div>
+              </Form.Group>
+            </ListGroup.Item>
+            <ListGroup.Item>
+              <Form.Group controlId="protein-offset" className="mb-3">
+                <Form.Label className="text-muted">Protein</Form.Label>
+                <div className="input-group">
+                  <span className="input-group-text">
+                    <i className="bi bi-egg-fried"></i>
+                  </span>
+                  <Form.Control
+                    type="number"
+                    value={extraProtein} // controlled value
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value);
+                      if (!isNaN(value)) {
+                        meal.setProteinOffset(value);
+                        setExtraProtein(value);
+                      } else {
+                        meal.setProteinOffset(0);
+                        setExtraProtein(value);
+                      }
+                    }}
+                  />
+                </div>
+              </Form.Group>
+            </ListGroup.Item>
+          </ListGroup>
+        </div>
+      </div>
+      <div className="card mb-4" id="meal-summary">
+        <div className="card-body">
           <Form.Label>Summary</Form.Label>
           <ListGroup>
             <ListGroup.Item>
@@ -229,7 +301,7 @@ export default function WizardMealPage() {
               <b>
                 {getPrettyTimeDiff(new Date(), insulinTime, Unit.Time.Minute)}
               </b>{" "}
-              {mealCarbs !== 0 && mealProtein !== 0 && "after you start eating"}
+              {mealCarbs !== 0 && mealProtein !== 0 && "you start eating"}
             </ListGroup.Item>
             <ListGroup.Item>
               <Form.Group controlId="current-glucose" className="mb-3">

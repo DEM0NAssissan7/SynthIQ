@@ -74,10 +74,11 @@ class NightscoutManager {
       timestamp,
       getTimestampFromOffset(
         timestamp,
-        nightscoutStorage.get("minutesPerReading") *
+        2 *
+          nightscoutStorage.get("minutesPerReading") *
           convertDimensions(Unit.Time.Minute, Unit.Time.Hour)
       )
-    ).then((a) => a[0]);
+    ).then((a) => a[a.length - 1]);
   }
   static async getCurrentSugar() {
     return await this.get("entries").then((a) => a[0].sgv);
