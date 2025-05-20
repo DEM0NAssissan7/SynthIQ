@@ -1,7 +1,7 @@
 import StorageNode from "./storageNode";
 import { convertDimensions, getTimestampFromOffset } from "./util";
 import Unit from "../models/unit";
-import type Meal from "../models/meal";
+import Meal from "../models/meal";
 
 export const nightscoutStorage = new StorageNode("nightscout");
 nightscoutStorage.add("url", "NULL");
@@ -94,8 +94,20 @@ class NightscoutManager {
   }
 
   /* Complex Requests */
-  static markMeal(carbs: number, protein: number): void {}
-  static markInsulin(units: number): void {}
+  static markMeal(carbs: number, protein: number, meal?: Meal): void {
+    this.post("treatments", {
+      notes: `${carbs}/${protein}`,
+      carbs: carbs,
+      protein: protein,
+      eventType: "Meal",
+    });
+  }
+  static markInsulin(units: number): void {
+    this.post("treatments", {
+      insulin: units,
+      eventType: "Meal Bolus",
+    });
+  }
   static markGlucose(grams: number): void {}
 
   // Meals
@@ -104,7 +116,13 @@ class NightscoutManager {
    * However, on nightscout, this will simply appear as a normal meal
    * This exists so that we can analyze an ENTIRE meal's data later
    */
-  static storeMeal(meal: Meal) {}
+  static storeMeal(meal: Meal) {
+    this.post("treatments", {
+      uuid: meal.uuid,
+      eventType: "Meal Storage",
+      meal: Meal.stringify(meal),
+    });
+  }
 }
 
 export default NightscoutManager;
