@@ -58,17 +58,19 @@ export default function FoodDisplay({
         <span className="fw-bold">{food.name}</span>
         {added && (
           <span className="text-muted">
-            {round(food.getCarbs(), 2)}g carbs, {round(food.getProtein(), 2)}g
-            protein
-            <br></br>
+            {round(food.getCarbs(), 2)}g carbs
+            <br />
+            {round(food.getProtein(), 2)}g protein
+            <br />
             {round(getInsulin(food.getCarbs(), food.getProtein()), 2)}u insulin
           </span>
         )}
         {!added && (
           <span className="text-muted">
-            {food.carbsRate}g carbs<br></br>
-            {food.proteinRate}g protein<br></br>/
-            {getFoodUnitPrettyName(food.unit)}
+            {food.carbsRate}g carbs
+            <br />
+            {food.proteinRate}g protein
+            <br />/{getFoodUnitPrettyName(food.unit)}
           </span>
         )}
       </div>
