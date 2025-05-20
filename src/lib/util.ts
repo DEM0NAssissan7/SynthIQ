@@ -1,4 +1,4 @@
-import Unit from "../models/unit";
+import Unit, { getTimeUnitPrettyName } from "../models/unit";
 
 export function convertDimensions(source: number, destination: number): number {
   return source / destination;
@@ -34,4 +34,19 @@ export function getTimestampFromOffset(timestamp: Date, hours: number): Date {
   let offsetMillis =
     hours * convertDimensions(Unit.Time.Hour, Unit.Time.Millis);
   return new Date(unixTimestamp + offsetMillis);
+}
+export function getPrettyTimeDiff(
+  timestamp: Date,
+  timestampVictim: Date,
+  unit: Unit.Time
+) {
+  let timediff =
+    getHourDiff(timestamp, timestampVictim) *
+    convertDimensions(Unit.Time.Hour, unit);
+  if (timediff === 0) return "immediately";
+  const prefix = `${Math.abs(round(timediff, 0))} ${getTimeUnitPrettyName(
+    unit
+  )}`;
+  if (timediff > 0) return `${prefix} after`;
+  if (timediff < 0) return `${prefix} before`;
 }
