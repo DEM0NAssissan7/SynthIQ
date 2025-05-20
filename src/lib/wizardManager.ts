@@ -1,4 +1,5 @@
 import Meal from "../models/meal";
+import NightscoutManager from "./nightscoutManager";
 import StorageNode from "./storageNode";
 import type { NavigateFunction } from "react-router";
 
@@ -23,6 +24,10 @@ const stateNames: StateNameKey[] = [
 // Persistent Storage
 export const wizardStorage = new StorageNode("wizard");
 wizardStorage.add("state", WizardState.Intro, getStateFromName, getStateName);
+wizardStorage.add("mealMarked", false);
+wizardStorage.add("insulinMarked", false);
+
+// Meal Persistence
 const meal = new Meal(new Date());
 const mealStorageName = "meal";
 wizardStorage.add(mealStorageName, meal, Meal.parse, Meal.stringify);
@@ -73,5 +78,19 @@ export default class WizardManager {
   }
   static resetState() {
     wizardStorage.reset("state");
+  }
+
+  // Confirmations
+  static markMeal() {
+    const meal: Meal = wizardStorage.get("meal");
+    meal.timestamp = new Date();
+    wizardStorage.set("mealMarked", true);
+    NightscoutManager.markMeal(meal.getCarbs(), meal.getProtein());
+  }
+  static markInsulin(units: number) {
+    const meal: Meal = wizardStorage.get("meal");
+    meal.insulin(new Date(), units);
+    wizardStorage.set("insulinMarked", true);
+    NightscoutManager.markInsulin(units);
   }
 }
