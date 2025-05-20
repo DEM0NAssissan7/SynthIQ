@@ -1,5 +1,6 @@
 import { Food } from "../lib/food";
 import {
+  genUUID,
   getEpochMinutes,
   getHourDiff,
   getTimestampFromOffset,
@@ -14,14 +15,21 @@ import { Color } from "./series";
 import { metaProfile } from "../lib/metabolism";
 import MetaFunctions, { metaKernel } from "./metaFunctions";
 
+function createCarbsOffset() {
+  return new Food("Carbs Offset", 1, 0, 1);
+}
+function createProteinOffset() {
+  return new Food("Protein Offset", 0, 1, 1);
+}
 class Meal {
   timestamp: Date;
   initialGlucose: number = 83;
+  uuid: number;
 
   subscriptions: (() => void)[] = [];
   foods: Food[] = [
-    new Food("carbs offset", 1, 0, 1), // Carbs offset food
-    new Food("protein offset", 0, 1, 1), // Protein offset food
+    createCarbsOffset(), // Carbs offset food
+    createProteinOffset(), // Protein offset food
   ];
   insulins: Insulin[] = [];
   glucoses: Glucose[] = [];
@@ -29,6 +37,7 @@ class Meal {
   constructor(timestamp: Date, getInitialGlucose: boolean = true) {
     // This timestamp marks when eating _begins_
     this.timestamp = timestamp;
+    this.uuid = genUUID();
     if (getInitialGlucose) this.getInitialGlucose();
   }
 
@@ -196,6 +205,7 @@ class Meal {
     return JSON.stringify({
       timestamp: meal.timestamp,
       initialGlucose: meal.initialGlucose,
+      uuid: meal.uuid,
       foods: meal.foods.map((a) => Food.stringify(a)),
       insulin: meal.insulins.map((a) => Insulin.stringify(a)),
       glucose: meal.glucoses.map((a) => Glucose.stringify(a)),
@@ -208,6 +218,7 @@ class Meal {
     let insulin = o.insulin.map((a: any) => Insulin.parse(a));
     let glucose = o.glucose.map((a: any) => Glucose.parse(a));
     let newMeal = new Meal(timestamp, false);
+    newMeal.uuid = o.uuid;
     newMeal.initialGlucose = o.initialGlucose;
     newMeal.foods = foods;
     newMeal.insulins = insulin;
