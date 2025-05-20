@@ -6,7 +6,6 @@ import TopBar from "./components/TopBar";
 import WizardRouterPage from "./WizardRouterPage";
 import WizardIntroPage from "./wizard/WizardIntroPage";
 import WizardMealPage from "./wizard/WizardMealPage";
-import WizardMealConfirmPage from "./wizard/WizardMealConfirmPage";
 import WizardInsulinPage from "./wizard/WizardInsulinPage";
 import SettingsPage from "./SettingsPage";
 import HubPage from "./hub";
@@ -38,10 +37,6 @@ function App() {
           <Route path="/wizard" element={<WizardRouterPage />} />
           <Route path="/wizard/intro" element={<WizardIntroPage />} />
           <Route path="/wizard/meal" element={<WizardMealPage />} />
-          <Route
-            path="/wizard/mealconfirm"
-            element={<WizardMealConfirmPage />}
-          />
           <Route path="/wizard/insulin" element={<WizardInsulinPage />} />
         </Routes>
       </div>
