@@ -12,7 +12,7 @@ const apiSecret = nightscoutStorage.get("apiSecret");
 function SetupPage() {
   const navigate = useNavigate();
   function advance() {
-    navigate("/");
+    navigate("/hub");
   }
   function promptAdvance() {
     if (
