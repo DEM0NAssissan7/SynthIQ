@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type Food from "../models/food";
 import type Meal from "../models/meal";
 

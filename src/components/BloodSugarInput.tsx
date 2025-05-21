@@ -1,4 +1,4 @@
-import { Button, Form, ListGroup } from "react-bootstrap";
+import { Button, Form } from "react-bootstrap";
 import NightscoutManager from "../lib/nightscoutManager";
 
 interface BloodSugarInputProps {
