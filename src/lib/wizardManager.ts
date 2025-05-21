@@ -56,20 +56,24 @@ export default class WizardManager {
     return wizardStorage.get("mealMarked");
   }
   static markMeal() {
-    const meal: Meal = wizardStorage.get("meal");
-    meal.timestamp = new Date(); // We intentionally set the timestamp directly as to not notify meal subscribers
-    wizardStorage.set("mealMarked", true);
-    NightscoutManager.markMeal(meal.getCarbs(), meal.getProtein());
+    if (!this.getMealMarked()) {
+      const meal: Meal = wizardStorage.get("meal");
+      meal.timestamp = new Date(); // We intentionally set the timestamp directly as to not notify meal subscribers
+      wizardStorage.set("mealMarked", true);
+      NightscoutManager.markMeal(meal.getCarbs(), meal.getProtein());
+    }
   }
   static getInsulinMarked() {
     return wizardStorage.get("insulinMarked");
   }
   static markInsulin(units: number) {
-    const meal: Meal = wizardStorage.get("meal");
-    meal.insulins = [];
-    meal.insulin(new Date(), units);
-    wizardStorage.set("insulinMarked", true);
-    NightscoutManager.markInsulin(units);
+    if (!this.getInsulinMarked()) {
+      const meal: Meal = wizardStorage.get("meal");
+      meal.insulins = [];
+      meal.insulin(new Date(), units);
+      wizardStorage.set("insulinMarked", true);
+      NightscoutManager.markInsulin(units);
+    }
   }
   static startNew(navigate: NavigateFunction) {
     NightscoutManager.storeMeal(wizardStorage.get("meal")); // Store meal to analyze later
