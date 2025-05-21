@@ -11,9 +11,9 @@ import ReadingSeries from "./readingSeries";
 import MathSeries from "./mathSeries";
 import NightscoutManager from "../lib/nightscoutManager";
 import { Color } from "./series";
-import { MetabolismFunction } from "../lib/metabolism";
 import { nightscoutStorage } from "../storage/nightscoutStore";
 import Food from "./food";
+import MetabolismFunction from "./metabolismFunction";
 
 function createCarbsOffset() {
   return new Food("Carbs Offset", 1, 0, 1);

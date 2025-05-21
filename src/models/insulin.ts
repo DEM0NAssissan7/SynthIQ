@@ -1,4 +1,4 @@
-import { MetabolismFunction } from "../lib/metabolism";
+import MetabolismFunction from "./metabolismFunction";
 
 export enum InsulinType {
   Regular,

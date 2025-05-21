@@ -1,7 +1,7 @@
 import * as importedFoods from "../assets/foods.json";
-import { defaultGI, MetabolismFunction } from "../lib/metabolism";
 import { genUUID } from "../lib/util";
 import Unit from "../models/unit";
+import MetabolismFunction, { defaultGI } from "./metabolismFunction";
 
 export default class Food {
   name: string;
