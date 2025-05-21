@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button, Form, InputGroup } from "react-bootstrap";
 import WizardManager from "../lib/wizardManager";
 import { getEpochMinutes, getPrettyTime, round } from "../lib/util";
@@ -7,6 +7,7 @@ import { WizardState } from "../models/wizardState";
 import { useWizardMealState } from "../state/useWizardMeal";
 import useInsulinPrediction from "../state/useInsulinPrediction";
 import useVersion from "../state/useVersion";
+import MealPredictedSugarGraphCard from "../components/MealPredictedSugarGraphCard";
 
 export default function WizardInsulinPage() {
   const navigate = useNavigate();
@@ -41,7 +42,6 @@ export default function WizardInsulinPage() {
 
   // A variable that changes once per minute
   const version = useVersion(1);
-
   function goBack() {
     if (!WizardManager.getMealMarked())
       WizardManager.moveToPage(WizardState.Meal, navigate);
@@ -50,6 +50,12 @@ export default function WizardInsulinPage() {
         "Something went horribly wrong in the router. This should not be happening"
       );
   }
+
+  // We give the meal insulin now to show the user how it's probably going to look
+  useEffect(() => {
+    meal.insulins = [];
+    meal.insulin(new Date(), suggestedInsulin);
+  }, [version]);
 
   // Timing Info (for user)
   const optimalInsulinTiming = useMemo(() => {
@@ -79,9 +85,18 @@ export default function WizardInsulinPage() {
       </p>
       {WizardManager.getMealMarked() && (
         <p>
-          You ate <b>{timeEaten} minutes</b> ago.
+          {timeEaten < 30 ? (
+            <>
+              You ate <b>{timeEaten} minutes</b> ago.
+            </>
+          ) : (
+            <>
+              You ate at <b>{getPrettyTime(meal.timestamp)}</b>.
+            </>
+          )}
         </p>
       )}
+      <MealPredictedSugarGraphCard />
       <InputGroup className="mb-3">
         <InputGroup.Text id="basic-addon1">
           <i className="bi bi-capsule"></i>
