@@ -1,5 +1,6 @@
 import { Button, Form } from "react-bootstrap";
 import NightscoutManager from "../lib/nightscoutManager";
+import { useEffect } from "react";
 
 interface BloodSugarInputProps {
   initialGlucose: number;
@@ -15,6 +16,9 @@ export default function BloodSugarInput({
       setInitialGlucose(g);
     });
   }
+  useEffect(() => {
+    pullCurrentGlucose(); // Pull glucose upon component load
+  }, []);
   return (
     <Form.Group controlId="current-glucose" className="mb-3">
       <Form.Label className="text-muted">Current Blood Sugar</Form.Label>
