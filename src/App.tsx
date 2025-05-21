@@ -3,7 +3,6 @@ import SetupPage from "./SetupPage";
 import ProfilerPage from "./ProfilerPage";
 import TopBar from "./components/TopBar";
 import WizardRouterPage from "./WizardRouterPage";
-import WizardIntroPage from "./wizard/WizardIntroPage";
 import WizardInsulinPage from "./WizardInsulinPage";
 import SettingsPage from "./SettingsPage";
 import HubPage from "./HubPage";
@@ -12,6 +11,7 @@ import WizardSummaryPage from "./WizardSummaryPage";
 import { nightscoutStorage } from "./storage/nightscoutStore";
 import WizardMealPage from "./WizardMealPage";
 import WizardMealConfirmPage from "./WizardMealConfirmPage";
+import WizardIntroPage from "./WizardIntroPage";
 
 function App() {
   nightscoutStorage.read("url");
