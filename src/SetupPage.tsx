@@ -1,7 +1,8 @@
 import { InputGroup, Form, Button, Toast } from "react-bootstrap";
-import NightscoutManager, { nightscoutStorage } from "./lib/nightscoutManager";
+import NightscoutManager from "./lib/nightscoutManager";
 import { useNavigate } from "react-router";
 import { useState } from "react";
+import { nightscoutStorage } from "./storage/nightscoutStore";
 
 const autoHideTime = 4000;
 

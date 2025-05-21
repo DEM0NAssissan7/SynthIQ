@@ -1,13 +1,14 @@
 import { Button } from "react-bootstrap";
-import WizardManager, { WizardState } from "../lib/wizardManager";
+import WizardManager from "../lib/wizardManager";
 import { useNavigate } from "react-router";
 import { useEffect } from "react";
+import { WizardState } from "../models/wizardState";
 
 export default function WizardIntroPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    WizardManager.setState(WizardState.Intro);
+    // WizardManager.setState(WizardState.Intro, navigate);
   });
   return (
     <div>

@@ -1,19 +1,7 @@
-import StorageNode from "./storageNode";
 import { convertDimensions, getTimestampFromOffset } from "./util";
 import Unit from "../models/unit";
 import Meal from "../models/meal";
-
-export const nightscoutStorage = new StorageNode("nightscout");
-nightscoutStorage.add("url", null);
-nightscoutStorage.add("apiSecret", "");
-nightscoutStorage.add("profileID", 0);
-
-// CGM
-nightscoutStorage.add("minutesPerReading", 5);
-nightscoutStorage.add("cgmDelay", 5);
-
-// Meals
-nightscoutStorage.add("ignoredUUIDs", []);
+import { nightscoutStorage } from "../storage/nightscoutStore";
 
 const selfID = "SynthIQ";
 

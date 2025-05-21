@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { Button, Form, InputGroup } from "react-bootstrap";
-import WizardManager, {
-  WizardState,
-  wizardStorage,
-} from "../lib/wizardManager";
-import { getHourDiff, round } from "../lib/util";
+import WizardManager from "../lib/wizardManager";
+import { convertDimensions, getHourDiff, round } from "../lib/util";
 import { useNavigate } from "react-router";
 import { getOptimalInsulinTiming } from "../lib/metabolism";
+import Unit from "../models/unit";
+import { wizardStorage } from "../storage/wizardStore";
+import { WizardState } from "../models/wizardState";
 
 export default function WizardInsulinPage() {
   const navigate = useNavigate();
@@ -33,10 +33,10 @@ export default function WizardInsulinPage() {
   }
 
   // Timing
-  const [mealTiming, setMealTiming] = useState(getMealTiming());
+  const [suggestedTiming, setSuggestedTiming] = useState(getSuggestedTiming());
 
-  function getMealTiming(): number {
-    let timestamp = WizardManager.getMealMarked() ? new Date() : new Date();
+  function getSuggestedTiming(): number {
+    let timestamp = WizardManager.getMealMarked() ? new Date() : meal.timestamp;
     return round(
       getHourDiff(
         getOptimalInsulinTiming(meal, meal.getInsulin(), -2, 6),
@@ -51,10 +51,12 @@ export default function WizardInsulinPage() {
     return round(getHourDiff(meal.timestamp, new Date()) * 60, 0);
   }
   useEffect(() => {
-    setInterval(() => {
-      setMealTiming(getMealTiming());
+    const handler = () => {
+      setSuggestedTiming(getSuggestedTiming());
       if (WizardManager.getMealMarked()) setTimeEaten(getWhenEaten());
-    });
+    };
+    setInterval(handler, convertDimensions(Unit.Time.Minute, Unit.Time.Millis));
+    handler();
   }, []);
 
   return (
@@ -63,18 +65,18 @@ export default function WizardInsulinPage() {
       <p>
         Take however much insulin you wish. However, our algorithm think you
         should take <b>{getInsulin()}</b> units
-        {WizardManager.getMealMarked() && mealTiming < 0 && (
+        {WizardManager.getMealMarked() && suggestedTiming < 0 && (
           <>
             {" "}
-            in <b>{-mealTiming} minutes</b>
+            in <b>{-suggestedTiming} minutes</b>
           </>
         )}
         .
       </p>
-      {mealTiming > 0 && (
+      {suggestedTiming > 0 && (
         <p>
           Likewise, eat whenever you feel is best. Our algorithm suggests that
-          you eat in <b>{mealTiming} minutes</b>.
+          you eat <b>{suggestedTiming} minutes</b> after taking insulin.
         </p>
       )}
       {WizardManager.getMealMarked() && (

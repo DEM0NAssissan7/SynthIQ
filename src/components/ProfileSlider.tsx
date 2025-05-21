@@ -1,6 +1,6 @@
 import { Form } from "react-bootstrap";
-import { metaProfile } from "../lib/metabolism";
 import { useEffect, useState } from "react";
+import metaProfile from "../storage/metaProfileStore";
 
 interface ProfileSliderProps {
   variable: string;

@@ -1,4 +1,3 @@
-import { Food } from "../lib/food";
 import {
   genUUID,
   getEpochMinutes,
@@ -10,9 +9,11 @@ import Glucose from "./glucose";
 import Insulin from "./insulin";
 import ReadingSeries from "./readingSeries";
 import MathSeries from "./mathSeries";
-import NightscoutManager, { nightscoutStorage } from "../lib/nightscoutManager";
+import NightscoutManager from "../lib/nightscoutManager";
 import { Color } from "./series";
 import { MetabolismFunction } from "../lib/metabolism";
+import { nightscoutStorage } from "../storage/nightscoutStore";
+import Food from "./food";
 
 function createCarbsOffset() {
   return new Food("Carbs Offset", 1, 0, 1);
@@ -75,6 +76,13 @@ class Meal {
   }
   hasFood(food: Food): boolean {
     return this.foods.some((f) => f.name === food.name);
+  }
+  getFood(food: Food): Food {
+    return this.foods.filter((f) => f === food)[0];
+  }
+  setFoodAmount(food: Food, amount: number) {
+    this.getFood(food).amount = amount;
+    this.notify();
   }
 
   // Timing Stuff

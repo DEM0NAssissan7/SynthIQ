@@ -1,14 +1,15 @@
-import Unit from "../models/unit";
-import { defaultGI, MetabolismFunction } from "./metabolism";
 import * as importedFoods from "../assets/foods.json";
+import { defaultGI, MetabolismFunction } from "../lib/metabolism";
+import Unit from "../models/unit";
 
-export class Food {
+export default class Food {
   name: string;
   carbsRate: number;
   proteinRate: number;
   fatRate: number = 0;
   unit: Unit.Food;
   GI: number; // Glycemic Index (carbs only)
+  key: number = NaN; // This only exists to uniquely identify the food
 
   amount: number = 0;
   constructor(
@@ -90,10 +91,9 @@ export class Food {
 
 export const foods: Food[] = [];
 let isImported: boolean = false;
-
 if (!isImported) {
-  importedFoods.foods.forEach((food) => {
-    foods.push(Food.createFromImport(food));
+  importedFoods.foods.forEach((f) => {
+    foods.push(Food.createFromImport(f));
   });
 } else {
   console.warn(
@@ -101,7 +101,7 @@ if (!isImported) {
   );
 }
 
-function getFoodByName(name: string): Food {
+export function getFoodByName(name: string): Food {
   for (let food of foods)
     if (food.name === name)
       return new Food(

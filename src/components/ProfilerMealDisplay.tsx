@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import type Meal from "../models/meal";
 import MealGraph from "./MealGraph";
-import { metaProfile } from "../lib/metabolism";
+import metaProfile from "../storage/metaProfileStore";
 
 interface ProfilerMealDisplayProps {
   meal: Meal;

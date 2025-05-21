@@ -1,9 +1,11 @@
 import { Container, Row, Col, Card, Button } from "react-bootstrap";
-import WizardManager, { wizardStorage } from "./lib/wizardManager";
+import WizardManager from "./lib/wizardManager";
 import { Link } from "react-router";
 import MealGraph from "./components/MealGraph";
-import NightscoutManager, { nightscoutStorage } from "./lib/nightscoutManager";
+import NightscoutManager from "./lib/nightscoutManager";
 import { useEffect, useState } from "react";
+import { wizardStorage } from "./storage/wizardStore";
+import { nightscoutStorage } from "./storage/nightscoutStore";
 
 enum NightscoutAuthLevel {
   Invalid,

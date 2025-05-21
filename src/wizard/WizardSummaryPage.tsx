@@ -4,23 +4,27 @@
 
 import { useEffect } from "react";
 import MealGraph from "../components/MealGraph";
-import WizardManager, {
-  WizardState,
-  wizardStorage,
-} from "../lib/wizardManager";
+import WizardManager from "../lib/wizardManager";
 import type Meal from "../models/meal";
 import { Button, Form } from "react-bootstrap";
 import { useNavigate } from "react-router";
+import { convertDimensions } from "../lib/util";
+import Unit from "../models/unit";
+import { wizardStorage } from "../storage/wizardStore";
 
 export default function WizardSummaryPage() {
   const meal: Meal = wizardStorage.get("meal");
+  const navigate = useNavigate();
   useEffect(() => {
+    setInterval(() => {
+      meal.notify();
+    }, convertDimensions(Unit.Time.Minute, Unit.Time.Millis));
+
     meal.notify();
 
-    WizardManager.setState(WizardState.Summary);
-  });
+    // WizardManager.setState(WizardState.Summary, navigate);
+  }, []);
 
-  const navigate = useNavigate();
   return (
     <>
       <div
@@ -76,8 +80,7 @@ export default function WizardSummaryPage() {
               "Are you sure you want to start a new meal? You cannot come back to this page if you do."
             )
           ) {
-            WizardManager.startNew();
-            WizardManager.moveToCurrentPage(navigate);
+            WizardManager.startNew(navigate);
           }
         }}
       >

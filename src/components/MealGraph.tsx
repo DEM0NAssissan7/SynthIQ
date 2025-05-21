@@ -23,8 +23,10 @@ function MealGraph({ meal, from, until, width, height }: MealGraphProps) {
   );
 
   useEffect(() => {
+    // Update the reading series
+    setReadingSeries(meal.getReadingSeries(from, until));
+
     const mealGraphHandler = () => {
-      // if (initialGlucose) meal.setInitialGlucose(initialGlucose);
       setPredictionSeries(meal.getPredictionSeries(from, until));
     };
     meal.subscribe(mealGraphHandler);
@@ -32,12 +34,12 @@ function MealGraph({ meal, from, until, width, height }: MealGraphProps) {
     return () => {
       meal.unsubscribe(mealGraphHandler);
     };
-  });
+  }, [meal, from, until]);
 
+  // Notify meal on load to update the graph prediction series
   useEffect(() => {
-    setReadingSeries(meal.getReadingSeries(from, until));
-  }, [from, until]);
-
+    meal.notify();
+  }, []);
   return (
     <Graph
       series={[readingSeries, predictionSeries]}

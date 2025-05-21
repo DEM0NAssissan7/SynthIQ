@@ -1,16 +1,16 @@
 import { Routes, Route, Navigate } from "react-router";
 import SetupPage from "./SetupPage";
 import ProfilerPage from "./ProfilerPage";
-import { nightscoutStorage } from "./lib/nightscoutManager";
 import TopBar from "./components/TopBar";
 import WizardRouterPage from "./WizardRouterPage";
 import WizardIntroPage from "./wizard/WizardIntroPage";
-import WizardMealPage from "./wizard/WizardMealPage";
 import WizardInsulinPage from "./wizard/WizardInsulinPage";
 import SettingsPage from "./SettingsPage";
 import HubPage from "./HubPage";
 import WizardManager from "./lib/wizardManager";
 import WizardSummaryPage from "./wizard/WizardSummaryPage";
+import { nightscoutStorage } from "./storage/nightscoutStore";
+import WizardMealPage from "./wizard/WizardMealPage";
 
 function App() {
   nightscoutStorage.read("url");

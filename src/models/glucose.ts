@@ -1,4 +1,5 @@
-import { MetabolismFunction, metaProfile } from "../lib/metabolism";
+import { MetabolismFunction } from "../lib/metabolism";
+import metaProfile from "../storage/metaProfileStore";
 
 export default class Glucose {
   caps: number;

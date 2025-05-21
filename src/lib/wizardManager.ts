@@ -1,59 +1,8 @@
 import Meal from "../models/meal";
+import { getStateName, WizardState } from "../models/wizardState";
+import { wizardStorage } from "../storage/wizardStore";
 import NightscoutManager from "./nightscoutManager";
-import StorageNode from "./storageNode";
 import type { NavigateFunction } from "react-router";
-
-export enum WizardState {
-  Intro, // Always at the beginning
-  Meal,
-  Insulin,
-  MealConfirm,
-  Summary,
-  Final, // This is always at the end
-}
-
-type StateNameKey = [WizardState, string];
-
-const stateNames: StateNameKey[] = [
-  [WizardState.Intro, "intro"],
-  [WizardState.Meal, "meal"],
-  [WizardState.Insulin, "insulin"],
-  [WizardState.Summary, "summary"],
-];
-
-// Persistent Storage
-export const wizardStorage = new StorageNode("wizard");
-wizardStorage.add("state", WizardState.Intro, getStateFromName, getStateName);
-wizardStorage.add("mealMarked", false);
-wizardStorage.add("insulinMarked", false);
-
-// Meal Persistence
-const meal = new Meal(new Date());
-const mealStorageName = "meal";
-wizardStorage.add(mealStorageName, meal, Meal.parse, Meal.stringify);
-const wizardStorageWriteHandler = () => {
-  // Subscribe to meal so anything that happens to it gets persisted
-  wizardStorage.write(mealStorageName);
-};
-wizardStorage.get(mealStorageName).subscribe(wizardStorageWriteHandler);
-// Extend the Window interface to include the 'storage' property
-declare global {
-  interface Window {
-    storage: StorageNode;
-    meal: Meal;
-  }
-}
-window.storage = wizardStorage;
-
-// Storage Transience
-function getStateName(state: WizardState): string {
-  for (let a of stateNames) if (a[0] === state) return a[1];
-  throw new Error(`Cannot find name for state ${state}`);
-}
-function getStateFromName(name: string): WizardState {
-  for (let a of stateNames) if (a[1] === name) return a[0];
-  throw new Error(`Cannot find state for name ${name}`);
-}
 
 export default class WizardManager {
   static getPageRedirect(state: WizardState): string {
@@ -73,7 +22,21 @@ export default class WizardManager {
   }
 
   // State Management
-  static setState(state: WizardState): void {
+  static setState(state: WizardState, navigate?: NavigateFunction): void {
+    if (state === WizardState.Meal && this.getMealMarked()) {
+      console.error(
+        `WizardManager: Cannot set state - meal creation is already completed.`
+      );
+      if (navigate) this.moveToCurrentPage(navigate);
+      return;
+    }
+    if (state === WizardState.Insulin && this.getInsulinMarked()) {
+      console.error(
+        `WizardManager: Cannot set state - insulin dosing is already complete.`
+      );
+      if (navigate) this.moveToCurrentPage(navigate);
+      return;
+    }
     wizardStorage.set("state", state);
   }
   static resetState() {
@@ -94,7 +57,7 @@ export default class WizardManager {
   }
   static markMeal() {
     const meal: Meal = wizardStorage.get("meal");
-    meal.timestamp = new Date();
+    meal.timestamp = new Date(); // We intentionally set the timestamp directly as to not notify meal subscribers
     wizardStorage.set("mealMarked", true);
     NightscoutManager.markMeal(meal.getCarbs(), meal.getProtein());
   }
@@ -108,12 +71,12 @@ export default class WizardManager {
     wizardStorage.set("insulinMarked", true);
     NightscoutManager.markInsulin(units);
   }
-  static startNew() {
+  static startNew(navigate: NavigateFunction) {
     // NightscoutManager.storeMeal(meal); // Store meal to analyze later
     wizardStorage.set("mealMarked", false);
     wizardStorage.set("insulinMarked", false);
     wizardStorage.set("meal", new Meal(new Date()));
     this.setState(WizardState.Meal);
+    this.moveToCurrentPage(navigate);
   }
-  static restart() {}
 }
