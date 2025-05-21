@@ -72,7 +72,7 @@ export default class WizardManager {
     NightscoutManager.markInsulin(units);
   }
   static startNew(navigate: NavigateFunction) {
-    // NightscoutManager.storeMeal(meal); // Store meal to analyze later
+    NightscoutManager.storeMeal(wizardStorage.get("meal")); // Store meal to analyze later
     wizardStorage.set("mealMarked", false);
     wizardStorage.set("insulinMarked", false);
     wizardStorage.set("meal", new Meal(new Date()));
