@@ -54,8 +54,8 @@ export default function WizardInsulinPage() {
   // We give the meal insulin now to show the user how it's probably going to look
   useEffect(() => {
     meal.insulins = [];
-    meal.insulin(new Date(), suggestedInsulin);
-  }, [version]);
+    meal.insulin(new Date(), insulinTaken ? insulinTaken : suggestedInsulin);
+  }, [version, insulinTaken]);
 
   // Timing Info (for user)
   const optimalInsulinTiming = useMemo(() => {
