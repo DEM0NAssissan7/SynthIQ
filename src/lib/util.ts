@@ -50,3 +50,13 @@ export function getPrettyTimeDiff(
   if (timediff > 0) return `${prefix} after`;
   if (timediff < 0) return `${prefix} before`;
 }
+export function getPrettyTime(timestamp: Date): string {
+  const date = new Date(timestamp);
+  let hours = date.getHours();
+  const minutes = date.getMinutes().toString().padStart(2, "0");
+  const ampm = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12;
+  hours = hours ? hours : 12; // the hour '0' should be '12'
+  const prettyTime = `${hours}:${minutes} ${ampm}`;
+  return prettyTime;
+}

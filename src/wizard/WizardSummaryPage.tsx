@@ -2,28 +2,25 @@
  *
  */
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import MealGraph from "../components/MealGraph";
 import WizardManager from "../lib/wizardManager";
 import type Meal from "../models/meal";
-import { Button, Form } from "react-bootstrap";
+import { Button, Form, ListGroup } from "react-bootstrap";
 import { useNavigate } from "react-router";
-import { convertDimensions } from "../lib/util";
+import { convertDimensions, getPrettyTime, round } from "../lib/util";
 import Unit from "../models/unit";
 import { wizardStorage } from "../storage/wizardStore";
+import { useWizardMealState } from "../state/useWizardMeal";
+import useVersion from "../state/useVersion";
 
 export default function WizardSummaryPage() {
-  const meal: Meal = wizardStorage.get("meal");
+  const { meal, carbs, protein, insulin, insulinTimestamp } =
+    useWizardMealState();
   const navigate = useNavigate();
-  useEffect(() => {
-    setInterval(() => {
-      meal.notify();
-    }, convertDimensions(Unit.Time.Minute, Unit.Time.Millis));
 
-    meal.notify();
-
-    // WizardManager.setState(WizardState.Summary, navigate);
-  }, []);
+  // Update every minute
+  const version = useVersion(1);
 
   return (
     <>
@@ -55,7 +52,14 @@ export default function WizardSummaryPage() {
       </div>
       <div className="card mb-4" id="food-adder">
         <div className="card-body">
-          <Form.Label>Meal Summary</Form.Label>
+          <Form.Label>Summary</Form.Label>
+          <ListGroup.Item>
+            Meal eaten at {getPrettyTime(meal.timestamp)}
+            <br></br>- {round(carbs, 2)}g carbs<br></br>- {round(protein, 2)}g
+            protein<br></br>
+            <b>{round(insulin, 2)}u</b> insulin (
+            {getPrettyTime(insulinTimestamp)})
+          </ListGroup.Item>
         </div>
       </div>
       <div className="card mb-4" id="food-adder">

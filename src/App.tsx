@@ -11,6 +11,7 @@ import WizardManager from "./lib/wizardManager";
 import WizardSummaryPage from "./wizard/WizardSummaryPage";
 import { nightscoutStorage } from "./storage/nightscoutStore";
 import WizardMealPage from "./wizard/WizardMealPage";
+import WizardMealConfirmPage from "./wizard/WizardMealConfirmPage";
 
 function App() {
   nightscoutStorage.read("url");
@@ -43,6 +44,10 @@ function App() {
           <Route path="/wizard" element={<WizardRouterPage />} />
           <Route path="/wizard/intro" element={<WizardIntroPage />} />
           <Route path="/wizard/meal" element={<WizardMealPage />} />
+          <Route
+            path="/wizard/mealconfirm"
+            element={<WizardMealConfirmPage />}
+          />
           <Route path="/wizard/insulin" element={<WizardInsulinPage />} />
           <Route path="/wizard/summary" element={<WizardSummaryPage />} />
         </Routes>

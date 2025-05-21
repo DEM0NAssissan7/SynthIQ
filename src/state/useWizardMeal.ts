@@ -25,10 +25,10 @@ export function useWizardMealState() {
     protein: meal.getProtein(),
 
     insulin: meal.getInsulin(),
-    insulinTimestamp: () => {
+    insulinTimestamp: (() => {
       if (meal.insulins.length !== 0) return meal.insulins[0].timestamp;
       else return new Date();
-    },
+    })(),
     setInsulin: (units: number) => {
       meal.insulins = [];
       meal.insulin(new Date(), units);
@@ -48,7 +48,6 @@ export function useWizardMealState() {
     addFood: (food: Food) => meal.addFood(food),
     removeFood: (food: Food) => meal.removeFood(food),
     hasFood: (food: Food) => meal.hasFood(food),
-    getFoodAmount: (food: Food) => meal.getFoodAmount(food),
     changeFoodAmount: (food: Food, amount: number) =>
       meal.setFoodAmount(food, amount),
   };

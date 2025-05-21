@@ -79,7 +79,7 @@ function SetupPage() {
   return (
     <>
       <InputGroup className="mb-3">
-        <InputGroup.Text id="basic-addon1">
+        <InputGroup.Text>
           {/* Globe icon */}
           <i className="bi bi-globe"></i>
         </InputGroup.Text>
@@ -91,7 +91,7 @@ function SetupPage() {
         />
       </InputGroup>
       <InputGroup className="mb-3">
-        <InputGroup.Text id="basic-addon2">
+        <InputGroup.Text>
           {/* Key icon */}
           <i className="bi bi-key"></i>
         </InputGroup.Text>
