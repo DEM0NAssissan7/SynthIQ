@@ -5,273 +5,266 @@
       "carbs": 12,
       "protein": 0,
       "units": "unit",
-      "GI": 20
+      "GI": 10
     },
     {
       "name": "Avacado (by weight)",
       "carbs": 8.5,
       "protein": 2,
       "units": "percent",
-      "GI": 20
+      "GI": 10
     },
     {
       "name": "Atlantic Salmon",
       "carbs": 0,
       "protein": 20,
       "units": "percent",
-      "GI": 20
+      "GI": 0
     },
     {
       "name": "Bass (bone-in)",
       "carbs": 0,
       "protein": 22.6,
       "units": "percent",
-      "GI": 20
+      "GI": 0
     },
     {
       "name": "Beef Bacon -strip-",
       "carbs": 0,
       "protein": 3,
       "units": "unit",
-      "GI": 20
+      "GI": 0
     },
     {
       "name": "Babybell Cheese (per piece)",
       "carbs": 0,
       "protein": 4,
       "units": "unit",
-      "GI": 20
+      "GI": 0
     },
     {
       "name": "Beef (short ribs)",
       "carbs": 0,
       "protein": 22,
       "units": "percent",
-      "GI": 20
+      "GI": 0
     },
     {
       "name": "Bell Peppers (green)",
       "carbs": 4.6,
       "protein": 0,
       "units": "percent",
-      "GI": 20
+      "GI": 15
     },
     {
       "name": "Cauliflower",
       "carbs": 5,
       "protein": 1.9,
       "units": "percent",
-      "GI": 20
+      "GI": 15
     },
     {
       "name": "Celery",
       "carbs": 3,
       "protein": 0,
       "units": "percent",
-      "GI": 20
+      "GI": 15
     },
     {
       "name": "Chicken Breast",
       "carbs": 0,
       "protein": 31,
       "units": "percent",
-      "GI": 20
+      "GI": 0
     },
     {
       "name": "Chicken Thigh (boneless)",
       "carbs": 0,
       "protein": 24,
       "units": "percent",
-      "GI": 20
-    },
-    {
-      "name": "Chicken Thigh (bone-in)",
-      "carbs": 0,
-      "protein": 18,
-      "units": "percent",
-      "GI": 20
-    },
-    {
-      "name": "Chicken Quarter (bone-in)",
-      "carbs": 0,
-      "protein": 12.5,
-      "units": "percent",
-      "GI": 20
+      "GI": 0
     },
     {
       "name": "Chicken Quarter (boneless)",
       "carbs": 0,
       "protein": 28.5,
       "units": "percent",
-      "GI": 20
+      "GI": 0
     },
     {
       "name": "Cucumber",
       "carbs": 3.6,
       "protein": 0.7,
       "units": "percent",
-      "GI": 20
+      "GI": 15
     },
     {
       "name": "Eggs (large, scrambled)",
       "carbs": 0.6,
       "protein": 6,
       "units": "unit",
-      "GI": 20
+      "GI": 0
     },
     {
       "name": "Garlic",
       "carbs": 33,
       "protein": 6.5,
       "units": "percent",
-      "GI": 20
+      "GI": 30
     },
     {
       "name": "Ground Beef",
       "carbs": 0,
       "protein": 27.4,
       "units": "percent",
-      "GI": 20
+      "GI": 0
     },
     {
       "name": "Ground Lamb",
       "carbs": 0,
       "protein": 24.7,
       "units": "percent",
-      "GI": 20
+      "GI": 0
     },
     {
       "name": "Gouda Cheese",
       "carbs": 2.2,
       "protein": 25,
       "units": "percent",
-      "GI": 20
+      "GI": 0
     },
     {
       "name": "Hamburger Patties",
       "carbs": 0,
       "protein": 18,
       "units": "unit",
-      "GI": 20
+      "GI": 0
     },
     {
       "name": "Kale",
       "carbs": 5.6,
       "protein": 1.9,
       "units": "percent",
-      "GI": 20
+      "GI": 15
     },
     {
       "name": "Lamb Breast",
       "carbs": 0,
       "protein": 25,
       "units": "percent",
-      "GI": 20
+      "GI": 0
     },
     {
       "name": "Mushroom (white; bella) [per shroom]",
       "carbs": 0.6,
       "protein": 0.6,
       "units": "unit",
-      "GI": 20
+      "GI": 15
     },
     {
       "name": "Mushroom (white; bella) [by weight]",
       "carbs": 3.1,
       "protein": 3.3,
       "units": "percent",
-      "GI": 20
+      "GI": 15
     },
     {
       "name": "Olives (small)",
       "carbs": 0.3,
       "protein": 0,
       "units": "unit",
-      "GI": 20
+      "GI": 15
     },
     {
       "name": "Power Greens",
       "carbs": 4.23,
       "protein": 2.82,
       "units": "percent",
-      "GI": 20
+      "GI": 15
     },
     {
       "name": "Pickles (by weight)",
       "carbs": 2.3,
       "protein": 0,
       "units": "percent",
-      "GI": 20
+      "GI": 15
+    },
+    {
+      "name": "Dill Pickle Chips",
+      "carbs": 0.185,
+      "protein": 0,
+      "units": "unit",
+      "GI": 15
     },
     {
       "name": "Onion (red)",
       "carbs": 5.63,
       "protein": 0,
       "units": "percent",
-      "GI": 20
+      "GI": 10
     },
     {
       "name": "Onion (yellow)",
       "carbs": 8,
       "protein": 1,
       "units": "percent",
-      "GI": 20
+      "GI": 10
     },
     {
       "name": "Romaine Lettuce",
       "carbs": 3.3,
       "protein": 1.2,
       "units": "percent",
-      "GI": 20
+      "GI": 15
     },
     {
       "name": "Sausage Patty",
       "carbs": 0,
       "protein": 9,
       "units": "unit",
-      "GI": 20
+      "GI": 0
     },
     {
       "name": "Sausage Link",
       "carbs": 0.5,
       "protein": 8,
       "units": "unit",
-      "GI": 20
+      "GI": 0
     },
     {
       "name": "Steak (ribeye)",
       "carbs": 0,
       "protein": 24,
       "units": "percent",
-      "GI": 20
+      "GI": 0
     },
     {
       "name": "Steak (sirloin)",
       "carbs": 0,
       "protein": 27,
       "units": "percent",
-      "GI": 20
+      "GI": 0
     },
     {
       "name": "Steak (skirt)",
       "carbs": 0,
       "protein": 26,
       "units": "percent",
-      "GI": 20
+      "GI": 0
     },
     {
       "name": "Steak (tri tip)",
       "carbs": 0,
       "protein": 20.64,
       "units": "percent",
-      "GI": 20
+      "GI": 0
     },
     {
       "name": "Steak (t-bone)",
       "carbs": 0,
       "protein": 19,
       "units": "percent",
-      "GI": 20
+      "GI": 0
     }
   ]
 }
