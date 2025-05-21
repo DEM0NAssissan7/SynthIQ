@@ -25,7 +25,7 @@ function App() {
             path="/"
             element={
               condition ? (
-                WizardManager.isActive() ? (
+                WizardManager.isActive() && !WizardManager.isComplete() ? (
                   <Navigate to="/wizard" replace />
                 ) : (
                   <Navigate to="/hub" replace />
