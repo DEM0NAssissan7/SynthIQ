@@ -4,7 +4,6 @@ export enum WizardState {
   Insulin,
   MealConfirm,
   Summary,
-  Final, // This is always at the end
 }
 
 type StateNameKey = [WizardState, string];
@@ -12,6 +11,7 @@ const stateNames: StateNameKey[] = [
   [WizardState.Intro, "intro"],
   [WizardState.Meal, "meal"],
   [WizardState.Insulin, "insulin"],
+  [WizardState.MealConfirm, "mealconfirm"],
   [WizardState.Summary, "summary"],
 ];
 

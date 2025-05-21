@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Button, Form, InputGroup } from "react-bootstrap";
 import WizardManager from "../lib/wizardManager";
-import { getEpochMinutes, round } from "../lib/util";
+import { getEpochMinutes, getPrettyTime, round } from "../lib/util";
 import { useNavigate } from "react-router";
 import { WizardState } from "../models/wizardState";
 import { useWizardMealState } from "../state/useWizardMeal";
@@ -30,7 +30,7 @@ export default function WizardInsulinPage() {
         WizardManager.moveToPage(
           WizardManager.getMealMarked()
             ? WizardState.Summary
-            : WizardState.Meal,
+            : WizardState.MealConfirm,
           navigate
         );
       }
@@ -66,10 +66,13 @@ export default function WizardInsulinPage() {
       <p>
         Take however much insulin you wish. However, our algorithm think you
         should take <b>{round(suggestedInsulin, 2)}</b> units
-        {WizardManager.getMealMarked() && optimalInsulinTiming < 0 && (
+        {WizardManager.getMealMarked() && optimalInsulinTiming > 0 && (
           <>
             {" "}
             in <b>{optimalInsulinTiming} minutes</b>
+            {optimalInsulinTiming >= 30 && (
+              <> ({getPrettyTime(insulinTimestamp)})</>
+            )}
           </>
         )}
         .
@@ -84,7 +87,7 @@ export default function WizardInsulinPage() {
           <i className="bi bi-capsule"></i>
         </InputGroup.Text>
         <Form.Control
-          placeholder={round(insulinTaken, 2).toString()}
+          placeholder={round(suggestedInsulin, 2).toString()}
           aria-label="URL"
           aria-describedby="basic-addon1"
           onChange={(e: any) => {
