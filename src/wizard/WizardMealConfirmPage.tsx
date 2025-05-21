@@ -2,7 +2,12 @@
 
 import { Button, ListGroup } from "react-bootstrap";
 import { useWizardMealState } from "../state/useWizardMeal";
-import { getEpochMinutes, round } from "../lib/util";
+import {
+  getEpochMinutes,
+  getPrettyTime,
+  getTimestampFromOffset,
+  round,
+} from "../lib/util";
 import WizardManager from "../lib/wizardManager";
 import { WizardState } from "../models/wizardState";
 import { useNavigate } from "react-router";
@@ -44,6 +49,9 @@ export default function WizardMealConfirmPage() {
       getEpochMinutes(new Date()) - getEpochMinutes(optimalInsulinTimestamp)
     );
   }, [optimalInsulinTimestamp, version]);
+  const optimalMealTimestamp = useMemo(() => {
+    return getTimestampFromOffset(new Date(), optimalMealTiming / 60);
+  }, [optimalMealTiming]);
 
   useEffect(() => {
     if (!WizardManager.getMealMarked()) meal.timestamp = new Date();
@@ -70,6 +78,9 @@ export default function WizardMealConfirmPage() {
             {optimalMealTiming > 0 && (
               <ListGroup.Item>
                 Consider eating in {optimalMealTiming} minutes.
+                {optimalMealTiming >= 30 && (
+                  <> ({getPrettyTime(optimalMealTimestamp)})</>
+                )}
               </ListGroup.Item>
             )}
           </ListGroup>
