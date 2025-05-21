@@ -2,25 +2,17 @@
  *
  */
 
-import { useEffect, useMemo } from "react";
 import MealGraph from "../components/MealGraph";
 import WizardManager from "../lib/wizardManager";
-import type Meal from "../models/meal";
 import { Button, Form, ListGroup } from "react-bootstrap";
 import { useNavigate } from "react-router";
-import { convertDimensions, getPrettyTime, round } from "../lib/util";
-import Unit from "../models/unit";
-import { wizardStorage } from "../storage/wizardStore";
+import { getPrettyTime, round } from "../lib/util";
 import { useWizardMealState } from "../state/useWizardMeal";
-import useVersion from "../state/useVersion";
 
 export default function WizardSummaryPage() {
   const { meal, carbs, protein, insulin, insulinTimestamp } =
     useWizardMealState();
   const navigate = useNavigate();
-
-  // Update every minute
-  const version = useVersion(1);
 
   return (
     <>

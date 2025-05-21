@@ -1,18 +1,13 @@
 /** This is the meal page that appears if you take insulin before eating */
 
-import { Button, Form, ListGroup } from "react-bootstrap";
-import AddedFoodsDisplay from "../components/AddedFoodsDisplay";
-import FoodSearchDisplay from "../components/FoodSearchDisplay";
+import { Button, ListGroup } from "react-bootstrap";
 import { useWizardMealState } from "../state/useWizardMeal";
-import MealGraph from "../components/MealGraph";
-import { convertDimensions, getEpochMinutes, round } from "../lib/util";
+import { getEpochMinutes, round } from "../lib/util";
 import WizardManager from "../lib/wizardManager";
 import { WizardState } from "../models/wizardState";
 import { useNavigate } from "react-router";
-import Unit from "../models/unit";
-import NutritionOffset from "../components/NutritionOffset";
 import useInsulinPrediction from "../state/useInsulinPrediction";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import MealPredictedSugarGraphCard from "../components/MealPredictedSugarGraphCard";
 import MealAddedFoodsListCard from "../components/MealAddedFoodsListCard";
 import MealAdditionalNutrientsCard from "../components/MealAdditionalNutrientsCard";
