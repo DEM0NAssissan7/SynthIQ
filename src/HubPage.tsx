@@ -50,7 +50,12 @@ function HubPage() {
                   WizardManager.isComplete() ? (
                     <>
                       <Card.Title>Realtime Meal Prediction</Card.Title>
-                      <MealGraph meal={meal} from={-1} until={10} />
+                      <MealGraph
+                        meal={meal}
+                        from={-1}
+                        until={10}
+                        width="100%"
+                      />
                     </>
                   ) : (
                     <>
