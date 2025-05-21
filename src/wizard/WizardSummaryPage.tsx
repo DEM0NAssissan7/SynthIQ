@@ -14,6 +14,16 @@ export default function WizardSummaryPage() {
     useWizardMealState();
   const navigate = useNavigate();
 
+  function startNew() {
+    if (
+      confirm(
+        "Are you sure you want to start a new meal? You cannot come back to this page if you do."
+      )
+    ) {
+      WizardManager.startNew(navigate);
+    }
+  }
+
   return (
     <>
       <div
@@ -44,11 +54,12 @@ export default function WizardSummaryPage() {
       </div>
       <div className="card mb-4" id="food-adder">
         <div className="card-body">
-          <Form.Label>Summary</Form.Label>
           <ListGroup.Item>
             Meal eaten at {getPrettyTime(meal.timestamp)}
             <br></br>- {round(carbs, 2)}g carbs<br></br>- {round(protein, 2)}g
-            protein<br></br>
+            protein
+            <br />
+            <br />
             <b>{round(insulin, 2)}u</b> insulin (
             {getPrettyTime(insulinTimestamp)})
           </ListGroup.Item>
@@ -69,19 +80,11 @@ export default function WizardSummaryPage() {
           />
         </div>
       </div>
-      <Button
-        onClick={() => {
-          if (
-            confirm(
-              "Are you sure you want to start a new meal? You cannot come back to this page if you do."
-            )
-          ) {
-            WizardManager.startNew(navigate);
-          }
-        }}
-      >
-        Start New Meal
-      </Button>
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <Button variant="primary" onClick={startNew}>
+          Start New Meal
+        </Button>
+      </div>
     </>
   );
 }
