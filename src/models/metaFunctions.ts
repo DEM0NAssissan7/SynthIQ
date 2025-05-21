@@ -71,5 +71,6 @@ export function metaKernel(
   // e -> magnitude
   // n -> delay
   // p -> arbitrary number that describes speed of curve
+  if (e === 0) return 0;
   return e * f(t - n, p);
 }
