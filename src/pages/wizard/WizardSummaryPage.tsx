@@ -2,12 +2,12 @@
  *
  */
 
-import MealGraph from "./components/MealGraph";
-import WizardManager from "./lib/wizardManager";
+import MealGraph from "../../components/MealGraph";
+import WizardManager from "../../lib/wizardManager";
 import { Button, ListGroup } from "react-bootstrap";
 import { useNavigate } from "react-router";
-import { getPrettyTime, round } from "./lib/util";
-import { useWizardMealState } from "./state/useWizardMeal";
+import { getPrettyTime, round } from "../../lib/util";
+import { useWizardMealState } from "../../state/useWizardMeal";
 
 export default function WizardSummaryPage() {
   const { meal, carbs, protein, insulin, insulinTimestamp } =

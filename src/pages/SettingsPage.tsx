@@ -6,7 +6,7 @@
  */
 
 import { Form, InputGroup } from "react-bootstrap";
-import { nightscoutStorage } from "./storage/nightscoutStore";
+import { nightscoutStorage } from "../storage/nightscoutStore";
 
 export default function SettingsPage() {
   return (

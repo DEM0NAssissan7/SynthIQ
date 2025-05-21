@@ -1,17 +1,17 @@
 import { Button, ListGroup } from "react-bootstrap";
-import { useWizardMealState } from "./state/useWizardMeal";
+import { useWizardMealState } from "../../state/useWizardMeal";
 import { useEffect, useMemo } from "react";
-import { getHourDiff, getPrettyTimeDiff, round } from "./lib/util";
-import WizardManager from "./lib/wizardManager";
-import { WizardState } from "./models/wizardState";
+import { getHourDiff, getPrettyTimeDiff, round } from "../../lib/util";
+import WizardManager from "../../lib/wizardManager";
+import { WizardState } from "../../models/wizardState";
 import { useNavigate } from "react-router";
-import BloodSugarInput from "./components/BloodSugarInput";
-import Unit from "./models/unit";
-import useInsulinPrediction from "./state/useInsulinPrediction";
-import MealSearchCard from "./components/MealSearchCard";
-import MealAddedFoodsListCard from "./components/MealAddedFoodsListCard";
-import MealAdditionalNutrientsCard from "./components/MealAdditionalNutrientsCard";
-import MealPredictedSugarGraphCard from "./components/MealPredictedSugarGraphCard";
+import BloodSugarInput from "../../components/BloodSugarInput";
+import Unit from "../../models/unit";
+import useInsulinPrediction from "../../state/useInsulinPrediction";
+import MealSearchCard from "../../components/MealSearchCard";
+import MealAddedFoodsListCard from "../../components/MealAddedFoodsListCard";
+import MealAdditionalNutrientsCard from "../../components/MealAdditionalNutrientsCard";
+import MealPredictedSugarGraphCard from "../../components/MealPredictedSugarGraphCard";
 
 export default function WizardMealPage() {
   const { meal, carbs, protein, initialGlucose, setInitialGlucose } =

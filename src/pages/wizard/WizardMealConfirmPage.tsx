@@ -1,23 +1,23 @@
 /** This is the meal page that appears if you take insulin before eating */
 
 import { Button, ListGroup } from "react-bootstrap";
-import { useWizardMealState } from "./state/useWizardMeal";
+import { useWizardMealState } from "../../state/useWizardMeal";
 import {
   getEpochMinutes,
   getPrettyTime,
   getTimestampFromOffset,
   round,
-} from "./lib/util";
-import WizardManager from "./lib/wizardManager";
-import { WizardState } from "./models/wizardState";
+} from "../../lib/util";
+import WizardManager from "../../lib/wizardManager";
+import { WizardState } from "../../models/wizardState";
 import { useNavigate } from "react-router";
-import useInsulinPrediction from "./state/useInsulinPrediction";
+import useInsulinPrediction from "../../state/useInsulinPrediction";
 import { useEffect, useMemo } from "react";
-import MealPredictedSugarGraphCard from "./components/MealPredictedSugarGraphCard";
-import MealAddedFoodsListCard from "./components/MealAddedFoodsListCard";
-import MealAdditionalNutrientsCard from "./components/MealAdditionalNutrientsCard";
-import MealSearchCard from "./components/MealSearchCard";
-import useVersion from "./state/useVersion";
+import MealPredictedSugarGraphCard from "../../components/MealPredictedSugarGraphCard";
+import MealAddedFoodsListCard from "../../components/MealAddedFoodsListCard";
+import MealAdditionalNutrientsCard from "../../components/MealAdditionalNutrientsCard";
+import MealSearchCard from "../../components/MealSearchCard";
+import useVersion from "../../state/useVersion";
 
 export default function WizardMealConfirmPage() {
   const { meal, carbs, protein, insulin, initialGlucose } =

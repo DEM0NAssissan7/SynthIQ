@@ -1,10 +1,10 @@
-import ProfileSlider from "./components/ProfileSlider";
-import Meal from "./models/meal";
-import ProfilerMealDisplay from "./components/ProfilerMealDisplay";
 import { useEffect, useState } from "react";
-import NightscoutManager from "./lib/nightscoutManager";
+import ProfilerMealDisplay from "../components/ProfilerMealDisplay";
+import ProfileSlider from "../components/ProfileSlider";
+import NightscoutManager from "../lib/nightscoutManager";
+import type Meal from "../models/meal";
 
-function ProfilerPage() {
+export default function ProfilerPage() {
   const [importedMeals, setImportedMeals] = useState<Meal[]>([]);
 
   useEffect(() => {
@@ -44,5 +44,3 @@ function ProfilerPage() {
     </>
   );
 }
-
-export default ProfilerPage;
