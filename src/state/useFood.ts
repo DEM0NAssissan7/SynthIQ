@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type Food from "../models/food";
 import type Meal from "../models/meal";
 
-export default function useFood(food: Food) {
+export default function useFood(food: Food, meal?: Meal) {
   const [, setVersion] = useState(0);
   const rerender = () => setVersion((v) => v + 1);
   return {
@@ -11,6 +11,7 @@ export default function useFood(food: Food) {
     protein: food.getProtein(),
     setAmount: (amount: number) => {
       food.amount = amount;
+      meal?.notify();
       rerender();
     },
   };

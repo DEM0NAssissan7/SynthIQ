@@ -19,7 +19,12 @@ export default function useInsulinPrediction(
   return useMemo(() => {
     const insulinCorrection = getCorrectionInsulin(currentGlucose);
     const totalInsulin = getInsulin(carbs, protein) + insulinCorrection;
-    const insulinTimestamp = getOptimalInsulinTiming(meal, totalInsulin, -4, 8);
+    const insulinTimestamp = getOptimalInsulinTiming(
+      meal,
+      totalInsulin,
+      -2,
+      12
+    );
     if (mutateMeal) {
       meal.insulins = [];
       meal.insulin(insulinTimestamp, totalInsulin);
@@ -29,5 +34,5 @@ export default function useInsulinPrediction(
       insulinCorrection,
       insulinTimestamp,
     };
-  }, [carbs, protein, currentGlucose]);
+  }, [meal, carbs, protein, currentGlucose]);
 }

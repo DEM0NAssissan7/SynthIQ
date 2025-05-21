@@ -68,22 +68,24 @@ export default function WizardMealPage() {
                 <>({round(insulinCorrection, 2)}u correction)</>
               )}
             </ListGroup.Item>
-            <ListGroup.Item>
-              Consider taking <b>{round(insulin, 2)}u</b> of insulin
-              {(carbs !== 0 || protein !== 0) && (
-                <>
-                  {" "}
-                  <b>
-                    {getPrettyTimeDiff(
-                      new Date(),
-                      insulinTimestamp,
-                      Unit.Time.Minute
-                    )}
-                  </b>{" "}
-                  you start eating
-                </>
-              )}
-            </ListGroup.Item>
+            {insulin > 0 && (
+              <ListGroup.Item>
+                Consider taking <b>{round(insulin, 2)}u</b> of insulin
+                {(carbs !== 0 || protein !== 0) && (
+                  <>
+                    {" "}
+                    <b>
+                      {getPrettyTimeDiff(
+                        new Date(),
+                        insulinTimestamp,
+                        Unit.Time.Minute
+                      )}
+                    </b>{" "}
+                    you start eating
+                  </>
+                )}
+              </ListGroup.Item>
+            )}
             <ListGroup.Item>
               <BloodSugarInput
                 initialGlucose={initialGlucose}

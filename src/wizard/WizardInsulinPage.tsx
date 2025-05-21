@@ -27,7 +27,12 @@ export default function WizardInsulinPage() {
         confirm(`Confirm that you have taken ${insulinTaken} units of insulin`)
       ) {
         WizardManager.markInsulin(insulinTaken);
-        WizardManager.moveToPage(WizardState.Meal, navigate);
+        WizardManager.moveToPage(
+          WizardManager.getMealMarked()
+            ? WizardState.Summary
+            : WizardState.Meal,
+          navigate
+        );
       }
     } else {
       alert("Please enter a valid number");
@@ -91,10 +96,12 @@ export default function WizardInsulinPage() {
         <InputGroup.Text id="basic-addon1">u</InputGroup.Text>
       </InputGroup>
       <div className="d-flex justify-content-between">
-        {!WizardManager.getMealMarked() && (
+        {!WizardManager.getMealMarked() ? (
           <Button variant="secondary" onClick={goBack}>
             Go Back
           </Button>
+        ) : (
+          <div></div>
         )}
         <Button variant="primary" onClick={markInsulin}>
           Mark Insulin

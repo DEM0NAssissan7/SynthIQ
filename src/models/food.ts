@@ -1,5 +1,6 @@
 import * as importedFoods from "../assets/foods.json";
 import { defaultGI, MetabolismFunction } from "../lib/metabolism";
+import { genUUID } from "../lib/util";
 import Unit from "../models/unit";
 
 export default class Food {
@@ -9,7 +10,7 @@ export default class Food {
   fatRate: number = 0;
   unit: Unit.Food;
   GI: number; // Glycemic Index (carbs only)
-  key: number = NaN; // This only exists to uniquely identify the food
+  key: number; // This only exists to uniquely identify the food
 
   amount: number = 0;
   constructor(
@@ -24,6 +25,8 @@ export default class Food {
     this.proteinRate = proteinRate;
     this.unit = unit;
     this.GI = GI;
+
+    this.key = genUUID();
   }
   carbsDeltaBG(t: number): number {
     return MetabolismFunction.carbs(t, this.getCarbs(), this.GI);

@@ -7,8 +7,8 @@ export default function useWizardMeal(): Meal {
   const meal: Meal = wizardStorage.get("meal");
   const [, setVersion] = useState(0);
 
+  const rerender = () => setVersion((v) => v + 1); // force re-render
   useEffect(() => {
-    const rerender = () => setVersion((v) => v + 1); // force re-render
     meal.subscribe(rerender);
     return () => meal.unsubscribe(rerender);
   }, []);

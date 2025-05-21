@@ -27,7 +27,9 @@ function MealGraph({ meal, from, until, width, height }: MealGraphProps) {
     setReadingSeries(meal.getReadingSeries(from, until));
 
     const mealGraphHandler = () => {
-      setPredictionSeries(meal.getPredictionSeries(from, until));
+      requestAnimationFrame(() => {
+        setPredictionSeries(meal.getPredictionSeries(from, until));
+      });
     };
     meal.subscribe(mealGraphHandler);
 

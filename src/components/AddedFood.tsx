@@ -5,16 +5,17 @@ import type Food from "../models/food";
 import useFood from "../state/useFood";
 import { round } from "../lib/util";
 import { getInsulin } from "../lib/metabolism";
+import { useWizardMealState } from "../state/useWizardMeal";
 
 interface SearchFoodProps {
   food: Food;
-  removeFood: (food: Food) => void;
 }
 
-export default function AddedFood({ food, removeFood }: SearchFoodProps) {
+export default function AddedFood({ food }: SearchFoodProps) {
+  const { meal, removeFood } = useWizardMealState();
   let prettyUnit = getFoodUnitPrettyName(food.unit);
   let letter = prettyUnit[prettyUnit.length - 1];
-  const { amount, setAmount, carbs, protein } = useFood(food);
+  const { amount, setAmount, carbs, protein } = useFood(food, meal);
 
   // Just to prevent reload when pressing enter
   const handleFormSubmit = (e: BaseSyntheticEvent) => {
