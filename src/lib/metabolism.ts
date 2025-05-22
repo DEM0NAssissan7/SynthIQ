@@ -1,7 +1,7 @@
 import Insulin from "../models/insulin";
 import type Meal from "../models/meal";
 import metaProfile from "../storage/metaProfileStore";
-import { getTimestampFromOffset } from "./util";
+import { getTimestampFromOffset } from "./timing";
 
 export function getInsulin(carbs: number, protein: number) {
   return (

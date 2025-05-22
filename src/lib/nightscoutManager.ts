@@ -1,7 +1,8 @@
-import { convertDimensions, getTimestampFromOffset } from "./util";
+import { convertDimensions } from "./util";
 import Unit from "../models/unit";
 import Meal from "../models/meal";
 import { nightscoutStore } from "../storage/nightscoutStore";
+import { getTimestampFromOffset } from "./timing";
 
 const selfID = "SynthIQ";
 

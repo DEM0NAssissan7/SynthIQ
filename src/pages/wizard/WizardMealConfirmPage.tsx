@@ -1,12 +1,7 @@
 /** This is the meal page that appears if you take insulin before eating */
 
 import { Button, ListGroup } from "react-bootstrap";
-import {
-  getEpochMinutes,
-  getPrettyTime,
-  getTimestampFromOffset,
-  round,
-} from "../../lib/util";
+import { round } from "../../lib/util";
 import WizardManager from "../../lib/wizardManager";
 import { WizardState } from "../../models/wizardState";
 import { useNavigate } from "react-router";
@@ -18,6 +13,11 @@ import MealAdditionalNutrientsCard from "../../components/MealAdditionalNutrient
 import MealSearchCard from "../../components/MealSearchCard";
 import useVersion from "../../state/useVersion";
 import { useWizardMeal } from "../../state/useMeal";
+import {
+  getMinuteDiff,
+  getPrettyTime,
+  getTimestampFromOffset,
+} from "../../lib/timing";
 
 export default function WizardMealConfirmPage() {
   // Use the meal state
@@ -45,10 +45,9 @@ export default function WizardMealConfirmPage() {
   }
 
   const optimalMealTiming = useMemo(() => {
-    return (
-      getEpochMinutes(new Date()) - getEpochMinutes(optimalInsulinTimestamp)
-    );
+    return getMinuteDiff(new Date(), optimalInsulinTimestamp);
   }, [optimalInsulinTimestamp, version]);
+
   const optimalMealTimestamp = useMemo(() => {
     return getTimestampFromOffset(new Date(), optimalMealTiming / 60);
   }, [optimalMealTiming]);

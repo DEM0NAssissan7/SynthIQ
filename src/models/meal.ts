@@ -1,9 +1,4 @@
-import {
-  genUUID,
-  getEpochMinutes,
-  getHourDiff,
-  getTimestampFromOffset,
-} from "../lib/util";
+import { genUUID } from "../lib/util";
 import type Series from "./series";
 import Glucose from "./glucose";
 import Insulin from "./insulin";
@@ -14,6 +9,7 @@ import { Color } from "./series";
 import { nightscoutStore } from "../storage/nightscoutStore";
 import Food from "./food";
 import { profile } from "../storage/metaProfileStore";
+import { getHourDiff, getTimestampFromOffset } from "../lib/timing";
 
 function createCarbsOffset() {
   return new Food("Carbs Offset", 1, 0, 1);
@@ -101,7 +97,7 @@ class Meal {
 
   // Timing Stuff
   getN(timestamp: Date) {
-    return (getEpochMinutes(timestamp) - getEpochMinutes(this._timestamp)) / 60;
+    return getHourDiff(timestamp, this._timestamp);
   }
   set timestamp(timestamp: Date) {
     this._timestamp = timestamp;
@@ -113,7 +109,7 @@ class Meal {
   getStartTimestamp() {
     let timestamp = this._timestamp;
     const callback = (t: Date) => {
-      if (getHourDiff(timestamp, t) < 0) timestamp = t;
+      if (getHourDiff(t, timestamp) < 0) timestamp = t;
     };
     this.insulins.forEach((a) => callback(a.timestamp));
     this.glucoses.forEach((a) => callback(a.timestamp));

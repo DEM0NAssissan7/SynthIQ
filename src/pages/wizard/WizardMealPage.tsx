@@ -1,6 +1,6 @@
 import { Button, ListGroup } from "react-bootstrap";
 import { useEffect, useMemo } from "react";
-import { getHourDiff, getPrettyTimeDiff, round } from "../../lib/util";
+import { round } from "../../lib/util";
 import WizardManager from "../../lib/wizardManager";
 import { WizardState } from "../../models/wizardState";
 import { useNavigate } from "react-router";
@@ -12,6 +12,11 @@ import MealAddedFoodsListCard from "../../components/MealAddedFoodsListCard";
 import MealAdditionalNutrientsCard from "../../components/MealAdditionalNutrientsCard";
 import MealPredictedSugarGraphCard from "../../components/MealPredictedSugarGraphCard";
 import { useWizardMeal } from "../../state/useMeal";
+import {
+  getHourDiff,
+  getPrettyTime,
+  getPrettyTimeDiff,
+} from "../../lib/timing";
 
 export default function WizardMealPage() {
   const meal = useWizardMeal();
@@ -27,7 +32,7 @@ export default function WizardMealPage() {
 
   // Continue Buttons
   const takeInsulinFirst = useMemo(() => {
-    return getHourDiff(insulinTimestamp, new Date()) >= 0;
+    return getHourDiff(new Date(), insulinTimestamp) >= 0;
   }, [meal.carbs, meal.protein, meal.initialGlucose]);
 
   const navigate = useNavigate();
@@ -76,8 +81,8 @@ export default function WizardMealPage() {
                     {" "}
                     <b>
                       {getPrettyTimeDiff(
-                        new Date(),
                         insulinTimestamp,
+                        new Date(),
                         Unit.Time.Minute
                       )}
                     </b>{" "}

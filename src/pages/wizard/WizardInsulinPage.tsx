@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button, Form, InputGroup } from "react-bootstrap";
 import WizardManager from "../../lib/wizardManager";
-import { getEpochMinutes, getPrettyTime, round } from "../../lib/util";
+import { round } from "../../lib/util";
 import { useNavigate } from "react-router";
 import { WizardState } from "../../models/wizardState";
 import useInsulinPrediction from "../../state/useInsulinPrediction";
 import useVersion from "../../state/useVersion";
 import MealPredictedSugarGraphCard from "../../components/MealPredictedSugarGraphCard";
 import { useWizardMeal } from "../../state/useMeal";
+import { getMinuteDiff, getPrettyTime } from "../../lib/timing";
 
 export default function WizardInsulinPage() {
   const navigate = useNavigate();
@@ -63,11 +64,11 @@ export default function WizardInsulinPage() {
 
   // Timing Info (for user)
   const optimalInsulinTiming = useMemo(() => {
-    return getEpochMinutes(insulinTimestamp) - getEpochMinutes(new Date());
+    return getMinuteDiff(new Date(), insulinTimestamp);
   }, [version]);
 
   const timeEaten = useMemo(() => {
-    return getEpochMinutes(new Date()) - getEpochMinutes(meal._timestamp);
+    return getMinuteDiff(new Date(), meal.timestamp);
   }, [version]);
 
   return (

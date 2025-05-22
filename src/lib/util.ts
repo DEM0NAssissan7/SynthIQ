@@ -1,5 +1,4 @@
-import Unit, { getTimeUnitPrettyName } from "../models/unit";
-
+// Units
 export function convertDimensions(source: number, destination: number): number {
   return source / destination;
 }
@@ -15,55 +14,4 @@ export function round(num: number, precision: number): number {
 // Number Generation
 export function genUUID(): number {
   return Math.round(random(0, 2 ** 16));
-}
-
-// Timestamp
-export function getEpochMinutes(date: Date): number {
-  return Math.round(
-    date.getTime() * convertDimensions(Unit.Time.Millis, Unit.Time.Minute)
-  );
-}
-export function getEpochHours(date: Date): number {
-  return date.getTime() * convertDimensions(Unit.Time.Millis, Unit.Time.Hour);
-}
-export function getHourDiff(timestampA: Date, timestampB: Date): number {
-  return (getEpochMinutes(timestampB) - getEpochMinutes(timestampA)) / 60;
-}
-export function getTimestampFromOffset(timestamp: Date, hours: number): Date {
-  let unixTimestamp = timestamp.getTime();
-  let offsetMillis =
-    hours * convertDimensions(Unit.Time.Hour, Unit.Time.Millis);
-  return new Date(unixTimestamp + offsetMillis);
-}
-export function getPrettyTimeDiff(
-  timestamp: Date,
-  timestampVictim: Date,
-  unit: Unit.Time
-) {
-  let timediff =
-    getHourDiff(timestamp, timestampVictim) *
-    convertDimensions(Unit.Time.Hour, unit);
-  if (timediff === 0) return "as soon as";
-  const prefix = `${Math.abs(round(timediff, 0))} ${getTimeUnitPrettyName(
-    unit
-  )}`;
-  if (timediff > 0) return `${prefix} after`;
-  if (timediff < 0) return `${prefix} before`;
-}
-export function getPrettyTime(timestamp: Date): string {
-  const date = new Date(timestamp);
-  let hours = date.getHours();
-  const minutes = date.getMinutes().toString().padStart(2, "0");
-  const ampm = hours >= 12 ? "PM" : "AM";
-  hours = hours % 12;
-  hours = hours ? hours : 12; // the hour '0' should be '12'
-  const prettyTime = `${hours}:${minutes} ${ampm}`;
-  return prettyTime;
-}
-export function getFullPrettyDate(timestamp: Date): string {
-  const date = new Date(timestamp);
-  const day = date.getDate().toString().padStart(2, "0");
-  const month = (date.getMonth() + 1).toString().padStart(2, "0");
-  const year = date.getFullYear();
-  return `${day}-${month}-${year} (${getPrettyTime(timestamp)} )`;
 }

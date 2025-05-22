@@ -4,7 +4,7 @@
 
 import Series, { Color } from "./series";
 import NightscoutManager from "../lib/nightscoutManager";
-import { getHourDiff } from "../lib/util";
+import { getHourDiff } from "../lib/timing";
 
 class ReadingSeries extends Series {
   timestamp: Date;
@@ -19,7 +19,7 @@ class ReadingSeries extends Series {
       result.forEach((r: any) => {
         let sugar: number = r.sgv;
         let timestamp: Date = new Date(r.date);
-        this.point(getHourDiff(this.timestamp, timestamp), sugar);
+        this.point(getHourDiff(timestamp, this.timestamp), sugar);
       });
     });
   }

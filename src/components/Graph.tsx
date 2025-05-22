@@ -8,10 +8,12 @@ import {
   XAxis,
   YAxis,
   ResponsiveContainer,
+  ReferenceLine,
 } from "recharts";
 
 interface GraphProps {
   series: Series[];
+  lines?: number[];
   ymin?: string | number;
   width?: string | number;
   height?: string | number;
@@ -21,6 +23,7 @@ interface GraphProps {
 
 export default function Graph({
   series,
+  lines = [],
   ymin = "auto",
   width = 600,
   height = 200,
@@ -63,6 +66,11 @@ export default function Graph({
               );
             })
           }
+          {lines.map((x) => {
+            return (
+              <ReferenceLine x={x} key={x} stroke="red" strokeDasharray="3 3" />
+            );
+          })}
 
           <XAxis
             type="number"

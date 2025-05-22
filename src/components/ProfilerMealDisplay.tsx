@@ -4,7 +4,7 @@ import MealGraph from "./MealGraph";
 import metaProfile from "../storage/metaProfileStore";
 import { Button } from "react-bootstrap";
 import useImportedMealsState from "../state/useImportedMealsState";
-import { getFullPrettyDate } from "../lib/util";
+import { getFullPrettyDate } from "../lib/timing";
 
 interface ProfilerMealDisplayProps {
   meal: Meal;

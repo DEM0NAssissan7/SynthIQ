@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type Meal from "../models/meal";
 import Graph from "./Graph";
 import { Color } from "../models/series";
@@ -22,6 +22,9 @@ function MealGraph({ meal, from, until, width, height }: MealGraphProps) {
     new MathSeries(Color.Blue, [])
   );
 
+  const [version, setVersion] = useState(0);
+  const rerender = () => setVersion((v) => v + 1); // force re-render
+
   useEffect(() => {
     // Update the reading series
     setReadingSeries(meal.getReadingSeries(from, until));
@@ -29,6 +32,7 @@ function MealGraph({ meal, from, until, width, height }: MealGraphProps) {
     const mealGraphHandler = () => {
       requestAnimationFrame(() => {
         setPredictionSeries(meal.getPredictionSeries(from, until));
+        rerender();
       });
     };
     meal.subscribe(mealGraphHandler);
@@ -42,9 +46,18 @@ function MealGraph({ meal, from, until, width, height }: MealGraphProps) {
   useEffect(() => {
     meal.notify();
   }, []);
+
+  const lines = useMemo(() => {
+    let lines: number[] = [];
+    meal.insulins.forEach((insulin) => {
+      lines.push(meal.getN(insulin.timestamp));
+    });
+    return lines;
+  }, [meal, version]);
   return (
     <Graph
       series={[readingSeries, predictionSeries]}
+      lines={lines}
       ymin={60}
       xmin={from}
       xmax={until}
