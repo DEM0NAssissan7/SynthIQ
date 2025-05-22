@@ -130,7 +130,11 @@ class NightscoutManager {
   static ignoreUUID(uuid: number) {
     let ignored = nightscoutStorage.get("ignoredUUIDs");
     ignored.push(uuid);
+    console.log(ignored);
     nightscoutStorage.set("ignoredUUIDs", ignored);
+  }
+  static clearIgnoredUUIDs() {
+    nightscoutStorage.set("ignoredUUIDs", []);
   }
   static uuidIsIgnored(uuid: number) {
     let ignored = nightscoutStorage.get("ignoredUUIDs");
@@ -144,11 +148,13 @@ class NightscoutManager {
     let meals: Meal[] = [];
     let treatments = await this.get("treatments");
     // console.log(treatments);
+    console.log(treatments);
     treatments.forEach((t: any) => {
       if (
         t.eventType === mealStoreEventType &&
         t.enteredBy === selfID &&
-        t.uuid
+        t.uuid &&
+        t.mealString
       ) {
         if (this.uuidIsIgnored(t.uuid)) return;
         meals.push(Meal.parse(t.mealString));

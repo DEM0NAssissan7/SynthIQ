@@ -54,7 +54,10 @@ export default function WizardInsulinPage() {
   // We give the meal insulin now to show the user how it's probably going to look
   useEffect(() => {
     meal.insulins = [];
-    meal.insulin(new Date(), insulinTaken ? insulinTaken : suggestedInsulin);
+    meal.createInsulin(
+      new Date(),
+      insulinTaken ? insulinTaken : suggestedInsulin
+    );
   }, [version, insulinTaken]);
 
   // Timing Info (for user)
@@ -63,7 +66,7 @@ export default function WizardInsulinPage() {
   }, [version]);
 
   const timeEaten = useMemo(() => {
-    return getEpochMinutes(new Date()) - getEpochMinutes(meal.timestamp);
+    return getEpochMinutes(new Date()) - getEpochMinutes(meal._timestamp);
   }, [version]);
 
   return (
@@ -91,7 +94,7 @@ export default function WizardInsulinPage() {
             </>
           ) : (
             <>
-              You ate at <b>{getPrettyTime(meal.timestamp)}</b>.
+              You ate at <b>{getPrettyTime(meal._timestamp)}</b>.
             </>
           )}
         </p>

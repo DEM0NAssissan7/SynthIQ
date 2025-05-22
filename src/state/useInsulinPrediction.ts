@@ -27,12 +27,12 @@ export default function useInsulinPrediction(
     );
     if (mutateMeal) {
       meal.insulins = [];
-      meal.insulin(insulinTimestamp, totalInsulin);
+      meal.createInsulin(insulinTimestamp, totalInsulin);
     }
     return {
       insulin: totalInsulin,
       insulinCorrection,
       insulinTimestamp,
     };
-  }, [meal, carbs, protein, currentGlucose]);
+  }, [carbs, protein, currentGlucose]);
 }

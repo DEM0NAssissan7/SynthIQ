@@ -1,17 +1,9 @@
-import { useEffect, useState } from "react";
 import ProfilerMealDisplay from "../components/ProfilerMealDisplay";
 import ProfileSlider from "../components/ProfileSlider";
-import NightscoutManager from "../lib/nightscoutManager";
-import type Meal from "../models/meal";
+import useImportedMealsState from "../state/useImportedMealsState";
 
 export default function ProfilerPage() {
-  const [importedMeals, setImportedMeals] = useState<Meal[]>([]);
-
-  useEffect(() => {
-    NightscoutManager.getAllMeals().then((m) => {
-      setImportedMeals(m);
-    });
-  }, []);
+  const { importedMeals } = useImportedMealsState();
 
   return (
     <>

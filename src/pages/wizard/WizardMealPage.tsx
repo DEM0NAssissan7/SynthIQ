@@ -44,7 +44,8 @@ export default function WizardMealPage() {
 
   // Upon Startup
   useEffect(() => {
-    if (!WizardManager.getMealMarked()) meal.timestamp = new Date();
+    // We intentionally assign the timestamp directly so that we do not trigger notify()
+    if (!WizardManager.getMealMarked()) meal._timestamp = new Date();
   });
 
   return (

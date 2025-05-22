@@ -1,5 +1,4 @@
-import metaProfile from "../storage/metaProfileStore";
-import MetabolismFunction from "./metabolismFunction";
+import metaProfile, { profile } from "../storage/metaProfileStore";
 
 export default class Glucose {
   caps: number;
@@ -12,7 +11,7 @@ export default class Glucose {
     this.timestamp = timestamp;
   }
   deltaBG(t: number): number {
-    return MetabolismFunction.glucose(t, this.grams);
+    return profile.glucose.deltaBG(t, this.grams);
   }
   static stringify(g: Glucose): string {
     return JSON.stringify({

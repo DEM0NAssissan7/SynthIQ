@@ -1,7 +1,8 @@
 import * as importedFoods from "../assets/foods.json";
 import { genUUID } from "../lib/util";
 import Unit from "../models/unit";
-import MetabolismFunction, { defaultGI } from "./metabolismFunction";
+import { profile } from "../storage/metaProfileStore";
+import { defaultGI } from "./metabolism/carbsProfile";
 
 export default class Food {
   name: string;
@@ -29,12 +30,12 @@ export default class Food {
     this.key = genUUID();
   }
   carbsDeltaBG(t: number): number {
-    return MetabolismFunction.carbs(t, this.getCarbs(), this.GI);
+    return profile.carbs.deltaBG(t, this.carbs, this.GI);
   }
-  getCarbs(): number {
+  get carbs(): number {
     return (this.carbsRate / this.unit) * this.amount;
   }
-  getProtein(): number {
+  get protein(): number {
     return (this.proteinRate / this.unit) * this.amount;
   }
 

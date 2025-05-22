@@ -1,4 +1,4 @@
-import MetabolismFunction from "./metabolismFunction";
+import { profile } from "../storage/metaProfileStore";
 
 export enum InsulinType {
   Regular,
@@ -19,7 +19,7 @@ export default class Insulin {
   }
   deltaBG(t: number): number {
     // Change in blood sugar over time
-    return MetabolismFunction.insulin(t, this.units);
+    return profile.insulin.deltaBG(t, this.units);
   }
   static stringify(i: Insulin): string {
     return JSON.stringify({

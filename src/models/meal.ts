@@ -13,7 +13,7 @@ import NightscoutManager from "../lib/nightscoutManager";
 import { Color } from "./series";
 import { nightscoutStorage } from "../storage/nightscoutStore";
 import Food from "./food";
-import MetabolismFunction from "./metabolismFunction";
+import { profile } from "../storage/metaProfileStore";
 
 function createCarbsOffset() {
   return new Food("Carbs Offset", 1, 0, 1);
@@ -22,8 +22,8 @@ function createProteinOffset() {
   return new Food("Protein Offset", 0, 1, 1);
 }
 class Meal {
-  timestamp: Date;
-  initialGlucose: number = 83;
+  _timestamp: Date;
+  _initialGlucose: number = 83;
   uuid: number;
 
   subscriptions: (() => void)[] = [];
@@ -36,31 +36,31 @@ class Meal {
 
   constructor(timestamp: Date, getInitialGlucose: boolean = true) {
     // This timestamp marks when eating _begins_
-    this.timestamp = timestamp;
+    this._timestamp = timestamp;
     this.uuid = genUUID();
-    if (getInitialGlucose) this.getInitialGlucose();
+    if (getInitialGlucose) this.pullInitialGlucose();
   }
 
   // Meal Tasks
-  setCarbsOffset(grams: number) {
+  set carbsOffset(grams: number) {
     this.foods[0].amount = grams;
     this.notify();
   }
-  setProteinOffset(grams: number) {
+  get carbsOffset() {
+    return this.foods[0].amount;
+  }
+  set proteinOffset(grams: number) {
     this.foods[1].amount = grams;
     this.notify();
   }
-  getCarbsOffset() {
-    return this.foods[0].amount;
-  }
-  getProteinOffset() {
+  get proteinOffset() {
     return this.foods[1].amount;
   }
-  insulin(timestamp: Date, units: number): void {
+  createInsulin(timestamp: Date, units: number): void {
     this.insulins.push(new Insulin(timestamp, units));
     this.notify();
   }
-  glucose(timestamp: Date, caps: number): void {
+  createGlucose(timestamp: Date, caps: number): void {
     this.glucoses.push(new Glucose(timestamp, caps));
     this.notify();
   }
@@ -84,17 +84,23 @@ class Meal {
     this.getFood(food).amount = amount;
     this.notify();
   }
+  get addedFoods() {
+    return this.foods.slice(2);
+  }
 
   // Timing Stuff
   getN(timestamp: Date) {
-    return (getEpochMinutes(timestamp) - getEpochMinutes(this.timestamp)) / 60;
+    return (getEpochMinutes(timestamp) - getEpochMinutes(this._timestamp)) / 60;
   }
-  setTimestamp(timestamp: Date) {
-    this.timestamp = timestamp;
+  set timestamp(timestamp: Date) {
+    this._timestamp = timestamp;
     this.notify();
   }
+  get timestamp() {
+    return this._timestamp;
+  }
   getStartTimestamp() {
-    let timestamp = this.timestamp;
+    let timestamp = this._timestamp;
     const callback = (t: Date) => {
       if (getHourDiff(timestamp, t) < 0) timestamp = t;
     };
@@ -102,44 +108,44 @@ class Meal {
     this.glucoses.forEach((a) => callback(a.timestamp));
     return timestamp;
   }
-  getSimStartOffset(): number {
+  get simStartOffset(): number {
     return this.getN(this.getStartTimestamp());
   }
 
   // Metabolism
-  getCarbs(): number {
+  get carbs(): number {
     let carbs = 0;
     this.foods.forEach((a: Food) => {
-      carbs += a.getCarbs();
+      carbs += a.carbs;
     });
     return carbs;
   }
-  getProtein(): number {
+  get protein(): number {
     let protein = 0;
     this.foods.forEach((a: Food) => {
-      protein += a.getProtein();
+      protein += a.protein;
     });
     return protein;
   }
-  getInsulin(): number {
+  get insulin(): number {
     let insulin = 0;
     this.insulins.forEach((a: Insulin) => (insulin += a.units));
     return insulin;
   }
-  getGlucose(): number {
+  get glucose(): number {
     let glucose = 0;
     this.glucoses.forEach((a: Glucose) => (glucose += a.grams));
     return glucose;
   }
   deltaBG(_t: number): number {
-    let retval = this.initialGlucose;
-    let offset = this.getSimStartOffset();
+    let retval = this._initialGlucose;
+    let offset = this.simStartOffset;
     const t = _t + offset;
     this.foods.forEach((a) => (retval += a.carbsDeltaBG(t))); // Carbs
 
     // Protein metabolism accounts for the total meal protein, so we have to collect all of it
-    const protein = this.getProtein();
-    retval += MetabolismFunction.protein(t, protein);
+    const protein = this.protein;
+    retval += profile.protein.deltaBG(t, protein); // Protein
 
     // Insulin
     this.insulins.forEach(
@@ -161,9 +167,9 @@ class Meal {
     ];
   }
   getReadingSeries(from: number, until: number): ReadingSeries {
-    let readingSeries = new ReadingSeries(Color.Black, this.timestamp);
-    const A = getTimestampFromOffset(this.timestamp, from);
-    const B = getTimestampFromOffset(this.timestamp, until);
+    let readingSeries = new ReadingSeries(Color.Black, this._timestamp);
+    const A = getTimestampFromOffset(this._timestamp, from);
+    const B = getTimestampFromOffset(this._timestamp, until);
     readingSeries.populate(A, B);
     return readingSeries;
   }
@@ -176,16 +182,19 @@ class Meal {
     );
     return predictionSeries;
   }
-  async getInitialGlucose(useTrueStart: boolean = true) {
+  async pullInitialGlucose(useTrueStart: boolean = true) {
     let timestamp = this.getStartTimestamp();
-    if (!useTrueStart) timestamp = this.timestamp;
+    if (!useTrueStart) timestamp = this._timestamp;
     return NightscoutManager.getSugarAt(timestamp).then((a: any) => {
-      this.setInitialGlucose(a.sgv);
+      this.initialGlucose = a.sgv;
       return a;
     });
   }
-  setInitialGlucose(glucose: number): void {
-    this.initialGlucose = glucose;
+  get initialGlucose() {
+    return this._initialGlucose;
+  }
+  set initialGlucose(glucose: number) {
+    this._initialGlucose = glucose;
     this.notify();
   }
 
@@ -203,8 +212,8 @@ class Meal {
   // Storage Transience
   static stringify(meal: Meal): string {
     return JSON.stringify({
-      timestamp: meal.timestamp,
-      initialGlucose: meal.initialGlucose,
+      timestamp: meal._timestamp,
+      initialGlucose: meal._initialGlucose,
       uuid: meal.uuid,
       foods: meal.foods.map((a) => Food.stringify(a)),
       insulin: meal.insulins.map((a) => Insulin.stringify(a)),
@@ -219,7 +228,7 @@ class Meal {
     let glucose = o.glucose.map((a: any) => Glucose.parse(a));
     let newMeal = new Meal(timestamp, false);
     newMeal.uuid = o.uuid;
-    newMeal.initialGlucose = o.initialGlucose;
+    newMeal._initialGlucose = o.initialGlucose;
     newMeal.foods = foods;
     newMeal.insulins = insulin;
     newMeal.glucoses = glucose;

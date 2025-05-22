@@ -55,7 +55,7 @@ export default function WizardSummaryPage() {
       <div className="card mb-4" id="food-adder">
         <div className="card-body">
           <ListGroup.Item>
-            Meal eaten at {getPrettyTime(meal.timestamp)}
+            Meal eaten at {getPrettyTime(meal._timestamp)}
             <br></br>- {round(carbs, 2)}g carbs<br></br>- {round(protein, 2)}g
             protein
             <br />

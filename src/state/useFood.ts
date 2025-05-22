@@ -7,8 +7,8 @@ export default function useFood(food: Food, meal?: Meal) {
   const rerender = () => setVersion((v) => v + 1);
   return {
     amount: food.amount,
-    carbs: food.getCarbs(),
-    protein: food.getProtein(),
+    carbs: food.carbs,
+    protein: food.protein,
     setAmount: (amount: number) => {
       food.amount = amount;
       meal?.notify();

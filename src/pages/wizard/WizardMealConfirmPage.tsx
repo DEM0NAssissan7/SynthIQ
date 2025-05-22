@@ -54,7 +54,7 @@ export default function WizardMealConfirmPage() {
   }, [optimalMealTiming]);
 
   useEffect(() => {
-    if (!WizardManager.getMealMarked()) meal.timestamp = new Date();
+    if (!WizardManager.getMealMarked()) meal._timestamp = new Date();
   });
 
   return (
