@@ -8,7 +8,7 @@ export default class Food {
   name: string;
   carbsRate: number;
   proteinRate: number;
-  fatRate: number = 0;
+  fatRate: number;
   unit: Unit.Food;
   GI: number; // Glycemic Index (carbs only)
   key: number; // This only exists to uniquely identify the food
@@ -19,13 +19,15 @@ export default class Food {
     carbsRate: number,
     proteinRate: number,
     unit: Unit.Food = Unit.Food.HundredGrams,
-    GI: number = defaultGI
+    GI: number = defaultGI,
+    fatRate?: number
   ) {
     this.name = name;
     this.carbsRate = carbsRate;
     this.proteinRate = proteinRate;
     this.unit = unit;
     this.GI = GI;
+    this.fatRate = fatRate || 0;
 
     this.key = genUUID();
   }
@@ -37,6 +39,9 @@ export default class Food {
   }
   get protein(): number {
     return (this.proteinRate / this.unit) * this.amount;
+  }
+  get fat(): number {
+    return (this.fatRate / this.unit) * this.amount;
   }
 
   static createFromImport(food: any): Food {
@@ -61,7 +66,8 @@ export default class Food {
       food.carbs,
       food.protein,
       unit,
-      food.GI || defaultGI
+      food.GI || defaultGI,
+      food.fat || 0
     );
     newFood.amount = food.amount || 0;
     return newFood;
@@ -113,7 +119,8 @@ export function getFoodByName(name: string): Food {
         food.carbsRate,
         food.proteinRate,
         food.unit,
-        food.GI
+        food.GI,
+        food.fatRate
       );
   throw new Error(`Foods: could not find food with name ${name}`);
 }

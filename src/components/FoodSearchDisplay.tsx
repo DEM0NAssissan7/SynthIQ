@@ -15,7 +15,8 @@ export default function FoodSearchDisplay() {
       food.carbsRate,
       food.proteinRate,
       food.unit,
-      food.GI
+      food.GI,
+      food.fatRate
     );
     newFood.amount = amount;
     meal.addFood(newFood);

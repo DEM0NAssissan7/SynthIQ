@@ -21,6 +21,9 @@ function createCarbsOffset() {
 function createProteinOffset() {
   return new Food("Protein Offset", 0, 1, 1);
 }
+function createFatOffset() {
+  return new Food("Fat Offset", 0, 0, 1, 0, 1);
+}
 class Meal {
   _timestamp: Date;
   _initialGlucose: number = 83;
@@ -30,6 +33,7 @@ class Meal {
   foods: Food[] = [
     createCarbsOffset(), // Carbs offset food
     createProteinOffset(), // Protein offset food
+    createFatOffset(), // Fat offset food
   ];
   insulins: Insulin[] = [];
   glucoses: Glucose[] = [];
@@ -55,6 +59,13 @@ class Meal {
   }
   get proteinOffset() {
     return this.foods[1].amount;
+  }
+  set fatOffset(grams: number) {
+    this.foods[2].amount = grams;
+    this.notify();
+  }
+  get fatOffset() {
+    return this.foods[2].amount;
   }
   createInsulin(timestamp: Date, units: number): void {
     this.insulins.push(new Insulin(timestamp, units));
@@ -85,7 +96,7 @@ class Meal {
     this.notify();
   }
   get addedFoods() {
-    return this.foods.slice(2);
+    return this.foods.slice(3);
   }
 
   // Timing Stuff
@@ -115,17 +126,18 @@ class Meal {
   // Metabolism
   get carbs(): number {
     let carbs = 0;
-    this.foods.forEach((a: Food) => {
-      carbs += a.carbs;
-    });
+    this.foods.forEach((a: Food) => (carbs += a.carbs));
     return carbs;
   }
   get protein(): number {
     let protein = 0;
-    this.foods.forEach((a: Food) => {
-      protein += a.protein;
-    });
+    this.foods.forEach((a: Food) => (protein += a.protein));
     return protein;
+  }
+  get fat(): number {
+    let fat = 0;
+    this.foods.forEach((a: Food) => (fat += a.fat));
+    return fat;
   }
   get insulin(): number {
     let insulin = 0;

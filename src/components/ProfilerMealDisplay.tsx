@@ -67,6 +67,8 @@ export default function ProfilerMealDisplay({
       <br />
       {meal.protein}g protein
       <br />
+      {meal.fat}g fat
+      <br />
       {meal.insulin}u insulin
       <Button variant="danger" onClick={onIgnoreClick}>
         Ignore

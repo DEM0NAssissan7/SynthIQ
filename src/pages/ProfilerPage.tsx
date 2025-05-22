@@ -29,6 +29,7 @@ export default function ProfilerPage() {
       {importedMeals.map((meal) => (
         <ProfilerMealDisplay
           meal={meal}
+          key={meal.uuid}
           from={-1}
           until={24}
         ></ProfilerMealDisplay>
