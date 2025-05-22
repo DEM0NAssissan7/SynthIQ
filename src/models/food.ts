@@ -91,7 +91,7 @@ export default class Food {
     try {
       newFood = getFoodByName(food.name);
     } catch (e: any) {
-      console.warn(`${e} - using hardcoded info`);
+      // console.warn(`${e} - using hardcoded info`);
       newFood = Food.createFromImport(food);
     }
     newFood.amount = food.amount || 0;

@@ -10,7 +10,7 @@ export default function useImportedMealsState() {
 
   useEffect(() => {
     NightscoutManager.getAllMeals().then((m) => {
-      console.log(m);
+      //   console.log(m);
       setImportedMeals(m);
     });
   }, [version]);
