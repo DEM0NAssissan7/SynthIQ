@@ -12,6 +12,20 @@ export default function WizardIntroPage() {
   });
   return (
     <div>
+      <div
+        style={{
+          background: "#fff3cd",
+          color: "#856404",
+          padding: "12px 16px",
+          borderRadius: 4,
+          border: "1px solid #ffeeba",
+          marginBottom: 24,
+        }}
+      >
+        <strong>Warning:</strong> Never use this app for medical decisions.
+        Always consult your healthcare provider. This app is for educational
+        purposes only.
+      </div>
       <h1>Welcome to the Meal Creation Wizard</h1>
       <p>Follow these three easy steps to create your perfect meal plan!</p>
 
