@@ -1,10 +1,15 @@
+import { Button } from "react-bootstrap";
 import ProfilerMealDisplay from "../components/ProfilerMealDisplay";
 import ProfileSlider from "../components/ProfileSlider";
 import useImportedMealsState from "../state/useImportedMealsState";
+import NightscoutManager from "../lib/nightscoutManager";
 
 export default function ProfilerPage() {
   const { importedMeals } = useImportedMealsState();
 
+  function unhideMeals() {
+    NightscoutManager.clearIgnoredUUIDs();
+  }
   return (
     <>
       <ProfileSlider variable="einsulin"></ProfileSlider>
@@ -26,6 +31,9 @@ export default function ProfilerPage() {
         prettyName="Protein Sustain Rate (hours/gram)"
       ></ProfileSlider>
       <br></br>
+      <Button variant="secondary" onClick={unhideMeals}>
+        Unhide All
+      </Button>
       {importedMeals.map((meal) => (
         <ProfilerMealDisplay
           meal={meal}
