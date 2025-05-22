@@ -94,6 +94,7 @@ class StorageEntry {
     try {
       this.writeToStorage(this.export());
     } catch (e) {
+      console.error(e);
       throw new Error(
         `StorageEntry[${this.getLocalstorageId()}]: Write handler is invalid: ${e}`
       );
