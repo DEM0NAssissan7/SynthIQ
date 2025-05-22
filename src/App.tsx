@@ -11,11 +11,9 @@ import WizardMealConfirmPage from "./pages/wizard/WizardMealConfirmPage";
 import WizardMealPage from "./pages/wizard/WizardMealPage";
 import WizardRouterPage from "./pages/wizard/WizardRouterPage";
 import WizardSummaryPage from "./pages/wizard/WizardSummaryPage";
-import { nightscoutStore } from "./storage/nightscoutStore";
+import NightscoutManager from "./lib/nightscoutManager";
 
 function App() {
-  nightscoutStore.read("url");
-  const condition = nightscoutStore.get("url") !== null;
   return (
     <div>
       <TopBar />
@@ -24,7 +22,8 @@ function App() {
           <Route
             path="/"
             element={
-              condition ? (
+              NightscoutManager.urlIsValid() ||
+              NightscoutManager.getNightscoutSkipped() ? (
                 WizardManager.isActive() && !WizardManager.isComplete() ? (
                   <Navigate to="/wizard" replace />
                 ) : (

@@ -13,15 +13,17 @@ const apiSecret = nightscoutStore.get("apiSecret");
 function SetupPage() {
   const navigate = useNavigate();
   function advance() {
-    navigate("/hub");
+    navigate("/");
   }
   function promptAdvance() {
     if (
       confirm(
         "Are you sure you want to skip Nightscout setup? You can always do this later in settings."
       )
-    )
+    ) {
+      NightscoutManager.skipNightscoutSetup();
       advance();
+    }
   }
 
   const [errorMessage, setErrorMessage] = useState("");

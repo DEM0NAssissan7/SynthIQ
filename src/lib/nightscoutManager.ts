@@ -162,6 +162,17 @@ class NightscoutManager {
     });
     return meals;
   }
+
+  // Meta
+  static urlIsValid() {
+    return nightscoutStore.get("url") !== null;
+  }
+  static getNightscoutSkipped() {
+    return nightscoutStore.get("skipSetup");
+  }
+  static skipNightscoutSetup() {
+    nightscoutStore.set("skipSetup", true);
+  }
 }
 
 export default NightscoutManager;
