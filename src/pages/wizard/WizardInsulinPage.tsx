@@ -100,7 +100,7 @@ export default function WizardInsulinPage() {
           )}
         </p>
       )}
-      <MealPredictedSugarGraphCard />
+      <MealPredictedSugarGraphCard meal={meal} />
       <InputGroup className="mb-3">
         <InputGroup.Text id="basic-addon1">
           <i className="bi bi-capsule"></i>

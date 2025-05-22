@@ -1,10 +1,16 @@
+import type Meal from "../models/meal";
 import AddedFoodsDisplay from "./AddedFoodsDisplay";
 
-export default function MealAddedFoodsListCard() {
+interface MealAddedFoodsListCardProps {
+  meal: Meal;
+}
+export default function MealAddedFoodsListCard({
+  meal,
+}: MealAddedFoodsListCardProps) {
   return (
     <div className="card mb-4">
       <div className="card-body">
-        <AddedFoodsDisplay />
+        <AddedFoodsDisplay meal={meal} />
       </div>
     </div>
   );

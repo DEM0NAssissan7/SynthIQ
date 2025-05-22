@@ -5,14 +5,14 @@ import type Food from "../models/food";
 import useFood from "../state/useFood";
 import { round } from "../lib/util";
 import { getInsulin } from "../lib/metabolism";
-import { useWizardMeal } from "../state/useMeal";
+import type Meal from "../models/meal";
 
 interface SearchFoodProps {
   food: Food;
+  meal: Meal;
 }
 
-export default function AddedFood({ food }: SearchFoodProps) {
-  const meal = useWizardMeal();
+export default function AddedFood({ food, meal }: SearchFoodProps) {
   let prettyUnit = getFoodUnitPrettyName(food.unit);
   let letter = prettyUnit[prettyUnit.length - 1];
   const { amount, setAmount, carbs, protein } = useFood(food, meal);

@@ -1,9 +1,13 @@
 import { Form, ListGroup } from "react-bootstrap";
 import NutritionOffset from "./NutritionOffset";
-import { useWizardMeal } from "../state/useMeal";
+import type Meal from "../models/meal";
 
-export default function MealAdditionalNutrientsCard() {
-  const meal = useWizardMeal();
+interface MealAdditionalNutrientsCardProps {
+  meal: Meal;
+}
+export default function MealAdditionalNutrientsCard({
+  meal,
+}: MealAdditionalNutrientsCardProps) {
   return (
     <div className="card mb-4">
       <div className="card-body">

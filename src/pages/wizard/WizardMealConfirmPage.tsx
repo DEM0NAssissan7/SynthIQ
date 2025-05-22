@@ -61,11 +61,11 @@ export default function WizardMealConfirmPage() {
     <>
       <h1 className="mb-3">Meal Confirmation</h1>
 
-      <MealSearchCard />
+      <MealSearchCard meal={meal} />
 
-      <MealAddedFoodsListCard />
+      <MealAddedFoodsListCard meal={meal} />
 
-      <MealAdditionalNutrientsCard />
+      <MealAdditionalNutrientsCard meal={meal} />
 
       <div className="card mb-4">
         <div className="card-body">
@@ -86,7 +86,7 @@ export default function WizardMealConfirmPage() {
           </ListGroup>
         </div>
       </div>
-      <MealPredictedSugarGraphCard />
+      <MealPredictedSugarGraphCard meal={meal} />
       <div className="d-flex justify-content-end">
         <Button variant="primary" onClick={beginEating}>
           Begin Eating

@@ -2,12 +2,14 @@ import { Form, ListGroup } from "react-bootstrap";
 import { useMemo, useState } from "react";
 import Food, { foods } from "../models/food";
 import SearchFood from "./SearchFood";
-import { useWizardMeal } from "../state/useMeal";
+import type Meal from "../models/meal";
 
-export default function FoodSearchDisplay() {
+interface FoodSearchDisplayProps {
+  meal: Meal; // Replace with the correct type for meal
+}
+
+export default function FoodSearchDisplay({ meal }: FoodSearchDisplayProps) {
   const [query, setQuery] = useState("");
-
-  const meal = useWizardMeal();
 
   function addMealFood(food: Food, amount: number) {
     const newFood = new Food(

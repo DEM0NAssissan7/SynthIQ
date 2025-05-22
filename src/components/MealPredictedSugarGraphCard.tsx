@@ -1,10 +1,13 @@
 import { Form } from "react-bootstrap";
 import MealGraph from "./MealGraph";
-import { useWizardMeal } from "../state/useMeal";
+import type Meal from "../models/meal";
 
-export default function MealPredictedSugarGraphCard() {
-  const meal = useWizardMeal();
-
+interface MealPredictedSugarGraphCardProps {
+  meal: Meal;
+}
+export default function MealPredictedSugarGraphCard({
+  meal,
+}: MealPredictedSugarGraphCardProps) {
   return (
     <div className="card mb-4">
       <div className="card-body">

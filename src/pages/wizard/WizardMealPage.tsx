@@ -51,11 +51,11 @@ export default function WizardMealPage() {
     <>
       <h1 className="mb-3">Meal Creation</h1>
 
-      <MealSearchCard />
+      <MealSearchCard meal={meal} />
 
-      <MealAddedFoodsListCard />
+      <MealAddedFoodsListCard meal={meal} />
 
-      <MealAdditionalNutrientsCard />
+      <MealAdditionalNutrientsCard meal={meal} />
 
       <div className="card mb-4">
         <div className="card-body">
@@ -98,7 +98,7 @@ export default function WizardMealPage() {
         </div>
       </div>
 
-      <MealPredictedSugarGraphCard />
+      <MealPredictedSugarGraphCard meal={meal} />
 
       <div className="d-flex justify-content-end">
         <Button

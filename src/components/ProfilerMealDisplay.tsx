@@ -4,6 +4,7 @@ import MealGraph from "./MealGraph";
 import metaProfile from "../storage/metaProfileStore";
 import { Button } from "react-bootstrap";
 import useImportedMealsState from "../state/useImportedMealsState";
+import { getFullPrettyDate } from "../lib/util";
 
 interface ProfilerMealDisplayProps {
   meal: Meal;
@@ -63,6 +64,8 @@ export default function ProfilerMealDisplay({
         height={height}
         ymin={ymin}
       />
+      {getFullPrettyDate(meal.timestamp)}
+      <br />
       {meal.carbs}g carbs
       <br />
       {meal.protein}g protein
