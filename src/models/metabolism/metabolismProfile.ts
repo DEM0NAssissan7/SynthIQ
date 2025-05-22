@@ -33,6 +33,8 @@ export default class MetabolismProfile extends NutrientProfile {
 
   constructor() {
     super();
+  }
+  subscribeChildren() {
     const childProfileCallback = () => this.notify();
     this.insulin.subscribe(childProfileCallback);
     this.carbs.subscribe(childProfileCallback);
@@ -59,6 +61,7 @@ export default class MetabolismProfile extends NutrientProfile {
     profile.carbs = CarbsProfile.parse(data.carbs);
     profile.protein = ProteinProfile.parse(data.protein);
     profile.glucose = GlucoseShotProfile.parse(data.glucose);
+    profile.subscribeChildren();
     return profile;
   }
 }

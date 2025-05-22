@@ -3,25 +3,30 @@ import NightscoutManager from "../lib/nightscoutManager";
 import type Meal from "../models/meal";
 
 export default function useImportedMealsState() {
-    const [importedMeals, setImportedMeals] = useState<Meal[]>([]);
-    
-    const [version, setVersion] = useState(0);
-    const rerender = () => setVersion((v) => v + 1); // force re-render
+  const [importedMeals, setImportedMeals] = useState<Meal[]>([]);
 
-    useEffect(() => {
-        NightscoutManager.getAllMeals().then((m) => {
-        console.log(m);
-        setImportedMeals(m);
-        });
-    }, [version]);
+  const [version, setVersion] = useState(0);
+  const rerender = () => setVersion((v) => v + 1); // force re-render
 
-    const ignoreMeal = (meal: Meal) => {
-        NightscoutManager.ignoreUUID(meal.uuid);
-        rerender(); // Trigger a re-render to pull new data from nightscout. This is also some kind of dogfooding.
-    }
+  useEffect(() => {
+    NightscoutManager.getAllMeals().then((m) => {
+      console.log(m);
+      setImportedMeals(m);
+    });
+  }, [version]);
 
-    return {
-        ignoreMeal,
-        importedMeals
-    }
+  const ignoreMeal = (meal: Meal) => {
+    NightscoutManager.ignoreUUID(meal.uuid);
+    rerender(); // Trigger a re-render to pull new data from nightscout. This is also some kind of dogfooding.
+  };
+  function clearIgnoredMeals() {
+    NightscoutManager.clearIgnoredUUIDs();
+    rerender(); // Trigger a re-render to pull new data from nightscout. This is also some kind of dogfooding.
+  }
+
+  return {
+    ignoreMeal,
+    importedMeals,
+    clearIgnoredMeals,
+  };
 }
