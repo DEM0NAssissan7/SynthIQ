@@ -30,6 +30,9 @@ export default class Insulin {
   }
   static parse(s: string): Insulin {
     let o = JSON.parse(s);
-    return new Insulin(new Date(o.timestamp), o.units, o.type);
+    const timestamp = new Date(o.timestamp);
+    const units = parseFloat(o.units);
+    const type = o.type;
+    return new Insulin(timestamp, units, type);
   }
 }
