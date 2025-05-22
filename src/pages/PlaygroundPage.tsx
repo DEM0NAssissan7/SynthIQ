@@ -3,8 +3,8 @@ export default function PlaygroundPage() {
     <>
       <h1>Playground</h1>
       <p>
-        This is purely for the sake of experimentation. NEVER rely on this app
-        for medical advice.
+        This is purely for educational purposes. NEVER rely on this app for
+        medical decisions.
       </p>
     </>
   );
