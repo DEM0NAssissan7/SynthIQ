@@ -1,5 +1,6 @@
 import Meal from "../models/meal";
 import { getStateName, WizardState } from "../models/wizardState";
+import currentMeal, { resetCurrentMeal } from "../storage/currentMeal";
 import { wizardStorage } from "../storage/wizardStore";
 import NightscoutManager from "./nightscoutManager";
 import type { NavigateFunction } from "react-router";
@@ -77,6 +78,16 @@ export default class WizardManager {
       currentMeal.createInsulin(timestamp, units); // Atomically mark insulin on the actual current meal
       wizardStorage.set("insulinMarked", true);
       NightscoutManager.markInsulin(units);
+    }
+  }
+  static markGlucose(caps: number) {
+    if (this.getInsulinMarked()) {
+      const meal: Meal = wizardStorage.get("meal");
+      const timestamp = new Date();
+      meal.glucoses = [];
+      meal.createGlucose(timestamp, caps);
+      currentMeal.createGlucose(timestamp, caps); // Atomically mark glucose on the actual current meal
+      NightscoutManager.markGlucose(caps);
     }
   }
   static startNew(navigate: NavigateFunction) {
