@@ -39,6 +39,7 @@ export default function ProfilerPage() {
         setValue={(value) => (profile.insulin.delay = value)}
         prettyName="Insulin Delay (hours)"
       ></ProfileSlider>
+
       <br />
       <ProfileSlider
         value={profile.carbs.effect}
@@ -55,6 +56,7 @@ export default function ProfilerPage() {
         setValue={(value) => (profile.carbs.delay = value)}
         prettyName="Carbs Delay (hours)"
       ></ProfileSlider>
+
       <br />
       <ProfileSlider
         value={profile.protein.effect}
@@ -77,7 +79,8 @@ export default function ProfilerPage() {
         prettyName="Protein Sustain Rate (hours/g)"
         step={0.001}
       ></ProfileSlider>
-      <br></br>
+      <br />
+
       <Button variant="secondary" onClick={clearIgnoredMeals}>
         Unhide All
       </Button>
