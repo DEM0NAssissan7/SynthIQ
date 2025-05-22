@@ -1,5 +1,4 @@
 import { Button, ListGroup } from "react-bootstrap";
-import { useWizardMealState } from "../../state/useWizardMeal";
 import { useEffect, useMemo } from "react";
 import { getHourDiff, getPrettyTimeDiff, round } from "../../lib/util";
 import WizardManager from "../../lib/wizardManager";
@@ -12,24 +11,24 @@ import MealSearchCard from "../../components/MealSearchCard";
 import MealAddedFoodsListCard from "../../components/MealAddedFoodsListCard";
 import MealAdditionalNutrientsCard from "../../components/MealAdditionalNutrientsCard";
 import MealPredictedSugarGraphCard from "../../components/MealPredictedSugarGraphCard";
+import { useWizardMeal } from "../../state/useMeal";
 
 export default function WizardMealPage() {
-  const { meal, carbs, protein, initialGlucose, setInitialGlucose } =
-    useWizardMealState();
+  const meal = useWizardMeal();
 
   // Predictions
   const { insulin, insulinTimestamp, insulinCorrection } = useInsulinPrediction(
     meal,
-    carbs,
-    protein,
-    initialGlucose,
+    meal.carbs,
+    meal.protein,
+    meal.initialGlucose,
     true
   );
 
   // Continue Buttons
   const takeInsulinFirst = useMemo(() => {
     return getHourDiff(insulinTimestamp, new Date()) >= 0;
-  }, [carbs, protein, initialGlucose]);
+  }, [meal.carbs, meal.protein, meal.initialGlucose]);
 
   const navigate = useNavigate();
   function takeInsulin() {
@@ -62,17 +61,17 @@ export default function WizardMealPage() {
         <div className="card-body">
           <ListGroup>
             <ListGroup.Item>
-              {round(carbs, 2)}g carbs<br></br>
-              {round(protein, 2)}g protein<br></br>
+              {round(meal.carbs, 2)}g carbs<br></br>
+              {round(meal.protein, 2)}g protein<br></br>
               <b>{round(insulin, 2)}u insulin</b>{" "}
-              {(carbs !== 0 || protein !== 0) && (
+              {(meal.carbs !== 0 || meal.protein !== 0) && (
                 <>({round(insulinCorrection, 2)}u correction)</>
               )}
             </ListGroup.Item>
             {insulin > 0 && (
               <ListGroup.Item>
                 Consider taking <b>{round(insulin, 2)}u</b> of insulin
-                {(carbs !== 0 || protein !== 0) && (
+                {(meal.carbs !== 0 || meal.protein !== 0) && (
                   <>
                     {" "}
                     <b>
@@ -89,9 +88,9 @@ export default function WizardMealPage() {
             )}
             <ListGroup.Item>
               <BloodSugarInput
-                initialGlucose={initialGlucose}
+                initialGlucose={meal.initialGlucose}
                 setInitialGlucose={(g) => {
-                  if (!WizardManager.getMealMarked()) setInitialGlucose(g);
+                  if (!WizardManager.getMealMarked()) meal.initialGlucose = g;
                 }}
               />
             </ListGroup.Item>

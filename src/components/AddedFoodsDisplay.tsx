@@ -1,13 +1,13 @@
 import { Form, ListGroup } from "react-bootstrap";
 import AddedFood from "./AddedFood";
-import { useWizardMealState } from "../state/useWizardMeal";
+import { useWizardMeal } from "../state/useMeal";
 
 export default function AddedFoodsDisplay() {
-  const { addedFoods } = useWizardMealState();
+  const meal = useWizardMeal();
   return (
     <ListGroup>
       <Form.Label>Foods</Form.Label>
-      {addedFoods.map((food) => (
+      {meal.addedFoods.map((food) => (
         <ListGroup.Item
           key={food.name}
           className="d-flex flex-column gap-3 p-3"
@@ -15,7 +15,7 @@ export default function AddedFoodsDisplay() {
           <AddedFood food={food} key={food.key} />
         </ListGroup.Item>
       ))}
-      {addedFoods.length === 0 && (
+      {meal.addedFoods.length === 0 && (
         <ListGroup.Item className="text-muted">
           No foods added. Use the search box above to search for foods you're
           going to eat.

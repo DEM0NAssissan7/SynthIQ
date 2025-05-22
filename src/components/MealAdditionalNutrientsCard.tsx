@@ -1,10 +1,9 @@
 import { Form, ListGroup } from "react-bootstrap";
 import NutritionOffset from "./NutritionOffset";
-import { useWizardMealState } from "../state/useWizardMeal";
+import { useWizardMeal } from "../state/useMeal";
 
 export default function MealAdditionalNutrientsCard() {
-  const { extraCarbs, setExtraCarbs, extraProtein, setExtraProtein } =
-    useWizardMealState();
+  const meal = useWizardMeal();
   return (
     <div className="card mb-4">
       <div className="card-body">
@@ -13,14 +12,14 @@ export default function MealAdditionalNutrientsCard() {
           <ListGroup.Item>
             <NutritionOffset
               label="Carbs"
-              value={extraCarbs}
-              setValue={setExtraCarbs}
+              value={meal.carbsOffset}
+              setValue={(a: number) => (meal.carbsOffset = a)}
               iconClassName="bi bi-cookie"
             />
             <NutritionOffset
               label="Protein"
-              value={extraProtein}
-              setValue={setExtraProtein}
+              value={meal.proteinOffset}
+              setValue={(a: number) => (meal.proteinOffset = a)}
               iconClassName="bi bi-egg-fried"
             />
           </ListGroup.Item>

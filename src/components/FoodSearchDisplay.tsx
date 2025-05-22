@@ -1,13 +1,14 @@
 import { Form, ListGroup } from "react-bootstrap";
 import { useMemo, useState } from "react";
 import Food, { foods } from "../models/food";
-import { useWizardMealState } from "../state/useWizardMeal";
 import SearchFood from "./SearchFood";
+import { useWizardMeal } from "../state/useMeal";
 
 export default function FoodSearchDisplay() {
   const [query, setQuery] = useState("");
 
-  const { addFood, hasFood } = useWizardMealState();
+  const meal = useWizardMeal();
+
   function addMealFood(food: Food, amount: number) {
     const newFood = new Food(
       food.name,
@@ -17,7 +18,7 @@ export default function FoodSearchDisplay() {
       food.GI
     );
     newFood.amount = amount;
-    addFood(newFood);
+    meal.addFood(newFood);
     setQuery("");
   }
 
@@ -26,7 +27,7 @@ export default function FoodSearchDisplay() {
     let result: Food[] = [];
     let i = 0;
     for (let f of foods) {
-      if (hasFood(f)) continue; // Prevent showing foods already added to meal
+      if (meal.hasFood(f)) continue; // Prevent showing foods already added to meal
       if (f.name.toLowerCase().includes(query.trim().toLowerCase())) {
         f.key = i;
         i++;

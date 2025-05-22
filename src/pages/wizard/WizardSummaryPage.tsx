@@ -7,11 +7,10 @@ import WizardManager from "../../lib/wizardManager";
 import { Button, ListGroup } from "react-bootstrap";
 import { useNavigate } from "react-router";
 import { getPrettyTime, round } from "../../lib/util";
-import { useWizardMealState } from "../../state/useWizardMeal";
+import { useWizardMeal } from "../../state/useMeal";
 
 export default function WizardSummaryPage() {
-  const { meal, carbs, protein, insulin, insulinTimestamp } =
-    useWizardMealState();
+  const meal = useWizardMeal();
   const navigate = useNavigate();
 
   function startNew() {
@@ -55,13 +54,13 @@ export default function WizardSummaryPage() {
       <div className="card mb-4" id="food-adder">
         <div className="card-body">
           <ListGroup.Item>
-            Meal eaten at {getPrettyTime(meal._timestamp)}
-            <br></br>- {round(carbs, 2)}g carbs<br></br>- {round(protein, 2)}g
-            protein
+            Meal eaten at {getPrettyTime(meal.timestamp)}
+            <br></br>- {round(meal.carbs, 2)}g carbs<br></br>-{" "}
+            {round(meal.protein, 2)}g protein
             <br />
             <br />
-            <b>{round(insulin, 2)}u</b> insulin (
-            {getPrettyTime(insulinTimestamp)})
+            <b>{round(meal.insulin, 2)}u</b> insulin (
+            {getPrettyTime(meal.latestInsulinTimestamp)})
           </ListGroup.Item>
         </div>
       </div>

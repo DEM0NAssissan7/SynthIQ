@@ -4,19 +4,20 @@ import WizardManager from "../../lib/wizardManager";
 import { getEpochMinutes, getPrettyTime, round } from "../../lib/util";
 import { useNavigate } from "react-router";
 import { WizardState } from "../../models/wizardState";
-import { useWizardMealState } from "../../state/useWizardMeal";
 import useInsulinPrediction from "../../state/useInsulinPrediction";
 import useVersion from "../../state/useVersion";
 import MealPredictedSugarGraphCard from "../../components/MealPredictedSugarGraphCard";
+import { useWizardMeal } from "../../state/useMeal";
 
 export default function WizardInsulinPage() {
   const navigate = useNavigate();
-  const { meal, carbs, protein, initialGlucose } = useWizardMealState();
+  const meal = useWizardMeal();
+
   const { insulin: suggestedInsulin, insulinTimestamp } = useInsulinPrediction(
     meal,
-    carbs,
-    protein,
-    initialGlucose,
+    meal.carbs,
+    meal.protein,
+    meal.initialGlucose,
     false
   );
 

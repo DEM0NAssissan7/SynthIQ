@@ -1,9 +1,9 @@
 import { Form } from "react-bootstrap";
 import MealGraph from "./MealGraph";
-import { useWizardMealState } from "../state/useWizardMeal";
+import { useWizardMeal } from "../state/useMeal";
 
 export default function MealPredictedSugarGraphCard() {
-  const { meal } = useWizardMealState();
+  const meal = useWizardMeal();
 
   return (
     <div className="card mb-4">

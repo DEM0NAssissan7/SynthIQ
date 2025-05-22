@@ -1,7 +1,6 @@
 /** This is the meal page that appears if you take insulin before eating */
 
 import { Button, ListGroup } from "react-bootstrap";
-import { useWizardMealState } from "../../state/useWizardMeal";
 import {
   getEpochMinutes,
   getPrettyTime,
@@ -18,10 +17,11 @@ import MealAddedFoodsListCard from "../../components/MealAddedFoodsListCard";
 import MealAdditionalNutrientsCard from "../../components/MealAdditionalNutrientsCard";
 import MealSearchCard from "../../components/MealSearchCard";
 import useVersion from "../../state/useVersion";
+import { useWizardMeal } from "../../state/useMeal";
 
 export default function WizardMealConfirmPage() {
-  const { meal, carbs, protein, insulin, initialGlucose } =
-    useWizardMealState();
+  // Use the meal state
+  const meal = useWizardMeal();
 
   // Make a state that updates once per minute to update the views
   const version = useVersion(1);
@@ -29,9 +29,9 @@ export default function WizardMealConfirmPage() {
   // Predictions
   const { insulinTimestamp: optimalInsulinTimestamp } = useInsulinPrediction(
     meal,
-    carbs,
-    protein,
-    initialGlucose,
+    meal.carbs,
+    meal.protein,
+    meal.initialGlucose,
     false // Don't modify the meal
   );
 
@@ -71,9 +71,9 @@ export default function WizardMealConfirmPage() {
         <div className="card-body">
           <ListGroup>
             <ListGroup.Item>
-              {round(carbs, 2)}g carbs<br></br>
-              {round(protein, 2)}g protein<br></br>
-              <b>{round(insulin, 2)}u insulin</b>
+              {round(meal.carbs, 2)}g carbs<br></br>
+              {round(meal.protein, 2)}g protein<br></br>
+              <b>{round(meal.insulin, 2)}u insulin</b>
             </ListGroup.Item>
             {optimalMealTiming > 0 && (
               <ListGroup.Item>

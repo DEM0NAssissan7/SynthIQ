@@ -234,6 +234,12 @@ class Meal {
     newMeal.glucoses = glucose;
     return newMeal;
   }
+
+  // Misc
+  get latestInsulinTimestamp(): Date {
+    if (this.insulins.length === 0) return this.timestamp;
+    return this.insulins[this.insulins.length - 1].timestamp;
+  }
 }
 
 export default Meal;
