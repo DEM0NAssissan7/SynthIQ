@@ -12,11 +12,7 @@ import MealAddedFoodsListCard from "../../components/MealAddedFoodsListCard";
 import MealAdditionalNutrientsCard from "../../components/MealAdditionalNutrientsCard";
 import MealPredictedSugarGraphCard from "../../components/MealPredictedSugarGraphCard";
 import { useWizardMeal } from "../../state/useMeal";
-import {
-  getHourDiff,
-  getPrettyTime,
-  getPrettyTimeDiff,
-} from "../../lib/timing";
+import { getHourDiff, getPrettyTimeDiff } from "../../lib/timing";
 
 export default function WizardMealPage() {
   const meal = useWizardMeal();
