@@ -1,7 +1,7 @@
 import { convertDimensions, getTimestampFromOffset } from "./util";
 import Unit from "../models/unit";
 import Meal from "../models/meal";
-import { nightscoutStorage } from "../storage/nightscoutStore";
+import { nightscoutStore } from "../storage/nightscoutStore";
 
 const selfID = "SynthIQ";
 
@@ -14,14 +14,14 @@ const glucoseEventType = "Glucose Shot";
 class NightscoutManager {
   // Basic request stuff
   private static getApiPath(api: string): string {
-    return `${nightscoutStorage.get("url")}/api/v1/${api}`;
+    return `${nightscoutStore.get("url")}/api/v1/${api}`;
   }
   private static async get(api: string, options?: any) {
     return await fetch(this.getApiPath(api), {
       method: "GET",
       headers: {
         accept: "application/json",
-        "api-secret": nightscoutStorage.get("apiSecret"),
+        "api-secret": nightscoutStore.get("apiSecret"),
         "x-requested-with": "XMLHttpRequest",
       },
       mode: "cors",
@@ -44,7 +44,7 @@ class NightscoutManager {
       headers: {
         accept: "*/*",
         "accept-language": "en-US,en;q=0.9",
-        "api-secret": nightscoutStorage.get("apiSecret"),
+        "api-secret": nightscoutStore.get("apiSecret"),
         "content-type": "application/json; charset=UTF-8",
         "x-requested-with": "XMLHttpRequest",
       },
@@ -62,7 +62,7 @@ class NightscoutManager {
   }
   static async getProfile() {
     return await this.get("profile").then(
-      (a) => a[nightscoutStorage.get("profileID")]
+      (a) => a[nightscoutStore.get("profileID")]
     );
   }
   static async verifyAuth() {
@@ -74,7 +74,7 @@ class NightscoutManager {
       getTimestampFromOffset(
         timestamp,
         2 *
-          nightscoutStorage.get("minutesPerReading") *
+          nightscoutStore.get("minutesPerReading") *
           convertDimensions(Unit.Time.Minute, Unit.Time.Hour)
       )
     ).then((a) => a[a.length - 1]);
@@ -86,7 +86,7 @@ class NightscoutManager {
     let count =
       ((timestampB.getTime() - timestampA.getTime()) *
         convertDimensions(Unit.Time.Millis, Unit.Time.Minute)) /
-      nightscoutStorage.get("minutesPerReading");
+      nightscoutStore.get("minutesPerReading");
     return await this.get(
       `entries/sgv.json?find[date][$gte]=${timestampA.getTime()}&find[date][$lte]=${timestampB.getTime()}&count=${count}`
     );
@@ -128,16 +128,16 @@ class NightscoutManager {
     });
   }
   static ignoreUUID(uuid: number) {
-    let ignored = nightscoutStorage.get("ignoredUUIDs");
+    let ignored = nightscoutStore.get("ignoredUUIDs");
     ignored.push(uuid);
     console.log(ignored);
-    nightscoutStorage.set("ignoredUUIDs", ignored);
+    nightscoutStore.set("ignoredUUIDs", ignored);
   }
   static clearIgnoredUUIDs() {
-    nightscoutStorage.set("ignoredUUIDs", []);
+    nightscoutStore.set("ignoredUUIDs", []);
   }
   static uuidIsIgnored(uuid: number) {
-    let ignored = nightscoutStorage.get("ignoredUUIDs");
+    let ignored = nightscoutStore.get("ignoredUUIDs");
     for (let u of ignored) if (uuid === u) return true;
     return false;
   }

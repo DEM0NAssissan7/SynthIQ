@@ -5,7 +5,7 @@ import MealGraph from "../components/MealGraph";
 import NightscoutManager from "../lib/nightscoutManager";
 import { useEffect, useState } from "react";
 import { wizardStorage } from "../storage/wizardStore";
-import { nightscoutStorage } from "../storage/nightscoutStore";
+import { nightscoutStore } from "../storage/nightscoutStore";
 
 enum NightscoutAuthLevel {
   Invalid,
@@ -33,7 +33,7 @@ function HubPage() {
         console.error(e);
         setNightscoutAuthLevel(NightscoutAuthLevel.Invalid);
       });
-  }, [nightscoutStorage]);
+  }, [nightscoutStore]);
 
   return (
     <Container fluid className="text-center py-4 bg-light min-vh-100">

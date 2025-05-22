@@ -1,13 +1,13 @@
 import StorageNode from "../lib/storageNode";
 
-export const nightscoutStorage = new StorageNode("nightscout");
-nightscoutStorage.add("url", null);
-nightscoutStorage.add("apiSecret", "");
-nightscoutStorage.add("profileID", 0);
+export const nightscoutStore = new StorageNode("nightscout");
+nightscoutStore.add("url", null);
+nightscoutStore.add("apiSecret", "");
+nightscoutStore.add("profileID", 0);
 
 // CGM
-nightscoutStorage.add("minutesPerReading", 5);
-nightscoutStorage.add("cgmDelay", 5);
+nightscoutStore.add("minutesPerReading", 5);
+nightscoutStore.add("cgmDelay", 5);
 
 // Meals
-nightscoutStorage.add("ignoredUUIDs", []);
+nightscoutStore.add("ignoredUUIDs", []);

@@ -11,7 +11,7 @@ import ReadingSeries from "./readingSeries";
 import MathSeries from "./mathSeries";
 import NightscoutManager from "../lib/nightscoutManager";
 import { Color } from "./series";
-import { nightscoutStorage } from "../storage/nightscoutStore";
+import { nightscoutStore } from "../storage/nightscoutStore";
 import Food from "./food";
 import { profile } from "../storage/metaProfileStore";
 
@@ -190,7 +190,7 @@ class Meal {
     predictionSeries.populate(
       from,
       until,
-      nightscoutStorage.get("minutesPerReading") / 60
+      nightscoutStore.get("minutesPerReading") / 60
     );
     return predictionSeries;
   }

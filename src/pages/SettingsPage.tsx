@@ -6,7 +6,7 @@
  */
 
 import { Form, InputGroup } from "react-bootstrap";
-import { nightscoutStorage } from "../storage/nightscoutStore";
+import { nightscoutStore } from "../storage/nightscoutStore";
 
 export default function SettingsPage() {
   return (
@@ -17,10 +17,10 @@ export default function SettingsPage() {
           <i className="bi bi-clock"></i>
         </InputGroup.Text>
         <Form.Control
-          placeholder={nightscoutStorage.get("cgmDelay")}
+          placeholder={nightscoutStore.get("cgmDelay")}
           aria-label="Username"
           aria-describedby="basic-addon1"
-          onChange={(a) => nightscoutStorage.set("cgmDelay", a.target.value)}
+          onChange={(a) => nightscoutStore.set("cgmDelay", a.target.value)}
         />
       </InputGroup>
 

@@ -2,13 +2,13 @@ import { InputGroup, Form, Button, Toast } from "react-bootstrap";
 import NightscoutManager from "../lib/nightscoutManager";
 import { useNavigate } from "react-router";
 import { useState } from "react";
-import { nightscoutStorage } from "../storage/nightscoutStore";
+import { nightscoutStore } from "../storage/nightscoutStore";
 
 const autoHideTime = 4000;
 
 // This is usually a bad thing, but we are just pulling the current values to give the user a view on what he currently has, to allow him to change it
-const url = nightscoutStorage.get("url");
-const apiSecret = nightscoutStorage.get("apiSecret");
+const url = nightscoutStore.get("url");
+const apiSecret = nightscoutStore.get("apiSecret");
 
 function SetupPage() {
   const navigate = useNavigate();
@@ -36,7 +36,7 @@ function SetupPage() {
   }
 
   async function attemptContinue() {
-    if (!nightscoutStorage.get("url")) {
+    if (!nightscoutStore.get("url")) {
       errorMsg("Please input a URL");
       return;
     }
@@ -55,7 +55,7 @@ function SetupPage() {
   }
 
   async function testAuth() {
-    if (!nightscoutStorage.get("url") || !nightscoutStorage.get("apiSecret")) {
+    if (!nightscoutStore.get("url") || !nightscoutStore.get("apiSecret")) {
       errorMsg("Please input a URL and API key");
       return;
     }
@@ -87,7 +87,7 @@ function SetupPage() {
           placeholder={url || "Enter your nightscout server URL"}
           aria-label="URL"
           aria-describedby="basic-addon1"
-          onChange={(e) => nightscoutStorage.set("url", e.target.value)}
+          onChange={(e) => nightscoutStore.set("url", e.target.value)}
         />
       </InputGroup>
       <InputGroup className="mb-3">
@@ -99,7 +99,7 @@ function SetupPage() {
           placeholder={apiSecret || "Enter your API key"}
           aria-label="API Key"
           aria-describedby="basic-addon2"
-          onChange={(e) => nightscoutStorage.set("apiSecret", e.target.value)}
+          onChange={(e) => nightscoutStore.set("apiSecret", e.target.value)}
         />
       </InputGroup>
       <Toast

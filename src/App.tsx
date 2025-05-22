@@ -11,11 +11,11 @@ import WizardMealConfirmPage from "./pages/wizard/WizardMealConfirmPage";
 import WizardMealPage from "./pages/wizard/WizardMealPage";
 import WizardRouterPage from "./pages/wizard/WizardRouterPage";
 import WizardSummaryPage from "./pages/wizard/WizardSummaryPage";
-import { nightscoutStorage } from "./storage/nightscoutStore";
+import { nightscoutStore } from "./storage/nightscoutStore";
 
 function App() {
-  nightscoutStorage.read("url");
-  const condition = nightscoutStorage.get("url") !== null;
+  nightscoutStore.read("url");
+  const condition = nightscoutStore.get("url") !== null;
   return (
     <div>
       <TopBar />
