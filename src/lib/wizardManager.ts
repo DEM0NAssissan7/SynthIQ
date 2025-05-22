@@ -58,7 +58,9 @@ export default class WizardManager {
   static markMeal() {
     if (!this.getMealMarked()) {
       const meal: Meal = wizardStorage.get("meal");
-      meal._timestamp = new Date(); // We intentionally set the timestamp directly as to not notify meal subscribers
+      const timestamp = new Date();
+      meal._timestamp = timestamp; // We intentionally set the timestamp directly as to not notify meal subscribers
+      currentMeal.timestamp = timestamp; // Atomically set the timestamp on the actual current meal
       wizardStorage.set("mealMarked", true);
       NightscoutManager.markMeal(meal.carbs, meal.protein);
     }
@@ -69,17 +71,22 @@ export default class WizardManager {
   static markInsulin(units: number) {
     if (!this.getInsulinMarked()) {
       const meal: Meal = wizardStorage.get("meal");
+      const timestamp = new Date();
       meal.insulins = [];
-      meal.createInsulin(new Date(), units);
+      meal.createInsulin(timestamp, units);
+      currentMeal.createInsulin(timestamp, units); // Atomically mark insulin on the actual current meal
       wizardStorage.set("insulinMarked", true);
       NightscoutManager.markInsulin(units);
     }
   }
   static startNew(navigate: NavigateFunction) {
-    NightscoutManager.storeMeal(wizardStorage.get("meal")); // Store meal to analyze later
+    const wizardMeal = wizardStorage.get("meal");
+    currentMeal.foods = wizardMeal.foods; // Copy the foods from the temporary meal to the current meal
+    NightscoutManager.storeMeal(currentMeal); // Store the actual meal into nightscout so we can analyze it later
     wizardStorage.set("mealMarked", false);
     wizardStorage.set("insulinMarked", false);
-    wizardStorage.set("meal", new Meal(new Date()));
+    wizardStorage.set("meal", new Meal(new Date())); // Reset temporary meal
+    resetCurrentMeal(); // Reset actual meal
     this.setState(WizardState.Meal);
     this.moveToCurrentPage(navigate);
   }
