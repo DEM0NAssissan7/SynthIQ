@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type Meal from "../models/meal";
-import Graph from "./Graph";
+import Graph, { type SeriesLine } from "./Graph";
 import { Color } from "../models/series";
 import ReadingSeries from "../models/readingSeries";
 import MathSeries from "../models/mathSeries";
@@ -48,9 +48,22 @@ function MealGraph({ meal, from, until, width, height }: MealGraphProps) {
   }, []);
 
   const lines = useMemo(() => {
-    let lines: number[] = [];
+    let lines: SeriesLine[] = [];
+    lines.push({
+      x: 0,
+      color: "black",
+    });
     meal.insulins.forEach((insulin) => {
-      lines.push(meal.getN(insulin.timestamp));
+      lines.push({
+        x: meal.getN(insulin.timestamp),
+        color: "red",
+      });
+    });
+    meal.testInsulins.forEach((insulin) => {
+      lines.push({
+        x: meal.getN(insulin.timestamp),
+        color: "blue",
+      });
     });
     return lines;
   }, [meal, version]);

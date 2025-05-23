@@ -11,9 +11,14 @@ import {
   ReferenceLine,
 } from "recharts";
 
+export interface SeriesLine {
+  x: number;
+  color: string;
+}
+
 interface GraphProps {
   series: Series[];
-  lines?: number[];
+  lines?: SeriesLine[];
   ymin?: string | number;
   width?: string | number;
   height?: string | number;
@@ -66,9 +71,14 @@ export default function Graph({
               );
             })
           }
-          {lines.map((x) => {
+          {lines.map((line) => {
             return (
-              <ReferenceLine x={x} key={x} stroke="red" strokeDasharray="3 3" />
+              <ReferenceLine
+                x={line.x}
+                key={line.x}
+                stroke={line.color}
+                strokeDasharray="3 3"
+              />
             );
           })}
 
