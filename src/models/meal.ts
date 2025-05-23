@@ -248,6 +248,22 @@ class Meal {
     if (this.insulins.length === 0) return this.timestamp;
     return this.insulins[this.insulins.length - 1].timestamp;
   }
+  copyFoods(foods: Food[]) {
+    this.foods = [];
+    foods.forEach((a: Food) => {
+      const f = new Food(
+        a.name,
+        a.carbsRate,
+        a.proteinRate,
+        a.unit,
+        a.GI,
+        a.fatRate
+      );
+      f.amount = a.amount;
+      this.foods.push(f);
+    });
+    this.notify();
+  }
 }
 
 export default Meal;
