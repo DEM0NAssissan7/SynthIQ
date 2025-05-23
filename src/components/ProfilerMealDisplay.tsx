@@ -1,10 +1,11 @@
 import { useEffect } from "react";
 import type Meal from "../models/meal";
 import MealGraph from "./MealGraph";
-import metaProfile from "../storage/metaProfileStore";
+import { profile } from "../storage/metaProfileStore";
 import { Button } from "react-bootstrap";
 import useImportedMealsState from "../state/useImportedMealsState";
 import { getFullPrettyDate } from "../lib/timing";
+import { round } from "../lib/util";
 
 interface ProfilerMealDisplayProps {
   meal: Meal;
@@ -37,13 +38,13 @@ export default function ProfilerMealDisplay({
         });
     };
 
-    metaProfile.subscribeGeneral(profilerSubscriberNotifierHandler);
+    profile.subscribe(profilerSubscriberNotifierHandler);
 
     return () => {
       if (animationFrameId) cancelAnimationFrame(animationFrameId);
-      metaProfile.unsubscribeGeneral(profilerSubscriberNotifierHandler);
+      profile.unsubscribe(profilerSubscriberNotifierHandler);
     };
-  }, [meal, metaProfile]);
+  }, []);
 
   // Ignore Meal
   const { ignoreMeal } = useImportedMealsState();
@@ -66,11 +67,11 @@ export default function ProfilerMealDisplay({
       />
       {getFullPrettyDate(meal.timestamp)}
       <br />
-      {meal.carbs}g carbs
+      {round(meal.carbs, 2)}g carbs
       <br />
-      {meal.protein}g protein
+      {round(meal.protein, 2)}g protein
       <br />
-      {meal.fat}g fat
+      {round(meal.fat, 2)}g fat
       <br />
       {meal.insulin}u insulin
       <Button variant="danger" onClick={onIgnoreClick}>
