@@ -22,6 +22,7 @@ function createFatOffset() {
 }
 class Meal {
   _timestamp: Date;
+  endTimestamp: Date | null; // This is the timestamp when the meal ends
   _initialGlucose: number = 83;
   uuid: number;
 
@@ -42,6 +43,7 @@ class Meal {
   constructor(timestamp: Date, getInitialGlucose: boolean = true) {
     // This timestamp marks when eating _begins_
     this._timestamp = timestamp;
+    this.endTimestamp = null;
     this.uuid = genUUID();
     if (getInitialGlucose) this.pullInitialGlucose();
   }
@@ -251,7 +253,8 @@ class Meal {
   static stringify(meal: Meal): string {
     return JSON.stringify({
       timestamp: meal._timestamp,
-      initialGlucose: meal._initialGlucose,
+      endTimestamp: meal.endTimestamp,
+      initialGlucose: meal.initialGlucose,
       uuid: meal.uuid,
       foods: meal.foods.map((a) => Food.stringify(a)),
       insulin: meal.insulins.map((a) => Insulin.stringify(a)),
@@ -267,6 +270,7 @@ class Meal {
     let newMeal = new Meal(timestamp, false);
     newMeal.uuid = o.uuid;
     newMeal._initialGlucose = o.initialGlucose;
+    newMeal.endTimestamp = o.endTimestamp ? new Date(o.endTimestamp) : null;
     newMeal.foods = foods;
     newMeal.insulins = insulin;
     newMeal.glucoses = glucose;

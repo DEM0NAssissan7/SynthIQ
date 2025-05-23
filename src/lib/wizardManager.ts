@@ -85,10 +85,12 @@ export default class WizardManager {
     }
   }
   static startNew(navigate: NavigateFunction) {
+    const timestamp = new Date();
+    currentMeal.endTimestamp = timestamp; // Store the end time of the meal
     NightscoutManager.storeMeal(currentMeal); // Store the atomically edited meal into nightscout so we can analyze it later
     wizardStorage.set("mealMarked", false);
     wizardStorage.set("insulinMarked", false);
-    wizardStorage.set("meal", new Meal(new Date())); // Reset temporary meal
+    wizardStorage.set("meal", new Meal(timestamp)); // Reset temporary meal
     resetCurrentMeal(); // Reset actual meal
     wizardStorage.set("state", WizardState.Meal);
     this.moveToCurrentPage(navigate);
