@@ -12,6 +12,8 @@ currentMealStorage.add(
 const currentMeal = currentMealStorage.get("meal") as Meal;
 export default currentMeal;
 
+currentMeal.subscribe(() => currentMealStorage.write("meal")); // Automatically save the meal when it changes
+
 export function resetCurrentMeal() {
   currentMealStorage.set("meal", new Meal(new Date()));
 }
