@@ -29,7 +29,6 @@ export function getOptimalInsulinTiming(
    * below the low threshold while also keeping the maximum as low as possible */
   let maximum = Infinity;
   let time: Date = new Date();
-  const previousInsulins = meal.insulins;
   const threshold = profile.minThreshold;
   for (let n = from; n <= until; n += 1 / 60) {
     // All insulin timings [within one minute] (from -> until)
@@ -38,9 +37,8 @@ export function getOptimalInsulinTiming(
     const testTime = getTimestampFromOffset(meal.timestamp, n);
 
     // Insulin
-    meal.insulins = []; // Get rid of all previous insulisn
-    // We intentionally push directly to the insulins array to prevent notifying subscribers (and causing potential lag)
-    meal.insulins.push(new Insulin(testTime, unitsInsulin));
+    meal.testInsulins = []; // Get rid of all previous insulisn
+    meal.testInsulins = [new Insulin(testTime, unitsInsulin)]; // We intentionally push directly to the insulins array to prevent notifying subscribers (and causing potential lag)
 
     let funcMax = -Infinity;
     (() => {
@@ -65,6 +63,5 @@ export function getOptimalInsulinTiming(
       }
     })();
   }
-  meal.insulins = previousInsulins;
   return time;
 }

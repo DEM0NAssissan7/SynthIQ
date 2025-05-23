@@ -34,6 +34,11 @@ class Meal {
   insulins: Insulin[] = [];
   glucoses: Glucose[] = [];
 
+  // This is used for the prediction graph so the user can see how the meal will look
+  // This is not stored in the database
+  testInsulins: Insulin[] = [];
+  testGlucoses: Glucose[] = [];
+
   constructor(timestamp: Date, getInitialGlucose: boolean = true) {
     // This timestamp marks when eating _begins_
     this._timestamp = timestamp;
@@ -69,6 +74,24 @@ class Meal {
   }
   createGlucose(timestamp: Date, caps: number): void {
     this.glucoses.push(new Glucose(timestamp, caps));
+    this.notify();
+  }
+
+  // Test management
+  createTestInsulin(timestamp: Date, units: number): void {
+    this.testInsulins.push(new Insulin(timestamp, units));
+    this.notify();
+  }
+  clearTestInsulins(): void {
+    this.testInsulins = [];
+    this.notify();
+  }
+  createTestGlucose(timestamp: Date, caps: number): void {
+    this.testGlucoses.push(new Glucose(timestamp, caps));
+    this.notify();
+  }
+  clearTestGlucoses(): void {
+    this.testInsulins = [];
     this.notify();
   }
 
@@ -159,11 +182,18 @@ class Meal {
     this.insulins.forEach(
       (a) => (retval += a.deltaBG(t - this.getN(a.timestamp)))
     );
+    this.testInsulins.forEach(
+      (a) => (retval += a.deltaBG(t - this.getN(a.timestamp)))
+    );
 
     // Glucose
     this.glucoses.forEach(
       (a) => (retval += a.deltaBG(t - this.getN(a.timestamp)))
     );
+    this.testGlucoses.forEach(
+      (a) => (retval += a.deltaBG(t - this.getN(a.timestamp)))
+    );
+
     return retval;
   }
 

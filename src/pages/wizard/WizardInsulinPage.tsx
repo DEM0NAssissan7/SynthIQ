@@ -53,10 +53,10 @@ export default function WizardInsulinPage() {
       );
   }
 
-  // We give the meal insulin now to show the user how it's probably going to look
+  // We show the user what we predict if they take insulin now
   useEffect(() => {
-    meal.insulins = [];
-    meal.createInsulin(
+    meal.clearTestInsulins();
+    meal.createTestInsulin(
       new Date(),
       insulinTaken ? insulinTaken : suggestedInsulin
     );
@@ -64,8 +64,8 @@ export default function WizardInsulinPage() {
 
   // Timing Info (for user)
   const optimalInsulinTiming = useMemo(() => {
-    return getMinuteDiff(new Date(), insulinTimestamp);
-  }, [version]);
+    return getMinuteDiff(insulinTimestamp, new Date());
+  }, [version, insulinTimestamp]);
 
   const timeEaten = useMemo(() => {
     return getMinuteDiff(new Date(), meal.timestamp);
@@ -74,6 +74,7 @@ export default function WizardInsulinPage() {
   return (
     <div>
       <h1>Insulin Dosing</h1>
+      {!WizardManager.getInsulinMarked() && (
       <p>
         Take however much insulin you wish. However, our algorithm think you
         should take <b>{round(suggestedInsulin, 2)}</b> units
@@ -88,6 +89,7 @@ export default function WizardInsulinPage() {
         )}
         .
       </p>
+      )}
       {WizardManager.getMealMarked() && (
         <p>
           {timeEaten < 30 ? (

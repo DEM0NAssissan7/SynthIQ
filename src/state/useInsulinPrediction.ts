@@ -26,8 +26,8 @@ export default function useInsulinPrediction(
       12
     );
     if (mutateMeal) {
-      meal.insulins = [];
-      meal.createInsulin(insulinTimestamp, totalInsulin);
+      meal.clearTestInsulins();
+      meal.createTestInsulin(insulinTimestamp, totalInsulin);
     }
     return {
       insulin: totalInsulin,
