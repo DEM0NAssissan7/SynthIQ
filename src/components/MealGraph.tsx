@@ -56,13 +56,25 @@ function MealGraph({ meal, from, until, width, height }: MealGraphProps) {
     meal.insulins.forEach((insulin) => {
       lines.push({
         x: meal.getN(insulin.timestamp),
-        color: "red",
+        color: "blue",
+      });
+    });
+    meal.glucoses.forEach((glucose) => {
+      lines.push({
+        x: meal.getN(glucose.timestamp),
+        color: "orange",
       });
     });
     meal.testInsulins.forEach((insulin) => {
       lines.push({
         x: meal.getN(insulin.timestamp),
-        color: "blue",
+        color: "red",
+      });
+    });
+    meal.testGlucoses.forEach((glucose) => {
+      lines.push({
+        x: meal.getN(glucose.timestamp),
+        color: "red",
       });
     });
     return lines;
