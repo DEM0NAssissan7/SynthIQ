@@ -59,6 +59,11 @@ export default class WizardManager {
       NightscoutManager.markMeal(currentMeal.carbs, currentMeal.protein);
     }
   }
+  static resetMeal() {
+    const meal = new Meal(new Date());
+    wizardStorage.set("meal", meal); // Reset temporary meal
+    meal.subscribe(() => wizardStorage.write("meal")); // Automatically save the meal when it changes
+  }
 
   // Insulin
   private static insulin(units: number) {
@@ -116,7 +121,8 @@ export default class WizardManager {
 
     wizardStorage.set("mealMarked", false);
     wizardStorage.set("insulinMarked", false);
-    wizardStorage.set("meal", new Meal(timestamp)); // Reset temporary meal
+
+    this.resetMeal(); // Reset temporary meal
 
     wizardStorage.set("state", WizardState.Meal);
 

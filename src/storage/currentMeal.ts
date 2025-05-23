@@ -9,11 +9,13 @@ currentMealStorage.add(
   Meal.stringify
 );
 
-const currentMeal = currentMealStorage.get("meal") as Meal;
+let currentMeal = currentMealStorage.get("meal") as Meal;
 export default currentMeal;
 
 currentMeal.subscribe(() => currentMealStorage.write("meal")); // Automatically save the meal when it changes
 
 export function resetCurrentMeal() {
-  currentMealStorage.set("meal", new Meal(new Date()));
+  currentMeal = new Meal(new Date());
+  currentMealStorage.set("meal", currentMeal);
+  currentMeal.subscribe(() => currentMealStorage.write("meal"));
 }
