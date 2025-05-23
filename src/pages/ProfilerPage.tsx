@@ -88,7 +88,11 @@ export default function ProfilerPage() {
               key={meal.uuid}
               ignoreMeal={ignoreMeal}
               from={-1}
-              until={meal.endTimestamp ? meal.getN(meal.endTimestamp) : 16}
+              until={
+                meal.endTimestamp
+                  ? Math.floor(meal.getN(meal.endTimestamp)) + 1
+                  : 16
+              }
             />
           ))}
         </div>
