@@ -9,6 +9,7 @@ import useVersion from "../../state/useVersion";
 import MealPredictedSugarGraphCard from "../../components/MealPredictedSugarGraphCard";
 import { useWizardMeal } from "../../state/useMeal";
 import { getMinuteDiff, getPrettyTime } from "../../lib/timing";
+import currentMeal from "../../storage/currentMeal";
 
 export default function WizardInsulinPage() {
   const navigate = useNavigate();
@@ -29,6 +30,7 @@ export default function WizardInsulinPage() {
       if (
         confirm(`Confirm that you have taken ${insulinTaken} units of insulin`)
       ) {
+        meal.clearTestInsulins();
         WizardManager.markInsulin(insulinTaken);
         WizardManager.moveToPage(
           WizardManager.getMealMarked()
@@ -41,6 +43,11 @@ export default function WizardInsulinPage() {
       alert("Please enter a valid number");
     }
   };
+
+  // Correction
+  function backToSummary() {
+    WizardManager.moveToPage(WizardState.Summary, navigate);
+  }
 
   // A variable that changes once per minute
   const version = useVersion(1);
@@ -75,20 +82,20 @@ export default function WizardInsulinPage() {
     <div>
       <h1>Insulin Dosing</h1>
       {!WizardManager.getInsulinMarked() && (
-      <p>
-        Take however much insulin you wish. However, our algorithm think you
-        should take <b>{round(suggestedInsulin, 2)}</b> units
-        {WizardManager.getMealMarked() && optimalInsulinTiming > 0 && (
-          <>
-            {" "}
-            in <b>{optimalInsulinTiming} minutes</b>
-            {optimalInsulinTiming >= 30 && (
-              <> ({getPrettyTime(insulinTimestamp)})</>
-            )}
-          </>
-        )}
-        .
-      </p>
+        <p>
+          Take however much insulin you wish. However, our algorithm think you
+          should take <b>{round(suggestedInsulin, 2)}</b> units
+          {WizardManager.getMealMarked() && optimalInsulinTiming > 0 && (
+            <>
+              {" "}
+              in <b>{optimalInsulinTiming} minutes</b>
+              {optimalInsulinTiming >= 30 && (
+                <> ({getPrettyTime(insulinTimestamp)})</>
+              )}
+            </>
+          )}
+          .
+        </p>
       )}
       {WizardManager.getMealMarked() && (
         <p>
@@ -101,6 +108,14 @@ export default function WizardInsulinPage() {
               You ate at <b>{getPrettyTime(meal._timestamp)}</b>.
             </>
           )}
+        </p>
+      )}
+      {WizardManager.getInsulinMarked() && (
+        <p>
+          You have already taken <b>{currentMeal.insulin} units</b> of insulin.{" "}
+          <br />
+          Your last dose was at{" "}
+          <b>{getPrettyTime(meal.latestInsulinTimestamp)}</b>.
         </p>
       )}
       <MealPredictedSugarGraphCard meal={meal} />
@@ -126,7 +141,11 @@ export default function WizardInsulinPage() {
             Go Back
           </Button>
         ) : (
-          <div></div>
+          WizardManager.getInsulinMarked() && (
+            <Button variant="secondary" onClick={backToSummary}>
+              Return To Summary
+            </Button>
+          )
         )}
         <Button variant="primary" onClick={markInsulin}>
           Mark Insulin

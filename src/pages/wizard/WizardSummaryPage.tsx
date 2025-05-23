@@ -9,6 +9,7 @@ import { useNavigate } from "react-router";
 import { round } from "../../lib/util";
 import { useWizardMeal } from "../../state/useMeal";
 import { getPrettyTime } from "../../lib/timing";
+import { WizardState } from "../../models/wizardState";
 
 export default function WizardSummaryPage() {
   const meal = useWizardMeal();
@@ -22,6 +23,12 @@ export default function WizardSummaryPage() {
     ) {
       WizardManager.startNew(navigate);
     }
+  }
+  function takeInsulin() {
+    WizardManager.moveToPage(WizardState.Insulin, navigate);
+  }
+  function takeGlucose() {
+    // WizardManager.moveToPage(WizardState.Glucose, navigate);
   }
 
   return (
@@ -80,8 +87,21 @@ export default function WizardSummaryPage() {
           />
         </div>
       </div>
-      <div style={{ display: "flex", justifyContent: "flex-end" }}>
-        <Button variant="primary" onClick={startNew}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "10px",
+          alignItems: "flex-end",
+        }}
+      >
+        <Button variant="primary" onClick={takeGlucose}>
+          Take Glucose
+        </Button>
+        <Button variant="danger" onClick={takeInsulin}>
+          Take Additional Insulin
+        </Button>
+        <Button variant="secondary" onClick={startNew}>
           Start New Meal
         </Button>
       </div>
