@@ -28,7 +28,7 @@ export default function WizardSummaryPage() {
     WizardManager.moveToPage(WizardState.Insulin, navigate);
   }
   function takeGlucose() {
-    // WizardManager.moveToPage(WizardState.Glucose, navigate);
+    WizardManager.moveToPage(WizardState.Glucose, navigate);
   }
 
   return (

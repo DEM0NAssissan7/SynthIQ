@@ -6,11 +6,9 @@ import NightscoutManager from "./nightscoutManager";
 import type { NavigateFunction } from "react-router";
 
 export default class WizardManager {
-  static getPageRedirect(state: WizardState): string {
+  // Page Redirects
+  private static getPageRedirect(state: WizardState): string {
     return `/wizard/${getStateName(state)}`;
-  }
-  static getCurrentPageRedirect(): string {
-    return this.getPageRedirect(wizardStorage.get("state"));
   }
 
   // Movement
@@ -34,27 +32,46 @@ export default class WizardManager {
   static getMealMarked() {
     return wizardStorage.get("mealMarked");
   }
+  static getInsulinMarked() {
+    return wizardStorage.get("insulinMarked");
+  }
+
+  // Setters
+  private static setAtomicInitialGlucose() {
+    if (!this.getMealMarked() && !this.getInsulinMarked())
+      currentMeal.initialGlucose = wizardStorage.get("meal").initialGlucose;
+  }
+
+  // Meal
   static markMeal() {
     if (!this.getMealMarked()) {
       const meal: Meal = wizardStorage.get("meal");
       const timestamp = new Date();
+
       meal._timestamp = timestamp; // We intentionally set the timestamp directly as to not notify meal subscribers
+
       currentMeal.timestamp = timestamp; // Atomically set the timestamp on the actual current meal
       currentMeal.copyFoods(meal.foods); // Atomically set the foods on the actual current meal
-      currentMeal.initialGlucose = meal.initialGlucose; // Atomically set the initial glucose on the actual current meal
+      this.setAtomicInitialGlucose(); // Set the initial glucose on the actual current meal (if it hasn't been set)
+
       wizardStorage.set("mealMarked", true);
+
       NightscoutManager.markMeal(currentMeal.carbs, currentMeal.protein);
     }
   }
-  static getInsulinMarked() {
-    return wizardStorage.get("insulinMarked");
-  }
+
+  // Insulin
   private static insulin(units: number) {
     const meal: Meal = wizardStorage.get("meal");
     const timestamp = new Date();
+
     meal.createInsulin(timestamp, units);
+
     currentMeal.createInsulin(timestamp, units); // Atomically mark insulin on the actual current meal
+    this.setAtomicInitialGlucose(); // Set the initial glucose on the actual current meal (if it hasn't been set)
+
     wizardStorage.set("insulinMarked", true);
+
     NightscoutManager.markInsulin(units);
   }
   static markInsulin(units: number) {
@@ -72,27 +89,37 @@ export default class WizardManager {
       }
     }
   }
+  // Glucose
   static markGlucose(caps: number) {
     // We really don't want to mark glucose if we haven't taken insulin. The glucose would never be taken because of a meal. Meals raise glucose.
-    // This is a safety check to make sure we don't mark glucose if we haven't taken insulin
     if (this.getInsulinMarked()) {
       const meal: Meal = wizardStorage.get("meal");
       const timestamp = new Date();
+
       meal.glucoses = [];
       meal.createGlucose(timestamp, caps);
+      meal.clearTestGlucoses(); // Clear test glucoses
+
       currentMeal.createGlucose(timestamp, caps); // Atomically mark glucose on the actual current meal
+
       NightscoutManager.markGlucose(caps);
     }
   }
+
+  // Reset
   static startNew(navigate: NavigateFunction) {
     const timestamp = new Date();
+
     currentMeal.endTimestamp = timestamp; // Store the end time of the meal
     NightscoutManager.storeMeal(currentMeal); // Store the atomically edited meal into nightscout so we can analyze it later
+    resetCurrentMeal(); // Reset actual meal
+
     wizardStorage.set("mealMarked", false);
     wizardStorage.set("insulinMarked", false);
     wizardStorage.set("meal", new Meal(timestamp)); // Reset temporary meal
-    resetCurrentMeal(); // Reset actual meal
+
     wizardStorage.set("state", WizardState.Meal);
+
     this.moveToCurrentPage(navigate);
   }
 }

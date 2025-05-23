@@ -4,6 +4,7 @@ export enum WizardState {
   Insulin,
   MealConfirm,
   Summary,
+  Glucose,
 }
 
 type StateNameKey = [WizardState, string];
@@ -13,6 +14,7 @@ const stateNames: StateNameKey[] = [
   [WizardState.Insulin, "insulin"],
   [WizardState.MealConfirm, "mealconfirm"],
   [WizardState.Summary, "summary"],
+  [WizardState.Glucose, "glucose"],
 ];
 
 // Serialization

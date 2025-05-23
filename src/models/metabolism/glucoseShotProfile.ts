@@ -48,10 +48,14 @@ export default class GlucoseShotProfile extends NutrientProfile {
     return this._gramsPerMl;
   }
 
+  get gramsPerCap(): number {
+    return this._mlsPerCap * this._gramsPerMl;
+  }
+
   deltaBG(t: number, caps: number) {
     return metaKernel(
       t,
-      caps * this._mlsPerCap * this._gramsPerMl * this._effect,
+      caps * this.gramsPerCap * this._effect,
       this._delay,
       this._peak,
       MetaFunctions.G

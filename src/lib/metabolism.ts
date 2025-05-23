@@ -3,6 +3,7 @@ import type Meal from "../models/meal";
 import { profile } from "../storage/metaProfileStore";
 import { getTimestampFromOffset } from "./timing";
 
+// Insulin
 export function getInsulin(carbs: number, protein: number) {
   return (
     (carbs * profile.carbs.effect + protein * profile.protein.effect) /
@@ -64,4 +65,12 @@ export function getOptimalInsulinTiming(
     })();
   }
   return time;
+}
+
+// Glucose
+export function getGlucoseCorrection(sugar: number) {
+  return Math.max((profile.target - sugar) / profile.glucose.effect, 0);
+}
+export function getGlucoseCorrectionCaps(sugar: number) {
+  return getGlucoseCorrection(sugar) / profile.glucose.gramsPerCap;
 }

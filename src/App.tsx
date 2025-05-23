@@ -12,6 +12,7 @@ import WizardMealPage from "./pages/wizard/WizardMealPage";
 import WizardRouterPage from "./pages/wizard/WizardRouterPage";
 import WizardSummaryPage from "./pages/wizard/WizardSummaryPage";
 import NightscoutManager from "./lib/nightscoutManager";
+import WizardGlucosePage from "./pages/wizard/WizardGlucosePage";
 
 function App() {
   return (
@@ -49,6 +50,7 @@ function App() {
           />
           <Route path="/wizard/insulin" element={<WizardInsulinPage />} />
           <Route path="/wizard/summary" element={<WizardSummaryPage />} />
+          <Route path="/wizard/glucose" element={<WizardGlucosePage />} />
         </Routes>
       </div>
     </div>

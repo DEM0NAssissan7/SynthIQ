@@ -3,6 +3,7 @@ import Unit from "../models/unit";
 import Meal from "../models/meal";
 import { nightscoutStore } from "../storage/nightscoutStore";
 import { getTimestampFromOffset } from "./timing";
+import { profile } from "../storage/metaProfileStore";
 
 const selfID = "SynthIQ";
 
@@ -10,7 +11,7 @@ const selfID = "SynthIQ";
 const mealStoreEventType = "Meal Storage";
 const insulinEventType = "Meal Bolus";
 const mealEventType = "Meal";
-const glucoseEventType = "Glucose Shot";
+const glucoseEventType = "Carb Correction";
 
 class NightscoutManager {
   // Basic request stuff
@@ -108,9 +109,9 @@ class NightscoutManager {
       eventType: insulinEventType,
     });
   }
-  static markGlucose(grams: number): void {
+  static markGlucose(caps: number): void {
     this.post("treatments", {
-      carbs: grams,
+      carbs: caps * profile.glucose.gramsPerCap,
       eventType: glucoseEventType,
     });
   }

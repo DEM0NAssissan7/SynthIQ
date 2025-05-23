@@ -125,7 +125,6 @@ export default function WizardInsulinPage() {
         </InputGroup.Text>
         <Form.Control
           placeholder={round(suggestedInsulin, 2).toString()}
-          aria-label="URL"
           aria-describedby="basic-addon1"
           onChange={(e: any) => {
             const val = parseFloat(e.target.value);
