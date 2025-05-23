@@ -75,6 +75,8 @@ export default function ProfilerMealDisplay({
       {round(meal.fat, 2)}g fat
       <br />
       {meal.insulin}u insulin
+      <br />
+      {meal.glucose} caps of glucose
       <Button variant="danger" onClick={onIgnoreClick}>
         Ignore
       </Button>

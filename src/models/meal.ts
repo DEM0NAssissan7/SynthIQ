@@ -167,7 +167,7 @@ class Meal {
   }
   get glucose(): number {
     let glucose = 0;
-    this.glucoses.forEach((a: Glucose) => (glucose += a.grams));
+    this.glucoses.forEach((a: Glucose) => (glucose += a.caps));
     return glucose;
   }
   deltaBG(_t: number): number {
