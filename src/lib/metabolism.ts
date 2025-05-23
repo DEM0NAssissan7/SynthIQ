@@ -1,17 +1,16 @@
 import Insulin from "../models/insulin";
 import type Meal from "../models/meal";
-import metaProfile from "../storage/metaProfileStore";
+import { profile } from "../storage/metaProfileStore";
 import { getTimestampFromOffset } from "./timing";
 
 export function getInsulin(carbs: number, protein: number) {
   return (
-    (carbs * metaProfile.get("ecarbs") +
-      protein * metaProfile.get("eprotein")) /
-    metaProfile.get("einsulin")
+    (carbs * profile.carbs.effect + protein * profile.protein.effect) /
+    profile.insulin.effect
   );
 }
 export function getCorrectionInsulin(glucose: number) {
-  return (glucose - metaProfile.get("target")) / metaProfile.get("einsulin");
+  return (glucose - profile.target) / profile.insulin.effect;
 }
 
 /** This function figures out the optimal meal timing by using the
@@ -31,12 +30,7 @@ export function getOptimalInsulinTiming(
   let maximum = Infinity;
   let time: Date = new Date();
   const previousInsulins = meal.insulins;
-  const threshold = metaProfile.get("minThreshold");
-  // console.log(
-  //   -unitsInsulin * metaProfile.get("einsulin") +
-  //     meal.getCarbs() * metaProfile.get("ecarbs") +
-  //     meal.getProtein() * metaProfile.get("eprotein")
-  // );
+  const threshold = profile.minThreshold;
   for (let n = from; n <= until; n += 1 / 60) {
     // All insulin timings [within one minute] (from -> until)
 
