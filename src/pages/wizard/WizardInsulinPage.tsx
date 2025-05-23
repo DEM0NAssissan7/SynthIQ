@@ -114,7 +114,7 @@ export default function WizardInsulinPage() {
           aria-describedby="basic-addon1"
           onChange={(e: any) => {
             const val = parseFloat(e.target.value);
-            if (!isNaN(val)) setInsulinTaken(e.target.value);
+            if (!isNaN(val)) setInsulinTaken(val);
             else setInsulinTaken(0);
           }}
         />
