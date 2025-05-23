@@ -22,28 +22,6 @@ export default class WizardManager {
     this.moveToPage(wizardStorage.get("state"), navigate);
   }
 
-  // State Management
-  static setState(state: WizardState, navigate?: NavigateFunction): void {
-    if (state === WizardState.Meal && this.getMealMarked()) {
-      console.error(
-        `WizardManager: Cannot set state - meal creation is already completed.`
-      );
-      if (navigate) this.moveToCurrentPage(navigate);
-      return;
-    }
-    if (state === WizardState.Insulin && this.getInsulinMarked()) {
-      console.error(
-        `WizardManager: Cannot set state - insulin dosing is already complete.`
-      );
-      if (navigate) this.moveToCurrentPage(navigate);
-      return;
-    }
-    wizardStorage.set("state", state);
-  }
-  static resetState() {
-    wizardStorage.reset("state");
-  }
-
   // Activity
   static isActive() {
     return this.getMealMarked() || this.getInsulinMarked();
@@ -112,7 +90,7 @@ export default class WizardManager {
     wizardStorage.set("insulinMarked", false);
     wizardStorage.set("meal", new Meal(new Date())); // Reset temporary meal
     resetCurrentMeal(); // Reset actual meal
-    this.setState(WizardState.Meal);
+    wizardStorage.set("state", WizardState.Meal);
     this.moveToCurrentPage(navigate);
   }
 }
