@@ -3,12 +3,12 @@ import type Meal from "../models/meal";
 import MealGraph from "./MealGraph";
 import { profile } from "../storage/metaProfileStore";
 import { Button } from "react-bootstrap";
-import useImportedMealsState from "../state/useImportedMealsState";
 import { getFullPrettyDate } from "../lib/timing";
 import { round } from "../lib/util";
 
 interface ProfilerMealDisplayProps {
   meal: Meal;
+  ignoreMeal: (a: Meal) => void;
   from: number;
   until: number;
   width?: string | number;
@@ -18,6 +18,7 @@ interface ProfilerMealDisplayProps {
 
 export default function ProfilerMealDisplay({
   meal,
+  ignoreMeal,
   from,
   until,
   width,
@@ -47,12 +48,12 @@ export default function ProfilerMealDisplay({
   }, []);
 
   // Ignore Meal
-  const { ignoreMeal } = useImportedMealsState();
   function onIgnoreClick() {
     if (
       confirm(`Are you sure you want to ignore this meal? UUID: ${meal.uuid}`)
-    )
+    ) {
       ignoreMeal(meal);
+    }
   }
 
   return (

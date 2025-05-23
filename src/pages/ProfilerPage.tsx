@@ -5,7 +5,8 @@ import useImportedMealsState from "../state/useImportedMealsState";
 import useProfileState from "../state/useProfileState";
 
 export default function ProfilerPage() {
-  const { importedMeals, clearIgnoredMeals } = useImportedMealsState();
+  const { importedMeals, clearIgnoredMeals, ignoreMeal } =
+    useImportedMealsState();
   const profile = useProfileState();
 
   return (
@@ -85,6 +86,7 @@ export default function ProfilerPage() {
             <ProfilerMealDisplay
               meal={meal}
               key={meal.uuid}
+              ignoreMeal={ignoreMeal}
               from={-1}
               until={12}
             />
