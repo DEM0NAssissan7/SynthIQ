@@ -8,7 +8,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build-podman": "npm run build && podman build . -t synthiq"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.8.2",
