@@ -226,8 +226,10 @@ class Meal {
     let timestamp = this.getStartTimestamp();
     if (!useTrueStart) timestamp = this._timestamp;
     return NightscoutManager.getSugarAt(timestamp).then((a: any) => {
+      if(a) {
       this.initialGlucose = a.sgv;
       return a;
+      }
     });
   }
   get initialGlucose() {
