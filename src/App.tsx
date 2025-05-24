@@ -13,6 +13,7 @@ import WizardRouterPage from "./pages/wizard/WizardRouterPage";
 import WizardSummaryPage from "./pages/wizard/WizardSummaryPage";
 import NightscoutManager from "./lib/nightscoutManager";
 import WizardGlucosePage from "./pages/wizard/WizardGlucosePage";
+import PlaygroundPage from "./pages/PlaygroundPage";
 
 function App() {
   return (
@@ -39,6 +40,7 @@ function App() {
           <Route path="/profiler" element={<ProfilerPage />} />
           <Route path="/setup" element={<SetupPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/playground" element={<PlaygroundPage />} />
 
           {/* Wizard Routes */}
           <Route path="/wizard" element={<WizardRouterPage />} />
