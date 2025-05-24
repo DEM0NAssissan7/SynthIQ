@@ -65,6 +65,7 @@ export default function WizardSummaryPage() {
             Meal eaten at {getPrettyTime(meal.timestamp)}
             <br></br>- {round(meal.carbs, 2)}g carbs<br></br>-{" "}
             {round(meal.protein, 2)}g protein
+            {meal.glucose > 0 && <i>{meal.glucose} caps of glucose</i>}
             <br />
             <br />
             <b>{round(meal.insulin, 2)}u</b> insulin (
