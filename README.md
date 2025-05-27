@@ -19,3 +19,6 @@ I do not accept donations or profit from this work — I simply ask that if it h
 - Simply spreading the word
 
 Diabetes is hard enough. No one should profit at the expense of those who suffer from it.
+
+# Sources
+Food Database - https://www.nutritionix.com/
