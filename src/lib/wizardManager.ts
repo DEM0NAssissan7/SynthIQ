@@ -101,7 +101,6 @@ export default class WizardManager {
       const meal: Meal = wizardStorage.get("meal");
       const timestamp = new Date();
 
-      meal.glucoses = [];
       meal.createGlucose(timestamp, caps);
       meal.clearTestGlucoses(); // Clear test glucoses
 
