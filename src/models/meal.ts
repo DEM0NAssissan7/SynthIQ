@@ -282,6 +282,10 @@ class Meal {
     if (this.insulins.length === 0) return this.timestamp;
     return this.insulins[this.insulins.length - 1].timestamp;
   }
+  get latestGlucoseTimestamp(): Date {
+    if (this.glucoses.length === 0) return this.timestamp;
+    return this.glucoses[this.glucoses.length - 1].timestamp;
+  }
   copyFoods(foods: Food[]) {
     this.foods = [];
     foods.forEach((a: Food) => {
