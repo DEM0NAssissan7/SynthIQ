@@ -68,9 +68,6 @@ export function getOptimalInsulinTiming(
 }
 
 // Glucose
-export function getGlucoseCorrection(sugar: number) {
-  return Math.max((profile.target - sugar) / profile.glucose.effect, 0);
-}
 export function getGlucoseCorrectionCaps(sugar: number) {
-  return getGlucoseCorrection(sugar) / profile.glucose.gramsPerCap;
+  return (profile.target - sugar) / profile.glucose.effect;
 }

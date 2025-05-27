@@ -3,7 +3,6 @@ import Unit from "../models/unit";
 import Meal from "../models/meal";
 import { nightscoutStore } from "../storage/nightscoutStore";
 import { getTimestampFromOffset } from "./timing";
-import { profile } from "../storage/metaProfileStore";
 
 const selfID = "SynthIQ";
 
@@ -111,7 +110,7 @@ class NightscoutManager {
   }
   static markGlucose(caps: number): void {
     this.post("treatments", {
-      carbs: round(caps * profile.glucose.gramsPerCap, 1),
+      carbs: caps,
       eventType: glucoseEventType,
     });
   }
