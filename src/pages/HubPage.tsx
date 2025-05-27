@@ -56,6 +56,9 @@ function HubPage() {
                         until={10}
                         width="100%"
                       />
+                      <Button variant="primary" as={Link as any} to="/wizard">
+                        View Summary
+                      </Button>
                     </>
                   ) : (
                     <>
