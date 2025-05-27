@@ -1,4 +1,4 @@
-import { convertDimensions } from "./util";
+import { convertDimensions, round } from "./util";
 import Unit from "../models/unit";
 import Meal from "../models/meal";
 import { nightscoutStore } from "../storage/nightscoutStore";
@@ -98,8 +98,8 @@ class NightscoutManager {
   static markMeal(carbs: number, protein: number): void {
     this.post("treatments", {
       notes: `${carbs}/${protein}`,
-      carbs: carbs,
-      protein: protein,
+      carbs: round(carbs, 1),
+      protein: round(protein, 1),
       eventType: mealEventType,
     });
   }
@@ -111,7 +111,7 @@ class NightscoutManager {
   }
   static markGlucose(caps: number): void {
     this.post("treatments", {
-      carbs: caps * profile.glucose.gramsPerCap,
+      carbs: round(caps * profile.glucose.gramsPerCap, 1),
       eventType: glucoseEventType,
     });
   }
