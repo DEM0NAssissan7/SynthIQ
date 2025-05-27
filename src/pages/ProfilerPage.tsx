@@ -98,10 +98,10 @@ export default function ProfilerPage() {
           <Button variant="secondary" onClick={clearIgnoredMeals}>
             Unhide All
           </Button>
-          {importedMeals.map((meal) => (
+          {importedMeals.map((meal, i) => (
             <ProfilerMealDisplay
               meal={meal}
-              key={meal.uuid}
+              key={i}
               ignoreMeal={ignoreMeal}
               from={-1}
               until={

@@ -59,23 +59,24 @@ export default function Graph({
 
           {
             // Create a line set for each piece of data
-            series.map((s) => {
+            series.map((s, i) => {
               return (
                 <Line
                   type="monotone"
                   data={s.getRechartData()}
                   dataKey="y"
+                  key={i}
                   stroke={s.color}
                   dot={false}
                 ></Line>
               );
             })
           }
-          {lines.map((line) => {
+          {lines.map((line, i) => {
             return (
               <ReferenceLine
                 x={line.x}
-                key={line.x}
+                key={i}
                 stroke={line.color}
                 strokeDasharray="3 3"
               />

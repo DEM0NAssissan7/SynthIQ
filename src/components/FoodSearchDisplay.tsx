@@ -60,9 +60,9 @@ export default function FoodSearchDisplay({ meal }: FoodSearchDisplayProps) {
       </Form>
 
       <ListGroup>
-        {filteredFoods.map((food: Food) => (
+        {filteredFoods.map((food: Food, i) => (
           <ListGroup.Item
-            key={food.name}
+            key={i}
             className="d-flex flex-column gap-3 p-3"
           >
             <SearchFood
