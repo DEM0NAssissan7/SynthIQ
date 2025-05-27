@@ -265,15 +265,15 @@ class Meal {
     let o = JSON.parse(string);
     let timestamp = new Date(o.timestamp);
     let foods = o.foods.map((a: any) => Food.parse(a));
-    let insulin = o.insulin.map((a: any) => Insulin.parse(a));
-    let glucose = o.glucose.map((a: any) => Glucose.parse(a));
+    let insulins = o.insulin.map((a: any) => Insulin.parse(a));
+    let glucoses = o.glucose.map((a: any) => Glucose.parse(a));
     let newMeal = new Meal(timestamp, false);
     newMeal.uuid = o.uuid;
-    newMeal._initialGlucose = o.initialGlucose;
+    newMeal.initialGlucose = o.initialGlucose;
     newMeal.endTimestamp = o.endTimestamp ? new Date(o.endTimestamp) : null;
     newMeal.foods = foods;
-    newMeal.insulins = insulin;
-    newMeal.glucoses = glucose;
+    newMeal.insulins = insulins;
+    newMeal.glucoses = glucoses;
     return newMeal;
   }
 
