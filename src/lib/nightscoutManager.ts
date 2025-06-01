@@ -16,6 +16,9 @@ const insulinEventType = "Meal Bolus";
 const mealEventType = "Meal";
 const glucoseEventType = "Carb Correction";
 
+// Developer options
+const errorLogging = false;
+
 // Request Queue Management
 function addRequest(type: RequestType, api: string, payload?: any, timestamp?: Date): void {
   const queue = nightscoutStore.get("queue");
@@ -47,10 +50,12 @@ class NightscoutManager {
       if (a.ok) {
         if (a) return a.json();
         else throw new Error("Nightscout: GET request gave invalid data");
-      } else
+      } else if(errorLogging)
         throw new Error(
           `Nightscout: GET request failed - HTTP status code '${a.status}'`
         );
+    }).catch((e) => {
+      if(errorLogging) console.error(e);
     });
   }
   private static postRequest(api: string, payload: any, timestamp: Date) {
@@ -138,7 +143,10 @@ class NightscoutManager {
           nightscoutStore.get("minutesPerReading") *
           convertDimensions(Unit.Time.Minute, Unit.Time.Hour)
       )
-    ).then((a) => a[a.length - 1]);
+    ).then((a) => {
+      if(a)
+      return a[a.length - 1]
+    });
   }
   static async getCurrentSugar() {
     return await this.get("entries").then((a) => a[0].sgv);
