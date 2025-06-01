@@ -75,6 +75,22 @@ export default function ProfilerPage() {
             setValue={(value) => (profile.protein.plateuRate = value)}
             prettyName="Protein Sustain Rate (hours/g)"
             step={0.001}
+            />
+          <br />
+          <ProfileSlider
+            value={profile.glucose.effect}
+            setValue={(value) => (profile.glucose.effect = value)}
+            prettyName="Dextrose Effect (points/cap)"
+          />
+          <ProfileSlider
+            value={profile.glucose.delay}
+            setValue={(value) => (profile.glucose.delay = value)}
+            prettyName="Dextrose Delay (hours)"
+          />
+          <ProfileSlider
+            value={profile.glucose.peak}
+            setValue={(value) => (profile.glucose.peak = value)}
+            prettyName="Dextrose Peak Time (hours)"
           />
         </div>
 

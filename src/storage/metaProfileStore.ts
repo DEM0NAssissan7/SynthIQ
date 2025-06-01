@@ -9,5 +9,12 @@ metaProfile.add(
   MetabolismProfile.parse,
   MetabolismProfile.stringify
 );
-export const profile = metaProfile.get("profile") as MetabolismProfile;
-profile.subscribe(() => metaProfile.write("profile")); // Automatically save the profile when it changes
+export let profile = metaProfile.get("profile") as MetabolismProfile;
+const profileStorageWriteHandler = () => metaProfile.write("profile");
+export function changeProfile(p: MetabolismProfile) {
+  profile.unsubscribe(profileStorageWriteHandler);
+  profile = p;
+  profile.subscribe(profileStorageWriteHandler); // Automatically save the profile when it changes
+}
+
+changeProfile(profile);

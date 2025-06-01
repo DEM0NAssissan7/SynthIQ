@@ -65,6 +65,7 @@ export default function Graph({
                   type="monotone"
                   data={s.getRechartData()}
                   dataKey="y"
+                  key={i}
                   stroke={s.color}
                   key={i}
                   dot={false}

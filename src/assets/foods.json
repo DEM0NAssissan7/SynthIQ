@@ -2,15 +2,23 @@
   "foods": [
     {
       "name": "Avocado",
-      "carbs": 12,
-      "protein": 0,
+      "carbs": 4,
+      "protein": 4,
       "units": "unit",
       "GI": 10,
       "fat": 22
     },
     {
+      "name": "American Cheese (kraft)",
+      "carbs": 1.8,
+      "protein": 3.6,
+      "units": "unit",
+      "GI": 10,
+      "fat": 4.9
+    },
+    {
       "name": "Avocado (by weight)",
-      "carbs": 8.5,
+      "carbs": 2,
       "protein": 2,
       "units": "percent",
       "GI": 10,
@@ -58,26 +66,26 @@
     },
     {
       "name": "Bell Peppers (green)",
-      "carbs": 4.6,
-      "protein": 0,
+      "carbs": 5.4,
+      "protein": 0.8,
       "units": "percent",
       "GI": 15,
       "fat": 0.2
     },
     {
       "name": "Cauliflower",
-      "carbs": 5,
+      "carbs": 1.9,
       "protein": 1.9,
       "units": "percent",
-      "GI": 15,
-      "fat": 0.25
+      "GI": 20,
+      "fat": 0.4
     },
     {
       "name": "Celery",
-      "carbs": 3,
-      "protein": 0,
+      "carbs": 1.4,
+      "protein": 0.7,
       "units": "percent",
-      "GI": 15,
+      "GI": 20,
       "fat": 0.17
     },
     {
@@ -106,10 +114,10 @@
     },
     {
       "name": "Cucumber",
-      "carbs": 3.6,
+      "carbs": 3.1,
       "protein": 0.7,
       "units": "percent",
-      "GI": 15,
+      "GI": 20,
       "fat": 0.1
     },
     {
@@ -117,13 +125,13 @@
       "carbs": 0.6,
       "protein": 6,
       "units": "unit",
-      "GI": 0,
+      "GI": 10,
       "fat": 5
     },
     {
       "name": "Garlic",
-      "carbs": 33,
-      "protein": 6.5,
+      "carbs": 30.9,
+      "protein": 6.4,
       "units": "percent",
       "GI": 30,
       "fat": 0.5
@@ -149,7 +157,7 @@
       "carbs": 2.2,
       "protein": 25,
       "units": "percent",
-      "GI": 0,
+      "GI": 15,
       "fat": 27
     },
     {
@@ -162,11 +170,11 @@
     },
     {
       "name": "Kale",
-      "carbs": 5.6,
+      "carbs": 3.6,
       "protein": 1.9,
       "units": "percent",
       "GI": 15,
-      "fat": 0.9
+      "fat": 0.4
     },
     {
       "name": "Lamb Breast",
@@ -187,37 +195,37 @@
     {
       "name": "Mushroom (white; bella) [by weight]",
       "carbs": 3.1,
-      "protein": 3.3,
+      "protein": 2.2,
       "units": "percent",
       "GI": 15,
       "fat": 0.3
     },
     {
       "name": "Olives (small)",
-      "carbs": 0.3,
+      "carbs": 0.1,
       "protein": 0,
       "units": "unit",
       "GI": 15,
       "fat": 0.5
     },
     {
-      "name": "Power Greens",
-      "carbs": 4.23,
-      "protein": 2.82,
-      "units": "percent",
-      "GI": 15,
-      "fat": 0.5
-    },
-    {
       "name": "Pickles (by weight)",
-      "carbs": 2.3,
-      "protein": 0,
+      "carbs": 1.4,
+      "protein": 0.5,
       "units": "percent",
       "GI": 15,
-      "fat": 0.2
+      "fat": 0.3
     },
     {
-      "name": "Dill Pickle Chips",
+      "name": "Pickle Spears",
+      "carbs": 0.4,
+      "protein": 0.2,
+      "units": "unit",
+      "GI": 15,
+      "fat": 0.1
+    },
+    {
+      "name": "Dill Pickle Chips (innacurate)",
       "carbs": 0.185,
       "protein": 0,
       "units": "unit",
@@ -226,23 +234,23 @@
     },
     {
       "name": "Onion (red)",
-      "carbs": 5.63,
-      "protein": 0,
+      "carbs": 8.6,
+      "protein": 1.4,
       "units": "percent",
       "GI": 10,
-      "fat": 0.1
+      "fat": 0.2
     },
     {
       "name": "Onion (yellow)",
-      "carbs": 8,
-      "protein": 1,
+      "carbs": 8.6,
+      "protein": 1.4,
       "units": "percent",
       "GI": 10,
-      "fat": 0.1
+      "fat": 0.2
     },
     {
-      "name": "Romaine Lettuce",
-      "carbs": 3.3,
+      "name": "Lettuce (Romaine)",
+      "carbs": 1.2,
       "protein": 1.2,
       "units": "percent",
       "GI": 15,

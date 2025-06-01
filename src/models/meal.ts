@@ -1,4 +1,4 @@
-import { genUUID } from "../lib/util";
+import { genUUID, type UUID } from "../lib/util";
 import type Series from "./series";
 import Glucose from "./glucose";
 import Insulin from "./insulin";
@@ -24,7 +24,7 @@ class Meal {
   _timestamp: Date;
   endTimestamp: Date | null; // This is the timestamp when the meal ends
   _initialGlucose: number = 83;
-  uuid: number;
+  uuid: UUID;
 
   subscriptions: (() => void)[] = [];
   foods: Food[] = [
@@ -271,15 +271,15 @@ class Meal {
     let o = JSON.parse(string);
     let timestamp = new Date(o.timestamp);
     let foods = o.foods.map((a: any) => Food.parse(a));
-    let insulin = o.insulin.map((a: any) => Insulin.parse(a));
-    let glucose = o.glucose.map((a: any) => Glucose.parse(a));
+    let insulins = o.insulin.map((a: any) => Insulin.parse(a));
+    let glucoses = o.glucose.map((a: any) => Glucose.parse(a));
     let newMeal = new Meal(timestamp, false);
     newMeal.uuid = o.uuid;
-    newMeal._initialGlucose = o.initialGlucose;
+    newMeal.initialGlucose = o.initialGlucose;
     newMeal.endTimestamp = o.endTimestamp ? new Date(o.endTimestamp) : null;
     newMeal.foods = foods;
-    newMeal.insulins = insulin;
-    newMeal.glucoses = glucose;
+    newMeal.insulins = insulins;
+    newMeal.glucoses = glucoses;
     return newMeal;
   }
 
@@ -287,6 +287,10 @@ class Meal {
   get latestInsulinTimestamp(): Date {
     if (this.insulins.length === 0) return this.timestamp;
     return this.insulins[this.insulins.length - 1].timestamp;
+  }
+  get latestGlucoseTimestamp(): Date {
+    if (this.glucoses.length === 0) return this.timestamp;
+    return this.glucoses[this.glucoses.length - 1].timestamp;
   }
   copyFoods(foods: Food[]) {
     this.foods = [];

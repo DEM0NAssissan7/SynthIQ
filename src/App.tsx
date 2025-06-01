@@ -14,8 +14,14 @@ import WizardSummaryPage from "./pages/wizard/WizardSummaryPage";
 import NightscoutManager from "./lib/nightscoutManager";
 import WizardGlucosePage from "./pages/wizard/WizardGlucosePage";
 import PlaygroundPage from "./pages/PlaygroundPage";
+import WizardEditPage from "./pages/wizard/WizardEditPage";
+import { useEffect } from "react";
 
 function App() {
+  useEffect(() => {
+    // Attempt to fulfill requests upon page load
+    NightscoutManager.fulfillRequests();
+  }, []);
   return (
     <div>
       <TopBar />
@@ -53,6 +59,7 @@ function App() {
           <Route path="/wizard/insulin" element={<WizardInsulinPage />} />
           <Route path="/wizard/summary" element={<WizardSummaryPage />} />
           <Route path="/wizard/glucose" element={<WizardGlucosePage />} />
+          <Route path="/wizard/edit" element={<WizardEditPage />} />
         </Routes>
       </div>
     </div>

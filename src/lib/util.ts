@@ -15,7 +15,8 @@ export function floor(num: number, precision: number): number {
 }
 
 // Number Generation
-export function genUUID(): number {
+export type UUID = number;
+export function genUUID(): UUID {
   return Math.round(random(0, 2 ** 16));
 }
 

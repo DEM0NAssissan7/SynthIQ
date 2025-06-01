@@ -20,7 +20,4 @@ export default class Glucose {
     let o = JSON.parse(s);
     return new Glucose(new Date(o.timestamp), o.caps);
   }
-  get grams(): number {
-    return this.caps * profile.glucose.gramsPerCap;
-  }
 }
