@@ -14,8 +14,13 @@ import WizardSummaryPage from "./pages/wizard/WizardSummaryPage";
 import NightscoutManager from "./lib/nightscoutManager";
 import WizardGlucosePage from "./pages/wizard/WizardGlucosePage";
 import PlaygroundPage from "./pages/PlaygroundPage";
+import { useEffect } from "react";
 
 function App() {
+  useEffect(() => {
+    // Attempt to fulfill requests upon page load
+    NightscoutManager.fulfillRequests();
+  }, []);
   return (
     <div>
       <TopBar />
