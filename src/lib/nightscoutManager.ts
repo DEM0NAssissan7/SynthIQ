@@ -5,6 +5,8 @@ import { nightscoutStore } from "../storage/nightscoutStore";
 import { getTimestampFromOffset } from "./timing";
 import { changeProfile, profile } from "../storage/metaProfileStore";
 import MetabolismProfile from "../models/metabolism/metabolismProfile";
+import RequestType from "../models/requestType";
+import RequestQueue from "../models/requestQueue";
 
 const selfID = "SynthIQ";
 
@@ -13,6 +15,17 @@ const mealStoreEventType = "Meal Storage";
 const insulinEventType = "Meal Bolus";
 const mealEventType = "Meal";
 const glucoseEventType = "Carb Correction";
+
+// Request Queue Management
+function addRequest(type: RequestType, api: string, payload?: any, timestamp?: Date): void {
+  const queue = nightscoutStore.get("queue");
+  queue.push(new RequestQueue(type, api, payload, timestamp));
+  nightscoutStore.write("queue");
+}
+function fullfilRequest(request: RequestQueue): void {
+  const queue = nightscoutStore.get("queue");
+  nightscoutStore.set("queue", queue.filter((a: RequestQueue) => a.uuid !== request.uuid));
+}
 
 class NightscoutManager {
   // Basic request stuff
@@ -40,9 +53,9 @@ class NightscoutManager {
         );
     });
   }
-  private static post(api: string, payload: any) {
+  private static postRequest(api: string, payload: any, timestamp: Date) {
     payload.enteredBy = selfID;
-    payload.timestamp = Date.now();
+    payload.timestamp = timestamp;
     return fetch(this.getApiPath(api), {
       headers: {
         accept: "*/*",
@@ -58,7 +71,7 @@ class NightscoutManager {
       credentials: "omit",
     });
   }
-  private static put(api: string, payload: any) {
+  private static putRequest(api: string, payload: any) {
     return fetch(this.getApiPath(api), {
       headers: {
         accept: "*/*",
@@ -75,10 +88,36 @@ class NightscoutManager {
     });
   }
 
-  // Basic Queries
-  static addTreatment(treatment: object): void {
-    this.post("treatments", treatment);
+  // REST Queue
+  private static post(api: string, payload: any, timestamp: Date) {
+    addRequest(RequestType.POST, api, timestamp, payload);
+    this.fulfillRequests();
   }
+  private static put(api: string, payload: any) {
+    addRequest(RequestType.PUT, api, payload);
+    this.fulfillRequests();
+  }
+  private static fulfillRequests() {
+    const queue = nightscoutStore.get("queue");
+    for(let request of queue) {
+      const api = request.api;
+      const payload = request.payload;
+      const timestamp = request.timestamp;
+      const fulfill = () => {
+        fullfilRequest(request);
+      }
+      switch(request.type) {
+        case RequestType.POST:
+          this.postRequest(api, payload, timestamp).then(fulfill);
+          break;
+        case RequestType.PUT:
+          this.putRequest(api, payload).then(fulfill);
+          break;
+      }
+    }
+  }
+
+  // Basic Queries
   static async getProfiles() {
     return await this.get("profile")
   }
@@ -115,25 +154,27 @@ class NightscoutManager {
   }
 
   /* Complex Requests */
-  static markMeal(carbs: number, protein: number): void {
+  static markMeal(_carbs: number, _protein: number, timestamp: Date): void {
+    const carbs = round(_carbs, 1);
+    const protein = round(_protein, 1);
     this.post("treatments", {
       notes: `${carbs}/${protein}`,
-      carbs: round(carbs, 1),
-      protein: round(protein, 1),
+      carbs: carbs,
+      protein: protein,
       eventType: mealEventType,
-    });
+    }, timestamp);
   }
-  static markInsulin(units: number): void {
+  static markInsulin(units: number, timestamp: Date): void {
     this.post("treatments", {
       insulin: units,
       eventType: insulinEventType,
-    });
+    }, timestamp);
   }
-  static markGlucose(caps: number): void {
+  static markGlucose(caps: number, timestamp: Date): void {
     this.post("treatments", {
       carbs: caps,
       eventType: glucoseEventType,
-    });
+    }, timestamp);
   }
 
   // Meals
@@ -147,7 +188,10 @@ class NightscoutManager {
       uuid: meal.uuid,
       eventType: mealStoreEventType,
       mealString: Meal.stringify(meal),
-    });
+    }, new Date());
+    /* We don't need to give this a timestamp as it's
+     * already stored in the meal object
+    */
   }
   static ignoreUUID(uuid: number) {
     let ignored = nightscoutStore.get("ignoredUUIDs");
@@ -195,9 +239,7 @@ class NightscoutManager {
   static async storeMetaProfile() {
     this.getProfile().then(p => {
       p.metaProfile = MetabolismProfile.stringify(profile);
-      this.put("profile", p).then(() => {
-        console.log("Metabolic profile sucessfully uploaded")
-      });
+      this.put("profile", p);
     })
   }
 

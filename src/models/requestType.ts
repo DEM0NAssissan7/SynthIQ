@@ -1,8 +1,9 @@
-export enum RequestType {
+enum RequestType {
     GET,
     POST,
     PUT
 }
+export default RequestType;
 
 type requestTypeMapKey = [RequestType, string];
 const requestTypeMap: requestTypeMapKey[] = [
