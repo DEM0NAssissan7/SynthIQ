@@ -1,4 +1,4 @@
-import { genUUID } from "../lib/util";
+import { genUUID, type UUID } from "../lib/util";
 import type Series from "./series";
 import Glucose from "./glucose";
 import Insulin from "./insulin";
@@ -24,7 +24,7 @@ class Meal {
   _timestamp: Date;
   endTimestamp: Date | null; // This is the timestamp when the meal ends
   _initialGlucose: number = 83;
-  uuid: number;
+  uuid: UUID;
 
   subscriptions: (() => void)[] = [];
   foods: Food[] = [

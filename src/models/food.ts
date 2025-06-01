@@ -1,5 +1,5 @@
 import * as importedFoods from "../assets/foods.json";
-import { genUUID } from "../lib/util";
+import { genUUID, type UUID } from "../lib/util";
 import Unit from "../models/unit";
 import { profile } from "../storage/metaProfileStore";
 import { defaultGI } from "./metabolism/carbsProfile";
@@ -11,7 +11,7 @@ export default class Food {
   fatRate: number;
   unit: Unit.Food;
   GI: number; // Glycemic Index (carbs only)
-  key: number; // This only exists to uniquely identify the food
+  key: UUID; // This only exists to uniquely identify the food
 
   amount: number = 0;
   constructor(
