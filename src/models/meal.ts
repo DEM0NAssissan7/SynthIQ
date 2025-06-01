@@ -78,6 +78,10 @@ class Meal {
     this.glucoses.push(new Glucose(timestamp, caps));
     this.notify();
   }
+  removeInsulin(insulin: Insulin) {
+    this.insulins = this.insulins.filter((i) => i !== insulin);
+    this.notify();
+  }
 
   // Test management
   createTestInsulin(timestamp: Date, units: number): void {
@@ -227,8 +231,8 @@ class Meal {
     if (!useTrueStart) timestamp = this._timestamp;
     return NightscoutManager.getSugarAt(timestamp).then((a: any) => {
       if(a) {
-      this.initialGlucose = a.sgv;
-      return a;
+        this.initialGlucose = a.sgv;
+        return a;
       }
     });
   }

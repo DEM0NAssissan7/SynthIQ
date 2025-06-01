@@ -3,9 +3,15 @@ import AddedFoodsDisplay from "../components/AddedFoodsDisplay";
 import FoodSearchDisplay from "../components/FoodSearchDisplay";
 import Meal from "../models/meal";
 import useMeal from "../state/useMeal";
+import InsulinManager from "../components/InsulinManager";
+import MealGraph from "../components/MealGraph";
 
+let playgroundMeal = new Meal(new Date());
 export default function PlaygroundPage() {
-  const meal = useMeal(new Meal(new Date()));
+  useEffect(() => {
+    playgroundMeal = new Meal(new Date());
+  }, []);
+  const meal = useMeal(playgroundMeal);
 
   useEffect(() => {
     console.log(meal.foods);
@@ -20,6 +26,10 @@ export default function PlaygroundPage() {
       <FoodSearchDisplay meal={meal} />
 
       <AddedFoodsDisplay meal={meal} />
+
+      <InsulinManager meal={meal}/>
+
+      <MealGraph meal={meal} from={-1} until={14}/>
     </>
   );
 }
