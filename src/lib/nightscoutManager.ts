@@ -77,8 +77,11 @@ class NightscoutManager {
   static addTreatment(treatment: object): void {
     this.post("treatments", treatment);
   }
+  static async getProfiles() {
+    return await this.get("profile")
+  }
   static async getProfile() {
-    return await this.get("profile").then(
+    return await this.getProfiles().then(
       (a) => a[nightscoutStore.get("profileID")]
     );
   }
