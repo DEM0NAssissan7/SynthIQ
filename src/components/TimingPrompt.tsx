@@ -3,5 +3,5 @@ interface TimingPromptProps {
 }
 
 export default function TimingPrompt({ setDate }: TimingPromptProps) {
-
+    setDate;
 }
