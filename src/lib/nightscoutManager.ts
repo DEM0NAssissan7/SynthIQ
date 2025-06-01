@@ -3,6 +3,8 @@ import Unit from "../models/unit";
 import Meal from "../models/meal";
 import { nightscoutStore } from "../storage/nightscoutStore";
 import { getTimestampFromOffset } from "./timing";
+import { changeProfile, profile } from "../storage/metaProfileStore";
+import MetabolismProfile from "../models/metabolism/metabolismProfile";
 
 const selfID = "SynthIQ";
 
@@ -181,6 +183,22 @@ class NightscoutManager {
       }
     });
     return meals;
+  }
+
+  // Metabolic Profile
+  static async loadMetaProfile() {
+    this.getProfile().then(a => {
+      if(a.metaProfile)
+        changeProfile(MetabolismProfile.parse(a.metaProfile));
+    })
+  }
+  static async storeMetaProfile() {
+    this.getProfile().then(p => {
+      p.metaProfile = MetabolismProfile.stringify(profile);
+      this.put("profile", p).then(() => {
+        console.log("Metabolic profile sucessfully uploaded")
+      });
+    })
   }
 
   // Meta
