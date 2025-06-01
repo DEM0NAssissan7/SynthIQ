@@ -56,6 +56,22 @@ class NightscoutManager {
       credentials: "omit",
     });
   }
+  private static put(api: string, payload: any) {
+    return fetch(this.getApiPath(api), {
+      headers: {
+        accept: "*/*",
+        "accept-language": "en-US,en;q=0.9",
+        "api-secret": nightscoutStore.get("apiSecret"),
+        "content-type": "application/json; charset=UTF-8",
+        "x-requested-with": "XMLHttpRequest",
+      },
+      referrerPolicy: "strict-origin-when-cross-origin",
+      body: JSON.stringify(payload),
+      method: "PUT",
+      mode: "cors",
+      credentials: "omit",
+    });
+  }
 
   // Basic Queries
   static addTreatment(treatment: object): void {
