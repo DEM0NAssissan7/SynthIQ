@@ -62,12 +62,20 @@ export default function WizardSummaryPage() {
       <div className="card mb-4" id="food-adder">
         <div className="card-body">
           <ListGroup.Item>
-            Meal eaten at {getPrettyTime(meal.timestamp)}<br/>
-            - {round(meal.carbs, 2)}g carbs<br/>
-            - {round(meal.protein, 2)}g protein<br/>
-            - {meal.glucose > 0 && (<>{meal.glucose} caps of glucose (last taken at {getPrettyTime(meal.latestGlucoseTimestamp)})</>)}<br/>
-            <br/>
-            <b>{round(meal.insulin, 2)}u</b> insulin (last dose at {getPrettyTime(meal.latestInsulinTimestamp)})
+            Meal eaten at {getPrettyTime(meal.timestamp)}
+            <br />- {round(meal.carbs, 2)}g carbs
+            <br />- {round(meal.protein, 2)}g protein
+            <br />-{" "}
+            {meal.glucose > 0 && (
+              <>
+                {meal.glucose} caps of glucose (last taken at{" "}
+                {getPrettyTime(meal.latestGlucoseTimestamp)})
+              </>
+            )}
+            <br />
+            <br />
+            <b>{round(meal.insulin, 2)}u</b> insulin (last dose at{" "}
+            {getPrettyTime(meal.latestInsulinTimestamp)})
           </ListGroup.Item>
         </div>
       </div>

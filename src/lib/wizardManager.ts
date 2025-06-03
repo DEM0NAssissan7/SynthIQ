@@ -57,7 +57,11 @@ export default class WizardManager {
       wizardStorage.set("mealMarked", true);
 
       // TODO: Use date selector
-      NightscoutManager.markMeal(currentMeal.carbs, currentMeal.protein, new Date());
+      NightscoutManager.markMeal(
+        currentMeal.carbs,
+        currentMeal.protein,
+        new Date()
+      );
     }
   }
   static resetMeal() {
@@ -78,7 +82,7 @@ export default class WizardManager {
 
     wizardStorage.set("insulinMarked", true);
 
-      // TODO: Use date selector
+    // TODO: Use date selector
     NightscoutManager.markInsulin(units, new Date());
   }
   static markInsulin(units: number) {

@@ -67,7 +67,6 @@ export default function Graph({
                   dataKey="y"
                   key={i}
                   stroke={s.color}
-                  key={i}
                   dot={false}
                 ></Line>
               );

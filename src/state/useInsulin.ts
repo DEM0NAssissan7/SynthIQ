@@ -9,7 +9,7 @@ export default function useInsulin(insulin: Insulin, meal: Meal) {
   const notify = () => {
     meal.notify();
     rerender();
-  }
+  };
   let offset = getMinuteDiff(insulin.timestamp, meal.timestamp);
   return {
     units: insulin.units,
@@ -20,13 +20,13 @@ export default function useInsulin(insulin: Insulin, meal: Meal) {
       notify();
     },
     setTimestamp: (timestamp: Date) => {
-        insulin.timestamp = timestamp;
-        notify();
+      insulin.timestamp = timestamp;
+      notify();
     },
     setTimestampFromOffset: (minutes: number) => {
-        offset = minutes; // This is kinda cheating, but it helps with the text box
-        insulin.timestamp = getTimestampFromOffset(meal.timestamp, minutes / 60);
-        notify();
-    }
+      offset = minutes; // This is kinda cheating, but it helps with the text box
+      insulin.timestamp = getTimestampFromOffset(meal.timestamp, minutes / 60);
+      notify();
+    },
   };
 }

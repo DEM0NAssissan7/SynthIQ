@@ -25,6 +25,6 @@ export function getHoursMinutes(_min: number) {
   const minutes = floor(_min, 0);
   const hours = floor(minutes / 60, 0);
   let min: any = minutes - hours * 60;
-  if(min < 10) min = "0" + min; // Make the minute look prettier
-  return `${hours}:${min}`
+  if (min < 10) min = "0" + min; // Make the minute look prettier
+  return `${hours}:${min}`;
 }

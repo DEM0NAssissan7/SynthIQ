@@ -15,12 +15,17 @@ nightscoutStore.add("cgmDelay", 5);
 nightscoutStore.add("ignoredUUIDs", []);
 
 // Queue
-nightscoutStore.add("queue", [],
-    (s: string) => {
-        const stringArray = JSON.parse(s);
-        return stringArray.map((a: any) => RequestQueue.parse(a));
-    },
-    (requests: RequestQueue[]) => {
-        const stringArray = requests.map((a: RequestQueue) => RequestQueue.stringify(a));
-        return JSON.stringify(stringArray);
-    });
+nightscoutStore.add(
+  "queue",
+  [],
+  (s: string) => {
+    const stringArray = JSON.parse(s);
+    return stringArray.map((a: any) => RequestQueue.parse(a));
+  },
+  (requests: RequestQueue[]) => {
+    const stringArray = requests.map((a: RequestQueue) =>
+      RequestQueue.stringify(a)
+    );
+    return JSON.stringify(stringArray);
+  }
+);

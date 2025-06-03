@@ -75,7 +75,7 @@ export default function ProfilerPage() {
             setValue={(value) => (profile.protein.plateuRate = value)}
             prettyName="Protein Sustain Rate (hours/g)"
             step={0.001}
-            />
+          />
           <br />
           <ProfileSlider
             value={profile.glucose.effect}

@@ -10,10 +10,7 @@ export default function AddedFoodsDisplay({ meal }: AddedFoodsDisplayProps) {
     <ListGroup>
       <Form.Label>Foods</Form.Label>
       {meal.addedFoods.map((food, i) => (
-        <ListGroup.Item
-          key={i}
-          className="d-flex flex-column gap-3 p-3"
-        >
+        <ListGroup.Item key={i} className="d-flex flex-column gap-3 p-3">
           <AddedFood food={food} meal={meal} key={food.key} />
         </ListGroup.Item>
       ))}

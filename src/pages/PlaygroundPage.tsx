@@ -27,9 +27,9 @@ export default function PlaygroundPage() {
 
       <AddedFoodsDisplay meal={meal} />
 
-      <InsulinManager meal={meal}/>
+      <InsulinManager meal={meal} />
 
-      <MealGraph meal={meal} from={-1} until={14}/>
+      <MealGraph meal={meal} from={-1} until={14} />
     </>
   );
 }
