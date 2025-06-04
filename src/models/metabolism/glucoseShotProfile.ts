@@ -2,9 +2,9 @@ import MetaFunctions, { metaKernel } from "./metaFunctions";
 import NutrientProfile from "./nutrientProfile";
 
 export default class GlucoseShotProfile extends NutrientProfile {
-  private _effect = 7;
-  private _peak = 6.45;
-  private _delay = 0;
+  private _effect = 10;
+  private _peak = 2 / 60;
+  private _delay = 10 / 60;
 
   set effect(value: number) {
     this._effect = value;
