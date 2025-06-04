@@ -21,6 +21,9 @@ function App() {
   useEffect(() => {
     // Attempt to fulfill requests upon page load
     NightscoutManager.fulfillRequests();
+
+    // Load user's metabolism profile from nightscout if available
+    NightscoutManager.loadMetaProfile();
   }, []);
   return (
     <div>

@@ -3,12 +3,21 @@ import ProfilerMealDisplay from "../components/ProfilerMealDisplay";
 import ProfileSlider from "../components/ProfileSlider";
 import useImportedMealsState from "../state/useImportedMealsState";
 import useProfileState from "../state/useProfileState";
+import { useEffect } from "react";
+import NightscoutManager from "../lib/nightscoutManager";
 
 export default function ProfilerPage() {
   const { importedMeals, clearIgnoredMeals, ignoreMeal } =
     useImportedMealsState();
   const profile = useProfileState();
 
+  let id: number;
+  useEffect(() => {
+    clearTimeout(id);
+    id = setTimeout(() => {
+      NightscoutManager.storeMetaProfile();
+    }, 7 * 1000); // After a few seconds of inactivity, store the profile
+  }, [profile]);
   return (
     <>
       <div style={{ display: "flex" }}>
