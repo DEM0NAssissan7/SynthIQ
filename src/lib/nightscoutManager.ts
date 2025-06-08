@@ -105,7 +105,7 @@ class NightscoutManager {
 
   // REST Queue
   private static post(api: string, payload: any, timestamp: Date): void {
-    addRequest(RequestType.POST, api, timestamp, payload);
+    addRequest(RequestType.POST, api, payload, timestamp);
     this.fulfillRequests();
   }
   private static put(api: string, payload: any): void {
