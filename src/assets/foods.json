@@ -17,6 +17,22 @@
       "fat": 4.9
     },
     {
+      "name": "Basturma",
+      "carbs": 5.9,
+      "protein": 29.2,
+      "units": "percent",
+      "GI": 15,
+      "fat": 2.7
+    },
+    {
+      "name": "Kiri Cream Cheese (per square)",
+      "carbs": 0.75,
+      "protein": 1.6,
+      "units": "unit",
+      "GI": 15,
+      "fat": 2.7
+    },
+    {
       "name": "Avocado (by weight)",
       "carbs": 2,
       "protein": 2,
