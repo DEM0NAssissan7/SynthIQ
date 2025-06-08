@@ -118,8 +118,11 @@ class NightscoutManager {
       const api = request.api;
       const payload = request.payload;
       const timestamp = request.timestamp;
-      const fulfill = () => {
+      const fulfill = (a: Response) => {
+        if(a.ok)
         fullfilRequest(request);
+        else
+          console.error(`Cannot fulfill request. HTTP status code '${a.status}'`);
       };
       switch (request.type) {
         case RequestType.POST:
