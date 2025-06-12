@@ -11,7 +11,7 @@ export default function AddedFoodsDisplay({ meal }: AddedFoodsDisplayProps) {
       <Form.Label>Foods</Form.Label>
       {meal.addedFoods.map((food, i) => (
         <ListGroup.Item key={i} className="d-flex flex-column gap-3 p-3">
-          <AddedFood food={food} meal={meal} key={food.key} />
+          <AddedFood food={food} meal={meal} key={i} />
         </ListGroup.Item>
       ))}
       {meal.addedFoods.length === 0 && (
