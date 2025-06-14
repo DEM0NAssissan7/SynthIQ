@@ -7,6 +7,7 @@ import { round } from "../../lib/util";
 import WizardManager from "../../lib/wizardManager";
 import { WizardState } from "../../models/wizardState";
 import { useNavigate } from "react-router";
+import TimePicker from "react-bootstrap-time-picker";
 
 export default function WizardGlucosePage() {
   const meal = useWizardMeal();
@@ -24,6 +25,9 @@ export default function WizardGlucosePage() {
       WizardManager.markGlucose(capsTaken);
       WizardManager.moveToPage(WizardState.Summary, navigate);
     }
+  }
+  function changeGlucoseTime(e: any) {
+    console.log(e);
   }
 
   function goBack() {
@@ -54,6 +58,7 @@ export default function WizardGlucosePage() {
         />
         <InputGroup.Text id="basic-addon1">caps</InputGroup.Text>
       </InputGroup>
+      <TimePicker value={new Date()} onChange={changeGlucoseTime} />
       <div style={{ display: "flex", justifyContent: "space-between" }}>
         <Button variant="secondary" onClick={goBack}>
           Go Back
