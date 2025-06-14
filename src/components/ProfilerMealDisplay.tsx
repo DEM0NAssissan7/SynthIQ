@@ -25,28 +25,6 @@ export default function ProfilerMealDisplay({
   height,
   ymin,
 }: ProfilerMealDisplayProps) {
-  useEffect(() => {
-    /** We subscribe to the metaProfile storage node to be notified whenever
-     * the profile changes, to notify all subscribers to the meal, so that
-     * we can display real-time data when the sliders move.
-     */
-    let animationFrameId: number = 0;
-    const profilerSubscriberNotifierHandler = () => {
-      if (!animationFrameId)
-        animationFrameId = requestAnimationFrame(() => {
-          meal.notify();
-          animationFrameId = 0;
-        });
-    };
-
-    profile.subscribe(profilerSubscriberNotifierHandler);
-
-    return () => {
-      if (animationFrameId) cancelAnimationFrame(animationFrameId);
-      profile.unsubscribe(profilerSubscriberNotifierHandler);
-    };
-  }, []);
-
   // Ignore Meal
   function onIgnoreClick() {
     if (

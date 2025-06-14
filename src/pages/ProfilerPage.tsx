@@ -11,15 +11,14 @@ export default function ProfilerPage() {
     useImportedMealsState();
   const profile = useProfileState();
 
-  let id: number;
-  useEffect(() => {
-    clearTimeout(id);
-    id = setTimeout(() => {
-      NightscoutManager.storeMetaProfile();
-    }, 7 * 1000); // After a few seconds of inactivity, store the profile
-  }, [profile]);
+  function updateViews() {
+    importedMeals.forEach((meal) => meal.notify());
+    NightscoutManager.storeMetaProfile();
+  }
+
   return (
     <>
+      <Button onClick={updateViews}>Update Views</Button>
       <div style={{ display: "flex" }}>
         <div
           id="sliders"
