@@ -35,7 +35,7 @@ export default class InsulinProfile extends NutrientProfile {
       -units * this._effect,
       this._delay,
       this._halfLife,
-      MetaFunctions.H // Half life decay
+      MetaFunctions.G // Half life decay
     );
   }
   static stringify(profile: InsulinProfile) {
