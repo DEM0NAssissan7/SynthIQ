@@ -47,9 +47,7 @@ class NightscoutManager {
     return await fetch(this.getApiPath(api), {
       method: "GET",
       headers: {
-        accept: "application/json",
         "api-secret": nightscoutStore.get("apiSecret"),
-        "x-requested-with": "XMLHttpRequest",
       },
       mode: "cors",
       credentials: "omit",
