@@ -14,6 +14,7 @@ const profileStorageWriteHandler = () => metaProfile.write("profile");
 export function changeProfile(p: MetabolismProfile) {
   profile.unsubscribe(profileStorageWriteHandler);
   profile = p;
+  metaProfile.set("profile", profile);
   profile.subscribe(profileStorageWriteHandler); // Automatically save the profile when it changes
 }
 
