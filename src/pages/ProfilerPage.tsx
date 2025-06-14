@@ -15,10 +15,26 @@ export default function ProfilerPage() {
     importedMeals.forEach((meal) => meal.notify());
     NightscoutManager.storeMetaProfile();
   }
+  function pullNightscoutProfile() {
+    if (
+      confirm(
+        "Are you sure you want to pull the Nightscout profile? This will overwrite your current profile."
+      )
+    ) {
+      NightscoutManager.loadMetaProfile().then(() => {
+        updateViews();
+      });
+    }
+  }
 
   return (
     <>
-      <Button onClick={updateViews}>Update Views</Button>
+      <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
+        <Button onClick={updateViews}>Update Views</Button>
+        <Button onClick={pullNightscoutProfile} variant="secondary">
+          Use Nightscout Profile
+        </Button>
+      </div>
       <div style={{ display: "flex" }}>
         <div
           id="sliders"

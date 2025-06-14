@@ -23,7 +23,7 @@ function App() {
     NightscoutManager.fulfillRequests();
 
     // Load user's metabolism profile from nightscout if available
-    NightscoutManager.loadMetaProfile();
+    // NightscoutManager.loadMetaProfile();
   }, []);
   return (
     <div>
