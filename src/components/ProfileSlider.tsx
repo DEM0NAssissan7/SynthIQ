@@ -17,12 +17,17 @@ function ProfileSlider({
   const [initialValue, setInitialValue] = useState(0);
   const [initialized, setInitialized] = useState(false);
 
+  const [internalValue, setInternalValue] = useState(value);
+
   function updateValue(e: any) {
-    setValue(parseFloat(e.target.value));
+    const v = parseFloat(e.target.value);
+    setValue(v);
+    setInternalValue(v);
   }
   useEffect(() => {
     if (!initialized) {
       setInitialValue(value);
+      setInternalValue(value);
       setInitialized(true);
     }
   }, []);
@@ -30,13 +35,13 @@ function ProfileSlider({
   return (
     <div style={{ width: "50%" }}>
       <Form.Label>
-        {prettyName} [{value}]
+        {prettyName} [{internalValue}]
       </Form.Label>
       <Form.Range
         onChange={updateValue}
         max={initialValue * 2 || 1}
         step={step || 0.01}
-        value={value}
+        value={internalValue}
       />
     </div>
   );
