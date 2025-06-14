@@ -3,7 +3,6 @@ import ProfilerMealDisplay from "../components/ProfilerMealDisplay";
 import ProfileSlider from "../components/ProfileSlider";
 import useImportedMealsState from "../state/useImportedMealsState";
 import useProfileState from "../state/useProfileState";
-import { useEffect } from "react";
 import NightscoutManager from "../lib/nightscoutManager";
 
 export default function ProfilerPage() {

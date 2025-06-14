@@ -1,7 +1,5 @@
-import { useEffect } from "react";
 import type Meal from "../models/meal";
 import MealGraph from "./MealGraph";
-import { profile } from "../storage/metaProfileStore";
 import { Button } from "react-bootstrap";
 import { getFullPrettyDate } from "../lib/timing";
 import { round } from "../lib/util";
