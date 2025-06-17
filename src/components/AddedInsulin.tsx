@@ -59,7 +59,7 @@ export default function AddedInsulin({ insulin, event }: AddedInsulinProps) {
 
             <Form.Control
               type="number"
-              placeholder="Delay (hours after meal)"
+              placeholder="Delay (minutes after meal)"
               className="text-center"
               value={offset || ""}
               onChange={(e: BaseSyntheticEvent) => {

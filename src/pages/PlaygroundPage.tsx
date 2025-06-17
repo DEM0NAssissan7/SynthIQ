@@ -11,19 +11,23 @@ import MetaEvent from "../models/event";
 let playgroundMeal = new Meal(new Date());
 let playgroundEvent = new MetaEvent(false);
 export default function PlaygroundPage() {
-  useEffect(() => {
-    playgroundMeal = new Meal(new Date());
-    playgroundEvent = new MetaEvent(false);
-  }, []);
   const meal = useMeal(playgroundMeal);
   const event = useEvent(playgroundEvent);
 
   useEffect(() => {
-    console.log(meal.foods);
-  }, [meal]);
+    const handler = () => event.notify();
+    meal.subscribe(handler);
+    return () => {
+      meal.unsubscribe(handler);
+    };
+  }, []);
+
+  // We add the meal to the testmeals upon change
   useEffect(() => {
-    console.log(event);
-  }, [event]);
+    event.clearTestMeals();
+    event.addTestMeal(meal);
+    console.log(meal.carbs, event);
+  }, [meal]);
   return (
     <>
       <h1>Playground</h1>
