@@ -1,17 +1,17 @@
 import { convertDimensions, round } from "./util";
 import Unit from "../models/unit";
-import Meal from "../models/meal";
 import { nightscoutStore } from "../storage/nightscoutStore";
 import { getTimestampFromOffset } from "./timing";
 import { changeProfile, profile } from "../storage/metaProfileStore";
 import MetabolismProfile from "../models/metabolism/metabolismProfile";
 import RequestType from "../models/requestType";
 import RequestQueue from "../models/requestQueue";
+import MetaEvent from "../models/event";
 
 const selfID = "SynthIQ";
 
 // Event types
-const mealStoreEventType = "Meal Storage";
+const metaEventStoreEventType = "Meta Event Storage";
 const insulinEventType = "Meal Bolus";
 const mealEventType = "Meal";
 const glucoseEventType = "Carb Correction";
@@ -208,21 +208,21 @@ class NightscoutManager {
     );
   }
 
-  // Meals
-  /** This will store the ENTIRE meal
+  // Events
+  /** This will store the ENTIRE event
    * This includes its glucose, insulin, and foods
    * However, on nightscout, this will simply appear as a normal meal
-   * This exists so that we can analyze an ENTIRE meal's data later
+   * This exists so that we can analyze an ENTIRE event's data later
    */
-  static storeMeal(meal: Meal) {
+  static storeEvent(event: MetaEvent) {
     this.post(
       "treatments",
       {
-        uuid: meal.uuid,
-        eventType: mealStoreEventType,
-        mealString: Meal.stringify(meal),
+        uuid: event.uuid,
+        eventType: metaEventStoreEventType,
+        eventString: MetaEvent.stringify(event),
       },
-      new Date()
+      event.timestamp
     );
     /* We don't need to give this a timestamp as it's
      * already stored in the meal object
@@ -242,26 +242,28 @@ class NightscoutManager {
     for (let u of ignored) if (uuid === u) return true;
     return false;
   }
-  static async getAllMeals() {
+  static async getAllMetaEvents() {
     /** We pull meals from nightscout that have been previously saved
      * This is crucial to do analysis.
      */
-    let meals: Meal[] = [];
-    let treatments = await this.get("treatments");
+    let events: MetaEvent[] = [];
+    let treatments = await this.get("treatments.json");
     // console.log(treatments);
     // console.log(treatments);
     treatments.forEach((t: any) => {
       if (
-        t.eventType === mealStoreEventType &&
+        t.eventType === metaEventStoreEventType &&
         t.enteredBy === selfID &&
         t.uuid &&
-        t.mealString
+        t.eventString
       ) {
         if (this.uuidIsIgnored(t.uuid)) return;
-        meals.push(Meal.parse(t.mealString));
+        try {
+          events.push(MetaEvent.parse(t.eventString));
+        } catch (e) {}
       }
     });
-    return meals;
+    return events;
   }
 
   // Metabolic Profile

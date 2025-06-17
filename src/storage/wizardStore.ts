@@ -1,4 +1,5 @@
 import StorageNode from "../lib/storageNode";
+import MetaEvent from "../models/event";
 import Meal from "../models/meal";
 import {
   getStateFromName,
@@ -12,12 +13,21 @@ wizardStorage.add("state", WizardState.Intro, getStateFromName, getStateName);
 wizardStorage.add("mealMarked", false);
 wizardStorage.add("insulinMarked", false);
 
+// Meta Event Storage
+wizardStorage.add(
+  "event",
+  new MetaEvent(),
+  MetaEvent.parse,
+  MetaEvent.stringify
+);
+wizardStorage.get("event").subscribe(() => {
+  wizardStorage.write(mealStorageName);
+});
+
 // Meal Persistence
 const meal = new Meal(new Date());
 const mealStorageName = "meal";
 wizardStorage.add(mealStorageName, meal, Meal.parse, Meal.stringify);
-const wizardStorageWriteHandler = () => {
-  // Subscribe to meal so anything that happens to it gets persisted
+wizardStorage.get(mealStorageName).subscribe(() => {
   wizardStorage.write(mealStorageName);
-};
-wizardStorage.get(mealStorageName).subscribe(wizardStorageWriteHandler);
+});

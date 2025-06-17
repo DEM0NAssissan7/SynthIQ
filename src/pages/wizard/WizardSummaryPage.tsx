@@ -2,17 +2,17 @@
  *
  */
 
-import MealGraph from "../../components/MealGraph";
 import WizardManager from "../../lib/wizardManager";
 import { Button, ListGroup } from "react-bootstrap";
 import { useNavigate } from "react-router";
 import { round } from "../../lib/util";
-import { useWizardMeal } from "../../state/useMeal";
 import { getPrettyTime } from "../../lib/timing";
 import { WizardState } from "../../models/wizardState";
+import EventGraph from "../../components/EventGraph";
+import { useWizardEvent } from "../../state/useEvent";
 
 export default function WizardSummaryPage() {
-  const meal = useWizardMeal();
+  const event = useWizardEvent();
   const navigate = useNavigate();
 
   function startNew() {
@@ -62,19 +62,19 @@ export default function WizardSummaryPage() {
       <div className="card mb-4" id="food-adder">
         <div className="card-body">
           <ListGroup.Item>
-            Meal eaten at {getPrettyTime(meal.timestamp)}
-            <br />- {round(meal.carbs, 2)}g carbs
-            <br />- {round(meal.protein, 2)}g protein
-            {meal.glucose > 0 && (
+            Last meal eaten at {getPrettyTime(event.latestMealTimestamp)}.
+            <br />- {round(event.carbs, 2)}g carbs total
+            <br />- {round(event.protein, 2)}g protein total
+            {event.glucose > 0 && (
               <>
-                <br />- {meal.glucose} caps of glucose (last taken at{" "}
-                {getPrettyTime(meal.latestGlucoseTimestamp)})
+                <br />- {event.glucose} caps of glucose (last taken at{" "}
+                {getPrettyTime(event.latestGlucoseTimestamp)})
               </>
             )}
             <br />
             <br />
-            <b>{round(meal.insulin, 2)}u</b> insulin (last dose at{" "}
-            {getPrettyTime(meal.latestInsulinTimestamp)})
+            <b>{round(event.insulin, 2)}u</b> insulin (last dose at{" "}
+            {getPrettyTime(event.latestInsulinTimestamp)})
           </ListGroup.Item>
         </div>
       </div>
@@ -84,8 +84,8 @@ export default function WizardSummaryPage() {
             Watch in real-time how your blood sugars compare with our
             predictions.
           </p>
-          <MealGraph
-            meal={meal}
+          <EventGraph
+            event={event}
             from={-1}
             until={16}
             width="100%"

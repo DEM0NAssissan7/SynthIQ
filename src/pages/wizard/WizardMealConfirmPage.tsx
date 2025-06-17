@@ -7,7 +7,7 @@ import { WizardState } from "../../models/wizardState";
 import { useNavigate } from "react-router";
 import useInsulinPrediction from "../../state/useInsulinPrediction";
 import { useEffect, useMemo } from "react";
-import MealPredictedSugarGraphCard from "../../components/MealPredictedSugarGraphCard";
+import EventPredictedSugarGraphCard from "../../components/EventPredictedSugarGraphCard";
 import MealAddedFoodsListCard from "../../components/MealAddedFoodsListCard";
 import MealAdditionalNutrientsCard from "../../components/MealAdditionalNutrientsCard";
 import MealSearchCard from "../../components/MealSearchCard";
@@ -18,20 +18,25 @@ import {
   getPrettyTime,
   getTimestampFromOffset,
 } from "../../lib/timing";
+import { useWizardEvent } from "../../state/useEvent";
 
 export default function WizardMealConfirmPage() {
   // Use the meal state
+  const event = useWizardEvent();
   const meal = useWizardMeal();
 
   // Make a state that updates once per minute to update the views
   const version = useVersion(1);
 
   // Predictions
-  const { insulinTimestamp: optimalInsulinTimestamp } = useInsulinPrediction(
-    meal,
+  const {
+    insulinTimestamp: optimalInsulinTimestamp,
+    insulin: insulinRequirement,
+  } = useInsulinPrediction(
+    event,
     meal.carbs,
     meal.protein,
-    meal.initialGlucose,
+    event.initialGlucose,
     false // Don't modify the meal
   );
 
@@ -53,8 +58,15 @@ export default function WizardMealConfirmPage() {
   }, [optimalMealTiming]);
 
   useEffect(() => {
-    if (!WizardManager.getMealMarked()) meal._timestamp = new Date();
+    if (!WizardManager.getMealMarked()) meal.timestamp = new Date();
   });
+
+  // We add the meal to the testmeals upon change
+  useEffect(() => {
+    event.clearTestMeals();
+    event.addTestMeal(meal);
+    console.log(meal.carbs, event);
+  }, [meal]);
 
   return (
     <>
@@ -70,9 +82,13 @@ export default function WizardMealConfirmPage() {
         <div className="card-body">
           <ListGroup>
             <ListGroup.Item>
-              {round(meal.carbs, 2)}g carbs<br></br>
-              {round(meal.protein, 2)}g protein<br></br>
-              <b>{round(meal.insulin, 2)}u insulin</b>
+              {round(event.carbs, 2)}g carbs
+              <br />
+              {round(event.protein, 2)}g protein
+              <br />
+              <b>{round(event.insulin, 2)}u insulin taken</b>
+              <br />
+              <i>This meal requires {round(insulinRequirement, 2)}u insulin</i>
             </ListGroup.Item>
             {optimalMealTiming > 0 && (
               <ListGroup.Item>
@@ -85,7 +101,7 @@ export default function WizardMealConfirmPage() {
           </ListGroup>
         </div>
       </div>
-      <MealPredictedSugarGraphCard meal={meal} />
+      <EventPredictedSugarGraphCard event={event} />
       <div className="d-flex justify-content-end">
         <Button variant="primary" onClick={beginEating}>
           Begin Eating

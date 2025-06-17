@@ -1,11 +1,11 @@
 import { Container, Row, Col, Card, Button } from "react-bootstrap";
 import WizardManager from "../lib/wizardManager";
 import { Link } from "react-router";
-import MealGraph from "../components/MealGraph";
 import NightscoutManager from "../lib/nightscoutManager";
 import { useEffect, useState } from "react";
 import { wizardStorage } from "../storage/wizardStore";
 import { nightscoutStore } from "../storage/nightscoutStore";
+import EventGraph from "../components/EventGraph";
 
 enum NightscoutAuthLevel {
   Invalid,
@@ -14,7 +14,7 @@ enum NightscoutAuthLevel {
 }
 
 function HubPage() {
-  const meal = wizardStorage.get("meal");
+  const event = wizardStorage.get("event");
 
   const [nightscoutAuthLevel, setNightscoutAuthLevel] = useState(
     NightscoutAuthLevel.Invalid
@@ -50,8 +50,8 @@ function HubPage() {
                   WizardManager.isComplete() ? (
                     <>
                       <Card.Title>Realtime Meal Prediction</Card.Title>
-                      <MealGraph
-                        meal={meal}
+                      <EventGraph
+                        event={event}
                         from={-1}
                         until={10}
                         width="100%"
@@ -63,19 +63,18 @@ function HubPage() {
                   ) : (
                     <>
                       <Card.Title>Active Meal</Card.Title>
-                      <Card.Text>
-                        You have an active meal you're building
-                      </Card.Text>
+                      <Card.Text>You have an active event</Card.Text>
                       <Button variant="primary" as={Link as any} to="/wizard">
-                        Continue Building
+                        Continue
                       </Button>
                     </>
                   )
                 ) : (
                   <>
-                    <Card.Title>Build A Meal</Card.Title>
+                    <Card.Title>Start An Event</Card.Title>
                     <Card.Text>
-                      Build a meal easily using our meal wizard.
+                      Build and interact with meals easily using our event
+                      wizard.
                     </Card.Text>
                     <Button variant="primary" as={Link as any} to="/wizard">
                       Get Started

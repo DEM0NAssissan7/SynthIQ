@@ -30,7 +30,6 @@ export default function FoodSearchDisplay({ meal }: FoodSearchDisplayProps) {
     let result: Food[] = [];
     let i = 0;
     for (let f of foods) {
-      if (meal.hasFood(f)) continue; // Prevent showing foods already added to meal
       if (f.name.toLowerCase().includes(query.trim().toLowerCase())) {
         f.key = i;
         i++;
