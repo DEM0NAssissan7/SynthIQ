@@ -48,8 +48,8 @@ function TopBar() {
               <Nav.Link as={Link} to="/wizard" onClick={handleClose}>
                 Wizard
               </Nav.Link>
-              <Nav.Link as={Link} to="/settings" onClick={handleClose}>
-                Settings
+              <Nav.Link as={Link} to="/playground" onClick={handleClose}>
+                Playground
               </Nav.Link>
               <Nav.Link as={Link} to="/profiler" onClick={handleClose}>
                 Profiler
