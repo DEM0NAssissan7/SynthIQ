@@ -160,7 +160,7 @@ class NightscoutManager {
     });
   }
   static async getCurrentSugar() {
-    return await this.get("entries").then((a) => a[0].sgv);
+    return await this.get("entries.json").then((a) => a[0].sgv);
   }
   static async getReadings(timestampA: Date, timestampB: Date) {
     let count =
