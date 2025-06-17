@@ -1,15 +1,15 @@
 import { Button, Form, ListGroup } from "react-bootstrap";
 import type Insulin from "../models/insulin";
-import type Meal from "../models/meal";
 import AddedInsulin from "./AddedInsulin";
+import type MetaEvent from "../models/event";
 
 interface InsulinManagerProps {
-  meal: Meal;
+  event: MetaEvent;
 }
 
-export default function InsulinManager({ meal }: InsulinManagerProps) {
+export default function InsulinManager({ event }: InsulinManagerProps) {
   function addInsulin() {
-    meal.createInsulin(new Date(), 0);
+    event.createInsulin(new Date(), 0);
   }
   return (
     <ListGroup>
@@ -17,10 +17,10 @@ export default function InsulinManager({ meal }: InsulinManagerProps) {
       <Button variant="primary" onClick={addInsulin}>
         Add
       </Button>
-      {meal.insulins.map((insulin: Insulin, i: number) => {
+      {event.insulins.map((insulin: Insulin, i: number) => {
         return (
           <ListGroup.Item key={i} className="d-flex flex-column gap-3 p-3">
-            <AddedInsulin meal={meal} insulin={insulin} />
+            <AddedInsulin event={event} insulin={insulin} />
           </ListGroup.Item>
         );
       })}

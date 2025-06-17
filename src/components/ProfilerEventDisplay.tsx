@@ -1,12 +1,12 @@
-import type Meal from "../models/meal";
-import MealGraph from "./MealGraph";
 import { Button } from "react-bootstrap";
 import { getFullPrettyDate } from "../lib/timing";
 import { round } from "../lib/util";
+import type MetaEvent from "../models/event";
+import EventGraph from "./EventGraph";
 
-interface ProfilerMealDisplayProps {
-  meal: Meal;
-  ignoreMeal: (a: Meal) => void;
+interface ProfilerEventDisplayProps {
+  event: MetaEvent;
+  ignoreEvent: (a: MetaEvent) => void;
   from: number;
   until: number;
   width?: string | number;
@@ -14,47 +14,47 @@ interface ProfilerMealDisplayProps {
   ymin?: string | number;
 }
 
-export default function ProfilerMealDisplay({
-  meal,
-  ignoreMeal,
+export default function ProfilerEventDisplay({
+  event,
+  ignoreEvent,
   from,
   until,
   width,
   height,
   ymin,
-}: ProfilerMealDisplayProps) {
+}: ProfilerEventDisplayProps) {
   // Ignore Meal
   function onIgnoreClick() {
     if (
-      confirm(`Are you sure you want to ignore this meal? UUID: ${meal.uuid}`)
+      confirm(`Are you sure you want to ignore this event? UUID: ${event.uuid}`)
     ) {
-      ignoreMeal(meal);
+      ignoreEvent(event);
     }
   }
 
   return (
     <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-      <MealGraph
-        meal={meal}
+      <EventGraph
+        event={event}
         from={from}
         until={until}
         width={width}
         height={height}
         ymin={ymin}
       />
-      {getFullPrettyDate(meal.timestamp)}
+      {getFullPrettyDate(event.timestamp)}
       <br />
-      {round(meal.carbs, 2)}g carbs
+      {round(event.carbs, 2)}g carbs
       <br />
-      {round(meal.protein, 2)}g protein
+      {round(event.protein, 2)}g protein
       <br />
-      {round(meal.fat, 2)}g fat
+      {round(event.fat, 2)}g fat
       <br />
-      {meal.insulin}u insulin
-      {meal.glucose > 0 && (
+      {event.insulin}u insulin
+      {event.glucose > 0 && (
         <>
           <br />
-          {meal.glucose} caps of glucose
+          {event.glucose} caps of glucose
         </>
       )}
       <Button variant="danger" onClick={onIgnoreClick}>

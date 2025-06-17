@@ -1,17 +1,17 @@
 import { Button } from "react-bootstrap";
-import ProfilerMealDisplay from "../components/ProfilerMealDisplay";
+import ProfilerEventDisplay from "../components/ProfilerEventDisplay";
 import ProfileSlider from "../components/ProfileSlider";
-import useImportedMealsState from "../state/useImportedMealsState";
+import useImportedMetaEventsState from "../state/useImportedMetaEventsState";
 import useProfileState from "../state/useProfileState";
 import NightscoutManager from "../lib/nightscoutManager";
 
 export default function ProfilerPage() {
-  const { importedMeals, clearIgnoredMeals, ignoreMeal } =
-    useImportedMealsState();
+  const { importedEvents, clearIgnoredEvents, ignoreEvent } =
+    useImportedMetaEventsState();
   const profile = useProfileState();
 
   function updateViews() {
-    importedMeals.forEach((meal) => meal.notify());
+    importedEvents.forEach((event) => event.notify());
     NightscoutManager.storeMetaProfile();
   }
   function pullNightscoutProfile() {
@@ -117,19 +117,19 @@ export default function ProfilerPage() {
           />
         </div>
 
-        <div id="meals">
-          <Button variant="secondary" onClick={clearIgnoredMeals}>
+        <div id="events">
+          <Button variant="secondary" onClick={clearIgnoredEvents}>
             Unhide All
           </Button>
-          {importedMeals.map((meal, i) => (
-            <ProfilerMealDisplay
-              meal={meal}
+          {importedEvents.map((event, i) => (
+            <ProfilerEventDisplay
+              event={event}
               key={i}
-              ignoreMeal={ignoreMeal}
+              ignoreEvent={ignoreEvent}
               from={-1}
               until={
-                meal.endTimestamp
-                  ? Math.floor(meal.getN(meal.endTimestamp)) + 1
+                event.endTimestamp
+                  ? Math.floor(event.getN(event.endTimestamp)) + 1
                   : 16
               }
             />

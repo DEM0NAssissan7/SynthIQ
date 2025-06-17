@@ -10,26 +10,28 @@ import useInsulinPrediction from "../../state/useInsulinPrediction";
 import MealSearchCard from "../../components/MealSearchCard";
 import MealAddedFoodsListCard from "../../components/MealAddedFoodsListCard";
 import MealAdditionalNutrientsCard from "../../components/MealAdditionalNutrientsCard";
-import MealPredictedSugarGraphCard from "../../components/MealPredictedSugarGraphCard";
+import EventPredictedSugarGraphCard from "../../components/EventPredictedSugarGraphCard";
 import { useWizardMeal } from "../../state/useMeal";
 import { getHourDiff, getPrettyTimeDiff } from "../../lib/timing";
+import { useWizardEvent } from "../../state/useEvent";
 
 export default function WizardMealPage() {
+  const event = useWizardEvent();
   const meal = useWizardMeal();
 
   // Predictions
   const { insulin, insulinTimestamp, insulinCorrection } = useInsulinPrediction(
-    meal,
+    event,
     meal.carbs,
     meal.protein,
-    meal.initialGlucose,
+    event.initialGlucose,
     true
   );
 
   // Continue Buttons
   const takeInsulinFirst = useMemo(() => {
     return getHourDiff(new Date(), insulinTimestamp) >= 0;
-  }, [meal.carbs, meal.protein, meal.initialGlucose]);
+  }, [meal.carbs, meal.protein, event.initialGlucose]);
 
   const navigate = useNavigate();
   function takeInsulin() {
@@ -45,8 +47,15 @@ export default function WizardMealPage() {
   // Upon Startup
   useEffect(() => {
     // We intentionally assign the timestamp directly so that we do not trigger notify()
-    if (!WizardManager.getMealMarked()) meal._timestamp = new Date();
+    if (!WizardManager.getMealMarked()) meal.timestamp = new Date();
   });
+
+  // We add the meal to the testmeals upon change
+  useEffect(() => {
+    event.clearTestMeals();
+    event.addTestMeal(meal);
+    console.log(meal.carbs, event);
+  }, [meal]);
 
   return (
     <>
@@ -89,9 +98,9 @@ export default function WizardMealPage() {
             )}
             <ListGroup.Item>
               <BloodSugarInput
-                initialGlucose={meal.initialGlucose}
+                initialGlucose={event.initialGlucose}
                 setInitialGlucose={(g) => {
-                  if (!WizardManager.getMealMarked()) meal.initialGlucose = g;
+                  if (!WizardManager.getMealMarked()) event.initialGlucose = g;
                 }}
               />
             </ListGroup.Item>
@@ -99,7 +108,7 @@ export default function WizardMealPage() {
         </div>
       </div>
 
-      <MealPredictedSugarGraphCard meal={meal} />
+      <EventPredictedSugarGraphCard event={event} />
 
       <div className="d-flex justify-content-end">
         <Button

@@ -1,16 +1,16 @@
 import { useMemo, useState } from "react";
 import BloodSugarInput from "../../components/BloodSugarInput";
-import { useWizardMeal } from "../../state/useMeal";
 import { getGlucoseCorrectionCaps } from "../../lib/metabolism";
 import { Button, Form, InputGroup } from "react-bootstrap";
 import { round } from "../../lib/util";
 import WizardManager from "../../lib/wizardManager";
 import { WizardState } from "../../models/wizardState";
 import { useNavigate } from "react-router";
+import { useWizardEvent } from "../../state/useEvent";
 
 export default function WizardGlucosePage() {
-  const meal = useWizardMeal();
-  const [currentGlucose, setCurrentGlucose] = useState(meal.initialGlucose);
+  const event = useWizardEvent();
+  const [currentGlucose, setCurrentGlucose] = useState(event.initialGlucose);
 
   const correction = useMemo(() => {
     return round(getGlucoseCorrectionCaps(currentGlucose), 1);

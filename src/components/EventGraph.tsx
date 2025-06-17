@@ -4,9 +4,12 @@ import Graph, { type SeriesLine } from "./Graph";
 import { Color } from "../models/series";
 import ReadingSeries from "../models/readingSeries";
 import MathSeries from "../models/mathSeries";
+import type Insulin from "../models/insulin";
+import type Glucose from "../models/glucose";
+import type MetaEvent from "../models/event";
 
-interface MealGraphProps {
-  meal: Meal;
+interface EventGraphProps {
+  event: MetaEvent;
   from: number;
   until: number;
   width?: string | number;
@@ -14,7 +17,7 @@ interface MealGraphProps {
   ymin?: string | number;
 }
 
-function MealGraph({ meal, from, until, width, height }: MealGraphProps) {
+function EventGraph({ event, from, until, width, height }: EventGraphProps) {
   const [readingSeries, setReadingSeries] = useState<ReadingSeries>(
     new ReadingSeries(Color.Black, new Date())
   );
@@ -27,58 +30,70 @@ function MealGraph({ meal, from, until, width, height }: MealGraphProps) {
 
   useEffect(() => {
     // Update the reading series
-    setReadingSeries(meal.getReadingSeries(from, until));
+    setReadingSeries(event.getReadingSeries(from, until));
 
-    const mealGraphHandler = () => {
+    const eventGraphHandler = () => {
       requestAnimationFrame(() => {
-        setPredictionSeries(meal.getPredictionSeries(from, until));
+        setPredictionSeries(event.getPredictionSeries(from, until));
         rerender();
       });
     };
-    meal.subscribe(mealGraphHandler);
+    event.subscribe(eventGraphHandler);
 
     return () => {
-      meal.unsubscribe(mealGraphHandler);
+      event.unsubscribe(eventGraphHandler);
     };
-  }, [meal, from, until]);
+  }, [event, from, until]);
 
-  // Notify meal on load to update the graph prediction series
+  // Notify event on load to update the graph prediction series
   useEffect(() => {
-    meal.notify();
+    event.notify();
   }, []);
 
   const lines = useMemo(() => {
     let lines: SeriesLine[] = [];
-    lines.push({
-      x: 0,
-      color: "black",
-    });
-    meal.insulins.forEach((insulin) => {
+
+    event.meals.forEach((meal: Meal) => {
       lines.push({
-        x: meal.getN(insulin.timestamp),
+        x: event.getN(meal.timestamp),
+        color: "black",
+      });
+    });
+    event.testMeals.forEach((meal: Meal) => {
+      lines.push({
+        x: event.getN(meal.timestamp),
+        color: "black",
+      });
+    });
+
+    event.insulins.forEach((insulin: Insulin) => {
+      lines.push({
+        x: event.getN(insulin.timestamp),
         color: "blue",
       });
     });
-    meal.glucoses.forEach((glucose) => {
+    event.testInsulins.forEach((insulin: Insulin) => {
       lines.push({
-        x: meal.getN(glucose.timestamp),
+        x: event.getN(insulin.timestamp),
+        color: "red",
+      });
+    });
+
+    event.glucoses.forEach((glucose: Glucose) => {
+      lines.push({
+        x: event.getN(glucose.timestamp),
         color: "orange",
       });
     });
-    meal.testInsulins.forEach((insulin) => {
+    event.testGlucoses.forEach((glucose: Glucose) => {
       lines.push({
-        x: meal.getN(insulin.timestamp),
+        x: event.getN(glucose.timestamp),
         color: "red",
       });
     });
-    meal.testGlucoses.forEach((glucose) => {
-      lines.push({
-        x: meal.getN(glucose.timestamp),
-        color: "red",
-      });
-    });
+
     return lines;
-  }, [meal, version]);
+  }, [event, version]);
   return (
     <Graph
       series={[readingSeries, predictionSeries]}
@@ -92,4 +107,4 @@ function MealGraph({ meal, from, until, width, height }: MealGraphProps) {
   );
 }
 
-export default MealGraph;
+export default EventGraph;

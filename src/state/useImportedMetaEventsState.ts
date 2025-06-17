@@ -1,32 +1,32 @@
 import { useState, useEffect } from "react";
 import NightscoutManager from "../lib/nightscoutManager";
-import type Meal from "../models/meal";
+import type MetaEvent from "../models/event";
 
-export default function useImportedMealsState() {
-  const [importedMeals, setImportedMeals] = useState<Meal[]>([]);
+export default function useImportedMetaEventsState() {
+  const [importedEvents, setImportedEvents] = useState<MetaEvent[]>([]);
 
   const [version, setVersion] = useState(0);
   const rerender = () => setVersion((v) => v + 1); // force re-render
 
   useEffect(() => {
-    NightscoutManager.getAllMeals().then((m) => {
+    NightscoutManager.getAllMetaEvents().then((m) => {
       //   console.log(m);
-      setImportedMeals(m);
+      setImportedEvents(m);
     });
   }, [version]);
 
-  const ignoreMeal = (meal: Meal) => {
-    NightscoutManager.ignoreUUID(meal.uuid);
+  const ignoreEvent = (event: MetaEvent) => {
+    NightscoutManager.ignoreUUID(event.uuid);
     rerender(); // Trigger a re-render to pull new data from nightscout. This is also some kind of dogfooding.
   };
-  function clearIgnoredMeals() {
+  function clearIgnoredEvents() {
     NightscoutManager.clearIgnoredUUIDs();
     rerender(); // Trigger a re-render to pull new data from nightscout. This is also some kind of dogfooding.
   }
 
   return {
-    ignoreMeal,
-    importedMeals,
-    clearIgnoredMeals,
+    ignoreEvent,
+    importedEvents,
+    clearIgnoredEvents,
   };
 }

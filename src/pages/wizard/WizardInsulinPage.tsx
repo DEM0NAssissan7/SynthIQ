@@ -6,20 +6,19 @@ import { useNavigate } from "react-router";
 import { WizardState } from "../../models/wizardState";
 import useInsulinPrediction from "../../state/useInsulinPrediction";
 import useVersion from "../../state/useVersion";
-import MealPredictedSugarGraphCard from "../../components/MealPredictedSugarGraphCard";
-import { useWizardMeal } from "../../state/useMeal";
+import EventPredictedSugarGraphCard from "../../components/EventPredictedSugarGraphCard";
 import { getMinuteDiff, getPrettyTime } from "../../lib/timing";
-import currentMeal from "../../storage/currentMeal";
+import { useWizardEvent } from "../../state/useEvent";
 
 export default function WizardInsulinPage() {
   const navigate = useNavigate();
-  const meal = useWizardMeal();
+  const event = useWizardEvent();
 
   const { insulin: suggestedInsulin, insulinTimestamp } = useInsulinPrediction(
-    meal,
-    meal.carbs,
-    meal.protein,
-    meal.initialGlucose,
+    event,
+    event.carbs,
+    event.protein,
+    event.initialGlucose,
     false
   );
 
@@ -30,7 +29,7 @@ export default function WizardInsulinPage() {
       if (
         confirm(`Confirm that you have taken ${insulinTaken} units of insulin`)
       ) {
-        meal.clearTestInsulins();
+        event.clearTestInsulins();
         WizardManager.markInsulin(insulinTaken);
         WizardManager.moveToPage(
           WizardManager.getMealMarked()
@@ -62,8 +61,8 @@ export default function WizardInsulinPage() {
 
   // We show the user what we predict if they take insulin now
   useEffect(() => {
-    meal.clearTestInsulins();
-    meal.createTestInsulin(
+    event.clearTestInsulins();
+    event.createTestInsulin(
       new Date(),
       insulinTaken ? insulinTaken : suggestedInsulin
     );
@@ -75,7 +74,7 @@ export default function WizardInsulinPage() {
   }, [version, insulinTimestamp]);
 
   const timeEaten = useMemo(() => {
-    return getMinuteDiff(new Date(), meal.timestamp);
+    return getMinuteDiff(new Date(), event.timestamp);
   }, [version]);
 
   return (
@@ -105,20 +104,19 @@ export default function WizardInsulinPage() {
             </>
           ) : (
             <>
-              You ate at <b>{getPrettyTime(meal._timestamp)}</b>.
+              You ate at <b>{getPrettyTime(event.timestamp)}</b>.
             </>
           )}
         </p>
       )}
       {WizardManager.getInsulinMarked() && (
         <p>
-          You have already taken <b>{currentMeal.insulin} units</b> of insulin.{" "}
-          <br />
+          You have already taken <b>{event.insulin} units</b> of insulin. <br />
           Your last dose was at{" "}
-          <b>{getPrettyTime(meal.latestInsulinTimestamp)}</b>.
+          <b>{getPrettyTime(event.latestInsulinTimestamp)}</b>.
         </p>
       )}
-      <MealPredictedSugarGraphCard meal={meal} />
+      <EventPredictedSugarGraphCard event={event} />
       <InputGroup className="mb-3">
         <InputGroup.Text id="basic-addon1">
           <i className="bi bi-capsule"></i>

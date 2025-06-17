@@ -21,6 +21,7 @@ export default function SearchFood({ food, addFood }: SearchFoodProps) {
 
   function add() {
     addFood(food);
+    setAmount(0); // Reset amount after adding
   }
 
   return (

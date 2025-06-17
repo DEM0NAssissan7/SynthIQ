@@ -1,16 +1,16 @@
 import { Button, Form } from "react-bootstrap";
 import { type BaseSyntheticEvent } from "react";
 import { getHoursMinutes, round } from "../lib/util";
-import type Meal from "../models/meal";
 import type Insulin from "../models/insulin";
 import useInsulin from "../state/useInsulin";
+import type MetaEvent from "../models/event";
 
 interface AddedInsulinProps {
   insulin: Insulin;
-  meal: Meal;
+  event: MetaEvent;
 }
 
-export default function AddedInsulin({ insulin, meal }: AddedInsulinProps) {
+export default function AddedInsulin({ insulin, event }: AddedInsulinProps) {
   // Just to prevent reload when pressing enter
   const handleFormSubmit = (e: BaseSyntheticEvent) => {
     e.preventDefault(); // Prevent the default form submission behavior
@@ -18,10 +18,10 @@ export default function AddedInsulin({ insulin, meal }: AddedInsulinProps) {
 
   const { units, offset, setUnits, setTimestampFromOffset } = useInsulin(
     insulin,
-    meal
+    event
   );
   function remove() {
-    meal.removeInsulin(insulin);
+    event.removeInsulin(insulin);
   }
 
   return (
