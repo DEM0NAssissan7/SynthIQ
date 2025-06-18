@@ -103,12 +103,7 @@ export default class WizardManager {
     wizardStorage.set("meal", meal); // Reset temporary meal
     meal.subscribe(() => wizardStorage.write("meal")); // Automatically save the meal when it changes
   }
-  static startNew(navigate: NavigateFunction) {
-    const timestamp = new Date();
-    const event: MetaEvent = wizardStorage.get("event");
-
-    event.endTimestamp = timestamp; // Store the end time of the meal
-    NightscoutManager.storeEvent(event); // Store the atomically edited meal into nightscout so we can analyze it later
+  static resetWizard(navigate: NavigateFunction) {
     this.resetEvent(); // Reset the event
 
     wizardStorage.set("mealMarked", false);
@@ -119,5 +114,13 @@ export default class WizardManager {
     wizardStorage.set("state", WizardState.Meal);
 
     this.moveToCurrentPage(navigate);
+  }
+  static startNew(navigate: NavigateFunction) {
+    const timestamp = new Date();
+    const event: MetaEvent = wizardStorage.get("event");
+
+    event.endTimestamp = timestamp; // Store the end time of the meal
+    NightscoutManager.storeEvent(event); // Store the atomically edited meal into nightscout so we can analyze it later
+    this.resetWizard(navigate); // Reset the wizard states
   }
 }

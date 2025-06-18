@@ -50,6 +50,17 @@ export default function WizardMealConfirmPage() {
     }
   }
 
+  // Cancel
+  function cancelEvent() {
+    if (
+      confirm(
+        "Are you sure you want to cancel the entire event? This will discard all data you've inputted so far for this event."
+      )
+    ) {
+      WizardManager.resetWizard(navigate);
+    }
+  }
+
   const optimalMealTiming = useMemo(() => {
     return getMinuteDiff(new Date(), optimalInsulinTimestamp);
   }, [optimalInsulinTimestamp, version]);
@@ -102,9 +113,14 @@ export default function WizardMealConfirmPage() {
       </Card>
       <EventPredictedSugarGraphCard event={event} />
       <div className="d-flex justify-content-end">
-        <Button variant="primary" onClick={beginEating}>
-          Begin Eating
-        </Button>
+        <div className="w-100 d-flex justify-content-between">
+          <Button variant="danger" onClick={cancelEvent}>
+            Cancel Event
+          </Button>
+          <Button variant="primary" onClick={beginEating}>
+            Begin Eating
+          </Button>
+        </div>
       </div>
     </>
   );

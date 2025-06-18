@@ -43,6 +43,17 @@ export default function WizardInsulinPage() {
     }
   };
 
+  //
+  function cancelEvent() {
+    if (
+      confirm(
+        "Are you sure you want to cancel the entire event? This will discard all data you've inputted so far for this event."
+      )
+    ) {
+      WizardManager.resetWizard(navigate);
+    }
+  }
+
   // Correction
   function backToSummary() {
     WizardManager.moveToPage(WizardState.Summary, navigate);
@@ -143,6 +154,12 @@ export default function WizardInsulinPage() {
               Return To Summary
             </Button>
           )
+        )}
+        {(WizardManager.getMealMarked() ||
+          WizardManager.getInsulinMarked()) && (
+          <Button variant="danger" onClick={cancelEvent}>
+            Cancel Event
+          </Button>
         )}
         <Button variant="primary" onClick={markInsulin}>
           Mark Insulin
