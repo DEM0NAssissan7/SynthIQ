@@ -73,12 +73,10 @@ export default function WizardMealConfirmPage() {
     if (!WizardManager.getMealMarked()) meal.timestamp = new Date();
   });
 
-  // We add the meal to the testmeals upon change
+  // We add the meal to the testmeals upon startup
   useEffect(() => {
-    event.clearTestMeals();
     event.addTestMeal(meal);
-    console.log(meal.carbs, event);
-  }, [meal]);
+  }, []);
 
   return (
     <>

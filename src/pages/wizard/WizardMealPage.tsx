@@ -53,10 +53,8 @@ export default function WizardMealPage() {
 
   // We add the meal to the testmeals upon change
   useEffect(() => {
-    event.clearTestMeals();
     event.addTestMeal(meal);
-    console.log(meal.carbs, event);
-  }, [meal]);
+  }, []);
 
   return (
     <>
