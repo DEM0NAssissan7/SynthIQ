@@ -1,4 +1,4 @@
-import { Form } from "react-bootstrap";
+import { Button, Form } from "react-bootstrap";
 import { useEffect, useState } from "react";
 
 interface ProfileSliderProps {
@@ -24,6 +24,9 @@ function ProfileSlider({
     setValue(v);
     setInternalValue(v);
   }
+  function centerSlider() {
+    setInitialValue(value);
+  }
   useEffect(() => {
     if (!initialized) {
       setInitialValue(value);
@@ -43,6 +46,9 @@ function ProfileSlider({
         step={step || 0.01}
         value={internalValue}
       />
+      <Button onClick={centerSlider} variant="secondary">
+        Center
+      </Button>
     </div>
   );
 }
