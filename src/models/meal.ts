@@ -120,13 +120,14 @@ class Meal {
     return JSON.stringify({
       timestamp: meal.timestamp,
       foods: meal.foods.map((a) => Food.stringify(a)),
+      name: meal.name,
     });
   }
   static parse(string: string): Meal {
     let o = JSON.parse(string);
     let timestamp = new Date(o.timestamp);
     let foods = o.foods.map((a: any) => Food.parse(a));
-    let newMeal = new Meal(timestamp);
+    let newMeal = new Meal(timestamp, o.name);
     newMeal.foods = foods;
     return newMeal;
   }
