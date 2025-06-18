@@ -45,6 +45,7 @@ export default class WizardManager {
 
       meal.timestamp = timestamp; // We intentionally set the timestamp directly as to not notify meal subscribers
       event.addMeal(meal); // Add the meal to the event
+      event.clearTests(); // Clear all test stuff on the event
 
       wizardStorage.set("mealMarked", true);
 
@@ -59,6 +60,7 @@ export default class WizardManager {
     const timestamp = new Date();
 
     event.createInsulin(timestamp, units);
+    event.clearTests();
 
     wizardStorage.set("insulinMarked", true);
 
@@ -85,7 +87,7 @@ export default class WizardManager {
       const timestamp = new Date();
 
       event.createGlucose(timestamp, caps);
-      event.clearTestGlucoses(); // Clear test glucoses
+      event.clearTests();
 
       // TODO: Use date selector
       NightscoutManager.markGlucose(caps, new Date());
