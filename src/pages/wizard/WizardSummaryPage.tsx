@@ -10,6 +10,7 @@ import { getPrettyTime } from "../../lib/timing";
 import { WizardState } from "../../models/wizardState";
 import EventGraph from "../../components/EventGraph";
 import { useWizardEvent } from "../../state/useEvent";
+import Card from "../../components/Card";
 
 export default function WizardSummaryPage() {
   const event = useWizardEvent();
@@ -59,40 +60,35 @@ export default function WizardSummaryPage() {
         </div>
         <h1>Event Summary</h1>
       </div>
-      <div className="card mb-4" id="food-adder">
-        <div className="card-body">
-          <ListGroup.Item>
-            Last meal eaten at {getPrettyTime(event.latestMealTimestamp)}.
-            <br />- {round(event.carbs, 2)}g carbs total
-            <br />- {round(event.protein, 2)}g protein total
-            {event.glucose > 0 && (
-              <>
-                <br />- {event.glucose} caps of glucose (last taken at{" "}
-                {getPrettyTime(event.latestGlucoseTimestamp)})
-              </>
-            )}
-            <br />
-            <br />
-            <b>{round(event.insulin, 2)}u</b> insulin (last dose at{" "}
-            {getPrettyTime(event.latestInsulinTimestamp)})
-          </ListGroup.Item>
-        </div>
-      </div>
-      <div className="card mb-4" id="food-adder">
-        <div className="card-body">
-          <p>
-            Watch in real-time how your blood sugars compare with our
-            predictions.
-          </p>
-          <EventGraph
-            event={event}
-            from={-1}
-            until={16}
-            width="100%"
-            height={300}
-          />
-        </div>
-      </div>
+      <Card>
+        <ListGroup.Item>
+          Last meal eaten at {getPrettyTime(event.latestMealTimestamp)}.
+          <br />- {round(event.carbs, 2)}g carbs total
+          <br />- {round(event.protein, 2)}g protein total
+          {event.glucose > 0 && (
+            <>
+              <br />- {event.glucose} caps of glucose (last taken at{" "}
+              {getPrettyTime(event.latestGlucoseTimestamp)})
+            </>
+          )}
+          <br />
+          <br />
+          <b>{round(event.insulin, 2)}u</b> insulin (last dose at{" "}
+          {getPrettyTime(event.latestInsulinTimestamp)})
+        </ListGroup.Item>
+      </Card>
+      <Card>
+        <p>
+          Watch in real-time how your blood sugars compare with our predictions.
+        </p>
+        <EventGraph
+          event={event}
+          from={-1}
+          until={16}
+          width="100%"
+          height={300}
+        />
+      </Card>
       <div
         style={{
           display: "flex",

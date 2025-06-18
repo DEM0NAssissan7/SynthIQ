@@ -19,6 +19,7 @@ import {
   getTimestampFromOffset,
 } from "../../lib/timing";
 import { useWizardEvent } from "../../state/useEvent";
+import Card from "../../components/Card";
 
 export default function WizardMealConfirmPage() {
   // Use the meal state
@@ -78,29 +79,27 @@ export default function WizardMealConfirmPage() {
 
       <MealAdditionalNutrientsCard meal={meal} />
 
-      <div className="card mb-4">
-        <div className="card-body">
-          <ListGroup>
+      <Card>
+        <ListGroup>
+          <ListGroup.Item>
+            {round(event.carbs, 2)}g carbs
+            <br />
+            {round(event.protein, 2)}g protein
+            <br />
+            <b>{round(event.insulin, 2)}u insulin taken</b>
+            <br />
+            <i>This meal requires {round(insulinRequirement, 2)}u insulin</i>
+          </ListGroup.Item>
+          {optimalMealTiming > 0 && (
             <ListGroup.Item>
-              {round(event.carbs, 2)}g carbs
-              <br />
-              {round(event.protein, 2)}g protein
-              <br />
-              <b>{round(event.insulin, 2)}u insulin taken</b>
-              <br />
-              <i>This meal requires {round(insulinRequirement, 2)}u insulin</i>
+              Consider eating in {optimalMealTiming} minutes.
+              {optimalMealTiming >= 30 && (
+                <> ({getPrettyTime(optimalMealTimestamp)})</>
+              )}
             </ListGroup.Item>
-            {optimalMealTiming > 0 && (
-              <ListGroup.Item>
-                Consider eating in {optimalMealTiming} minutes.
-                {optimalMealTiming >= 30 && (
-                  <> ({getPrettyTime(optimalMealTimestamp)})</>
-                )}
-              </ListGroup.Item>
-            )}
-          </ListGroup>
-        </div>
-      </div>
+          )}
+        </ListGroup>
+      </Card>
       <EventPredictedSugarGraphCard event={event} />
       <div className="d-flex justify-content-end">
         <Button variant="primary" onClick={beginEating}>

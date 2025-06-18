@@ -1,4 +1,5 @@
 import type Meal from "../models/meal";
+import Card from "./Card";
 import FoodSearchDisplay from "./FoodSearchDisplay";
 
 interface MealSearchCardProps {
@@ -6,12 +7,8 @@ interface MealSearchCardProps {
 }
 export default function MealSearchCard({ meal }: MealSearchCardProps) {
   return (
-    <>
-      <div className="card mb-4">
-        <div className="card-body">
-          <FoodSearchDisplay meal={meal} />
-        </div>
-      </div>
-    </>
+    <Card>
+      <FoodSearchDisplay meal={meal} />
+    </Card>
   );
 }

@@ -14,6 +14,7 @@ import EventPredictedSugarGraphCard from "../../components/EventPredictedSugarGr
 import { useWizardMeal } from "../../state/useMeal";
 import { getHourDiff, getPrettyTimeDiff } from "../../lib/timing";
 import { useWizardEvent } from "../../state/useEvent";
+import Card from "../../components/Card";
 
 export default function WizardMealPage() {
   const event = useWizardEvent();
@@ -67,46 +68,44 @@ export default function WizardMealPage() {
 
       <MealAdditionalNutrientsCard meal={meal} />
 
-      <div className="card mb-4">
-        <div className="card-body">
-          <ListGroup>
+      <Card>
+        <ListGroup>
+          <ListGroup.Item>
+            {round(meal.carbs, 2)}g carbs<br></br>
+            {round(meal.protein, 2)}g protein<br></br>
+            <b>{round(insulin, 2)}u insulin</b>{" "}
+            {(meal.carbs !== 0 || meal.protein !== 0) && (
+              <>({round(insulinCorrection, 2)}u correction)</>
+            )}
+          </ListGroup.Item>
+          {insulin > 0 && (
             <ListGroup.Item>
-              {round(meal.carbs, 2)}g carbs<br></br>
-              {round(meal.protein, 2)}g protein<br></br>
-              <b>{round(insulin, 2)}u insulin</b>{" "}
+              Consider taking <b>{round(insulin, 2)}u</b> of insulin
               {(meal.carbs !== 0 || meal.protein !== 0) && (
-                <>({round(insulinCorrection, 2)}u correction)</>
+                <>
+                  {" "}
+                  <b>
+                    {getPrettyTimeDiff(
+                      insulinTimestamp,
+                      new Date(),
+                      Unit.Time.Minute
+                    )}
+                  </b>{" "}
+                  you start eating
+                </>
               )}
             </ListGroup.Item>
-            {insulin > 0 && (
-              <ListGroup.Item>
-                Consider taking <b>{round(insulin, 2)}u</b> of insulin
-                {(meal.carbs !== 0 || meal.protein !== 0) && (
-                  <>
-                    {" "}
-                    <b>
-                      {getPrettyTimeDiff(
-                        insulinTimestamp,
-                        new Date(),
-                        Unit.Time.Minute
-                      )}
-                    </b>{" "}
-                    you start eating
-                  </>
-                )}
-              </ListGroup.Item>
-            )}
-            <ListGroup.Item>
-              <BloodSugarInput
-                initialGlucose={event.initialGlucose}
-                setInitialGlucose={(g) => {
-                  if (!WizardManager.getMealMarked()) event.initialGlucose = g;
-                }}
-              />
-            </ListGroup.Item>
-          </ListGroup>
-        </div>
-      </div>
+          )}
+          <ListGroup.Item>
+            <BloodSugarInput
+              initialGlucose={event.initialGlucose}
+              setInitialGlucose={(g) => {
+                if (!WizardManager.getMealMarked()) event.initialGlucose = g;
+              }}
+            />
+          </ListGroup.Item>
+        </ListGroup>
+      </Card>
 
       <EventPredictedSugarGraphCard event={event} />
 
