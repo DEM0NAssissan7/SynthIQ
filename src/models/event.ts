@@ -71,8 +71,11 @@ export default class MetaEvent {
     return fat;
   }
   get latestMealTimestamp(): Date {
-    if (this.meals.length === 0) return this.timestamp;
-    return this.meals[this.meals.length - 1].timestamp;
+    if (this.testMeals.length !== 0)
+      return this.testMeals[this.testMeals.length - 1].timestamp;
+    if (this.meals.length !== 0)
+      return this.meals[this.meals.length - 1].timestamp;
+    return this.timestamp;
   }
   get latestMeal(): Meal {
     if (this.meals.length === 0) throw new Error("No meals found in event");
