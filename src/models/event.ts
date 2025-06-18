@@ -51,6 +51,7 @@ export default class MetaEvent {
     this.notify();
   }
   removeMeal(meal: Meal) {
+    meal.unsubscribe(() => this.notify()); // Unsubscribe meal from event notifications
     this.meals = this.meals.filter((m) => m !== meal);
     this.notify();
   }
