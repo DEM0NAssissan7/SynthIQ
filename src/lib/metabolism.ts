@@ -35,7 +35,7 @@ export function getOptimalInsulinTiming(
     // All insulin timings [within one minute] (from -> until)
 
     // Create a timestamp h hours away from the meal start (when you start eating)
-    const testTime = getTimestampFromOffset(event.timestamp, n);
+    const testTime = getTimestampFromOffset(event.latestMealTimestamp, n);
 
     // Insulin
     event.testInsulins = []; // Get rid of all previous insulisn
