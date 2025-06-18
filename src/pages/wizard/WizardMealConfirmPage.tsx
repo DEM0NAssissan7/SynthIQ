@@ -75,6 +75,7 @@ export default function WizardMealConfirmPage() {
 
   // We add the meal to the testmeals upon startup
   useEffect(() => {
+    event.clearTestMeals();
     event.addTestMeal(meal);
   }, []);
 
