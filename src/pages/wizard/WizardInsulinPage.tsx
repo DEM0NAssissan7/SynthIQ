@@ -9,16 +9,20 @@ import useVersion from "../../state/useVersion";
 import EventPredictedSugarGraphCard from "../../components/EventPredictedSugarGraphCard";
 import { getMinuteDiff, getPrettyTime } from "../../lib/timing";
 import { useWizardEvent } from "../../state/useEvent";
+import { useWizardMeal } from "../../state/useMeal";
 import EventSummary from "../../components/EventSummary";
 
 export default function WizardInsulinPage() {
   const navigate = useNavigate();
   const event = useWizardEvent();
+  const meal = WizardManager.getMealMarked()
+    ? event.latestMeal
+    : useWizardMeal();
 
   const { insulin: suggestedInsulin, insulinTimestamp } = useInsulinPrediction(
     event,
-    event.carbs,
-    event.protein,
+    meal.carbs,
+    meal.protein,
     event.initialGlucose,
     false
   );
