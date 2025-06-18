@@ -7,6 +7,9 @@ import InsulinManager from "../components/InsulinManager";
 import EventGraph from "../components/EventGraph";
 import useEvent from "../state/useEvent";
 import MetaEvent from "../models/event";
+import GlucoseManager from "../components/GlucoseManager";
+import Card from "../components/Card";
+import { Form } from "react-bootstrap";
 
 let playgroundMeal = new Meal(new Date());
 let playgroundEvent = new MetaEvent(false);
@@ -22,12 +25,11 @@ export default function PlaygroundPage() {
     };
   }, []);
 
-  // We add the meal to the testmeals upon change
+  // We add the meal to the event
   useEffect(() => {
-    event.clearTestMeals();
-    event.addTestMeal(meal);
-    console.log(meal.carbs, event);
-  }, [meal]);
+    event.addMeal(meal);
+    console.log(meal, event);
+  }, []);
   return (
     <>
       <h1>Playground</h1>
@@ -35,13 +37,26 @@ export default function PlaygroundPage() {
         This is purely for educational purposes. NEVER rely on this app for
         medical decisions.
       </p>
-      <FoodSearchDisplay meal={meal} />
+      <Card>
+        <FoodSearchDisplay meal={meal} />
+      </Card>
 
-      <AddedFoodsDisplay meal={meal} />
+      <Card>
+        <AddedFoodsDisplay meal={meal} />
+      </Card>
 
-      <InsulinManager event={event} />
+      <Card>
+        <InsulinManager event={event} />
+      </Card>
 
-      <EventGraph event={event} from={-1} until={14} />
+      <Card>
+        <GlucoseManager event={event} />
+      </Card>
+
+      <Card>
+        <Form.Label>Graph</Form.Label>
+        <EventGraph event={event} from={-1} until={14} />
+      </Card>
     </>
   );
 }
