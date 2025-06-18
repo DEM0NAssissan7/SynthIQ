@@ -25,6 +25,9 @@ function App() {
 
     // Load user's metabolism profile from nightscout if available
     // NightscoutManager.loadMetaProfile();
+
+    // Pull custom foods from nightscout if available
+    NightscoutManager.loadCustomFoods();
   }, []);
   return (
     <div>

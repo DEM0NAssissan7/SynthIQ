@@ -3,9 +3,10 @@ import Card from "../components/Card";
 import FoodDisplay from "../components/FoodDisplay";
 import Food, { foods } from "../models/food";
 import { customStore } from "../storage/customStore";
-import { useMemo, useState, type BaseSyntheticEvent } from "react";
+import { useEffect, useMemo, useState, type BaseSyntheticEvent } from "react";
 import Unit, { getFoodUnitPrettyName } from "../models/unit";
 import { defaultGI } from "../models/metabolism/carbsProfile";
+import NightscoutManager from "../lib/nightscoutManager";
 
 export default function CustomFoodsPage() {
   const [customFoodsState, setCustomFoodsState] = useState<Food[]>(
@@ -30,10 +31,11 @@ export default function CustomFoodsPage() {
     return getFoodUnitPrettyName(unit);
   }, [unit]);
 
-  function updateFoodState() {
+  function updateFoodState(upload: boolean = true) {
     customStore.write("foods");
     setCustomFoodsState(customStore.get("foods") as Food[]);
     rerender();
+    if (upload) NightscoutManager.storeCustomFoods();
   }
   function resetStates() {
     setFoodName("");
@@ -59,13 +61,18 @@ export default function CustomFoodsPage() {
   function removeFood(food: Food) {
     if (confirm(`Are you sure you want to remove '${food.name}'?`)) {
       const customFoods = customStore.get("foods") as Food[];
-      console.log("dee");
       customFoods.splice(customFoods.indexOf(food), 1);
       updateFoodState();
       foods.splice(foods.indexOf(food), 1); // Also remove from the global foods list in runtime
       console.log(`Removed ${food.name} from custom foods.`);
     }
   }
+
+  useEffect(() => {
+    NightscoutManager.loadCustomFoods().then(() => {
+      updateFoodState(false);
+    });
+  }, []);
 
   return (
     <>

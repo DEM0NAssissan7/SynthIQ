@@ -7,6 +7,8 @@ import MetabolismProfile from "../models/metabolism/metabolismProfile";
 import RequestType from "../models/requestType";
 import RequestQueue from "../models/requestQueue";
 import MetaEvent from "../models/event";
+import { customStore } from "../storage/customStore";
+import Food from "../models/food";
 
 const selfID = "SynthIQ";
 
@@ -275,6 +277,35 @@ class NightscoutManager {
   static async storeMetaProfile() {
     this.getProfile().then((p) => {
       p.metaProfile = MetabolismProfile.stringify(profile);
+      this.put("profile", p);
+    });
+  }
+
+  // Custom Foods
+  static async loadCustomFoods() {
+    /** This will load the custom foods from the nightscout profile
+     * This is useful for when we want to import foods from nightscout
+     * into SynthIQ.
+     */
+    this.getProfile().then((a) => {
+      if (a.customFoods) {
+        customStore.set("foods", []); // Clear the custom foods store
+        const customFoods = customStore.get("foods") as Food[];
+        a.customFoods.forEach((f: any) => {
+          customFoods.push(Food.parse(f));
+        });
+        customStore.write("foods");
+      }
+    });
+  }
+  static async storeCustomFoods() {
+    /** This will store the custom foods from SynthIQ into the nightscout profile
+     * This is useful for when we want to export foods from SynthIQ
+     * into nightscout.
+     */
+    this.getProfile().then((p) => {
+      const customFoods = customStore.get("foods") as Food[];
+      p.customFoods = customFoods.map((f: Food) => Food.stringify(f));
       this.put("profile", p);
     });
   }
