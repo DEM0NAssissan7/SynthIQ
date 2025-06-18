@@ -75,7 +75,7 @@ export default function WizardMealConfirmPage() {
 
   // We add the meal to the testmeals upon startup
   useEffect(() => {
-    event.clearTestMeals();
+    event.clearTests();
     event.addTestMeal(meal);
   }, []);
 
@@ -92,9 +92,9 @@ export default function WizardMealConfirmPage() {
       <Card>
         <ListGroup>
           <ListGroup.Item>
-            {round(event.carbs, 2)}g carbs
+            {round(meal.carbs, 2)}g carbs
             <br />
-            {round(event.protein, 2)}g protein
+            {round(meal.protein, 2)}g protein
             <br />
             <b>{round(event.insulin, 2)}u insulin taken</b>
             <br />

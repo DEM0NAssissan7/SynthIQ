@@ -10,6 +10,7 @@ import EventGraph from "../../components/EventGraph";
 import { useWizardEvent } from "../../state/useEvent";
 import Card from "../../components/Card";
 import EventSummary from "../../components/EventSummary";
+import { useEffect } from "react";
 
 export default function WizardSummaryPage() {
   const event = useWizardEvent();
@@ -33,6 +34,11 @@ export default function WizardSummaryPage() {
   function editEvent() {
     WizardManager.moveToPage(WizardState.Edit, navigate);
   }
+
+  // Clear tests upon mount to prevent confusion and improve reliability
+  useEffect(() => {
+    event.clearTests();
+  }, []);
 
   return (
     <>
