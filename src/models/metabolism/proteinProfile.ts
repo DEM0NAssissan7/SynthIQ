@@ -4,8 +4,8 @@ import NutrientProfile from "./nutrientProfile";
 export default class ProteinProfile extends NutrientProfile {
   private _effect = 1.14;
   private _delay = 2.0;
-  private _minTime = 2.0;
-  private _plateuRate = 0.205;
+  private _minTime = 4.0;
+  private _plateuRate = 0.005;
 
   set effect(value: number) {
     this._effect = value;
