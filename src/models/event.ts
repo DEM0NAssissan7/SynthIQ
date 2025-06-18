@@ -148,6 +148,13 @@ export default class MetaEvent {
     this.notify();
   }
 
+  // General Tests
+  clearTests(): void {
+    this.clearTestMeals();
+    this.clearTestInsulins();
+    this.clearTestGlucoses();
+  }
+
   // Timing
   getN(timestamp: Date) {
     return getHourDiff(timestamp, this.timestamp);
