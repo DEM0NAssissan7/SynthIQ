@@ -16,7 +16,7 @@ export default function AddedInsulin({ insulin, event }: AddedInsulinProps) {
     e.preventDefault(); // Prevent the default form submission behavior
   };
 
-  const { units, offset, setUnits, setTimestampFromOffset } = useInsulin(
+  const { offset, setUnits, setTimestampFromOffset } = useInsulin(
     insulin,
     event
   );

@@ -16,7 +16,7 @@ export default function AddedGlucose({ glucose, event }: AddedGlucoseProps) {
     e.preventDefault(); // Prevent the default form submission behavior
   };
 
-  const { caps, offset, setCaps, setTimestampFromOffset } = useGlucose(
+  const { offset, setCaps, setTimestampFromOffset } = useGlucose(
     glucose,
     event
   );
