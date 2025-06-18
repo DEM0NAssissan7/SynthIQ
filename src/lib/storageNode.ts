@@ -54,7 +54,7 @@ class StorageEntry {
     this.readHandler = readHandler;
   }
 
-  // Basic, fast frontend
+  // Basic, fast, in-memory frontend
   get() {
     return this.value;
   }
