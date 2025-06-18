@@ -1,4 +1,4 @@
-import { Button, ListGroup } from "react-bootstrap";
+import { Button, Form, ListGroup } from "react-bootstrap";
 import { useEffect, useMemo } from "react";
 import { round } from "../../lib/util";
 import WizardManager from "../../lib/wizardManager";
@@ -7,14 +7,18 @@ import { useNavigate } from "react-router";
 import BloodSugarInput from "../../components/BloodSugarInput";
 import Unit from "../../models/unit";
 import useInsulinPrediction from "../../state/useInsulinPrediction";
-import FoodSearchCard from "../../components/FoodSearchCard";
-import MealAddedFoodsListCard from "../../components/MealAddedFoodsListCard";
-import MealAdditionalNutrientsCard from "../../components/MealAdditionalNutrientsCard";
+import MealAdditionalNutrients from "../../components/MealAdditionalNutrientsCard";
 import EventPredictedSugarGraphCard from "../../components/EventPredictedSugarGraphCard";
 import { useWizardMeal } from "../../state/useMeal";
 import { getHourDiff, getPrettyTimeDiff } from "../../lib/timing";
 import { useWizardEvent } from "../../state/useEvent";
 import Card from "../../components/Card";
+import FoodSearchDisplay from "../../components/FoodSearchDisplay";
+import AddedFoodsDisplay from "../../components/AddedFoodsDisplay";
+import NightscoutManager from "../../lib/nightscoutManager";
+import CustomMealSearch from "../../components/CustomMealSearch";
+import { setWizardMeal } from "../../storage/wizardStore";
+import type Meal from "../../models/meal";
 
 export default function WizardMealPage() {
   const event = useWizardEvent();
@@ -55,11 +59,22 @@ export default function WizardMealPage() {
   useEffect(() => {
     event.clearTests();
     event.addTestMeal(meal);
+    NightscoutManager.loadCustomMeals();
   }, []);
 
   return (
     <>
       <h1 className="mb-3">Meal Creation</h1>
+
+      <Card>
+        <CustomMealSearch
+          onChange={(meal: Meal) => {
+            setWizardMeal(meal);
+            navigate(0);
+          }}
+          meal={meal}
+        />
+      </Card>
 
       <Card>
         <FoodSearchDisplay meal={meal} />
