@@ -29,7 +29,7 @@ export default function ProfilerPage() {
   return (
     <>
       <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
-        <Button onClick={updateViews}>Update Views</Button>
+        <Button onClick={updateViews}>Apply Changes</Button>
         <Button onClick={pullNightscoutProfile} variant="secondary">
           Use Nightscout Profile
         </Button>
