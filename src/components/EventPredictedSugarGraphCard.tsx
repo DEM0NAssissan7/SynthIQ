@@ -12,7 +12,7 @@ export default function EventPredictedSugarGraphCard({
   return (
     <Card>
       <Form.Label>Predicted Blood Sugar</Form.Label>
-      <EventGraph event={event} from={-1} until={16} width="100%" />
+      <EventGraph event={event} from={-1} until={12} width="100%" />
     </Card>
   );
 }
