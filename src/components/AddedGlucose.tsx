@@ -43,7 +43,6 @@ export default function AddedGlucose({ glucose, event }: AddedGlucoseProps) {
               type="number"
               placeholder="Caps/Carbs"
               className="text-center"
-              value={caps || ""}
               onInput={(e: BaseSyntheticEvent) => {
                 const value = parseFloat(e.target.value) || 0;
                 setCaps(value);
@@ -61,10 +60,9 @@ export default function AddedGlucose({ glucose, event }: AddedGlucoseProps) {
               type="number"
               placeholder="Delay (minutes after meal)"
               className="text-center"
-              value={offset || ""}
               onChange={(e: BaseSyntheticEvent) => {
                 const value = parseFloat(e.target.value) || 0;
-                setTimestampFromOffset(value);
+                if (value || value === 0) setTimestampFromOffset(value);
               }}
             />
           </div>

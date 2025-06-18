@@ -43,7 +43,6 @@ export default function AddedInsulin({ insulin, event }: AddedInsulinProps) {
               type="number"
               placeholder="Units"
               className="text-center"
-              value={units || ""}
               onInput={(e: BaseSyntheticEvent) => {
                 const value = parseFloat(e.target.value) || 0;
                 setUnits(value);
@@ -61,10 +60,9 @@ export default function AddedInsulin({ insulin, event }: AddedInsulinProps) {
               type="number"
               placeholder="Delay (minutes after meal)"
               className="text-center"
-              value={offset || ""}
               onChange={(e: BaseSyntheticEvent) => {
                 const value = parseFloat(e.target.value) || 0;
-                setTimestampFromOffset(value);
+                if (value || value === 0) setTimestampFromOffset(value);
               }}
             />
           </div>

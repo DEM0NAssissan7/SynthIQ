@@ -10,7 +10,7 @@ export default function useGlucose(glucose: Glucose, event: MetaEvent) {
     event.notify();
     rerender();
   };
-  let offset = getMinuteDiff(glucose.timestamp, event.timestamp);
+  let offset = getMinuteDiff(glucose.timestamp, event.latestMealTimestamp);
   return {
     caps: glucose.caps,
     timestamp: glucose.timestamp,
@@ -25,7 +25,10 @@ export default function useGlucose(glucose: Glucose, event: MetaEvent) {
     },
     setTimestampFromOffset: (minutes: number) => {
       offset = minutes; // This is kinda cheating, but it helps with the text box
-      glucose.timestamp = getTimestampFromOffset(event.timestamp, minutes / 60);
+      glucose.timestamp = getTimestampFromOffset(
+        event.latestMealTimestamp,
+        minutes / 60
+      );
       notify();
     },
   };
