@@ -89,10 +89,6 @@ export default function WizardInsulinPage() {
     return getMinuteDiff(insulinTimestamp, new Date());
   }, [version, insulinTimestamp]);
 
-  const timeEaten = useMemo(() => {
-    return getMinuteDiff(new Date(), event.timestamp);
-  }, [version]);
-
   return (
     <div>
       <h1>Insulin Dosing</h1>
