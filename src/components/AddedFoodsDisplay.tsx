@@ -1,6 +1,6 @@
 import { Form, ListGroup } from "react-bootstrap";
 import AddedFood from "./AddedFood";
-import type Meal from "../models/meal";
+import type Meal from "../models/events/meal";
 
 interface AddedFoodsDisplayProps {
   meal: Meal;

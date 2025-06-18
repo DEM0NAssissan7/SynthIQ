@@ -1,35 +1,26 @@
 import { useEffect } from "react";
 import AddedFoodsDisplay from "../components/AddedFoodsDisplay";
 import FoodSearchDisplay from "../components/FoodSearchDisplay";
-import Meal from "../models/meal";
+import Meal from "../models/events/meal";
 import useMeal from "../state/useMeal";
 import InsulinManager from "../components/InsulinManager";
-import EventGraph from "../components/EventGraph";
-import useEvent from "../state/useEvent";
-import MetaEvent from "../models/event";
+import SessionGraph from "../components/SessionGraph";
+import useSession from "../state/useSession";
+import Session from "../models/session";
 import GlucoseManager from "../components/GlucoseManager";
 import Card from "../components/Card";
 import { Form } from "react-bootstrap";
 import MealAdditionalNutrients from "../components/MealAdditionalNutrientsCard";
 
 let playgroundMeal = new Meal(new Date());
-let playgroundEvent = new MetaEvent(false);
+let playgroundSession = new Session(false);
+playgroundSession.addMeal(playgroundMeal);
 export default function PlaygroundPage() {
   const meal = useMeal(playgroundMeal);
-  const event = useEvent(playgroundEvent);
+  const session = useSession(playgroundSession);
 
   useEffect(() => {
-    const handler = () => event.notify();
-    meal.subscribe(handler);
-    return () => {
-      meal.unsubscribe(handler);
-    };
-  }, []);
-
-  // We add the meal to the event
-  useEffect(() => {
-    event.addMeal(meal);
-    console.log(meal, event);
+    console.log(playgroundMeal, playgroundSession);
   }, []);
   return (
     <>
@@ -51,16 +42,16 @@ export default function PlaygroundPage() {
       </Card>
 
       <Card>
-        <InsulinManager event={event} />
+        <InsulinManager session={session} />
       </Card>
 
       <Card>
-        <GlucoseManager event={event} />
+        <GlucoseManager session={session} />
       </Card>
 
       <Card>
         <Form.Label>Graph</Form.Label>
-        <EventGraph event={event} from={-1} until={12} />
+        <SessionGraph session={session} from={-1} until={12} />
       </Card>
     </>
   );

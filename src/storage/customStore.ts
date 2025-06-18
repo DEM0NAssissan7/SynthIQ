@@ -2,7 +2,7 @@
 import NightscoutManager from "../lib/nightscoutManager";
 import StorageNode from "../lib/storageNode";
 import Food, { foods } from "../models/food";
-import Meal from "../models/meal";
+import Meal from "../models/events/meal";
 
 export const customStore = new StorageNode("custom");
 

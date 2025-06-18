@@ -1,15 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
-import type Meal from "../models/meal";
+import type Meal from "../models/events/meal";
 import Graph, { type SeriesLine } from "./Graph";
 import { Color } from "../models/series";
 import ReadingSeries from "../models/readingSeries";
 import MathSeries from "../models/mathSeries";
-import type Insulin from "../models/insulin";
-import type Glucose from "../models/glucose";
-import type MetaEvent from "../models/event";
+import type Insulin from "../models/events/insulin";
+import type Glucose from "../models/events/glucose";
+import type Session from "../models/session";
 
-interface EventGraphProps {
-  event: MetaEvent;
+interface SessionGraphProps {
+  session: Session;
   from: number;
   until?: number;
   width?: string | number;
@@ -17,7 +17,13 @@ interface EventGraphProps {
   ymin?: string | number;
 }
 
-function EventGraph({ event, from, until, width, height }: EventGraphProps) {
+function SessionGraph({
+  session,
+  from,
+  until,
+  width,
+  height,
+}: SessionGraphProps) {
   const [readingSeries, setReadingSeries] = useState<ReadingSeries>(
     new ReadingSeries(Color.Black, new Date())
   );
@@ -27,78 +33,78 @@ function EventGraph({ event, from, until, width, height }: EventGraphProps) {
 
   const minXmax = 12;
   const xmax = useMemo(() => {
-    return until || Math.max(Math.floor(event.getN(new Date())) + 2, minXmax);
-  }, [until, event]);
+    return until || Math.max(Math.floor(session.getN(new Date())) + 2, minXmax);
+  }, [until, session]);
 
   const [version, setVersion] = useState(0);
   const rerender = () => setVersion((v) => v + 1); // force re-render
 
   useEffect(() => {
     // Update the reading series
-    setReadingSeries(event.getReadingSeries(from, xmax));
+    setReadingSeries(session.getReadingSeries(from, xmax));
 
-    const eventGraphHandler = () => {
+    const sessionGraphHandler = () => {
       requestAnimationFrame(() => {
-        setPredictionSeries(event.getPredictionSeries(from, xmax));
+        setPredictionSeries(session.getPredictionSeries(from, xmax));
         rerender();
       });
     };
-    event.subscribe(eventGraphHandler);
+    session.subscribe(sessionGraphHandler);
 
     return () => {
-      event.unsubscribe(eventGraphHandler);
+      session.unsubscribe(sessionGraphHandler);
     };
-  }, [event, from, until]);
+  }, [session, from, until]);
 
-  // Notify event on load to update the graph prediction series
+  // Notify session on load to update the graph prediction series
   useEffect(() => {
-    event.notify();
+    session.notify();
   }, []);
 
   const lines = useMemo(() => {
     let lines: SeriesLine[] = [];
 
-    event.meals.forEach((meal: Meal) => {
+    session.meals.forEach((meal: Meal) => {
       lines.push({
-        x: event.getN(meal.timestamp),
+        x: session.getN(meal.timestamp),
         color: "black",
       });
     });
-    event.testMeals.forEach((meal: Meal) => {
+    session.testMeals.forEach((meal: Meal) => {
       lines.push({
-        x: event.getN(meal.timestamp),
+        x: session.getN(meal.timestamp),
         color: "black",
       });
     });
 
-    event.insulins.forEach((insulin: Insulin) => {
+    session.insulins.forEach((insulin: Insulin) => {
       lines.push({
-        x: event.getN(insulin.timestamp),
+        x: session.getN(insulin.timestamp),
         color: "blue",
       });
     });
-    event.testInsulins.forEach((insulin: Insulin) => {
+    session.testInsulins.forEach((insulin: Insulin) => {
       lines.push({
-        x: event.getN(insulin.timestamp),
+        x: session.getN(insulin.timestamp),
         color: "red",
       });
     });
 
-    event.glucoses.forEach((glucose: Glucose) => {
+    session.glucoses.forEach((glucose: Glucose) => {
       lines.push({
-        x: event.getN(glucose.timestamp),
+        x: session.getN(glucose.timestamp),
         color: "orange",
       });
     });
-    event.testGlucoses.forEach((glucose: Glucose) => {
+    session.testGlucoses.forEach((glucose: Glucose) => {
       lines.push({
-        x: event.getN(glucose.timestamp),
+        x: session.getN(glucose.timestamp),
         color: "red",
       });
     });
 
     return lines;
-  }, [event, version]);
+  }, [session, version]);
   return (
     <Graph
       series={[readingSeries, predictionSeries]}
@@ -112,4 +118,4 @@ function EventGraph({ event, from, until, width, height }: EventGraphProps) {
   );
 }
 
-export default EventGraph;
+export default SessionGraph;

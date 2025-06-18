@@ -1,5 +1,5 @@
-import type MetaEvent from "../models/event";
-import Insulin from "../models/insulin";
+import type Session from "../models/session";
+import Insulin from "../models/events/insulin";
 import { profile } from "../storage/metaProfileStore";
 import { getTimestampFromOffset } from "./timing";
 
@@ -21,7 +21,7 @@ export function getCorrectionInsulin(glucose: number) {
  * and with the lowest maximum.
  */
 export function getOptimalInsulinTiming(
-  event: MetaEvent,
+  session: Session,
   unitsInsulin: number,
   from: number,
   until: number
@@ -31,20 +31,21 @@ export function getOptimalInsulinTiming(
   let maximum = Infinity;
   let time: Date = new Date();
   const threshold = profile.minThreshold;
+  const mealTimestamp = session.latestMealTimestamp;
   for (let n = from; n <= until; n += 1 / 60) {
     // All insulin timings [within one minute] (from -> until)
 
     // Create a timestamp h hours away from the meal start (when you start eating)
-    const testTime = getTimestampFromOffset(event.latestMealTimestamp, n);
+    const testTime = getTimestampFromOffset(mealTimestamp, n);
 
     // Insulin
-    event.testInsulins = [new Insulin(testTime, unitsInsulin)]; // We intentionally push directly to the insulins array to prevent notifying subscribers (and causing potential lag)
+    session.testInsulins = [new Insulin(testTime, unitsInsulin)]; // We intentionally push directly to the insulins array to prevent notifying subscribers (and causing potential lag)
 
     let funcMax = -Infinity;
     (() => {
       for (let t = 0; t < 14; t += 5 / 60) {
         // We sample 5 minute bits of the simulation over the course of 14 hours
-        let y = event.deltaBG(t);
+        let y = session.deltaBG(t);
 
         // Ignore if we go below threshold
         if (y < threshold) {

@@ -1,5 +1,5 @@
-import MetaEvent from "../models/event";
-import Meal from "../models/meal";
+import Session from "../models/session";
+import Meal from "../models/events/meal";
 import { getStateName, WizardState } from "../models/wizardState";
 import { wizardStorage } from "../storage/wizardStore";
 import NightscoutManager from "./nightscoutManager";
@@ -40,12 +40,12 @@ export default class WizardManager {
   static markMeal() {
     if (!this.getMealMarked()) {
       const meal: Meal = wizardStorage.get("meal");
-      const event: MetaEvent = wizardStorage.get("event");
+      const session: Session = wizardStorage.get("session");
       const timestamp = new Date();
 
       meal.timestamp = timestamp;
-      event.addMeal(meal); // Add the meal to the event
-      event.clearTests(); // Clear all test stuff on the event
+      session.addMeal(meal);
+      session.clearTests(); // Clear all test stuff on the session
 
       wizardStorage.set("mealMarked", true);
 
@@ -56,11 +56,11 @@ export default class WizardManager {
 
   // Insulin
   private static insulin(units: number) {
-    const event: MetaEvent = wizardStorage.get("event");
+    const session: Session = wizardStorage.get("session");
     const timestamp = new Date();
 
-    event.createInsulin(timestamp, units);
-    event.clearTests();
+    session.createInsulin(timestamp, units);
+    session.clearTests();
 
     wizardStorage.set("insulinMarked", true);
 
@@ -68,11 +68,11 @@ export default class WizardManager {
     NightscoutManager.markInsulin(units, new Date());
   }
   static markInsulin(units: number) {
-    let event: MetaEvent = wizardStorage.get("event");
+    let session: Session = wizardStorage.get("session");
     if (this.getInsulinMarked()) {
       if (
         !confirm(
-          `You are going to mark additional insulin. You've already taken ${event.insulin}u of insulin. Are you sure you want to do this?`
+          `You are going to mark additional insulin. You've already taken ${session.insulin}u of insulin. Are you sure you want to do this?`
         )
       )
         return;
@@ -83,11 +83,11 @@ export default class WizardManager {
   static markGlucose(caps: number) {
     // We really don't want to mark glucose if we haven't taken insulin. The glucose would never be taken because of a meal. Meals raise glucose.
     if (this.getInsulinMarked()) {
-      const event: MetaEvent = wizardStorage.get("event");
+      const session: Session = wizardStorage.get("session");
       const timestamp = new Date();
 
-      event.createGlucose(timestamp, caps);
-      event.clearTests();
+      session.createGlucose(timestamp, caps);
+      session.clearTests();
 
       // TODO: Use date selector
       NightscoutManager.markGlucose(caps, new Date());
@@ -95,10 +95,10 @@ export default class WizardManager {
   }
 
   // Reset
-  static resetEvent() {
-    const event = new MetaEvent();
-    wizardStorage.set("event", event); // Reset event
-    event.subscribe(() => wizardStorage.write("event")); // Automatically save the event when it changes
+  static resetSession() {
+    const session = new Session();
+    wizardStorage.set("session", session); // Reset session
+    session.subscribe(() => wizardStorage.write("session")); // Automatically save the session when it changes
   }
   static resetMeal() {
     const meal = new Meal(new Date());
@@ -106,7 +106,7 @@ export default class WizardManager {
     meal.subscribe(() => wizardStorage.write("meal")); // Automatically save the meal when it changes
   }
   static resetWizard(navigate: NavigateFunction) {
-    this.resetEvent(); // Reset the event
+    this.resetSession(); // Reset the session
 
     wizardStorage.set("mealMarked", false);
     wizardStorage.set("insulinMarked", false);
@@ -119,10 +119,10 @@ export default class WizardManager {
   }
   static startNew(navigate: NavigateFunction) {
     const timestamp = new Date();
-    const event: MetaEvent = wizardStorage.get("event");
+    const session: Session = wizardStorage.get("session");
 
-    event.endTimestamp = timestamp; // Store the end time of the meal
-    NightscoutManager.storeEvent(event); // Store the atomically edited meal into nightscout so we can analyze it later
+    session.endTimestamp = timestamp; // Store the end time of the session
+    NightscoutManager.storeSession(session); // Store the entire session into nightscout so we can analyze it later
     this.resetWizard(navigate); // Reset the wizard states
   }
 }

@@ -1,6 +1,6 @@
 import { ListGroup } from "react-bootstrap";
 import NutritionOffset from "./NutritionOffset";
-import type Meal from "../models/meal";
+import type Meal from "../models/events/meal";
 
 interface MealAdditionalNutrientsProps {
   meal: Meal;

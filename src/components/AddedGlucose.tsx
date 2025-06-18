@@ -1,16 +1,16 @@
 import { Button, Form } from "react-bootstrap";
 import { type BaseSyntheticEvent } from "react";
 import { getHoursMinutes, round } from "../lib/util";
-import type MetaEvent from "../models/event";
+import type Session from "../models/session";
 import useGlucose from "../state/useGlucose";
-import type Glucose from "../models/glucose";
+import type Glucose from "../models/events/glucose";
 
 interface AddedGlucoseProps {
   glucose: Glucose;
-  event: MetaEvent;
+  session: Session;
 }
 
-export default function AddedGlucose({ glucose, event }: AddedGlucoseProps) {
+export default function AddedGlucose({ glucose, session }: AddedGlucoseProps) {
   // Just to prevent reload when pressing enter
   const handleFormSubmit = (e: BaseSyntheticEvent) => {
     e.preventDefault(); // Prevent the default form submission behavior
@@ -18,16 +18,16 @@ export default function AddedGlucose({ glucose, event }: AddedGlucoseProps) {
 
   const { offset, setCaps, setTimestampFromOffset } = useGlucose(
     glucose,
-    event
+    session
   );
   function remove() {
-    event.removeGlucose(glucose);
+    session.removeGlucose(glucose);
   }
 
   return (
     <>
       <div className="d-flex justify-content-between align-items-center">
-        <span className="fw-bold">{round(glucose.caps, 2)}u</span>
+        <span className="fw-bold">{round(glucose._caps, 2)}u</span>
         <span className="text-muted">
           Taken {getHoursMinutes(Math.abs(offset))}{" "}
           {offset > 0 ? "after" : "before"} eating

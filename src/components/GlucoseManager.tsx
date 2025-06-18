@@ -1,15 +1,15 @@
 import { Button, Form, ListGroup } from "react-bootstrap";
-import type MetaEvent from "../models/event";
-import type Glucose from "../models/glucose";
+import type Session from "../models/session";
+import type Glucose from "../models/events/glucose";
 import AddedGlucose from "./AddedGlucose";
 
 interface GlucoseManagerProps {
-  event: MetaEvent;
+  session: Session;
 }
 
-export default function GlucoseManager({ event }: GlucoseManagerProps) {
+export default function GlucoseManager({ session }: GlucoseManagerProps) {
   function addGlucose() {
-    event.createGlucose(new Date(), 0);
+    session.createGlucose(new Date(), 0);
   }
   return (
     <ListGroup>
@@ -17,10 +17,10 @@ export default function GlucoseManager({ event }: GlucoseManagerProps) {
       <Button variant="primary" onClick={addGlucose} className="mb-3">
         Add
       </Button>
-      {event.glucoses.map((glucose: Glucose, i: number) => {
+      {session.glucoses.map((glucose: Glucose, i: number) => {
         return (
           <ListGroup.Item key={i} className="d-flex flex-column gap-3 p-3">
-            <AddedGlucose event={event} glucose={glucose} />
+            <AddedGlucose session={session} glucose={glucose} />
           </ListGroup.Item>
         );
       })}

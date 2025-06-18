@@ -6,19 +6,19 @@ import { changeProfile, profile } from "../storage/metaProfileStore";
 import MetabolismProfile from "../models/metabolism/metabolismProfile";
 import RequestType from "../models/requestType";
 import RequestQueue from "../models/requestQueue";
-import MetaEvent from "../models/event";
+import Session from "../models/session";
 import {
   customStore,
   setCustomFoods,
   setCustomMeals,
 } from "../storage/customStore";
 import Food from "../models/food";
-import Meal from "../models/meal";
+import Meal from "../models/events/meal";
 
 const selfID = "SynthIQ";
 
-// Event types
-const metaEventStoreEventType = "Meta Event Storage";
+// Nightscout event types
+const metaSessionStoreEventType = "Meta Event Storage";
 const insulinEventType = "Meal Bolus";
 const mealEventType = "Meal";
 const glucoseEventType = "Carb Correction";
@@ -215,21 +215,21 @@ class NightscoutManager {
     );
   }
 
-  // Events
-  /** This will store the ENTIRE event
-   * This includes its glucose, insulin, and foods
-   * However, on nightscout, this will simply appear as a normal meal
-   * This exists so that we can analyze an ENTIRE event's data later
+  // Sessions
+  /** This will store the ENTIRE session
+   * This includes its glucose, insulin, foods, and other events
+   * However, on nightscout, this will simply appear as a normal entry
+   * This exists so that we can analyze an ENTIRE session's data later
    */
-  static storeEvent(event: MetaEvent) {
+  static storeSession(session: Session) {
     this.post(
       "treatments",
       {
-        uuid: event.uuid,
-        eventType: metaEventStoreEventType,
-        eventString: MetaEvent.stringify(event),
+        uuid: session.uuid,
+        eventType: metaSessionStoreEventType,
+        sessionString: Session.stringify(session),
       },
-      event.timestamp
+      session.timestamp
     );
     /* We don't need to give this a timestamp as it's
      * already stored in the meal object
@@ -249,28 +249,28 @@ class NightscoutManager {
     for (let u of ignored) if (uuid === u) return true;
     return false;
   }
-  static async getAllMetaEvents() {
+  static async getAllSessions() {
     /** We pull meals from nightscout that have been previously saved
      * This is crucial to do analysis.
      */
-    let events: MetaEvent[] = [];
+    let sessions: Session[] = [];
     let treatments = await this.get("treatments.json");
     // console.log(treatments);
     // console.log(treatments);
     treatments.forEach((t: any) => {
       if (
-        t.eventType === metaEventStoreEventType &&
+        t.eventType === metaSessionStoreEventType &&
         t.enteredBy === selfID &&
         t.uuid &&
-        t.eventString
+        t.sessionString
       ) {
         if (this.uuidIsIgnored(t.uuid)) return;
         try {
-          events.push(MetaEvent.parse(t.eventString));
+          sessions.push(Session.parse(t.eventString));
         } catch (e) {}
       }
     });
-    return events;
+    return sessions;
   }
 
   // Metabolic Profile

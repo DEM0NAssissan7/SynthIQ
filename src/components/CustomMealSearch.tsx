@@ -1,5 +1,5 @@
 import { useMemo, useState, type BaseSyntheticEvent } from "react";
-import Meal from "../models/meal";
+import Meal from "../models/events/meal";
 import { addCustomMeal, customStore } from "../storage/customStore";
 import { Button, Form, ListGroup } from "react-bootstrap";
 

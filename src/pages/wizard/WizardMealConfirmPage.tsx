@@ -7,7 +7,7 @@ import { WizardState } from "../../models/wizardState";
 import { useNavigate } from "react-router";
 import useInsulinPrediction from "../../state/useInsulinPrediction";
 import { useEffect, useMemo } from "react";
-import EventPredictedSugarGraphCard from "../../components/EventPredictedSugarGraphCard";
+import SessionPredictedSugarGraphCard from "../../components/SessionPredictedSugarGraphCard";
 import MealAdditionalNutrients from "../../components/MealAdditionalNutrientsCard";
 import useVersion from "../../state/useVersion";
 import { useWizardMeal } from "../../state/useMeal";
@@ -16,14 +16,14 @@ import {
   getPrettyTime,
   getTimestampFromOffset,
 } from "../../lib/timing";
-import { useWizardEvent } from "../../state/useEvent";
+import { useWizardSession } from "../../state/useSession";
 import Card from "../../components/Card";
 import FoodSearchDisplay from "../../components/FoodSearchDisplay";
 import AddedFoodsDisplay from "../../components/AddedFoodsDisplay";
 
 export default function WizardMealConfirmPage() {
   // Use the meal state
-  const event = useWizardEvent();
+  const session = useWizardSession();
   const meal = useWizardMeal();
 
   // Make a state that updates once per minute to update the views
@@ -34,10 +34,10 @@ export default function WizardMealConfirmPage() {
     insulinTimestamp: optimalInsulinTimestamp,
     insulin: insulinRequirement,
   } = useInsulinPrediction(
-    event,
+    session,
     meal.carbs,
     meal.protein,
-    event.initialGlucose,
+    session.initialGlucose,
     false // Don't modify the meal
   );
 
@@ -51,10 +51,10 @@ export default function WizardMealConfirmPage() {
   }
 
   // Cancel
-  function cancelEvent() {
+  function cancelSession() {
     if (
       confirm(
-        "Are you sure you want to cancel the entire event? This will discard all data you've inputted so far for this event."
+        "Are you sure you want to discard the entire session? This will delete all data you've inputted so far for this session."
       )
     ) {
       WizardManager.resetWizard(navigate);
@@ -75,8 +75,8 @@ export default function WizardMealConfirmPage() {
 
   // We add the meal to the testmeals upon startup
   useEffect(() => {
-    event.clearTests();
-    event.addTestMeal(meal);
+    session.clearTests();
+    session.addTestMeal(meal);
   }, []);
 
   return (
@@ -103,7 +103,7 @@ export default function WizardMealConfirmPage() {
             <br />
             {round(meal.protein, 2)}g protein
             <br />
-            <b>{round(event.insulin, 2)}u insulin taken</b>
+            <b>{round(session.insulin, 2)}u insulin taken</b>
             <br />
             <i>This meal requires {round(insulinRequirement, 2)}u insulin</i>
           </ListGroup.Item>
@@ -117,11 +117,11 @@ export default function WizardMealConfirmPage() {
           )}
         </ListGroup>
       </Card>
-      <EventPredictedSugarGraphCard event={event} />
+      <SessionPredictedSugarGraphCard session={session} />
       <div className="d-flex justify-content-end">
         <div className="w-100 d-flex justify-content-between">
-          <Button variant="danger" onClick={cancelEvent}>
-            Cancel Event
+          <Button variant="danger" onClick={cancelSession}>
+            Cancel Session
           </Button>
           <Button variant="primary" onClick={beginEating}>
             Begin Eating

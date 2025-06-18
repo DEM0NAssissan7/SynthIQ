@@ -2,19 +2,20 @@ import NightscoutManager from "../lib/nightscoutManager";
 import { getHourDiff, getTimestampFromOffset } from "../lib/timing";
 import { genUUID, type UUID } from "../lib/util";
 import { nightscoutStore } from "../storage/nightscoutStore";
-import Glucose from "./glucose";
-import Insulin from "./insulin";
+import Glucose from "./events/glucose";
+import Insulin from "./events/insulin";
 import MathSeries from "./mathSeries";
-import Meal from "./meal";
+import Meal from "./events/meal";
 import ReadingSeries from "./readingSeries";
 import Series, { Color } from "./series";
+import type MetaEvent from "./events/metaEvent";
 
-export default class MetaEvent {
+export default class Session {
   subscriptions: (() => void)[] = [];
   uuid: UUID;
 
   _initialGlucose: number = 83;
-  endTimestamp: Date | null; // The end timestamp of the event
+  endTimestamp: Date | null; // The end timestamp of the session
 
   meals: Meal[] = [];
   insulins: Insulin[] = [];
@@ -44,16 +45,24 @@ export default class MetaEvent {
     this.subscriptions.forEach((f) => f());
   }
 
-  // Meals
-  addMeal(meal: Meal): void {
-    meal.subscribe(() => this.notify()); // Notify the event subscribers when the meal changes
-    this.meals.push(meal);
+  // Event management
+  addEvent(e: MetaEvent) {
+    e.subscribe(() => this.notify());
     this.notify();
   }
-  removeMeal(meal: Meal) {
-    meal.unsubscribe(() => this.notify()); // Unsubscribe meal from event notifications
-    this.meals = this.meals.filter((m) => m !== meal);
+  removeEvent(e: MetaEvent) {
+    e.unsubscribe(() => this.notify());
     this.notify();
+  }
+
+  // Meals
+  addMeal(meal: Meal): void {
+    this.addEvent(meal);
+    this.meals.push(meal);
+  }
+  removeMeal(meal: Meal) {
+    this.removeEvent(meal);
+    this.meals = this.meals.filter((m) => m !== meal);
   }
   get carbs(): number {
     let carbs = 0;
@@ -78,18 +87,21 @@ export default class MetaEvent {
     return this.timestamp;
   }
   get latestMeal(): Meal {
-    if (this.meals.length === 0) throw new Error("No meals found in event");
+    if (this.meals.length === 0)
+      throw new Error("No meal events found in session");
     return this.meals[this.meals.length - 1];
   }
 
   // Insulins
-  createInsulin(timestamp: Date, units: number): void {
-    this.insulins.push(new Insulin(timestamp, units));
-    this.notify();
+  createInsulin(timestamp: Date, units: number): Insulin {
+    const insulin = new Insulin(timestamp, units);
+    this.addEvent(insulin);
+    this.insulins.push(insulin);
+    return insulin;
   }
   removeInsulin(insulin: Insulin) {
+    this.removeEvent(insulin);
     this.insulins = this.insulins.filter((i) => i !== insulin);
-    this.notify();
   }
   get insulin(): number {
     let insulin = 0;
@@ -102,17 +114,19 @@ export default class MetaEvent {
   }
 
   // Glucoses
-  createGlucose(timestamp: Date, caps: number): void {
-    this.glucoses.push(new Glucose(timestamp, caps));
-    this.notify();
+  createGlucose(timestamp: Date, caps: number): Glucose {
+    const glucose = new Glucose(timestamp, caps);
+    this.addEvent(glucose);
+    this.glucoses.push(glucose);
+    return glucose;
   }
   removeGlucose(glucose: Glucose) {
+    this.removeEvent(glucose);
     this.glucoses = this.glucoses.filter((g) => g !== glucose);
-    this.notify();
   }
   get glucose(): number {
     let glucose = 0;
-    this.glucoses.forEach((a: Glucose) => (glucose += a.caps));
+    this.glucoses.forEach((a: Glucose) => (glucose += a._caps));
     return glucose;
   }
   get latestGlucoseTimestamp(): Date {
@@ -122,34 +136,35 @@ export default class MetaEvent {
 
   // Test Meals
   addTestMeal(meal: Meal): void {
-    meal.subscribe(() => this.notify()); // Notify the event subscribers when the meal changes
+    this.addEvent(meal);
     this.testMeals.push(meal);
-    this.notify();
   }
   clearTestMeals(): void {
-    this.testMeals.forEach((meal) => meal.unsubscribe(() => this.notify()));
+    this.testMeals.forEach((e) => this.removeEvent(e));
     this.testMeals = [];
-    this.notify();
   }
 
   // Test Insulins
-  createTestInsulin(timestamp: Date, units: number): void {
-    this.testInsulins.push(new Insulin(timestamp, units));
-    this.notify();
+  createTestInsulin(timestamp: Date, units: number): Insulin {
+    const insulin = new Insulin(timestamp, units);
+    this.addEvent(insulin);
+    this.testInsulins.push(insulin);
+    return insulin;
   }
   clearTestInsulins(): void {
+    this.testInsulins.forEach((e) => this.removeEvent(e));
     this.testInsulins = [];
-    this.notify();
   }
 
   // Test Glucoses
   createTestGlucose(timestamp: Date, caps: number): void {
-    this.testGlucoses.push(new Glucose(timestamp, caps));
-    this.notify();
+    const glucose = new Glucose(timestamp, caps);
+    this.addEvent(glucose);
+    this.testGlucoses.push(glucose);
   }
   clearTestGlucoses(): void {
+    this.testGlucoses.forEach((e) => this.removeEvent(e));
     this.testGlucoses = [];
-    this.notify();
   }
 
   // General Tests
@@ -165,14 +180,14 @@ export default class MetaEvent {
   }
   get timestamp() {
     let timestamp = new Date();
-    const callback = (t: Date) => {
-      if (timestamp === undefined || getHourDiff(t, timestamp) < 0)
-        timestamp = t;
+    const callback = (e: MetaEvent) => {
+      if (timestamp === undefined || getHourDiff(e.timestamp, timestamp) < 0)
+        timestamp = e.timestamp;
     };
-    this.meals.forEach((a: Meal) => callback(a.timestamp));
-    this.insulins.forEach((a: Insulin) => callback(a.timestamp));
-    this.glucoses.forEach((a: Glucose) => callback(a.timestamp));
-    if (!timestamp) throw new Error("No timestamp found in event");
+    this.meals.forEach((a: MetaEvent) => callback(a));
+    this.insulins.forEach((a: MetaEvent) => callback(a));
+    this.glucoses.forEach((a: MetaEvent) => callback(a));
+    if (!timestamp) throw new Error("No beginning timestamp found in session");
     return timestamp;
   }
 
@@ -246,35 +261,35 @@ export default class MetaEvent {
   }
 
   // Serialization
-  static stringify(event: MetaEvent): string {
+  static stringify(session: Session): string {
     return JSON.stringify({
-      uuid: event.uuid,
-      initialGlucose: event.initialGlucose,
-      meals: event.meals.map((a) => Meal.stringify(a)),
-      testMeals: event.testMeals.map((a) => Meal.stringify(a)),
-      insulins: event.insulins.map((a) => Insulin.stringify(a)),
-      glucoses: event.glucoses.map((a) => Glucose.stringify(a)),
-      endTimestamp: event.endTimestamp?.toISOString() || null,
+      uuid: session.uuid,
+      initialGlucose: session.initialGlucose,
+      meals: session.meals.map((a) => Meal.stringify(a)),
+      testMeals: session.testMeals.map((a) => Meal.stringify(a)),
+      insulins: session.insulins.map((a) => Insulin.stringify(a)),
+      glucoses: session.glucoses.map((a) => Glucose.stringify(a)),
+      endTimestamp: session.endTimestamp?.toISOString() || null,
     });
   }
-  static parse(string: string): MetaEvent {
+  static parse(string: string): Session {
     let o = JSON.parse(string);
-    let event = new MetaEvent(false);
-    event.uuid = o.uuid;
-    event.initialGlucose = o.initialGlucose;
-    event.endTimestamp = o.endTimestamp ? new Date(o.endTimestamp) : null;
+    let session = new Session(false);
+    session.uuid = o.uuid;
+    session.initialGlucose = o.initialGlucose;
+    session.endTimestamp = o.endTimestamp ? new Date(o.endTimestamp) : null;
 
-    o.meals.map((a: any) => event.addMeal(Meal.parse(a)));
-    o.testMeals.map((a: any) => event.addTestMeal(Meal.parse(a)));
+    o.meals.map((a: any) => session.addMeal(Meal.parse(a)));
+    o.testMeals.map((a: any) => session.addTestMeal(Meal.parse(a)));
     o.insulins.map((a: any) => {
       const insulin = Insulin.parse(a);
-      event.createInsulin(insulin.timestamp, insulin.units);
+      session.createInsulin(insulin.timestamp, insulin.units);
     });
     o.glucoses.map((a: any) => {
       const glucose = Glucose.parse(a);
-      event.createGlucose(glucose.timestamp, glucose.caps);
+      session.createGlucose(glucose.timestamp, glucose._caps);
     });
 
-    return event;
+    return session;
   }
 }

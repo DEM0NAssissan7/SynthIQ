@@ -1,35 +1,31 @@
 import { useState } from "react";
 import { getMinuteDiff, getTimestampFromOffset } from "../lib/timing";
-import type MetaEvent from "../models/event";
-import type Glucose from "../models/glucose";
+import type Session from "../models/session";
+import type Glucose from "../models/events/glucose";
 
-export default function useGlucose(glucose: Glucose, event: MetaEvent) {
+export default function useGlucose(glucose: Glucose, session: Session) {
   const [, setVersion] = useState(0);
   const rerender = () => setVersion((v) => v + 1);
-  const notify = () => {
-    event.notify();
-    rerender();
-  };
-  let offset = getMinuteDiff(glucose.timestamp, event.latestMealTimestamp);
+  let offset = getMinuteDiff(glucose.timestamp, session.latestMealTimestamp);
   return {
     caps: glucose.caps,
     timestamp: glucose.timestamp,
     offset: offset,
     setCaps: (caps: number) => {
       glucose.caps = caps;
-      notify();
+      rerender();
     },
     setTimestamp: (timestamp: Date) => {
       glucose.timestamp = timestamp;
-      notify();
+      rerender();
     },
     setTimestampFromOffset: (minutes: number) => {
       offset = minutes; // This is kinda cheating, but it helps with the text box
       glucose.timestamp = getTimestampFromOffset(
-        event.latestMealTimestamp,
+        session.latestMealTimestamp,
         minutes / 60
       );
-      notify();
+      rerender();
     },
   };
 }

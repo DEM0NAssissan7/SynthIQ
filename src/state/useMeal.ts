@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type Meal from "../models/meal";
+import type Meal from "../models/events/meal";
 import { wizardStorage } from "../storage/wizardStore";
 
 export default function useMeal(meal: Meal) {

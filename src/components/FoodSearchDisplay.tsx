@@ -2,7 +2,7 @@ import { Form, ListGroup } from "react-bootstrap";
 import { useMemo, useState } from "react";
 import Food, { foods } from "../models/food";
 import SearchFood from "./SearchFood";
-import type Meal from "../models/meal";
+import type Meal from "../models/events/meal";
 
 interface FoodSearchDisplayProps {
   meal: Meal; // Replace with the correct type for meal

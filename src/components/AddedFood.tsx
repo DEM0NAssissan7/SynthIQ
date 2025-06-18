@@ -5,7 +5,7 @@ import type Food from "../models/food";
 import useFood from "../state/useFood";
 import { round } from "../lib/util";
 import { getInsulin } from "../lib/metabolism";
-import type Meal from "../models/meal";
+import type Meal from "../models/events/meal";
 
 interface SearchFoodProps {
   food: Food;

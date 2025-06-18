@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type Food from "../models/food";
-import type Meal from "../models/meal";
+import type Meal from "../models/events/meal";
 
 export default function useFood(food: Food, meal?: Meal) {
   const [, setVersion] = useState(0);

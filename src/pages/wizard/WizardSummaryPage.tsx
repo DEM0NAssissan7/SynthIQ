@@ -6,14 +6,14 @@ import WizardManager from "../../lib/wizardManager";
 import { Button } from "react-bootstrap";
 import { useNavigate } from "react-router";
 import { WizardState } from "../../models/wizardState";
-import EventGraph from "../../components/EventGraph";
-import { useWizardEvent } from "../../state/useEvent";
+import SessionGraph from "../../components/SessionGraph";
+import { useWizardSession } from "../../state/useSession";
 import Card from "../../components/Card";
-import EventSummary from "../../components/EventSummary";
+import SessionSummary from "../../components/SessionSummary";
 import { useEffect } from "react";
 
 export default function WizardSummaryPage() {
-  const event = useWizardEvent();
+  const session = useWizardSession();
   const navigate = useNavigate();
 
   function startNew() {
@@ -31,13 +31,13 @@ export default function WizardSummaryPage() {
   function takeGlucose() {
     WizardManager.moveToPage(WizardState.Glucose, navigate);
   }
-  function editEvent() {
+  function editSession() {
     WizardManager.moveToPage(WizardState.Edit, navigate);
   }
 
   // Clear tests upon mount to prevent confusion and improve reliability
   useEffect(() => {
-    event.clearTests();
+    session.clearTests();
   }, []);
 
   return (
@@ -66,16 +66,16 @@ export default function WizardSummaryPage() {
             <circle cx="12" cy="12" r="10"></circle>
           </svg>
         </div>
-        <h1>Event Summary</h1>
+        <h1>Session Summary</h1>
       </div>
       <Card>
-        <EventSummary event={event} />
+        <SessionSummary session={session} />
       </Card>
       <Card>
         <p>
           Watch in real-time how your blood sugars compare with our predictions.
         </p>
-        <EventGraph event={event} from={-1} width="100%" height={300} />
+        <SessionGraph session={session} from={-1} width="100%" height={300} />
       </Card>
       <div
         style={{
@@ -91,8 +91,8 @@ export default function WizardSummaryPage() {
         <Button variant="danger" onClick={takeInsulin}>
           Take Additional Insulin
         </Button>
-        <Button variant="secondary" onClick={editEvent}>
-          Edit Event
+        <Button variant="secondary" onClick={editSession}>
+          Edit Session
         </Button>
         <Button variant="secondary" onClick={startNew}>
           Start New Meal

@@ -1,5 +1,6 @@
-import Food from "./food";
-import { profile } from "../storage/metaProfileStore";
+import Food from "../food";
+import { profile } from "../../storage/metaProfileStore";
+import MetaEvent from "./metaEvent";
 
 function createCarbsOffset() {
   return new Food("Carbs Offset", 1, 0, 1);
@@ -10,9 +11,7 @@ function createProteinOffset() {
 function createFatOffset() {
   return new Food("Fat Offset", 0, 0, 1, 0, 1);
 }
-class Meal {
-  timestamp: Date;
-  subscriptions: (() => void)[] = [];
+export default class Meal extends MetaEvent {
   name: string;
 
   foods: Food[] = [
@@ -22,20 +21,8 @@ class Meal {
   ];
 
   constructor(timestamp: Date, name?: string) {
-    // This timestamp marks when eating _begins_
-    this.timestamp = timestamp;
+    super(timestamp);
     this.name = name ? name : "";
-  }
-
-  // Subscriptions
-  subscribe(callback: () => void) {
-    this.subscriptions.push(callback);
-  }
-  unsubscribe(callback: () => void) {
-    this.subscriptions = this.subscriptions.filter((sub) => sub !== callback);
-  }
-  notify() {
-    this.subscriptions.forEach((f) => f());
   }
 
   // Carbs offset
@@ -148,5 +135,3 @@ class Meal {
     });
   }
 }
-
-export default Meal;

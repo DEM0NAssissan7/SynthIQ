@@ -1,6 +1,6 @@
 import StorageNode from "../lib/storageNode";
-import MetaEvent from "../models/event";
-import Meal from "../models/meal";
+import Session from "../models/session";
+import Meal from "../models/events/meal";
 import {
   getStateFromName,
   getStateName,
@@ -13,15 +13,10 @@ wizardStorage.add("state", WizardState.Intro, getStateFromName, getStateName);
 wizardStorage.add("mealMarked", false);
 wizardStorage.add("insulinMarked", false);
 
-// Meta Event Storage
-wizardStorage.add(
-  "event",
-  new MetaEvent(),
-  MetaEvent.parse,
-  MetaEvent.stringify
-);
-wizardStorage.get("event").subscribe(() => {
-  wizardStorage.write("event");
+// Session Storage
+wizardStorage.add("session", new Session(), Session.parse, Session.stringify);
+wizardStorage.get("session").subscribe(() => {
+  wizardStorage.write("session");
 });
 
 // Meal Persistence

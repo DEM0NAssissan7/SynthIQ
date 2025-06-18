@@ -1,12 +1,12 @@
 import { Button } from "react-bootstrap";
 import { getFullPrettyDate } from "../lib/timing";
 import { round } from "../lib/util";
-import type MetaEvent from "../models/event";
-import EventGraph from "./EventGraph";
+import type Session from "../models/session";
+import SessionGraph from "./SessionGraph";
 
-interface ProfilerEventDisplayProps {
-  event: MetaEvent;
-  ignoreEvent: (a: MetaEvent) => void;
+interface ProfilerSessionDisplayProps {
+  session: Session;
+  ignoreSession: (a: Session) => void;
   from: number;
   until?: number;
   width?: string | number;
@@ -14,47 +14,49 @@ interface ProfilerEventDisplayProps {
   ymin?: string | number;
 }
 
-export default function ProfilerEventDisplay({
-  event,
-  ignoreEvent,
+export default function ProfilerSessionDisplay({
+  session: session,
+  ignoreSession,
   from,
   until,
   width,
   height,
   ymin,
-}: ProfilerEventDisplayProps) {
+}: ProfilerSessionDisplayProps) {
   // Ignore Meal
   function onIgnoreClick() {
     if (
-      confirm(`Are you sure you want to ignore this event? UUID: ${event.uuid}`)
+      confirm(
+        `Are you sure you want to ignore this session? UUID: ${session.uuid}`
+      )
     ) {
-      ignoreEvent(event);
+      ignoreSession(session);
     }
   }
 
   return (
     <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-      <EventGraph
-        event={event}
+      <SessionGraph
+        session={session}
         from={from}
         until={until}
         width={width}
         height={height}
         ymin={ymin}
       />
-      {getFullPrettyDate(event.timestamp)}
+      {getFullPrettyDate(session.timestamp)}
       <br />
-      {round(event.carbs, 2)}g carbs
+      {round(session.carbs, 2)}g carbs
       <br />
-      {round(event.protein, 2)}g protein
+      {round(session.protein, 2)}g protein
       <br />
-      {round(event.fat, 2)}g fat
+      {round(session.fat, 2)}g fat
       <br />
-      {event.insulin}u insulin
-      {event.glucose > 0 && (
+      {session.insulin}u insulin
+      {session.glucose > 0 && (
         <>
           <br />
-          {event.glucose} caps of glucose
+          {session.glucose} caps of glucose
         </>
       )}
       <Button variant="danger" onClick={onIgnoreClick}>

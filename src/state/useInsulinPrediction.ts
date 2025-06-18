@@ -4,13 +4,13 @@ import {
   getInsulin,
   getOptimalInsulinTiming,
 } from "../lib/metabolism";
-import type MetaEvent from "../models/event";
+import type Session from "../models/session";
 
 /**
  * Hook that calculates insulin-related predictions from meal state.
  */
 export default function useInsulinPrediction(
-  event: MetaEvent,
+  session: Session,
   carbs: number,
   protein: number,
   currentGlucose: number,
@@ -20,14 +20,14 @@ export default function useInsulinPrediction(
     const insulinCorrection = getCorrectionInsulin(currentGlucose);
     const totalInsulin = getInsulin(carbs, protein) + insulinCorrection;
     const insulinTimestamp = getOptimalInsulinTiming(
-      event,
+      session,
       totalInsulin,
       -2,
       12
     );
     if (mutateMeal) {
-      event.clearTestInsulins();
-      event.createTestInsulin(insulinTimestamp, totalInsulin);
+      session.clearTestInsulins();
+      session.createTestInsulin(insulinTimestamp, totalInsulin);
     }
     return {
       insulin: totalInsulin,

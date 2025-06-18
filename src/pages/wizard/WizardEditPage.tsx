@@ -1,21 +1,21 @@
 import { useNavigate } from "react-router";
 import AddedFoodsDisplay from "../../components/AddedFoodsDisplay";
 import Card from "../../components/Card";
-import EventGraph from "../../components/EventGraph";
+import SessionGraph from "../../components/SessionGraph";
 import FoodSearchDisplay from "../../components/FoodSearchDisplay";
 import GlucoseManager from "../../components/GlucoseManager";
 import InsulinManager from "../../components/InsulinManager";
 import MealAdditionalNutrients from "../../components/MealAdditionalNutrientsCard";
 import WizardManager from "../../lib/wizardManager";
 import { WizardState } from "../../models/wizardState";
-import { useWizardEvent } from "../../state/useEvent";
+import { useWizardSession } from "../../state/useSession";
 import useMeal from "../../state/useMeal";
 import { Button } from "react-bootstrap";
-import EventSummary from "../../components/EventSummary";
+import SessionSummary from "../../components/SessionSummary";
 
 export default function WizardEditPage() {
-  const event = useWizardEvent();
-  const meal = useMeal(event.latestMeal);
+  const session = useWizardSession();
+  const meal = useMeal(session.latestMeal);
 
   const navigate = useNavigate();
   function finishEdit() {
@@ -23,7 +23,7 @@ export default function WizardEditPage() {
   }
   return (
     <>
-      <h1>Edit Events</h1>
+      <h1>Edit Session Events</h1>
       <Card>
         <FoodSearchDisplay meal={meal} />
       </Card>
@@ -37,19 +37,19 @@ export default function WizardEditPage() {
       </Card>
 
       <Card>
-        <InsulinManager event={event} />
+        <InsulinManager session={session} />
       </Card>
 
       <Card>
-        <GlucoseManager event={event} />
+        <GlucoseManager session={session} />
       </Card>
 
       <Card>
-        <EventSummary event={event} />
+        <SessionSummary session={session} />
       </Card>
 
       <Card>
-        <EventGraph event={event} from={-1} />
+        <SessionGraph session={session} from={-1} />
       </Card>
 
       <div style={{ display: "flex", justifyContent: "flex-end" }}>

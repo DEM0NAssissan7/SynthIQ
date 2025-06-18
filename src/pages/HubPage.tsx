@@ -5,7 +5,7 @@ import NightscoutManager from "../lib/nightscoutManager";
 import { useEffect, useState } from "react";
 import { wizardStorage } from "../storage/wizardStore";
 import { nightscoutStore } from "../storage/nightscoutStore";
-import EventGraph from "../components/EventGraph";
+import SessionGraph from "../components/SessionGraph";
 
 enum NightscoutAuthLevel {
   Invalid,
@@ -14,7 +14,7 @@ enum NightscoutAuthLevel {
 }
 
 function HubPage() {
-  const event = wizardStorage.get("event");
+  const session = wizardStorage.get("session");
 
   const [nightscoutAuthLevel, setNightscoutAuthLevel] = useState(
     NightscoutAuthLevel.Invalid
@@ -50,7 +50,7 @@ function HubPage() {
                   WizardManager.isComplete() ? (
                     <>
                       <Card.Title>Realtime Meal Prediction</Card.Title>
-                      <EventGraph event={event} from={-1} width="100%" />
+                      <SessionGraph session={session} from={-1} width="100%" />
                       <Button variant="primary" as={Link as any} to="/wizard">
                         View Summary
                       </Button>
@@ -58,7 +58,7 @@ function HubPage() {
                   ) : (
                     <>
                       <Card.Title>Active Meal</Card.Title>
-                      <Card.Text>You have an active event</Card.Text>
+                      <Card.Text>You have an active session</Card.Text>
                       <Button variant="primary" as={Link as any} to="/wizard">
                         Continue
                       </Button>
@@ -66,9 +66,9 @@ function HubPage() {
                   )
                 ) : (
                   <>
-                    <Card.Title>Start An Event</Card.Title>
+                    <Card.Title>Start A Session</Card.Title>
                     <Card.Text>
-                      Build and interact with meals easily using our event
+                      Build and interact with meals easily using our session
                       wizard.
                     </Card.Text>
                     <Button variant="primary" as={Link as any} to="/wizard">

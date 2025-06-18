@@ -6,13 +6,13 @@ import { round } from "../../lib/util";
 import WizardManager from "../../lib/wizardManager";
 import { WizardState } from "../../models/wizardState";
 import { useNavigate } from "react-router";
-import { useWizardEvent } from "../../state/useEvent";
+import { useWizardSession } from "../../state/useSession";
 import Card from "../../components/Card";
-import EventSummary from "../../components/EventSummary";
+import SessionSummary from "../../components/SessionSummary";
 
 export default function WizardGlucosePage() {
-  const event = useWizardEvent();
-  const [currentGlucose, setCurrentGlucose] = useState(event.initialGlucose);
+  const session = useWizardSession();
+  const [currentGlucose, setCurrentGlucose] = useState(session.initialGlucose);
 
   const correction = useMemo(() => {
     return round(getGlucoseCorrectionCaps(currentGlucose), 1);
@@ -36,7 +36,7 @@ export default function WizardGlucosePage() {
     <>
       <h1>Glucose Correction</h1>
       <Card>
-        <EventSummary event={event} />
+        <SessionSummary session={session} />
       </Card>
       <Card>
         <BloodSugarInput

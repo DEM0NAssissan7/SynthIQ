@@ -1,35 +1,31 @@
 import { useState } from "react";
-import type Insulin from "../models/insulin";
+import type Insulin from "../models/events/insulin";
 import { getMinuteDiff, getTimestampFromOffset } from "../lib/timing";
-import type MetaEvent from "../models/event";
+import type Session from "../models/session";
 
-export default function useInsulin(insulin: Insulin, event: MetaEvent) {
+export default function useInsulin(insulin: Insulin, session: Session) {
   const [, setVersion] = useState(0);
   const rerender = () => setVersion((v) => v + 1);
-  const notify = () => {
-    event.notify();
-    rerender();
-  };
-  let offset = getMinuteDiff(insulin.timestamp, event.latestMealTimestamp);
+  let offset = getMinuteDiff(insulin.timestamp, session.latestMealTimestamp);
   return {
     units: insulin.units,
     timestamp: insulin.timestamp,
     offset: offset,
     setUnits: (units: number) => {
       insulin.units = units;
-      notify();
+      rerender();
     },
     setTimestamp: (timestamp: Date) => {
       insulin.timestamp = timestamp;
-      notify();
+      rerender();
     },
     setTimestampFromOffset: (minutes: number) => {
       offset = minutes; // This is kinda cheating, but it helps with the text box
       insulin.timestamp = getTimestampFromOffset(
-        event.latestMealTimestamp,
+        session.latestMealTimestamp,
         minutes / 60
       );
-      notify();
+      rerender();
     },
   };
 }

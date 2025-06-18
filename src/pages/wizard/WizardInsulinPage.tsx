@@ -6,24 +6,24 @@ import { useNavigate } from "react-router";
 import { WizardState } from "../../models/wizardState";
 import useInsulinPrediction from "../../state/useInsulinPrediction";
 import useVersion from "../../state/useVersion";
-import EventPredictedSugarGraphCard from "../../components/EventPredictedSugarGraphCard";
+import SessionPredictedSugarGraphCard from "../../components/SessionPredictedSugarGraphCard";
 import { getMinuteDiff, getPrettyTime } from "../../lib/timing";
-import { useWizardEvent } from "../../state/useEvent";
+import { useWizardSession } from "../../state/useSession";
 import { useWizardMeal } from "../../state/useMeal";
-import EventSummary from "../../components/EventSummary";
+import SessionSummary from "../../components/SessionSummary";
 
 export default function WizardInsulinPage() {
   const navigate = useNavigate();
-  const event = useWizardEvent();
+  const session = useWizardSession();
   const meal = WizardManager.getMealMarked()
-    ? event.latestMeal
+    ? session.latestMeal
     : useWizardMeal();
 
   const { insulin: suggestedInsulin, insulinTimestamp } = useInsulinPrediction(
-    event,
+    session,
     meal.carbs,
     meal.protein,
-    event.initialGlucose,
+    session.initialGlucose,
     false
   );
 
@@ -34,7 +34,7 @@ export default function WizardInsulinPage() {
       if (
         confirm(`Confirm that you have taken ${insulinTaken} units of insulin`)
       ) {
-        event.clearTestInsulins();
+        session.clearTestInsulins();
         WizardManager.markInsulin(insulinTaken);
         WizardManager.moveToPage(
           WizardManager.getMealMarked()
@@ -49,10 +49,10 @@ export default function WizardInsulinPage() {
   };
 
   //
-  function cancelEvent() {
+  function cancelSession() {
     if (
       confirm(
-        "Are you sure you want to cancel the entire event? This will discard all data you've inputted so far for this event."
+        "Are you sure you want to discard the entire session? This will delete all data you've inputted so far for this session."
       )
     ) {
       WizardManager.resetWizard(navigate);
@@ -77,8 +77,8 @@ export default function WizardInsulinPage() {
 
   // We show the user what we predict if they take insulin now
   useEffect(() => {
-    event.clearTestInsulins();
-    event.createTestInsulin(
+    session.clearTestInsulins();
+    session.createTestInsulin(
       new Date(),
       insulinTaken ? insulinTaken : suggestedInsulin
     );
@@ -109,9 +109,9 @@ export default function WizardInsulinPage() {
         </p>
       )}
       <hr />
-      <EventSummary event={event} />
+      <SessionSummary session={session} />
       <hr />
-      <EventPredictedSugarGraphCard event={event} />
+      <SessionPredictedSugarGraphCard session={session} />
       <InputGroup className="mb-3">
         <InputGroup.Text id="basic-addon1">
           <i className="bi bi-capsule"></i>
@@ -143,8 +143,8 @@ export default function WizardInsulinPage() {
           !(
             WizardManager.getMealMarked() && WizardManager.getInsulinMarked()
           ) && (
-            <Button variant="danger" onClick={cancelEvent}>
-              Cancel Event
+            <Button variant="danger" onClick={cancelSession}>
+              Cancel Session
             </Button>
           )}
         <Button variant="primary" onClick={markInsulin}>

@@ -8,35 +8,35 @@ import BloodSugarInput from "../../components/BloodSugarInput";
 import Unit from "../../models/unit";
 import useInsulinPrediction from "../../state/useInsulinPrediction";
 import MealAdditionalNutrients from "../../components/MealAdditionalNutrientsCard";
-import EventPredictedSugarGraphCard from "../../components/EventPredictedSugarGraphCard";
+import SessionPredictedSugarGraphCard from "../../components/SessionPredictedSugarGraphCard";
 import { useWizardMeal } from "../../state/useMeal";
 import { getHourDiff, getPrettyTimeDiff } from "../../lib/timing";
-import { useWizardEvent } from "../../state/useEvent";
+import { useWizardSession } from "../../state/useSession";
 import Card from "../../components/Card";
 import FoodSearchDisplay from "../../components/FoodSearchDisplay";
 import AddedFoodsDisplay from "../../components/AddedFoodsDisplay";
 import NightscoutManager from "../../lib/nightscoutManager";
 import CustomMealSearch from "../../components/CustomMealSearch";
 import { setWizardMeal } from "../../storage/wizardStore";
-import type Meal from "../../models/meal";
+import type Meal from "../../models/events/meal";
 
 export default function WizardMealPage() {
-  const event = useWizardEvent();
+  const session = useWizardSession();
   const meal = useWizardMeal();
 
   // Predictions
   const { insulin, insulinTimestamp, insulinCorrection } = useInsulinPrediction(
-    event,
+    session,
     meal.carbs,
     meal.protein,
-    event.initialGlucose,
+    session.initialGlucose,
     true
   );
 
   // Continue Buttons
   const takeInsulinFirst = useMemo(() => {
     return getHourDiff(new Date(), insulinTimestamp) >= 0;
-  }, [meal.carbs, meal.protein, event.initialGlucose]);
+  }, [meal.carbs, meal.protein, session.initialGlucose]);
 
   const navigate = useNavigate();
   function takeInsulin() {
@@ -52,13 +52,13 @@ export default function WizardMealPage() {
   // Upon Startup
   useEffect(() => {
     // We intentionally assign the timestamp directly so that we do not trigger notify()
-    if (!WizardManager.getMealMarked()) meal.timestamp = new Date();
+    if (!WizardManager.getMealMarked()) meal._timestamp = new Date();
   });
 
   // We add the meal to the testmeals upon change
   useEffect(() => {
-    event.clearTests();
-    event.addTestMeal(meal);
+    session.clearTests();
+    session.addTestMeal(meal);
     NightscoutManager.loadCustomMeals();
   }, []);
 
@@ -119,16 +119,16 @@ export default function WizardMealPage() {
           )}
           <ListGroup.Item>
             <BloodSugarInput
-              initialGlucose={event.initialGlucose}
+              initialGlucose={session.initialGlucose}
               setInitialGlucose={(g) => {
-                if (!WizardManager.getMealMarked()) event.initialGlucose = g;
+                if (!WizardManager.getMealMarked()) session.initialGlucose = g;
               }}
             />
           </ListGroup.Item>
         </ListGroup>
       </Card>
 
-      <EventPredictedSugarGraphCard event={event} />
+      <SessionPredictedSugarGraphCard session={session} />
 
       <div className="d-flex justify-content-end">
         <Button

@@ -1,17 +1,17 @@
 import { Button } from "react-bootstrap";
-import ProfilerEventDisplay from "../components/ProfilerEventDisplay";
+import ProfilerSessionDisplay from "../components/ProfilerSessionDisplay";
 import ProfileSlider from "../components/ProfileSlider";
-import useImportedMetaEventsState from "../state/useImportedMetaEventsState";
+import useImportedSessionsState from "../state/useImportedSessionsState";
 import useProfileState from "../state/useProfileState";
 import NightscoutManager from "../lib/nightscoutManager";
 
 export default function ProfilerPage() {
-  const { importedEvents, clearIgnoredEvents, ignoreEvent } =
-    useImportedMetaEventsState();
+  const { importedSessions, clearIgnoredSessions, ignoreSession } =
+    useImportedSessionsState();
   const profile = useProfileState();
 
   function updateViews() {
-    importedEvents.forEach((event) => event.notify());
+    importedSessions.forEach((session) => session.notify());
     NightscoutManager.storeMetaProfile();
   }
   function pullNightscoutProfile() {
@@ -117,19 +117,19 @@ export default function ProfilerPage() {
           />
         </div>
 
-        <div id="events">
-          <Button variant="secondary" onClick={clearIgnoredEvents}>
+        <div id="sessions">
+          <Button variant="secondary" onClick={clearIgnoredSessions}>
             Unhide All
           </Button>
-          {importedEvents.map((event, i) => (
-            <ProfilerEventDisplay
-              event={event}
+          {importedSessions.map((session, i) => (
+            <ProfilerSessionDisplay
+              session={session}
               key={i}
-              ignoreEvent={ignoreEvent}
+              ignoreSession={ignoreSession}
               from={-1}
               until={
-                event.endTimestamp
-                  ? Math.floor(event.getN(event.endTimestamp)) + 1
+                session.endTimestamp
+                  ? Math.floor(session.getN(session.endTimestamp)) + 1
                   : 16
               }
             />

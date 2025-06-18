@@ -1,12 +1,21 @@
-import { profile } from "../storage/metaProfileStore";
+import { profile } from "../../storage/metaProfileStore";
+import MetaEvent from "./metaEvent";
 
-export default class Glucose {
-  caps: number;
-  timestamp: Date;
+export default class Glucose extends MetaEvent {
+  _caps: number;
   constructor(timestamp: Date, caps: number) {
-    this.caps = caps;
-    this.timestamp = timestamp;
+    super(timestamp);
+    this._caps = caps;
   }
+
+  set caps(c: number) {
+    this._caps = c;
+    this.notify();
+  }
+  get caps(): number {
+    return this._caps;
+  }
+
   deltaBG(t: number): number {
     return profile.glucose.deltaBG(t, this.caps);
   }

@@ -1,22 +1,39 @@
-import { profile } from "../storage/metaProfileStore";
+import { profile } from "../../storage/metaProfileStore";
+import MetaEvent from "./metaEvent";
 
 export enum InsulinType {
   Regular,
   Novolog,
 }
-export default class Insulin {
-  units: number;
-  timestamp: Date;
-  type: InsulinType;
+export default class Insulin extends MetaEvent {
+  _units: number;
+  _type: InsulinType;
   constructor(
     timestamp: Date,
     units: number,
     type: InsulinType = InsulinType.Regular
   ) {
-    this.timestamp = timestamp;
-    this.units = units;
-    this.type = type;
+    super(timestamp);
+    this._units = units;
+    this._type = type;
   }
+
+  set units(u: number) {
+    this._units = u;
+    this.notify();
+  }
+  get units(): number {
+    return this._units;
+  }
+
+  set type(t: InsulinType) {
+    this._type = t;
+    this.notify();
+  }
+  get type() {
+    return this._type;
+  }
+
   deltaBG(t: number): number {
     // Change in blood sugar over time
     return profile.insulin.deltaBG(t, this.units);
