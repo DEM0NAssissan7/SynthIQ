@@ -14,7 +14,7 @@ export default function InsulinManager({ event }: InsulinManagerProps) {
   return (
     <ListGroup>
       <Form.Label>Insulin Shots</Form.Label>
-      <Button variant="primary" onClick={addInsulin}>
+      <Button variant="primary" onClick={addInsulin} className="mb-3">
         Add
       </Button>
       {event.insulins.map((insulin: Insulin, i: number) => {
