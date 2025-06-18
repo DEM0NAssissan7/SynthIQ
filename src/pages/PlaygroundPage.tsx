@@ -58,7 +58,7 @@ export default function PlaygroundPage() {
 
       <Card>
         <Form.Label>Graph</Form.Label>
-        <EventGraph event={event} from={-1} until={14} />
+        <EventGraph event={event} from={-1} until={12} />
       </Card>
     </>
   );
