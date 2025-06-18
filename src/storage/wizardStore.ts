@@ -25,9 +25,12 @@ wizardStorage.get("event").subscribe(() => {
 });
 
 // Meal Persistence
+const mealStorageWriteHandler = () => wizardStorage.write("meal");
+export function setWizardMeal(meal: Meal) {
+  wizardStorage.get("meal").unsubscribe(mealStorageWriteHandler);
+  meal.subscribe(mealStorageWriteHandler);
+  wizardStorage.set("meal", meal);
+}
 const meal = new Meal(new Date());
-const mealStorageName = "meal";
-wizardStorage.add(mealStorageName, meal, Meal.parse, Meal.stringify);
-wizardStorage.get(mealStorageName).subscribe(() => {
-  wizardStorage.write(mealStorageName);
-});
+wizardStorage.add("meal", meal, Meal.parse, Meal.stringify);
+setWizardMeal(wizardStorage.get("meal") as Meal);
