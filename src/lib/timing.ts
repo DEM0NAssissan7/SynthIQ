@@ -20,8 +20,8 @@ export function getMinuteDiff(timestampA: Date, timestampB: Date): number {
 }
 
 export function getTimestampFromOffset(timestamp: Date, hours: number): Date {
-  let unixTimestamp = timestamp.getTime();
-  let offsetMillis =
+  const unixTimestamp = timestamp.getTime();
+  const offsetMillis =
     hours * convertDimensions(Unit.Time.Hour, Unit.Time.Millis);
   return new Date(unixTimestamp + offsetMillis);
 }
