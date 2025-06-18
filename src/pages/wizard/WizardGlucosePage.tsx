@@ -51,7 +51,6 @@ export default function WizardGlucosePage() {
             placeholder={correction.toString()}
             aria-label="URL"
             aria-describedby="basic-addon1"
-            value={capsTaken || ""}
             onChange={(e: any) => {
               const val = parseFloat(e.target.value);
               if (!isNaN(val)) setCapsTaken(val);
