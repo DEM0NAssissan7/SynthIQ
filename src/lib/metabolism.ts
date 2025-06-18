@@ -38,7 +38,6 @@ export function getOptimalInsulinTiming(
     const testTime = getTimestampFromOffset(event.latestMealTimestamp, n);
 
     // Insulin
-    event.testInsulins = []; // Get rid of all previous insulisn
     event.testInsulins = [new Insulin(testTime, unitsInsulin)]; // We intentionally push directly to the insulins array to prevent notifying subscribers (and causing potential lag)
 
     let funcMax = -Infinity;
