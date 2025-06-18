@@ -9,6 +9,7 @@ import useVersion from "../../state/useVersion";
 import EventPredictedSugarGraphCard from "../../components/EventPredictedSugarGraphCard";
 import { getMinuteDiff, getPrettyTime } from "../../lib/timing";
 import { useWizardEvent } from "../../state/useEvent";
+import EventSummary from "../../components/EventSummary";
 
 export default function WizardInsulinPage() {
   const navigate = useNavigate();
@@ -107,26 +108,8 @@ export default function WizardInsulinPage() {
           .
         </p>
       )}
-      {WizardManager.getMealMarked() && (
-        <p>
-          {timeEaten < 30 ? (
-            <>
-              You ate <b>{timeEaten} minutes</b> ago.
-            </>
-          ) : (
-            <>
-              You ate at <b>{getPrettyTime(event.timestamp)}</b>.
-            </>
-          )}
-        </p>
-      )}
-      {WizardManager.getInsulinMarked() && (
-        <p>
-          You have already taken <b>{event.insulin} units</b> of insulin. <br />
-          Your last dose was at{" "}
-          <b>{getPrettyTime(event.latestInsulinTimestamp)}</b>.
-        </p>
-      )}
+      <hr />
+      <EventSummary event={event} />
       <EventPredictedSugarGraphCard event={event} />
       <InputGroup className="mb-3">
         <InputGroup.Text id="basic-addon1">
