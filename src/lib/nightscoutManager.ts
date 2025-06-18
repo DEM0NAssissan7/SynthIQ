@@ -179,7 +179,7 @@ class NightscoutManager {
     this.post(
       "treatments",
       {
-        notes: `${carbs}/${protein}`,
+        notes: `${carbs}g / ${protein}g`,
         carbs: carbs,
         protein: protein,
         eventType: mealEventType,
