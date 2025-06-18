@@ -7,7 +7,7 @@ import { useNavigate } from "react-router";
 import BloodSugarInput from "../../components/BloodSugarInput";
 import Unit from "../../models/unit";
 import useInsulinPrediction from "../../state/useInsulinPrediction";
-import MealSearchCard from "../../components/MealSearchCard";
+import FoodSearchCard from "../../components/FoodSearchCard";
 import MealAddedFoodsListCard from "../../components/MealAddedFoodsListCard";
 import MealAdditionalNutrientsCard from "../../components/MealAdditionalNutrientsCard";
 import EventPredictedSugarGraphCard from "../../components/EventPredictedSugarGraphCard";
@@ -61,7 +61,7 @@ export default function WizardMealPage() {
     <>
       <h1 className="mb-3">Meal Creation</h1>
 
-      <MealSearchCard meal={meal} />
+      <FoodSearchCard meal={meal} />
 
       <MealAddedFoodsListCard meal={meal} />
 

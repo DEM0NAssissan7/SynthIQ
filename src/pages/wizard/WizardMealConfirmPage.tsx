@@ -10,7 +10,7 @@ import { useEffect, useMemo } from "react";
 import EventPredictedSugarGraphCard from "../../components/EventPredictedSugarGraphCard";
 import MealAddedFoodsListCard from "../../components/MealAddedFoodsListCard";
 import MealAdditionalNutrientsCard from "../../components/MealAdditionalNutrientsCard";
-import MealSearchCard from "../../components/MealSearchCard";
+import FoodSearchCard from "../../components/FoodSearchCard";
 import useVersion from "../../state/useVersion";
 import { useWizardMeal } from "../../state/useMeal";
 import {
@@ -83,7 +83,7 @@ export default function WizardMealConfirmPage() {
     <>
       <h1 className="mb-3">Meal Confirmation</h1>
 
-      <MealSearchCard meal={meal} />
+      <FoodSearchCard meal={meal} />
 
       <MealAddedFoodsListCard meal={meal} />
 

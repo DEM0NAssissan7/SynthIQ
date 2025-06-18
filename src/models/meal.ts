@@ -13,6 +13,7 @@ function createFatOffset() {
 class Meal {
   timestamp: Date;
   subscriptions: (() => void)[] = [];
+  name: string;
 
   foods: Food[] = [
     createCarbsOffset(), // Carbs offset food
@@ -20,9 +21,10 @@ class Meal {
     createFatOffset(), // Fat offset food
   ];
 
-  constructor(timestamp: Date) {
+  constructor(timestamp: Date, name?: string) {
     // This timestamp marks when eating _begins_
     this.timestamp = timestamp;
+    this.name = name ? name : "";
   }
 
   // Subscriptions

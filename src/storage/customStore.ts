@@ -1,6 +1,6 @@
 /* This is where we store custom meals, foods, etc. */
 import StorageNode from "../lib/storageNode";
-import Food from "../models/food";
+import Food, { foods } from "../models/food";
 import Meal from "../models/meal";
 
 export const customStore = new StorageNode("custom");
@@ -28,3 +28,7 @@ customStore.add(
     return JSON.stringify(foodArray);
   }
 );
+const customFoods = customStore.get("foods") as Food[];
+customFoods.forEach((f: any) => {
+  foods.push(f);
+});
