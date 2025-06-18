@@ -21,7 +21,7 @@ wizardStorage.add(
   MetaEvent.stringify
 );
 wizardStorage.get("event").subscribe(() => {
-  wizardStorage.write(mealStorageName);
+  wizardStorage.write("event");
 });
 
 // Meal Persistence
