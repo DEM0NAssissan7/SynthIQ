@@ -95,7 +95,7 @@ export default function WizardSummaryPage() {
           Edit Session
         </Button>
         <Button variant="secondary" onClick={startNew}>
-          Start New Meal
+          Start New Session
         </Button>
       </div>
     </>
