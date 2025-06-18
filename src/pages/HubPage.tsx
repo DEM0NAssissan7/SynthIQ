@@ -50,12 +50,7 @@ function HubPage() {
                   WizardManager.isComplete() ? (
                     <>
                       <Card.Title>Realtime Meal Prediction</Card.Title>
-                      <EventGraph
-                        event={event}
-                        from={-1}
-                        until={10}
-                        width="100%"
-                      />
+                      <EventGraph event={event} from={-1} width="100%" />
                       <Button variant="primary" as={Link as any} to="/wizard">
                         View Summary
                       </Button>

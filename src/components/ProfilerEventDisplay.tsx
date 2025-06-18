@@ -8,7 +8,7 @@ interface ProfilerEventDisplayProps {
   event: MetaEvent;
   ignoreEvent: (a: MetaEvent) => void;
   from: number;
-  until: number;
+  until?: number;
   width?: string | number;
   height?: string | number;
   ymin?: string | number;

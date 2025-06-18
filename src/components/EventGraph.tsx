@@ -11,7 +11,7 @@ import type MetaEvent from "../models/event";
 interface EventGraphProps {
   event: MetaEvent;
   from: number;
-  until: number;
+  until?: number;
   width?: string | number;
   height?: string | number;
   ymin?: string | number;
@@ -25,16 +25,21 @@ function EventGraph({ event, from, until, width, height }: EventGraphProps) {
     new MathSeries(Color.Blue, [])
   );
 
+  const minXmax = 12;
+  const xmax = useMemo(() => {
+    return until || Math.max(Math.floor(event.getN(new Date())) + 2, minXmax);
+  }, [until, event]);
+
   const [version, setVersion] = useState(0);
   const rerender = () => setVersion((v) => v + 1); // force re-render
 
   useEffect(() => {
     // Update the reading series
-    setReadingSeries(event.getReadingSeries(from, until));
+    setReadingSeries(event.getReadingSeries(from, xmax));
 
     const eventGraphHandler = () => {
       requestAnimationFrame(() => {
-        setPredictionSeries(event.getPredictionSeries(from, until));
+        setPredictionSeries(event.getPredictionSeries(from, xmax));
         rerender();
       });
     };
@@ -100,7 +105,7 @@ function EventGraph({ event, from, until, width, height }: EventGraphProps) {
       lines={lines}
       ymin={60}
       xmin={from}
-      xmax={until}
+      xmax={xmax}
       width={width}
       height={height}
     ></Graph>

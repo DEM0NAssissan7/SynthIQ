@@ -17,10 +17,6 @@ export default function WizardEditPage() {
   const event = useWizardEvent();
   const meal = useMeal(event.latestMeal);
 
-  function getGraphSize(): number {
-    return Math.max(Math.floor(event.getN(new Date())) + 1, 5);
-  }
-
   const navigate = useNavigate();
   function finishEdit() {
     WizardManager.moveToPage(WizardState.Summary, navigate);
@@ -51,7 +47,7 @@ export default function WizardEditPage() {
       </Card>
 
       <Card>
-        <EventGraph event={event} from={-1} until={getGraphSize()} />
+        <EventGraph event={event} from={-1} />
       </Card>
 
       <div style={{ display: "flex", justifyContent: "flex-end" }}>

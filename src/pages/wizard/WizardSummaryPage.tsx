@@ -69,13 +69,7 @@ export default function WizardSummaryPage() {
         <p>
           Watch in real-time how your blood sugars compare with our predictions.
         </p>
-        <EventGraph
-          event={event}
-          from={-1}
-          until={16}
-          width="100%"
-          height={300}
-        />
+        <EventGraph event={event} from={-1} width="100%" height={300} />
       </Card>
       <div
         style={{
