@@ -110,6 +110,7 @@ export default function WizardInsulinPage() {
       )}
       <hr />
       <EventSummary event={event} />
+      <hr />
       <EventPredictedSugarGraphCard event={event} />
       <InputGroup className="mb-3">
         <InputGroup.Text id="basic-addon1">

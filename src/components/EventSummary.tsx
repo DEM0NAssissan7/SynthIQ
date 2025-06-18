@@ -2,7 +2,7 @@ import { getPrettyTime } from "../lib/timing";
 import { round } from "../lib/util";
 import type MetaEvent from "../models/event";
 import { useMemo } from "react";
-import { getInsulin } from "../lib/metabolism";
+import { getCorrectionInsulin, getInsulin } from "../lib/metabolism";
 
 interface EventSummaryProps {
   event: MetaEvent;
@@ -16,8 +16,11 @@ export default function EventSummary({ event }: EventSummaryProps) {
 
   return (
     <>
+      Initial blood sugar: {round(event.initialGlucose, 2)}mg/dL (
+      {round(getCorrectionInsulin(event.initialGlucose), 1)}u correction)
       {(event.carbs !== 0 || event.protein !== 0) && (
         <>
+          <hr />
           Meal eaten at {getPrettyTime(event.latestMealTimestamp)}
           <br />
           {round(event.carbs, 2)}g carbs
