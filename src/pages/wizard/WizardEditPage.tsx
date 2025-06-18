@@ -1,15 +1,64 @@
+import { useNavigate } from "react-router";
 import AddedFoodsDisplay from "../../components/AddedFoodsDisplay";
+import Card from "../../components/Card";
+import EventGraph from "../../components/EventGraph";
 import FoodSearchDisplay from "../../components/FoodSearchDisplay";
-import { useWizardMeal } from "../../state/useMeal";
+import GlucoseManager from "../../components/GlucoseManager";
+import InsulinManager from "../../components/InsulinManager";
+import MealAdditionalNutrientsCard from "../../components/MealAdditionalNutrientsCard";
+import WizardManager from "../../lib/wizardManager";
+import { WizardState } from "../../models/wizardState";
+import { useWizardEvent } from "../../state/useEvent";
+import useMeal from "../../state/useMeal";
+import { Button } from "react-bootstrap";
+import EventSummary from "../../components/EventSummary";
 
 export default function WizardEditPage() {
-  const meal = useWizardMeal();
+  const event = useWizardEvent();
+  const meal = useMeal(event.latestMeal);
+
+  function getGraphSize(): number {
+    return Math.max(Math.floor(event.getN(new Date())) + 1, 5);
+  }
+
+  const navigate = useNavigate();
+  function finishEdit() {
+    WizardManager.moveToPage(WizardState.Summary, navigate);
+  }
   return (
     <>
-      <h1>Edit Meal</h1>
-      <FoodSearchDisplay meal={meal} />
+      <h1>Edit Events</h1>
+      <Card>
+        <FoodSearchDisplay meal={meal} />
+      </Card>
 
-      <AddedFoodsDisplay meal={meal} />
+      <Card>
+        <AddedFoodsDisplay meal={meal} />
+      </Card>
+
+      <MealAdditionalNutrientsCard meal={meal} />
+
+      <Card>
+        <InsulinManager event={event} />
+      </Card>
+
+      <Card>
+        <GlucoseManager event={event} />
+      </Card>
+
+      <Card>
+        <EventSummary event={event} />
+      </Card>
+
+      <Card>
+        <EventGraph event={event} from={-1} until={getGraphSize()} />
+      </Card>
+
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <Button variant="primary" onClick={finishEdit}>
+          Done
+        </Button>
+      </div>
     </>
   );
 }
