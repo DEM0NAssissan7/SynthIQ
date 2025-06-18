@@ -47,6 +47,7 @@ export default class MetaEvent {
   // Meals
   addMeal(meal: Meal): void {
     this.meals.push(meal);
+    meal.subscribe(() => this.notify()); // Notify the event subscribers when the meal changes
     this.notify();
   }
   removeMeal(meal: Meal) {
@@ -71,6 +72,10 @@ export default class MetaEvent {
   get latestMealTimestamp(): Date {
     if (this.meals.length === 0) return this.timestamp;
     return this.meals[this.meals.length - 1].timestamp;
+  }
+  get latestMeal(): Meal {
+    if (this.meals.length === 0) throw new Error("No meals found in event");
+    return this.meals[this.meals.length - 1];
   }
 
   // Insulins
