@@ -10,6 +10,7 @@ import MetaEvent from "../models/event";
 import GlucoseManager from "../components/GlucoseManager";
 import Card from "../components/Card";
 import { Form } from "react-bootstrap";
+import MealAdditionalNutrientsCard from "../components/MealAdditionalNutrientsCard";
 
 let playgroundMeal = new Meal(new Date());
 let playgroundEvent = new MetaEvent(false);
@@ -44,6 +45,8 @@ export default function PlaygroundPage() {
       <Card>
         <AddedFoodsDisplay meal={meal} />
       </Card>
+
+      <MealAdditionalNutrientsCard meal={meal} />
 
       <Card>
         <InsulinManager event={event} />
