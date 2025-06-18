@@ -7,6 +7,8 @@ import WizardManager from "../../lib/wizardManager";
 import { WizardState } from "../../models/wizardState";
 import { useNavigate } from "react-router";
 import { useWizardEvent } from "../../state/useEvent";
+import Card from "../../components/Card";
+import EventSummary from "../../components/EventSummary";
 
 export default function WizardGlucosePage() {
   const event = useWizardEvent();
@@ -33,27 +35,32 @@ export default function WizardGlucosePage() {
   return (
     <>
       <h1>Glucose Correction</h1>
-      <BloodSugarInput
-        initialGlucose={currentGlucose}
-        setInitialGlucose={setCurrentGlucose}
-      />
-      <InputGroup className="mb-3">
-        <InputGroup.Text id="basic-addon1">
-          <i className="bi bi-capsule"></i>
-        </InputGroup.Text>
-        <Form.Control
-          placeholder={correction.toString()}
-          aria-label="URL"
-          aria-describedby="basic-addon1"
-          value={capsTaken || ""}
-          onChange={(e: any) => {
-            const val = parseFloat(e.target.value);
-            if (!isNaN(val)) setCapsTaken(val);
-            else setCapsTaken(0);
-          }}
+      <Card>
+        <EventSummary event={event} />
+      </Card>
+      <Card>
+        <BloodSugarInput
+          initialGlucose={currentGlucose}
+          setInitialGlucose={setCurrentGlucose}
         />
-        <InputGroup.Text id="basic-addon1">caps</InputGroup.Text>
-      </InputGroup>
+        <InputGroup className="mb-3">
+          <InputGroup.Text id="basic-addon1">
+            <i className="bi bi-capsule"></i>
+          </InputGroup.Text>
+          <Form.Control
+            placeholder={correction.toString()}
+            aria-label="URL"
+            aria-describedby="basic-addon1"
+            value={capsTaken || ""}
+            onChange={(e: any) => {
+              const val = parseFloat(e.target.value);
+              if (!isNaN(val)) setCapsTaken(val);
+              else setCapsTaken(0);
+            }}
+          />
+          <InputGroup.Text id="basic-addon1">caps</InputGroup.Text>
+        </InputGroup>
+      </Card>
       <div style={{ display: "flex", justifyContent: "space-between" }}>
         <Button variant="secondary" onClick={goBack}>
           Go Back
