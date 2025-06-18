@@ -7,7 +7,7 @@ import MetabolismProfile from "../models/metabolism/metabolismProfile";
 import RequestType from "../models/requestType";
 import RequestQueue from "../models/requestQueue";
 import MetaEvent from "../models/event";
-import { customStore } from "../storage/customStore";
+import { customStore, setCustomFoods } from "../storage/customStore";
 import Food from "../models/food";
 
 const selfID = "SynthIQ";
@@ -289,12 +289,11 @@ class NightscoutManager {
      */
     this.getProfile().then((a) => {
       if (a.customFoods) {
-        customStore.set("foods", []); // Clear the custom foods store
-        const customFoods = customStore.get("foods") as Food[];
+        const foods: Food[] = [];
         a.customFoods.forEach((f: any) => {
-          customFoods.push(Food.parse(f));
+          foods.push(Food.parse(f));
         });
-        customStore.write("foods");
+        setCustomFoods(foods);
       }
     });
   }

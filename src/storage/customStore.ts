@@ -1,4 +1,5 @@
 /* This is where we store custom meals, foods, etc. */
+import NightscoutManager from "../lib/nightscoutManager";
 import StorageNode from "../lib/storageNode";
 import Food, { foods } from "../models/food";
 import Meal from "../models/meal";
@@ -16,6 +17,8 @@ customStore.add(
     return JSON.stringify(mealArray);
   }
 );
+
+// Custom Foods
 customStore.add(
   "foods",
   [],
@@ -28,7 +31,26 @@ customStore.add(
     return JSON.stringify(foodArray);
   }
 );
-const customFoods = customStore.get("foods") as Food[];
+let customFoods = customStore.get("foods") as Food[];
 customFoods.forEach((f: any) => {
   foods.push(f);
 });
+function syncCustomFoods() {
+  customStore.write("foods");
+  NightscoutManager.storeCustomFoods();
+}
+export function addCustomFood(food: Food) {
+  customFoods.push(food);
+  foods.push(food);
+  syncCustomFoods();
+}
+export function removeCustomFood(food: Food) {
+  customFoods.splice(customFoods.indexOf(food), 1);
+  foods.splice(foods.indexOf(food), 1);
+  syncCustomFoods();
+}
+export function setCustomFoods(foods: Food[], sync: boolean = false) {
+  customStore.set("foods", foods);
+  customFoods = customStore.get("foods");
+  if (sync) NightscoutManager.storeCustomFoods();
+}

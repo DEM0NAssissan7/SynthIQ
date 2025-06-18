@@ -1,8 +1,12 @@
 import { Button, Form, ListGroup } from "react-bootstrap";
 import Card from "../components/Card";
 import FoodDisplay from "../components/FoodDisplay";
-import Food, { foods } from "../models/food";
-import { customStore } from "../storage/customStore";
+import Food from "../models/food";
+import {
+  addCustomFood,
+  customStore,
+  removeCustomFood,
+} from "../storage/customStore";
 import { useEffect, useMemo, useState, type BaseSyntheticEvent } from "react";
 import Unit, { getFoodUnitPrettyName } from "../models/unit";
 import { defaultGI } from "../models/metabolism/carbsProfile";
@@ -31,11 +35,9 @@ export default function CustomFoodsPage() {
     return getFoodUnitPrettyName(unit);
   }, [unit]);
 
-  function updateFoodState(upload: boolean = true) {
-    customStore.write("foods");
+  function updateFoodState() {
     setCustomFoodsState(customStore.get("foods") as Food[]);
     rerender();
-    if (upload) NightscoutManager.storeCustomFoods();
   }
   function resetStates() {
     setFoodName("");
@@ -51,26 +53,22 @@ export default function CustomFoodsPage() {
       return;
     }
     const food = new Food(foodName, carbsRate, proteinRate, unit, GI, fatRate);
-    const customFoods = customStore.get("foods") as Food[];
-    customFoods.push(food);
-    foods.push(food); // Also add to the global foods list in runtime
+    addCustomFood(food);
     updateFoodState();
     resetStates();
     console.log(`Added ${foodName} to custom foods.`);
   }
   function removeFood(food: Food) {
     if (confirm(`Are you sure you want to remove '${food.name}'?`)) {
-      const customFoods = customStore.get("foods") as Food[];
-      customFoods.splice(customFoods.indexOf(food), 1);
+      removeCustomFood(food);
       updateFoodState();
-      foods.splice(foods.indexOf(food), 1); // Also remove from the global foods list in runtime
       console.log(`Removed ${food.name} from custom foods.`);
     }
   }
 
   useEffect(() => {
     NightscoutManager.loadCustomFoods().then(() => {
-      updateFoodState(false);
+      updateFoodState();
     });
   }, []);
 
