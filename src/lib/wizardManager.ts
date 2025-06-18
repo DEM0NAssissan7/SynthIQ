@@ -43,7 +43,7 @@ export default class WizardManager {
       const event: MetaEvent = wizardStorage.get("event");
       const timestamp = new Date();
 
-      meal.timestamp = timestamp; // We intentionally set the timestamp directly as to not notify meal subscribers
+      meal.timestamp = timestamp;
       event.addMeal(meal); // Add the meal to the event
       event.clearTests(); // Clear all test stuff on the event
 
