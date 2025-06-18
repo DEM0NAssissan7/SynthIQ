@@ -1,6 +1,6 @@
 /** This is the meal page that appears if you take insulin before eating */
 
-import { Button, ListGroup } from "react-bootstrap";
+import { Button, Form, ListGroup } from "react-bootstrap";
 import { round } from "../../lib/util";
 import WizardManager from "../../lib/wizardManager";
 import { WizardState } from "../../models/wizardState";
@@ -8,9 +8,7 @@ import { useNavigate } from "react-router";
 import useInsulinPrediction from "../../state/useInsulinPrediction";
 import { useEffect, useMemo } from "react";
 import EventPredictedSugarGraphCard from "../../components/EventPredictedSugarGraphCard";
-import MealAddedFoodsListCard from "../../components/MealAddedFoodsListCard";
-import MealAdditionalNutrientsCard from "../../components/MealAdditionalNutrientsCard";
-import FoodSearchCard from "../../components/FoodSearchCard";
+import MealAdditionalNutrients from "../../components/MealAdditionalNutrientsCard";
 import useVersion from "../../state/useVersion";
 import { useWizardMeal } from "../../state/useMeal";
 import {
@@ -20,6 +18,8 @@ import {
 } from "../../lib/timing";
 import { useWizardEvent } from "../../state/useEvent";
 import Card from "../../components/Card";
+import FoodSearchDisplay from "../../components/FoodSearchDisplay";
+import AddedFoodsDisplay from "../../components/AddedFoodsDisplay";
 
 export default function WizardMealConfirmPage() {
   // Use the meal state
@@ -83,11 +83,18 @@ export default function WizardMealConfirmPage() {
     <>
       <h1 className="mb-3">Meal Confirmation</h1>
 
-      <FoodSearchCard meal={meal} />
+      <Card>
+        <FoodSearchDisplay meal={meal} />
+      </Card>
 
-      <MealAddedFoodsListCard meal={meal} />
+      <Card>
+        <AddedFoodsDisplay meal={meal} />
+      </Card>
 
-      <MealAdditionalNutrientsCard meal={meal} />
+      <Card>
+        <Form.Label>Additional Nutrition</Form.Label>
+        <MealAdditionalNutrients meal={meal} />
+      </Card>
 
       <Card>
         <ListGroup>

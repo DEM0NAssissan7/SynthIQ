@@ -5,7 +5,7 @@ import EventGraph from "../../components/EventGraph";
 import FoodSearchDisplay from "../../components/FoodSearchDisplay";
 import GlucoseManager from "../../components/GlucoseManager";
 import InsulinManager from "../../components/InsulinManager";
-import MealAdditionalNutrientsCard from "../../components/MealAdditionalNutrientsCard";
+import MealAdditionalNutrients from "../../components/MealAdditionalNutrientsCard";
 import WizardManager from "../../lib/wizardManager";
 import { WizardState } from "../../models/wizardState";
 import { useWizardEvent } from "../../state/useEvent";
@@ -32,7 +32,9 @@ export default function WizardEditPage() {
         <AddedFoodsDisplay meal={meal} />
       </Card>
 
-      <MealAdditionalNutrientsCard meal={meal} />
+      <Card>
+        <MealAdditionalNutrients meal={meal} />
+      </Card>
 
       <Card>
         <InsulinManager event={event} />

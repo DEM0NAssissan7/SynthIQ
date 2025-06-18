@@ -61,11 +61,18 @@ export default function WizardMealPage() {
     <>
       <h1 className="mb-3">Meal Creation</h1>
 
-      <FoodSearchCard meal={meal} />
+      <Card>
+        <FoodSearchDisplay meal={meal} />
+      </Card>
 
-      <MealAddedFoodsListCard meal={meal} />
+      <Card>
+        <AddedFoodsDisplay meal={meal} />
+      </Card>
 
-      <MealAdditionalNutrientsCard meal={meal} />
+      <Card>
+        <Form.Label>Additional Nutrition</Form.Label>
+        <MealAdditionalNutrients meal={meal} />
+      </Card>
 
       <Card>
         <ListGroup>
