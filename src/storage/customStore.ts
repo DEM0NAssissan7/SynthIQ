@@ -5,6 +5,8 @@ import Food, { foods } from "../models/food";
 import Meal from "../models/meal";
 
 export const customStore = new StorageNode("custom");
+
+// Custom Meals
 customStore.add(
   "meals",
   [],
@@ -17,6 +19,24 @@ customStore.add(
     return JSON.stringify(mealArray);
   }
 );
+let customMeals = customStore.get("meals") as Meal[];
+function syncCustomMeals() {
+  customStore.write("meals");
+  NightscoutManager.storeCustomMeals();
+}
+export function addCustomMeal(meal: Meal) {
+  customMeals.push(meal);
+  syncCustomMeals();
+}
+export function removeCustomMeal(meal: Meal) {
+  customMeals.splice(customMeals.indexOf(meal), 1);
+  syncCustomMeals();
+}
+export function setCustomMeals(meals: Meal[], sync: boolean = false) {
+  customStore.set("meals", meals);
+  customFoods = customStore.get("meals");
+  if (sync) NightscoutManager.storeCustomMeals();
+}
 
 // Custom Foods
 customStore.add(
