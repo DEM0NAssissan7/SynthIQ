@@ -142,12 +142,14 @@ export default function WizardInsulinPage() {
             </Button>
           )
         )}
-        {(WizardManager.getMealMarked() ||
-          WizardManager.getInsulinMarked()) && (
-          <Button variant="danger" onClick={cancelEvent}>
-            Cancel Event
-          </Button>
-        )}
+        {(WizardManager.getMealMarked() || WizardManager.getInsulinMarked()) &&
+          !(
+            WizardManager.getMealMarked() && WizardManager.getInsulinMarked()
+          ) && (
+            <Button variant="danger" onClick={cancelEvent}>
+              Cancel Event
+            </Button>
+          )}
         <Button variant="primary" onClick={markInsulin}>
           Mark Insulin
         </Button>
