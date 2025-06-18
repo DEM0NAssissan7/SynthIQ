@@ -46,8 +46,8 @@ export default class MetaEvent {
 
   // Meals
   addMeal(meal: Meal): void {
-    this.meals.push(meal);
     meal.subscribe(() => this.notify()); // Notify the event subscribers when the meal changes
+    this.meals.push(meal);
     this.notify();
   }
   removeMeal(meal: Meal) {
@@ -118,10 +118,12 @@ export default class MetaEvent {
 
   // Test Meals
   addTestMeal(meal: Meal): void {
+    meal.subscribe(() => this.notify()); // Notify the event subscribers when the meal changes
     this.testMeals.push(meal);
     this.notify();
   }
   clearTestMeals(): void {
+    this.testMeals.forEach((meal) => meal.unsubscribe(() => this.notify()));
     this.testMeals = [];
     this.notify();
   }
@@ -251,10 +253,16 @@ export default class MetaEvent {
     event.initialGlucose = o.initialGlucose;
     event.endTimestamp = o.endTimestamp ? new Date(o.endTimestamp) : null;
 
-    event.meals = o.meals.map((a: any) => Meal.parse(a));
-    event.testMeals = o.testMeals.map((a: any) => Meal.parse(a));
-    event.insulins = o.insulins.map((a: any) => Insulin.parse(a));
-    event.glucoses = o.glucoses.map((a: any) => Glucose.parse(a));
+    o.meals.map((a: any) => event.addMeal(Meal.parse(a)));
+    o.testMeals.map((a: any) => event.addTestMeal(Meal.parse(a)));
+    o.insulins.map((a: any) => {
+      const insulin = Insulin.parse(a);
+      event.createInsulin(insulin.timestamp, insulin.units);
+    });
+    o.glucoses.map((a: any) => {
+      const glucose = Glucose.parse(a);
+      event.createGlucose(glucose.timestamp, glucose.caps);
+    });
 
     return event;
   }
