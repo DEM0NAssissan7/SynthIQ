@@ -3,14 +3,13 @@
  */
 
 import WizardManager from "../../lib/wizardManager";
-import { Button, ListGroup } from "react-bootstrap";
+import { Button } from "react-bootstrap";
 import { useNavigate } from "react-router";
-import { round } from "../../lib/util";
-import { getPrettyTime } from "../../lib/timing";
 import { WizardState } from "../../models/wizardState";
 import EventGraph from "../../components/EventGraph";
 import { useWizardEvent } from "../../state/useEvent";
 import Card from "../../components/Card";
+import EventSummary from "../../components/EventSummary";
 
 export default function WizardSummaryPage() {
   const event = useWizardEvent();
@@ -30,6 +29,9 @@ export default function WizardSummaryPage() {
   }
   function takeGlucose() {
     WizardManager.moveToPage(WizardState.Glucose, navigate);
+  }
+  function editEvent() {
+    WizardManager.moveToPage(WizardState.Edit, navigate);
   }
 
   return (
@@ -61,21 +63,7 @@ export default function WizardSummaryPage() {
         <h1>Event Summary</h1>
       </div>
       <Card>
-        <ListGroup.Item>
-          Last meal eaten at {getPrettyTime(event.latestMealTimestamp)}.
-          <br />- {round(event.carbs, 2)}g carbs total
-          <br />- {round(event.protein, 2)}g protein total
-          {event.glucose > 0 && (
-            <>
-              <br />- {event.glucose} caps of glucose (last taken at{" "}
-              {getPrettyTime(event.latestGlucoseTimestamp)})
-            </>
-          )}
-          <br />
-          <br />
-          <b>{round(event.insulin, 2)}u</b> insulin (last dose at{" "}
-          {getPrettyTime(event.latestInsulinTimestamp)})
-        </ListGroup.Item>
+        <EventSummary event={event} />
       </Card>
       <Card>
         <p>
@@ -102,6 +90,9 @@ export default function WizardSummaryPage() {
         </Button>
         <Button variant="danger" onClick={takeInsulin}>
           Take Additional Insulin
+        </Button>
+        <Button variant="secondary" onClick={editEvent}>
+          Edit Event
         </Button>
         <Button variant="secondary" onClick={startNew}>
           Start New Meal
