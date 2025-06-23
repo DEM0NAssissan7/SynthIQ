@@ -8,7 +8,7 @@ export default function CustomMealSearch({
   meal,
 }: {
   onChange: (meal: Meal) => void;
-  meal: Meal;
+  meal: Meal; // We need the meal to be able to save it
 }) {
   const [query, setQuery] = useState("");
 
