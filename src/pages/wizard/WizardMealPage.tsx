@@ -67,16 +67,6 @@ export default function WizardMealPage() {
       <h1 className="mb-3">Meal Creation</h1>
 
       <Card>
-        <CustomMealSearch
-          onChange={(meal: Meal) => {
-            setWizardMeal(meal);
-            navigate(0);
-          }}
-          meal={meal}
-        />
-      </Card>
-
-      <Card>
         <FoodSearchDisplay meal={meal} />
       </Card>
 
@@ -129,6 +119,16 @@ export default function WizardMealPage() {
       </Card>
 
       <SessionPredictedSugarGraphCard session={session} />
+
+      <Card>
+        <CustomMealSearch
+          onChange={(meal: Meal) => {
+            setWizardMeal(meal);
+            navigate(0);
+          }}
+          meal={meal}
+        />
+      </Card>
 
       <div className="d-flex justify-content-end">
         <Button
