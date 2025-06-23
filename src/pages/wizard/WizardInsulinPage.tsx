@@ -75,6 +75,11 @@ export default function WizardInsulinPage() {
       );
   }
 
+  // Session editing
+  function editSession() {
+    WizardManager.moveToPage(WizardState.Edit, navigate);
+  }
+
   // We show the user what we predict if they take insulin now
   useEffect(() => {
     session.clearTestInsulins();
@@ -132,12 +137,14 @@ export default function WizardInsulinPage() {
           <Button variant="secondary" onClick={goBack}>
             Go Back
           </Button>
+        ) : WizardManager.getInsulinMarked() ? (
+          <Button variant="secondary" onClick={backToSummary}>
+            Return To Summary
+          </Button>
         ) : (
-          WizardManager.getInsulinMarked() && (
-            <Button variant="secondary" onClick={backToSummary}>
-              Return To Summary
-            </Button>
-          )
+          <Button variant="secondary" onClick={editSession}>
+            Edit Session
+          </Button>
         )}
         {(WizardManager.getMealMarked() || WizardManager.getInsulinMarked()) &&
           !(
