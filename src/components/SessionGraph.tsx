@@ -31,7 +31,7 @@ function SessionGraph({
     new MathSeries(Color.Blue, [])
   );
 
-  const minXmax = 12;
+  const minXmax = 8;
   const xmax = useMemo(() => {
     return until || Math.max(Math.floor(session.getN(new Date())) + 2, minXmax);
   }, [until, session]);
