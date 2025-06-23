@@ -1,7 +1,6 @@
 import { getPrettyTime } from "../lib/timing";
 import { round } from "../lib/util";
 import type Session from "../models/session";
-import { useMemo } from "react";
 import { getCorrectionInsulin, getInsulin } from "../lib/metabolism";
 
 interface SessionSummaryProps {
@@ -10,14 +9,16 @@ interface SessionSummaryProps {
 
 export default function SessionSummary({ session }: SessionSummaryProps) {
   // Predictions
-  const insulinRequirement = useMemo(() => {
-    return getInsulin(session.carbs, session.protein);
-  }, [session]);
+  function getCorrection() {
+    return getCorrectionInsulin(session.initialGlucose);
+  }
+  function getTotalInsulin() {
+    return getInsulin(session.carbs, session.protein) + getCorrection();
+  }
 
   return (
     <>
-      Initial blood sugar: {round(session.initialGlucose, 2)}mg/dL (
-      {round(getCorrectionInsulin(session.initialGlucose), 1)}u correction)
+      Initial blood sugar: {round(session.initialGlucose, 2)}mg/dL
       {(session.carbs !== 0 || session.protein !== 0) && (
         <>
           <hr />
@@ -28,7 +29,10 @@ export default function SessionSummary({ session }: SessionSummaryProps) {
           {round(session.protein, 2)}g protein
           <br />
           <br />
-          <i>This meal requires {round(insulinRequirement, 2)}u insulin</i>
+          <i>
+            This session requires {round(getTotalInsulin(), 2)}u insulin (
+            {round(getCorrection(), 2)}u correction)
+          </i>
           <br />
         </>
       )}
