@@ -266,8 +266,10 @@ class NightscoutManager {
       ) {
         if (this.uuidIsIgnored(t.uuid)) return;
         try {
-          sessions.push(Session.parse(t.eventString));
-        } catch (e) {}
+          sessions.push(Session.parse(t.sessionString));
+        } catch (e) {
+          console.error(e);
+        }
       }
     });
     return sessions;
