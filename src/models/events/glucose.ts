@@ -1,4 +1,4 @@
-import { profile } from "../../storage/metaProfileStore";
+import type MetabolismProfile from "../metabolism/metabolismProfile";
 import MetaEvent from "./metaEvent";
 
 export default class Glucose extends MetaEvent {
@@ -16,7 +16,7 @@ export default class Glucose extends MetaEvent {
     return this._caps;
   }
 
-  deltaBG(t: number): number {
+  deltaBG(t: number, profile: MetabolismProfile): number {
     return profile.glucose.deltaBG(t, this.caps);
   }
   static stringify(g: Glucose): string {

@@ -1,8 +1,8 @@
 import * as importedFoods from "../assets/foods.json";
 import { genUUID, type UUID } from "../lib/util";
 import Unit from "../models/unit";
-import { profile } from "../storage/metaProfileStore";
 import { defaultGI } from "./metabolism/carbsProfile";
+import type MetabolismProfile from "./metabolism/metabolismProfile";
 
 export default class Food {
   name: string;
@@ -31,7 +31,7 @@ export default class Food {
 
     this.key = genUUID();
   }
-  carbsDeltaBG(t: number): number {
+  carbsDeltaBG(t: number, profile: MetabolismProfile): number {
     return profile.carbs.deltaBG(t, this.carbs, this.GI);
   }
   get carbs(): number {

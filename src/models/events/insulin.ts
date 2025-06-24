@@ -1,4 +1,4 @@
-import { profile } from "../../storage/metaProfileStore";
+import type MetabolismProfile from "../metabolism/metabolismProfile";
 import MetaEvent from "./metaEvent";
 
 export enum InsulinType {
@@ -34,7 +34,7 @@ export default class Insulin extends MetaEvent {
     return this._type;
   }
 
-  deltaBG(t: number): number {
+  deltaBG(t: number, profile: MetabolismProfile): number {
     // Change in blood sugar over time
     return profile.insulin.deltaBG(t, this.units);
   }

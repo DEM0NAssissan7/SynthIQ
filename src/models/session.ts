@@ -9,6 +9,8 @@ import Meal from "./events/meal";
 import ReadingSeries from "./readingSeries";
 import Series, { Color } from "./series";
 import type MetaEvent from "./events/metaEvent";
+import type MetabolismProfile from "./metabolism/metabolismProfile";
+import { profile } from "../storage/metaProfileStore";
 
 export default class Session {
   subscriptions: (() => void)[] = [];
@@ -191,31 +193,32 @@ export default class Session {
     return timestamp;
   }
 
-  deltaBG(t: number): number {
+  deltaBG(t: number, _profile_?: MetabolismProfile): number {
+    const _profile = _profile_ ? _profile_ : profile;
     let retval = this._initialGlucose;
 
     // Meals
     this.meals.forEach(
-      (a) => (retval += a.deltaBG(t - this.getN(a.timestamp)))
+      (a) => (retval += a.deltaBG(t - this.getN(a.timestamp), _profile))
     );
     this.testMeals.forEach(
-      (a) => (retval += a.deltaBG(t - this.getN(a.timestamp)))
+      (a) => (retval += a.deltaBG(t - this.getN(a.timestamp), _profile))
     );
 
     // Insulin
     this.insulins.forEach(
-      (a) => (retval += a.deltaBG(t - this.getN(a.timestamp)))
+      (a) => (retval += a.deltaBG(t - this.getN(a.timestamp), _profile))
     );
     this.testInsulins.forEach(
-      (a) => (retval += a.deltaBG(t - this.getN(a.timestamp)))
+      (a) => (retval += a.deltaBG(t - this.getN(a.timestamp), _profile))
     );
 
     // Glucose
     this.glucoses.forEach(
-      (a) => (retval += a.deltaBG(t - this.getN(a.timestamp)))
+      (a) => (retval += a.deltaBG(t - this.getN(a.timestamp), _profile))
     );
     this.testGlucoses.forEach(
-      (a) => (retval += a.deltaBG(t - this.getN(a.timestamp)))
+      (a) => (retval += a.deltaBG(t - this.getN(a.timestamp), _profile))
     );
 
     return retval;

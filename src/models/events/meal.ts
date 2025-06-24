@@ -1,6 +1,6 @@
 import Food from "../food";
-import { profile } from "../../storage/metaProfileStore";
 import MetaEvent from "./metaEvent";
+import type MetabolismProfile from "../metabolism/metabolismProfile";
 
 function createCarbsOffset() {
   return new Food("Carbs Offset", 1, 0, 1);
@@ -91,13 +91,12 @@ export default class Meal extends MetaEvent {
     this.foods.forEach((a: Food) => (fat += a.fat));
     return fat;
   }
-  deltaBG(t: number): number {
+  deltaBG(t: number, profile: MetabolismProfile): number {
     let retval: number = 0;
-    this.foods.forEach((a) => (retval += a.carbsDeltaBG(t))); // Carbs
+    this.foods.forEach((a) => (retval += a.carbsDeltaBG(t, profile))); // Carbs
 
     // Protein metabolism accounts for the total meal protein, so we have to collect all of it
-    const protein = this.protein;
-    retval += profile.protein.deltaBG(t, protein); // Protein
+    retval += profile.protein.deltaBG(t, this.protein); // Protein
 
     return retval;
   }
