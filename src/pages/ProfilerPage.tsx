@@ -4,15 +4,25 @@ import ProfileSlider from "../components/ProfileSlider";
 import useImportedSessionsState from "../state/useImportedSessionsState";
 import useProfileState from "../state/useProfileState";
 import NightscoutManager from "../lib/nightscoutManager";
+import { optimizeSessions } from "../lib/optimizer";
 
 export default function ProfilerPage() {
   const { importedSessions, clearIgnoredSessions, ignoreSession } =
     useImportedSessionsState();
   const profile = useProfileState();
 
-  function updateViews() {
+  function notifySessions() {
     importedSessions.forEach((session) => session.notify());
+  }
+  function updateViews() {
+    notifySessions();
     NightscoutManager.storeMetaProfile();
+  }
+  function onOptimize() {
+    notifySessions();
+  }
+  function optimizeAll() {
+    optimizeSessions(importedSessions, profile, notifySessions);
   }
   function pullNightscoutProfile() {
     if (
@@ -121,15 +131,19 @@ export default function ProfilerPage() {
           <Button variant="secondary" onClick={clearIgnoredSessions}>
             Unhide All
           </Button>
+          <Button variant="primary" onClick={optimizeAll}>
+            Optimize All
+          </Button>
           {importedSessions.map((session, i) => (
             <ProfilerSessionDisplay
               session={session}
               key={i}
               ignoreSession={ignoreSession}
+              onOptimize={onOptimize}
               from={-1}
               until={
                 session.endTimestamp
-                  ? Math.floor(session.getN(session.endTimestamp)) + 1
+                  ? Math.floor(session.getN(session.endTimestamp))
                   : 16
               }
             />

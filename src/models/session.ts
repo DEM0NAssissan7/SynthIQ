@@ -1,6 +1,6 @@
 import NightscoutManager from "../lib/nightscoutManager";
 import { getHourDiff, getTimestampFromOffset } from "../lib/timing";
-import { genUUID, type UUID } from "../lib/util";
+import { convertDimensions, genUUID, type UUID } from "../lib/util";
 import { nightscoutStore } from "../storage/nightscoutStore";
 import Glucose from "./events/glucose";
 import Insulin from "./events/insulin";
@@ -11,6 +11,7 @@ import Series, { Color } from "./series";
 import type MetaEvent from "./events/metaEvent";
 import type MetabolismProfile from "./metabolism/metabolismProfile";
 import { profile } from "../storage/metaProfileStore";
+import Unit from "./unit";
 
 export default class Session {
   subscriptions: (() => void)[] = [];
@@ -192,6 +193,11 @@ export default class Session {
     if (!timestamp) throw new Error("No beginning timestamp found in session");
     return timestamp;
   }
+  get length(): number {
+    if (!this.endTimestamp)
+      throw new Error(`Cannot give length - there is no end timestamp!`);
+    return this.getN(this.endTimestamp);
+  }
 
   deltaBG(t: number, _profile_?: MetabolismProfile): number {
     const _profile = _profile_ ? _profile_ : profile;
@@ -247,6 +253,27 @@ export default class Session {
     );
     return predictionSeries;
   }
+
+  // Optimizer
+  get tValues(): number[] {
+    const minutesPerReading = nightscoutStore.get("minutesPerReading");
+    const numReadings =
+      (this.length * convertDimensions(Unit.Time.Hour, Unit.Time.Minute)) /
+      minutesPerReading;
+    let retval = [];
+    for (let i = 0; i < numReadings; i++)
+      retval.push((minutesPerReading * i) / 60);
+    return retval;
+  }
+  getObservedReadings() {
+    if (!this.endTimestamp)
+      throw new Error(
+        `Cannot give total readings - there is no end timestamp!`
+      );
+    return NightscoutManager.getReadings(this.timestamp, this.endTimestamp);
+  }
+
+  // Initial glucose
   async pullInitialGlucose() {
     return NightscoutManager.getSugarAt(this.timestamp).then((a: any) => {
       if (a) {

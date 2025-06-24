@@ -3,10 +3,13 @@ import { getFullPrettyDate } from "../lib/timing";
 import { round } from "../lib/util";
 import type Session from "../models/session";
 import SessionGraph from "./SessionGraph";
+import { optimizeSession } from "../lib/optimizer";
+import { profile } from "../storage/metaProfileStore";
 
 interface ProfilerSessionDisplayProps {
   session: Session;
   ignoreSession: (a: Session) => void;
+  onOptimize: () => void;
   from: number;
   until?: number;
   width?: string | number;
@@ -17,6 +20,7 @@ interface ProfilerSessionDisplayProps {
 export default function ProfilerSessionDisplay({
   session: session,
   ignoreSession,
+  onOptimize,
   from,
   until,
   width,
@@ -32,6 +36,9 @@ export default function ProfilerSessionDisplay({
     ) {
       ignoreSession(session);
     }
+  }
+  function onOptimizeClick() {
+    optimizeSession(session, profile).then(onOptimize);
   }
 
   return (
@@ -61,6 +68,9 @@ export default function ProfilerSessionDisplay({
       )}
       <Button variant="danger" onClick={onIgnoreClick}>
         Ignore
+      </Button>
+      <Button variant="primary" onClick={onOptimizeClick}>
+        Optimize
       </Button>
     </div>
   );
