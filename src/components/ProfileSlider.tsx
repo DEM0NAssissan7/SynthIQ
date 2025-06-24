@@ -42,7 +42,8 @@ function ProfileSlider({
       </Form.Label>
       <Form.Range
         onChange={updateValue}
-        max={initialValue * 2 || 1}
+        min={0}
+        max={Math.abs(initialValue) * 2 || 1}
         step={step || 0.01}
         value={internalValue}
       />
