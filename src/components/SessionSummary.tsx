@@ -44,7 +44,7 @@ export default function SessionSummary({ session }: SessionSummaryProps) {
           <hr />
           <b>{round(session.insulin, 2)}u insulin taken</b> (last dose at{" "}
           {getPrettyTime(session.latestInsulinTimestamp)},{" "}
-          {getHourDiff(new Date(), session.timestamp)} hours ago)
+          {round(getHourDiff(new Date(), session.timestamp), 1)} hours ago)
           <br />
         </>
       )}
