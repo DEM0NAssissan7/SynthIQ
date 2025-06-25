@@ -21,7 +21,7 @@ export default function SessionSummary({ session }: SessionSummaryProps) {
       Initial blood sugar: {round(session.initialGlucose, 2)}mg/dL
       <br />
       Session started at {getPrettyTime(session.timestamp)} (
-      {round(getHourDiff(session.timestamp, new Date()), 1)} hours ago)
+      {round(getHourDiff(new Date(), session.timestamp), 1)} hours ago)
       {(session.carbs !== 0 || session.protein !== 0) && (
         <>
           <hr />
@@ -44,7 +44,7 @@ export default function SessionSummary({ session }: SessionSummaryProps) {
           <hr />
           <b>{round(session.insulin, 2)}u insulin taken</b> (last dose at{" "}
           {getPrettyTime(session.latestInsulinTimestamp)},{" "}
-          {getHourDiff(session.timestamp, new Date())} hours ago)
+          {getHourDiff(new Date(), session.timestamp)} hours ago)
           <br />
         </>
       )}
