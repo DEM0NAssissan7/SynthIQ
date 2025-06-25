@@ -302,8 +302,8 @@ class NightscoutManager {
   }
   static async storeCustomMeals() {
     this.getProfile().then((p) => {
-      const customFoods = customStore.get("meals") as Meal[];
-      p.customFoods = customFoods.map((m: Meal) => Meal.stringify(m));
+      const customMeals = customStore.get("meals") as Meal[];
+      p.customMeals = customMeals.map((m: Meal) => Meal.stringify(m));
       this.put("profile", p);
     });
   }

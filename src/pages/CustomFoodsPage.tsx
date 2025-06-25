@@ -14,7 +14,7 @@ import NightscoutManager from "../lib/nightscoutManager";
 
 export default function CustomFoodsPage() {
   const [customFoodsState, setCustomFoodsState] = useState<Food[]>(
-    customStore.get("foods")
+    customStore.get("foods") as Food[]
   );
 
   const [foodName, setFoodName] = useState("");
