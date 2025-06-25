@@ -1,4 +1,4 @@
-import { getPrettyTime } from "../lib/timing";
+import { getHourDiff, getPrettyTime } from "../lib/timing";
 import { round } from "../lib/util";
 import type Session from "../models/session";
 import { getCorrectionInsulin, getInsulin } from "../lib/metabolism";
@@ -19,6 +19,9 @@ export default function SessionSummary({ session }: SessionSummaryProps) {
   return (
     <>
       Initial blood sugar: {round(session.initialGlucose, 2)}mg/dL
+      <br />
+      Session started at {getPrettyTime(session.timestamp)} (
+      {round(getHourDiff(session.timestamp, new Date()), 1)} hours ago)
       {(session.carbs !== 0 || session.protein !== 0) && (
         <>
           <hr />
@@ -40,14 +43,15 @@ export default function SessionSummary({ session }: SessionSummaryProps) {
         <>
           <hr />
           <b>{round(session.insulin, 2)}u insulin taken</b> (last dose at{" "}
-          {getPrettyTime(session.latestInsulinTimestamp)})
+          {getPrettyTime(session.latestInsulinTimestamp)},{" "}
+          {getHourDiff(session.timestamp, new Date())} hours ago)
           <br />
         </>
       )}
       {session.glucose !== 0 && (
         <>
           <hr />
-          <b>{round(session.glucose, 2)}caps of glucose</b> (last dose at{" "}
+          <b>{round(session.glucose, 2)} caps of glucose</b> (last dose at{" "}
           {getPrettyTime(session.latestGlucoseTimestamp)})
           <br />
         </>
