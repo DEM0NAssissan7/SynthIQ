@@ -16,13 +16,15 @@ export default function ProfilerPage() {
   }
   function updateViews() {
     notifySessions();
-    NightscoutManager.storeMetaProfile();
   }
   function onOptimize() {
     notifySessions();
   }
   function optimizeAll() {
     optimizeSessions(importedSessions, profile, notifySessions);
+  }
+  function uploadToNightscout() {
+    NightscoutManager.storeMetaProfile();
   }
   function pullNightscoutProfile() {
     if (
@@ -39,9 +41,14 @@ export default function ProfilerPage() {
   return (
     <>
       <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
-        <Button onClick={updateViews}>Apply Changes</Button>
-        <Button onClick={pullNightscoutProfile} variant="secondary">
+        <Button onClick={updateViews} variant="primary">
+          Apply Changes
+        </Button>
+        <Button onClick={pullNightscoutProfile} variant="danger">
           Use Nightscout Profile
+        </Button>
+        <Button onClick={uploadToNightscout} variant="secondary">
+          Upload Profile
         </Button>
       </div>
       <div style={{ display: "flex" }}>
