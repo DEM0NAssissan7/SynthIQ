@@ -1,4 +1,4 @@
-import { getHourDiff, getPrettyTime } from "../lib/timing";
+import { getMinuteDiff, getPrettyTime } from "../lib/timing";
 import { round } from "../lib/util";
 import type Session from "../models/session";
 import { getCorrectionInsulin, getInsulin } from "../lib/metabolism";
@@ -16,12 +16,20 @@ export default function SessionSummary({ session }: SessionSummaryProps) {
     return getInsulin(session.carbs, session.protein) + getCorrection();
   }
 
+  // Helpers
+  function getMinutesAgo(timestamp: Date) {
+    return getMinuteDiff(new Date(), timestamp);
+  }
+  function getHoursAgo(timestamp: Date) {
+    return round(getMinutesAgo(timestamp) / 60, 1);
+  }
+
   return (
     <>
       Initial blood sugar: {round(session.initialGlucose, 2)}mg/dL
       <br />
       Session started at {getPrettyTime(session.timestamp)} (
-      {round(getHourDiff(new Date(), session.timestamp), 1)} hours ago)
+      {getHoursAgo(session.timestamp)} hours ago)
       {(session.carbs !== 0 || session.protein !== 0) && (
         <>
           <hr />
@@ -44,7 +52,7 @@ export default function SessionSummary({ session }: SessionSummaryProps) {
           <hr />
           <b>{round(session.insulin, 2)}u insulin taken</b> (last dose at{" "}
           {getPrettyTime(session.latestInsulinTimestamp)},{" "}
-          {round(getHourDiff(new Date(), session.timestamp), 1)} hours ago)
+          {getHoursAgo(session.latestInsulinTimestamp)} hours ago)
           <br />
         </>
       )}
@@ -52,7 +60,8 @@ export default function SessionSummary({ session }: SessionSummaryProps) {
         <>
           <hr />
           <b>{round(session.glucose, 2)} caps of glucose</b> (last dose at{" "}
-          {getPrettyTime(session.latestGlucoseTimestamp)})
+          {getPrettyTime(session.latestGlucoseTimestamp)},{" "}
+          {getMinutesAgo(session.latestGlucoseTimestamp)} minutes ago)
           <br />
         </>
       )}
