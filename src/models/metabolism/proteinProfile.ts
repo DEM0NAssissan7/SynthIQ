@@ -45,7 +45,7 @@ export default class ProteinProfile extends NutrientProfile {
       protein * this._effect,
       this._delay,
       this._minTime + protein * this._plateuRate, // Plateu (hour / gram)
-      MetaFunctions.C
+      MetaFunctions.G
     );
   }
   static stringify(profile: ProteinProfile) {
