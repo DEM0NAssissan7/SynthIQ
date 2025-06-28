@@ -11,6 +11,9 @@ import { getMinuteDiff, getPrettyTime } from "../../lib/timing";
 import { useWizardSession } from "../../state/useSession";
 import { useWizardMeal } from "../../state/useMeal";
 import SessionSummary from "../../components/SessionSummary";
+import BloodSugarInput from "../../components/BloodSugarInput";
+import { getCorrectionInsulin } from "../../lib/metabolism";
+import Card from "../../components/Card";
 
 export default function WizardInsulinPage() {
   const navigate = useNavigate();
@@ -60,6 +63,20 @@ export default function WizardInsulinPage() {
   }
 
   // Correction
+  const [currentGlucose, setCurrentGlucose] = useState(session.initialGlucose);
+
+  const correctionInsulin = useMemo(() => {
+    return round(getCorrectionInsulin(currentGlucose), 1);
+  }, [currentGlucose]);
+
+  const displayedInsulin = useMemo(() => {
+    if (session.insulin !== 0 && correctionInsulin > 0)
+      return correctionInsulin;
+    if (session.insulin === 0) return suggestedInsulin;
+    return Math.max(suggestedInsulin - session.insulin, 0);
+  }, [session, correctionInsulin, suggestedInsulin]);
+
+  // Misc
   function backToSummary() {
     WizardManager.moveToPage(WizardState.Summary, navigate);
   }
@@ -85,9 +102,9 @@ export default function WizardInsulinPage() {
     session.clearTestInsulins();
     session.createTestInsulin(
       new Date(),
-      insulinTaken ? insulinTaken : suggestedInsulin
+      insulinTaken ? insulinTaken : displayedInsulin
     );
-  }, [version, insulinTaken]);
+  }, [version, insulinTaken, displayedInsulin]);
 
   // Timing Info (for user)
   const optimalInsulinTiming = useMemo(() => {
@@ -100,7 +117,7 @@ export default function WizardInsulinPage() {
       {!WizardManager.getInsulinMarked() && (
         <p>
           Take however much insulin you wish. However, our algorithm think you
-          should take <b>{round(suggestedInsulin, 2)}</b> units
+          should take <b>{round(displayedInsulin, 2)}</b> units
           {WizardManager.getMealMarked() && optimalInsulinTiming > 0 && (
             <>
               {" "}
@@ -117,21 +134,30 @@ export default function WizardInsulinPage() {
       <SessionSummary session={session} />
       <hr />
       <SessionPredictedSugarGraphCard session={session} />
-      <InputGroup className="mb-3">
-        <InputGroup.Text id="basic-addon1">
-          <i className="bi bi-capsule"></i>
-        </InputGroup.Text>
-        <Form.Control
-          placeholder={round(suggestedInsulin, 2).toString()}
-          aria-describedby="basic-addon1"
-          onChange={(e: any) => {
-            const val = parseFloat(e.target.value);
-            if (!isNaN(val)) setInsulinTaken(val);
-            else setInsulinTaken(0);
-          }}
-        />
-        <InputGroup.Text id="basic-addon1">u</InputGroup.Text>
-      </InputGroup>
+
+      <Card>
+        {session.insulin !== 0 && (
+          <BloodSugarInput
+            initialGlucose={currentGlucose}
+            setInitialGlucose={setCurrentGlucose}
+          />
+        )}
+        <InputGroup className="mb-3">
+          <InputGroup.Text id="basic-addon1">
+            <i className="bi bi-capsule"></i>
+          </InputGroup.Text>
+          <Form.Control
+            placeholder={round(displayedInsulin, 2).toString()}
+            aria-describedby="basic-addon1"
+            onChange={(e: any) => {
+              const val = parseFloat(e.target.value);
+              if (!isNaN(val)) setInsulinTaken(val);
+              else setInsulinTaken(0);
+            }}
+          />
+          <InputGroup.Text id="basic-addon1">u</InputGroup.Text>
+        </InputGroup>
+      </Card>
       <div className="d-flex justify-content-between">
         {!WizardManager.getMealMarked() ? (
           <Button variant="secondary" onClick={goBack}>
