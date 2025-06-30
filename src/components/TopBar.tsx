@@ -57,6 +57,9 @@ function TopBar() {
               <Nav.Link as={Link} to="/playground" onClick={handleClose}>
                 Playground
               </Nav.Link>
+              <Nav.Link as={Link} to="/dextrose" onClick={handleClose}>
+                Dextrose
+              </Nav.Link>
               <Nav.Link as={Link} to="/setup" onClick={handleClose}>
                 Nightscout Setup
               </Nav.Link>

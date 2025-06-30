@@ -17,6 +17,7 @@ import PlaygroundPage from "./pages/PlaygroundPage";
 import WizardEditPage from "./pages/wizard/WizardEditPage";
 import { useEffect } from "react";
 import CustomFoodsPage from "./pages/CustomFoodsPage";
+import DextrosePage from "./pages/DextrosePage";
 
 function App() {
   useEffect(() => {
@@ -55,6 +56,7 @@ function App() {
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/playground" element={<PlaygroundPage />} />
           <Route path="/customfoods" element={<CustomFoodsPage />} />
+          <Route path="/dextrose" element={<DextrosePage />} />
 
           {/* Wizard Routes */}
           <Route path="/wizard" element={<WizardRouterPage />} />
