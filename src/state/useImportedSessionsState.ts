@@ -2,14 +2,16 @@ import { useState, useEffect } from "react";
 import NightscoutManager from "../lib/nightscoutManager";
 import type Session from "../models/session";
 
-export default function useImportedSessionsState() {
+export default function useImportedSessionsState(
+  allowIgnored: boolean = false
+) {
   const [importedSessions, setImportedSessions] = useState<Session[]>([]);
 
   const [version, setVersion] = useState(0);
   const rerender = () => setVersion((v) => v + 1); // force re-render
 
   useEffect(() => {
-    NightscoutManager.getAllSessions().then((s) => {
+    NightscoutManager.getAllSessions(allowIgnored).then((s) => {
       //   console.log(m);
       setImportedSessions(s);
     });

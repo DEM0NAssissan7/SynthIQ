@@ -249,7 +249,7 @@ class NightscoutManager {
     for (let u of ignored) if (uuid === u) return true;
     return false;
   }
-  static async getAllSessions() {
+  static async getAllSessions(allowIgnored: boolean = false) {
     /** We pull meals from nightscout that have been previously saved
      * This is crucial to do analysis.
      */
@@ -264,7 +264,7 @@ class NightscoutManager {
         t.uuid &&
         t.sessionString
       ) {
-        if (this.uuidIsIgnored(t.uuid)) return;
+        if (this.uuidIsIgnored(t.uuid) && !allowIgnored) return;
         try {
           sessions.push(Session.parse(t.sessionString));
         } catch (e) {
