@@ -4,7 +4,7 @@ import { profile } from "../storage/metaProfileStore";
 import { getTimestampFromOffset } from "./timing";
 
 // Insulin
-export const acceptableMax = 92;
+export const acceptableMax = 95;
 export function getInsulin(carbs: number, protein: number) {
   return (
     (carbs * profile.carbs.effect + protein * profile.protein.effect) /
