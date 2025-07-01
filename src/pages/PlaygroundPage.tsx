@@ -11,6 +11,7 @@ import GlucoseManager from "../components/GlucoseManager";
 import Card from "../components/Card";
 import { Form } from "react-bootstrap";
 import MealAdditionalNutrients from "../components/MealAdditionalNutrientsCard";
+import SessionSummary from "../components/SessionSummary";
 
 let playgroundMeal = new Meal(new Date());
 let playgroundSession = new Session(false);
@@ -47,6 +48,10 @@ export default function PlaygroundPage() {
 
       <Card>
         <GlucoseManager session={session} />
+      </Card>
+
+      <Card>
+        <SessionSummary session={session} />
       </Card>
 
       <Card>
