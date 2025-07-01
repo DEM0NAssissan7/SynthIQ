@@ -4,6 +4,7 @@ import { profile } from "../storage/metaProfileStore";
 import { getTimestampFromOffset } from "./timing";
 
 // Insulin
+export const acceptableMax = 92;
 export function getInsulin(carbs: number, protein: number) {
   return (
     (carbs * profile.carbs.effect + protein * profile.protein.effect) /
@@ -62,6 +63,7 @@ export function getOptimalInsulinTiming(
         maximum = funcMax;
         time = testTime;
       }
+      if (maximum <= acceptableMax) return time; // If something peaks at acceptableMax, we consider it optimal and just skip any further testing
     })();
   }
   return time;
