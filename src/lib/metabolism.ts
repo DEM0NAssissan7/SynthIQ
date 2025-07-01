@@ -15,6 +15,31 @@ export function getCorrectionInsulin(glucose: number) {
   return (glucose - profile.target) / profile.insulin.effect;
 }
 
+function getPeakGlucose(
+  f: (t: number) => number,
+  until: number,
+  interval: number,
+  minThreshold: number
+): number {
+  let funcMax = -Infinity;
+  for (let t = 0; t < until; t += interval) {
+    // We sample 5 minute bits of the simulation over the course of 14 hours
+    let y = f(t);
+
+    // Ignore if we go below threshold
+    if (y < minThreshold) {
+      // console.log(testTime, y, t);
+      return -1;
+    }
+
+    // If we have a smaller maximum
+    if (y > funcMax) {
+      funcMax = y;
+    }
+  }
+  return funcMax;
+}
+
 /** This function figures out the optimal meal timing by using the
  * metabolic profile values to simluate the curves.
  * Then, using the insulin curve, it will test timings (on a 1 minute interval)
@@ -29,7 +54,7 @@ export function getOptimalInsulinTiming(
 ): Date {
   /** We test ALL points on the graph to see if we have a point that falls
    * below the low threshold while also keeping the maximum as low as possible */
-  let maximum = Infinity;
+  let minPeak = Infinity;
   let time: Date = new Date();
   const threshold = profile.minThreshold;
   const mealTimestamp = session.latestMealTimestamp;
@@ -42,29 +67,18 @@ export function getOptimalInsulinTiming(
     // Insulin
     session.testInsulins = [new Insulin(testTime, unitsInsulin)]; // We intentionally push directly to the insulins array to prevent notifying subscribers (and causing potential lag)
 
-    let funcMax = -Infinity;
-    (() => {
-      for (let t = 0; t < 14; t += 5 / 60) {
-        // We sample 5 minute bits of the simulation over the course of 14 hours
-        let y = session.deltaBG(t);
-
-        // Ignore if we go below threshold
-        if (y < threshold) {
-          // console.log(testTime, y, t);
-          return;
-        }
-
-        // If we have a smaller maximum
-        if (y > funcMax) {
-          funcMax = y;
-        }
-      }
-      if (funcMax < maximum) {
-        maximum = funcMax;
-        time = testTime;
-      }
-      if (maximum <= acceptableMax) return time; // If something peaks at acceptableMax, we consider it optimal and just skip any further testing
-    })();
+    const peak = getPeakGlucose(
+      (t: number) => session.deltaBG(t),
+      14,
+      5 / 60,
+      threshold
+    );
+    if (peak < 0) continue;
+    if (peak < minPeak) {
+      minPeak = peak;
+      time = testTime;
+      if (minPeak <= acceptableMax) break; // If something peaks at acceptableMax, we consider it optimal and just skip any further testing
+    }
   }
   return time;
 }
