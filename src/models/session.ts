@@ -190,6 +190,11 @@ export default class Session {
     this.meals.forEach((a: MetaEvent) => callback(a));
     this.insulins.forEach((a: MetaEvent) => callback(a));
     this.glucoses.forEach((a: MetaEvent) => callback(a));
+
+    // Tests
+    this.testMeals.forEach((a: MetaEvent) => callback(a));
+    this.testInsulins.forEach((a: MetaEvent) => callback(a));
+    this.testGlucoses.forEach((a: MetaEvent) => callback(a));
     if (!timestamp) throw new Error("No beginning timestamp found in session");
     return timestamp;
   }
