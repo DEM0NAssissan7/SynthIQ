@@ -48,7 +48,7 @@ function getPeakGlucose(
  * until it achieves a curve above a minimum blood sugar (as set by the user)
  * and with the lowest maximum.
  */
-const acceptableMax = 95;
+const acceptableMax = 93;
 const timeTestInterval = 5 / 60;
 export function getOptimalInsulinTiming(
   session: Session,
