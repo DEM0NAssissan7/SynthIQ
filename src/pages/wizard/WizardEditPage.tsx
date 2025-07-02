@@ -42,7 +42,7 @@ export default function WizardEditPage() {
           <Dropdown.Menu>
             {session.meals.map((meal: Meal, i: number) => (
               <Dropdown.Item key={i} eventKey={i}>
-                Meal {i + 1}
+                Meal {i + 1} {meal.name !== "" && <>({meal.name})</>}
               </Dropdown.Item>
             ))}
           </Dropdown.Menu>
