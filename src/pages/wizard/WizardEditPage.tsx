@@ -9,13 +9,19 @@ import MealAdditionalNutrients from "../../components/MealAdditionalNutrientsCar
 import WizardManager from "../../lib/wizardManager";
 import { WizardState } from "../../models/wizardState";
 import { useWizardSession } from "../../state/useSession";
-import useMeal from "../../state/useMeal";
 import { Button } from "react-bootstrap";
 import SessionSummary from "../../components/SessionSummary";
+import { useMemo, useState } from "react";
+import { Dropdown } from "react-bootstrap";
+import type Meal from "../../models/events/meal";
 
 export default function WizardEditPage() {
   const session = useWizardSession();
-  const meal = useMeal(session.latestMeal);
+  const [selectedMealIndex, setSelectedMealIndex] = useState(0);
+  const meal = useMemo(
+    () => session.meals[selectedMealIndex],
+    [selectedMealIndex]
+  );
 
   const navigate = useNavigate();
   function finishEdit() {
@@ -24,6 +30,24 @@ export default function WizardEditPage() {
   return (
     <>
       <h1>Edit Session Events</h1>
+      <Card>
+        <Dropdown
+          onSelect={(eventKey) =>
+            setSelectedMealIndex(parseInt(eventKey ? eventKey : ""))
+          }
+        >
+          <Dropdown.Toggle variant="secondary" id="meal-dropdown">
+            {selectedMealIndex ? `Meal: ${selectedMealIndex}` : "Select Meal"}
+          </Dropdown.Toggle>
+          <Dropdown.Menu>
+            {session.meals.map((meal: Meal, i: number) => (
+              <Dropdown.Item key={i} eventKey={i}>
+                Meal {i + 1}
+              </Dropdown.Item>
+            ))}
+          </Dropdown.Menu>
+        </Dropdown>
+      </Card>
       <Card>
         <FoodSearchDisplay meal={meal} />
       </Card>
