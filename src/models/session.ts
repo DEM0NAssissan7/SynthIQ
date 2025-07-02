@@ -94,6 +94,16 @@ export default class Session {
       throw new Error("No meal events found in session");
     return this.meals[this.meals.length - 1];
   }
+  get firstMealTimestamp(): Date {
+    if (this.testMeals.length !== 0) return this.testMeals[0].timestamp;
+    if (this.meals.length !== 0) return this.meals[0].timestamp;
+    return this.timestamp;
+  }
+  get firstMeal(): Meal {
+    if (this.meals.length === 0)
+      throw new Error("No meal events found in session");
+    return this.meals[0];
+  }
 
   // Insulins
   createInsulin(timestamp: Date, units: number): Insulin {
