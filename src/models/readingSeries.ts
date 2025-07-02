@@ -5,6 +5,7 @@
 import Series, { Color } from "./series";
 import NightscoutManager from "../lib/nightscoutManager";
 import { getHourDiff } from "../lib/timing";
+import { smooth } from "../lib/optimizer";
 
 class ReadingSeries extends Series {
   timestamp: Date;
@@ -20,6 +21,11 @@ class ReadingSeries extends Series {
         let sugar: number = r.sgv;
         let timestamp: Date = new Date(r.date);
         this.point(getHourDiff(timestamp, this.timestamp), sugar);
+      });
+      let nums: number[] = this.points.map((p) => p.y);
+      nums = smooth(nums);
+      this.points.forEach((p, i) => {
+        p.y = nums[i];
       });
     });
   }
