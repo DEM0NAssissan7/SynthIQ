@@ -30,10 +30,14 @@ export default class WizardManager {
 
   // Confirmations
   static getMealMarked() {
-    return wizardStorage.get("mealMarked");
+    const session = wizardStorage.get("session");
+    return (
+      wizardStorage.get("mealMarked") && (session.carbs || session.protein)
+    );
   }
   static getInsulinMarked() {
-    return wizardStorage.get("insulinMarked");
+    const session = wizardStorage.get("session");
+    return wizardStorage.get("insulinMarked") && session.insulin;
   }
 
   // Meal
