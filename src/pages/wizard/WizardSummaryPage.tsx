@@ -28,6 +28,9 @@ export default function WizardSummaryPage() {
   function takeInsulin() {
     WizardManager.moveToPage(WizardState.Insulin, navigate);
   }
+  function addMeal() {
+    WizardManager.moveToPage(WizardState.Meal, navigate);
+  }
   function takeGlucose() {
     WizardManager.moveToPage(WizardState.Glucose, navigate);
   }
@@ -90,6 +93,9 @@ export default function WizardSummaryPage() {
         </Button>
         <Button variant="danger" onClick={takeInsulin}>
           Take Additional Insulin
+        </Button>
+        <Button variant="danger" onClick={addMeal}>
+          Eat Another Meal
         </Button>
         <Button variant="secondary" onClick={editSession}>
           Edit Session
