@@ -254,7 +254,9 @@ class NightscoutManager {
      * This is crucial to do analysis.
      */
     let sessions: Session[] = [];
-    let treatments = await this.get("treatments.json");
+    let treatments = await this.get(
+      `treatments.json?count=10000&find[eventType]=${metaSessionStoreEventType}&find[created_at][$gte]=2024-01-01T00:00:00Z`
+    );
     // console.log(treatments);
     // console.log(treatments);
     treatments.forEach((t: any) => {
