@@ -42,20 +42,19 @@ export default class WizardManager {
 
   // Meal
   static markMeal() {
-    if (!this.getMealMarked()) {
-      const meal: Meal = wizardStorage.get("meal");
-      const session: Session = wizardStorage.get("session");
-      const timestamp = new Date();
+    const meal: Meal = wizardStorage.get("meal");
+    const session: Session = wizardStorage.get("session");
+    const timestamp = new Date();
 
-      meal.timestamp = timestamp;
-      session.addMeal(meal);
-      session.clearTests(); // Clear all test stuff on the session
+    meal.timestamp = timestamp;
+    session.addMeal(meal);
+    session.clearTests(); // Clear all test stuff on the session
+    this.resetMeal(); // Reset the meal to make room for additional
 
-      wizardStorage.set("mealMarked", true);
+    wizardStorage.set("mealMarked", true);
 
-      // TODO: Use date selector
-      NightscoutManager.markMeal(meal.carbs, meal.protein, new Date());
-    }
+    // TODO: Use date selector
+    NightscoutManager.markMeal(meal.carbs, meal.protein, new Date());
   }
 
   // Insulin
