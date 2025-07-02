@@ -142,14 +142,14 @@ export function getOptimalDualSplit(
       time1 = getTimestampFromOffset(mealTimestamp, n1);
 
       const insulins = [new Insulin(time1, dose1)];
-      if (time2) insulins.push(new Insulin(time2, dose2));
+      if (dose2 && time2) insulins.push(new Insulin(time2, dose2));
 
       session.testInsulins = insulins;
 
       const peak = getPeakGlucose(
         (t: number) => session.deltaBG(t),
         7,
-        15 / 60,
+        5 / 60,
         minThreshold,
         minPeak
       );
@@ -168,10 +168,8 @@ export function getOptimalDualSplit(
       if (dose2) {
         // We only test n2 if we have a second dose at all
         time2 = getTimestampFromOffset(mealTimestamp, n2);
-        if (testFirstShot()) return optimalInsulins;
-      } else {
-        if (testFirstShot()) return optimalInsulins;
       }
+      if (testFirstShot()) return optimalInsulins;
     }
   }
 
