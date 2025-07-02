@@ -6,7 +6,7 @@ import type Session from "../models/session";
 export default function useInsulin(insulin: Insulin, session: Session) {
   const [, setVersion] = useState(0);
   const rerender = () => setVersion((v) => v + 1);
-  let offset = getMinuteDiff(insulin.timestamp, session.latestMealTimestamp);
+  let offset = getMinuteDiff(insulin.timestamp, session.firstMealTimestamp);
   return {
     units: insulin.units,
     timestamp: insulin.timestamp,
@@ -22,7 +22,7 @@ export default function useInsulin(insulin: Insulin, session: Session) {
     setTimestampFromOffset: (minutes: number) => {
       offset = minutes; // This is kinda cheating, but it helps with the text box
       insulin.timestamp = getTimestampFromOffset(
-        session.latestMealTimestamp,
+        session.firstMealTimestamp,
         minutes / 60
       );
       rerender();

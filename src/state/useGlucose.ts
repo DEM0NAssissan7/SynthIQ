@@ -6,7 +6,7 @@ import type Glucose from "../models/events/glucose";
 export default function useGlucose(glucose: Glucose, session: Session) {
   const [, setVersion] = useState(0);
   const rerender = () => setVersion((v) => v + 1);
-  let offset = getMinuteDiff(glucose.timestamp, session.latestMealTimestamp);
+  let offset = getMinuteDiff(glucose.timestamp, session.firstMealTimestamp);
   return {
     caps: glucose.caps,
     timestamp: glucose.timestamp,
@@ -22,7 +22,7 @@ export default function useGlucose(glucose: Glucose, session: Session) {
     setTimestampFromOffset: (minutes: number) => {
       offset = minutes; // This is kinda cheating, but it helps with the text box
       glucose.timestamp = getTimestampFromOffset(
-        session.latestMealTimestamp,
+        session.firstMealTimestamp,
         minutes / 60
       );
       rerender();
