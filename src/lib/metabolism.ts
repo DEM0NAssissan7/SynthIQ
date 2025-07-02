@@ -88,6 +88,96 @@ export function getOptimalInsulinTiming(
   return time;
 }
 
+/* This algorithm directly bulids upon the first algorithm, but with some very notable changes
+
+We test insulin dosing on a cascading basis. In other worse, we basically cherry pick the insulins
+based on how well glycemic control is. We do it as follows.
+
+Let's say, for some reason, the user wants 2 separate doses for their insulin.
+Let's also assume the meal needs 5 units. We calculate as follows:
+
+We start with the configuration 5 - 0 (first dose - second dose ) and calculate its
+glycemic control (peak sugar)
+
+Then, we move 4.75 - 0.25 and do the same. If it's a better configuration, we assign the insulins[] to
+that configuration
+
+Then, we go to 4.50 - 0.5 and do it again.
+
+The key here is that we only reassign IF the configuration is better. Otherwise, we discard it and move on,
+even if it has predicted glycemic control.
+
+So perhaps the configuration of 2 - 3 might have the same control as 3 - 2, but we
+ignore 2 - 3 and stick to 3 - 2 because the first dose is larger. It is a cascading algorithm that prefers
+more insulin earlier on. We only switch if it's _better_
+
+This only works for two injections. Optimizing for anything more is extremely expensive
+and mostly pointless (except for insulin pumps, but this is not supported)
+*/
+export function getOptimalDualSplit(
+  session: Session,
+  unitsInsulin: number,
+  from: number,
+  until: number,
+  stepSize: number = 0.5
+): Insulin[] {
+  let minPeak = Infinity;
+  let optimalInsulins: Insulin[] = [
+    new Insulin(session.latestMealTimestamp, unitsInsulin),
+  ];
+
+  const minThreshold = profile.minThreshold;
+  const mealTimestamp = session.latestMealTimestamp;
+  let dose1: number,
+    dose2: number,
+    n1: number,
+    n2: number,
+    time1: Date,
+    time2: Date;
+  // We do n2 first in the for loop chain because it's the lesser significant one
+  // We also change the dosing first to try and get a solution quickly
+  const testFirstShot = (): boolean => {
+    // We then do n1 because it's a larger dose, and movements in its value cause larger changes in glucodynamics
+    for (n1 = from; n1 <= until; n1 += timeTestInterval) {
+      time1 = getTimestampFromOffset(mealTimestamp, n1);
+
+      const insulins = [new Insulin(time1, dose1)];
+      if (time2) insulins.push(new Insulin(time2, dose2));
+
+      session.testInsulins = insulins;
+
+      const peak = getPeakGlucose(
+        (t: number) => session.deltaBG(t),
+        7,
+        15 / 60,
+        minThreshold,
+        minPeak
+      );
+      if (peak < 0) continue;
+      if (peak < minPeak) {
+        minPeak = peak;
+        optimalInsulins = insulins;
+        if (minPeak <= acceptableMax) return true; // If something peaks at acceptableMax, we consider it optimal and just skip any further testing to save time
+      }
+    }
+    return false;
+  };
+  for (n2 = from; n2 <= until; n2 += timeTestInterval) {
+    for (dose1 = unitsInsulin; dose1 > 0; dose1 -= stepSize) {
+      dose2 = unitsInsulin - dose1;
+      if (dose2) {
+        // We only test n2 if we have a second dose at all
+        time2 = getTimestampFromOffset(mealTimestamp, n2);
+        if (testFirstShot()) return optimalInsulins;
+      } else {
+        if (testFirstShot()) return optimalInsulins;
+      }
+    }
+  }
+
+  return optimalInsulins;
+}
+
 // Glucose
 export function getGlucoseCorrectionCaps(sugar: number) {
   return (profile.target - sugar) / profile.glucose.effect;

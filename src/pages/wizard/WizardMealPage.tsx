@@ -1,5 +1,5 @@
 import { Button, Form, ListGroup } from "react-bootstrap";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState, type BaseSyntheticEvent } from "react";
 import { round } from "../../lib/util";
 import WizardManager from "../../lib/wizardManager";
 import { WizardState } from "../../models/wizardState";
@@ -19,6 +19,7 @@ import NightscoutManager from "../../lib/nightscoutManager";
 import CustomMealSearch from "../../components/CustomMealSearch";
 import { setWizardMeal } from "../../storage/wizardStore";
 import type Meal from "../../models/events/meal";
+import useInsulinSplitPrediction from "../../state/useInsulinSplitPrediction";
 
 export default function WizardMealPage() {
   const session = useWizardSession();
@@ -32,6 +33,24 @@ export default function WizardMealPage() {
     session.initialGlucose,
     true
   );
+
+  const [splitBolus, setSplitBolus] = useState(false);
+  const {
+    firstInsulinUnits,
+    firstInsulinTime,
+    secondInsulinUnits,
+    secondInsulinTime,
+  } = useInsulinSplitPrediction(
+    session,
+    meal.carbs,
+    meal.protein,
+    session.initialGlucose,
+    true,
+    splitBolus
+  );
+  function switchBolusType(e: BaseSyntheticEvent) {
+    setSplitBolus(e.target.checked);
+  }
 
   // Continue Buttons
   const takeInsulinFirst = useMemo(() => {
@@ -91,18 +110,50 @@ export default function WizardMealPage() {
           </ListGroup.Item>
           {insulin > 0 && (
             <ListGroup.Item>
-              Consider taking <b>{round(insulin, 2)}u</b> of insulin
-              {(meal.carbs !== 0 || meal.protein !== 0) && (
+              <Form>
+                <Form.Check // prettier-ignore
+                  type="switch"
+                  label="Dual Bolus"
+                  onChange={switchBolusType}
+                />
+              </Form>
+              {splitBolus ? (
                 <>
-                  {" "}
+                  <b>{round(firstInsulinUnits, 2)}u</b> of insulin{" "}
                   <b>
                     {getPrettyTimeDiff(
-                      insulinTimestamp,
+                      firstInsulinTime,
                       new Date(),
                       Unit.Time.Minute
                     )}
                   </b>{" "}
-                  you start eating
+                  you start eating <br />
+                  <b>{round(secondInsulinUnits, 2)}u</b> of insulin{" "}
+                  <b>
+                    {getPrettyTimeDiff(
+                      secondInsulinTime,
+                      new Date(),
+                      Unit.Time.Minute
+                    )}
+                  </b>{" "}
+                  you start eating <br />
+                </>
+              ) : (
+                <>
+                  Consider taking <b>{round(insulin, 2)}u</b> of insulin
+                  {(meal.carbs !== 0 || meal.protein !== 0) && (
+                    <>
+                      {" "}
+                      <b>
+                        {getPrettyTimeDiff(
+                          insulinTimestamp,
+                          new Date(),
+                          Unit.Time.Minute
+                        )}
+                      </b>{" "}
+                      you start eating
+                    </>
+                  )}
                 </>
               )}
             </ListGroup.Item>
