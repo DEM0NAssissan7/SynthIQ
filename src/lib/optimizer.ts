@@ -57,6 +57,21 @@ function createArrayFromProfile(profile: MetabolismProfile): ProfileArray {
   ];
 }
 
+function movingAverage(data: number[], windowSize: number): number[] {
+  const result: number[] = [];
+  for (let i = 0; i < data.length; i++) {
+    const start = Math.max(0, i - Math.floor(windowSize / 2));
+    const end = Math.min(data.length, i + Math.ceil(windowSize / 2));
+    const window = data.slice(start, end);
+    const avg = window.reduce((a, b) => a + b, 0) / window.length;
+    result.push(avg);
+  }
+  return result;
+}
+export function smooth(data: number[]) {
+  return movingAverage(data, 3);
+}
+
 function cost(
   session: Session,
   params: ProfileArray,
@@ -65,13 +80,17 @@ function cost(
 ): number {
   const profile = createProfileFromArray(params);
   const predicted = t.map((t) => session.deltaBG(t, profile));
+  const smoothObserved = smooth(observed);
   let retval = 0;
-  for (let i = 0; i < observed.length; i++) {
-    const real = observed[i];
-    const sim = predicted[i];
-    retval += Math.pow(sim - real, 2);
-  }
-  return retval;
+  if (smoothObserved.length > 0) {
+    const sugarOffset = session.initialGlucose - predicted[0]; // We account for possible CGM sugar offset
+    for (let i = 0; i < smoothObserved.length; i++) {
+      const real = sugarOffset + observed[i];
+      const sim = predicted[i];
+      retval += Math.pow(sim - real, 2);
+    }
+    return retval / smoothObserved.length;
+  } else return 0;
 }
 
 export function optimize(
