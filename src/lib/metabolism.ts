@@ -4,7 +4,6 @@ import { profile } from "../storage/metaProfileStore";
 import { getTimestampFromOffset } from "./timing";
 
 // Insulin
-export const acceptableMax = 95;
 export function getInsulin(carbs: number, protein: number) {
   return (
     (carbs * profile.carbs.effect + protein * profile.protein.effect) /
@@ -19,15 +18,18 @@ function getPeakGlucose(
   f: (t: number) => number,
   until: number,
   interval: number,
-  minThreshold: number
+  minThreshold: number,
+  maxThreshold: number
 ): number {
   let funcMax = -Infinity;
+  let y;
   for (let t = 0; t < until; t += interval) {
     // We sample 5 minute bits of the simulation over the course of 14 hours
-    let y = f(t);
+    y = f(t);
 
-    // Ignore if we go below threshold
-    if (y < minThreshold) {
+    // Ignore if we go below minThreshold or above maxThreshold
+    // This is an optimization to discard unwanted data
+    if (y < minThreshold || y > maxThreshold) {
       // console.log(testTime, y, t);
       return -1;
     }
@@ -46,6 +48,8 @@ function getPeakGlucose(
  * until it achieves a curve above a minimum blood sugar (as set by the user)
  * and with the lowest maximum.
  */
+const acceptableMax = 95;
+const timeTestInterval = 5 / 60;
 export function getOptimalInsulinTiming(
   session: Session,
   unitsInsulin: number,
@@ -56,9 +60,9 @@ export function getOptimalInsulinTiming(
    * below the low threshold while also keeping the maximum as low as possible */
   let minPeak = Infinity;
   let time: Date = new Date();
-  const threshold = profile.minThreshold;
+  const minThreshold = profile.minThreshold;
   const mealTimestamp = session.latestMealTimestamp;
-  for (let n = from; n <= until; n += 1 / 60) {
+  for (let n = from; n <= until; n += timeTestInterval) {
     // All insulin timings [within one minute] (from -> until)
 
     // Create a timestamp h hours away from the meal start (when you start eating)
@@ -71,7 +75,8 @@ export function getOptimalInsulinTiming(
       (t: number) => session.deltaBG(t),
       14,
       5 / 60,
-      threshold
+      minThreshold,
+      minPeak
     );
     if (peak < 0) continue;
     if (peak < minPeak) {
