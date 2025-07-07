@@ -6,7 +6,8 @@ import { round } from "./util";
 
 type ProfileArray = [
   effectInsulin: number,
-  peakInsulin: number,
+  absorptionInsulin: number,
+  eliminationInsulin: number,
 
   effectCarbs: number,
   peakCarbs: number,
@@ -23,15 +24,16 @@ function modifyProfileFromArray(
 ): void {
   const f = (a: number) => round(Math.max(a, 0), 2);
   profile.insulin.effect = f(array[0]);
-  profile.insulin.halfLife = f(array[1]);
+  profile.insulin.absorptionRate = f(array[1]);
+  profile.insulin.eliminationRate = f(array[2]);
 
-  profile.carbs.effect = f(array[2]);
-  profile.carbs.peak = f(array[3]);
+  profile.carbs.effect = f(array[3]);
+  profile.carbs.peak = f(array[4]);
 
-  profile.protein.effect = f(array[4]);
-  profile.protein.delay = f(array[5]);
-  profile.protein.minTime = f(array[6]);
-  profile.protein.plateuRate = f(array[7]);
+  profile.protein.effect = f(array[5]);
+  profile.protein.delay = f(array[6]);
+  profile.protein.minTime = f(array[7]);
+  profile.protein.plateuRate = f(array[8]);
 }
 
 function createProfileFromArray(array: ProfileArray): MetabolismProfile {
@@ -45,7 +47,8 @@ function createProfileFromArray(array: ProfileArray): MetabolismProfile {
 function createArrayFromProfile(profile: MetabolismProfile): ProfileArray {
   return [
     profile.insulin.effect,
-    profile.insulin.halfLife,
+    profile.insulin.absorptionRate,
+    profile.insulin.eliminationRate,
 
     profile.carbs.effect,
     profile.carbs.peak,
