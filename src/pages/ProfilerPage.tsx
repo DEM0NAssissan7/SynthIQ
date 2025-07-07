@@ -67,14 +67,19 @@ export default function ProfilerPage() {
             prettyName="Insulin Effect (points/u)"
           />
           <ProfileSlider
-            value={profile.insulin.halfLife}
-            setValue={(value) => (profile.insulin.halfLife = value)}
-            prettyName="Insulin Half-life (hours)"
-          />
-          <ProfileSlider
             value={profile.insulin.delay}
             setValue={(value) => (profile.insulin.delay = value)}
             prettyName="Insulin Delay (hours)"
+          />
+          <ProfileSlider
+            value={profile.insulin.absorptionRate}
+            setValue={(value) => (profile.insulin.absorptionRate = value)}
+            prettyName="Insulin Absorption Rate"
+          />
+          <ProfileSlider
+            value={profile.insulin.eliminationRate}
+            setValue={(value) => (profile.insulin.eliminationRate = value)}
+            prettyName="Insulin Elimination Rate"
           />
 
           <br />
