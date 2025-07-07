@@ -8,6 +8,7 @@
 const LN2 = Math.log(2);
 
 type PArg = [r: number, p: number, f: number];
+type Barg = [k_a: number, k: number];
 
 export default class MetaFunctions {
   // All functions in this class are integrals that start at zero
@@ -53,6 +54,19 @@ export default class MetaFunctions {
     if (t < r + p + f)
       return y * _t - 0.5 * (y / f) * (_t * _t) + y * (r + p) - (y * r) / 2;
     return 1; // Redundant
+  }
+  static B(t: number, [k_a, k]: Barg) {
+    // Bateman function
+    return (k_a / (k_a - k)) * (Math.exp(-k * t) - Math.exp(-k_a * t));
+  }
+  static iB(t: number, [k_a, k]: Barg) {
+    // Integral of the bateman function (with an infinite integral of 1)
+    const AUC = 1 / k;
+    return (
+      ((k_a / (k_a - k)) *
+        ((1 - Math.exp(-k * t)) / k - (1 - Math.exp(-k_a * t)) / k_a)) /
+      AUC
+    );
   }
 }
 
