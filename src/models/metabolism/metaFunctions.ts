@@ -85,3 +85,7 @@ export function metaKernel(
   if (t - n <= 0) return 0;
   return e * f(t - n, p);
 }
+
+export function MichaelisMenten(vmax: number, S: number, Km: number) {
+  return (vmax * S) / (Km + S);
+}
