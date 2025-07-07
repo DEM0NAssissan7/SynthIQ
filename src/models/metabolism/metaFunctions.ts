@@ -17,7 +17,6 @@ export default class MetaFunctions {
     // Half-life decay
     // t -> time elapsed
     // h -> half-life
-    if (t <= 0) return 0;
     return 1 - Math.exp((-t * LN2) / h);
   }
   static G(t: number, p: number): number {
@@ -27,7 +26,6 @@ export default class MetaFunctions {
     if (p <= 0) {
       return 0;
     }
-    if (t <= 0) return 0;
     if (t >= p * 2) return 1;
 
     return (
@@ -37,7 +35,6 @@ export default class MetaFunctions {
   }
   static C(t: number, z: number): number {
     // Constant function: has an area under it of 1 and will linearly increase from 0->z until it returns 1
-    if (t <= 0) return 0;
     if (t >= z) return 1;
     return t / z;
   }
@@ -46,7 +43,6 @@ export default class MetaFunctions {
     // r -> rise
     // p -> plateau
     // f -> fall
-    if (t <= 0) return 0;
     if (t >= r + p + f) return 1;
 
     let y = 1 / (0.5 * r + p + 0.5 * f);
@@ -70,7 +66,8 @@ export function metaKernel(
   // t -> time elapsed
   // e -> magnitude
   // n -> delay
-  // p -> arbitrary number that describes speed of curve
+  // p -> arbitrary argument that nature of the curve
   if (e === 0) return 0;
+  if (t - n <= 0) return 0;
   return e * f(t - n, p);
 }
