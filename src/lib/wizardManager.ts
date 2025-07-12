@@ -19,6 +19,9 @@ export default class WizardManager {
   static moveToCurrentPage(navigate: NavigateFunction): void {
     this.moveToPage(wizardStorage.get("state"), navigate);
   }
+  static moveToFirstPage(navigate: NavigateFunction): void {
+    this.moveToPage(WizardState.Name, navigate);
+  }
 
   // Activity
   static isActive() {
@@ -116,9 +119,7 @@ export default class WizardManager {
 
     this.resetMeal(); // Reset temporary meal
 
-    wizardStorage.set("state", WizardState.Meal);
-
-    this.moveToCurrentPage(navigate);
+    this.moveToFirstPage(navigate); // Move to the first page
   }
   static startNew(navigate: NavigateFunction) {
     const timestamp = new Date();
