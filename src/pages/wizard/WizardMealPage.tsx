@@ -16,9 +16,6 @@ import Card from "../../components/Card";
 import FoodSearchDisplay from "../../components/FoodSearchDisplay";
 import AddedFoodsDisplay from "../../components/AddedFoodsDisplay";
 import NightscoutManager from "../../lib/nightscoutManager";
-import CustomMealSearch from "../../components/CustomMealSearch";
-import { setWizardMeal } from "../../storage/wizardStore";
-import type Meal from "../../models/events/meal";
 import useInsulinSplitPrediction from "../../state/useInsulinSplitPrediction";
 
 export default function WizardMealPage() {
@@ -173,16 +170,6 @@ export default function WizardMealPage() {
       </Card>
 
       <SessionPredictedSugarGraphCard session={session} />
-
-      <Card>
-        <CustomMealSearch
-          onChange={(meal: Meal) => {
-            setWizardMeal(meal);
-            navigate(0);
-          }}
-          meal={meal}
-        />
-      </Card>
 
       <div className="d-flex justify-content-end">
         <Button
