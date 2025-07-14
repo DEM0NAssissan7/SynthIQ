@@ -1,58 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
 import useImportedSessionsState from "../state/useImportedSessionsState";
 import Card from "../components/Card";
+import { MathUtil } from "../lib/util";
 
 interface DataStatisticsProps {
   title: string;
   data: number[];
 }
 function DataStatistics({ title, data }: DataStatisticsProps) {
-  const min = useMemo(() => {
-    if (data.length === 0) return 0;
-    let min = Infinity;
-    data.forEach((a) => {
-      if (a < min) min = a;
-    });
-    return min;
-  }, [data]);
+  const min = useMemo(() => Math.min(...data), [data]);
+  const max = useMemo(() => Math.max(...data), [data]);
 
-  const max = useMemo(() => {
-    if (data.length === 0) return 0;
-    let max = -Infinity;
-    data.forEach((a) => {
-      if (a > max) max = a;
-    });
-    return max;
-  }, [data]);
+  const mean = useMemo(() => MathUtil.mean(data), [data]);
+  const median = useMemo(() => MathUtil.median(data), [data]);
+  const stdev = useMemo(() => MathUtil.stdev(data), [data]);
 
-  const mean = useMemo(() => {
-    if (data.length === 0) return 0;
-    let retval = 0;
-    data.forEach((a) => {
-      retval += a;
-    });
-    retval = retval / data.length;
-    return retval;
-  }, [data]);
-
-  const median = useMemo(() => {
-    if (data.length === 0) return 0;
-    const sortedArray = data.slice().sort((a, b) => a - b);
-    const mid = Math.floor(sortedArray.length / 2);
-    if (sortedArray.length % 2 !== 0) return sortedArray[mid];
-    else return (sortedArray[mid - 1] + sortedArray[mid]) / 2;
-  }, [data]);
-
-  const stdev = useMemo(() => {
-    const denominator = data.length - 1;
-    if (denominator <= 0) return 0;
-
-    let sum = 0;
-    data.forEach((a) => {
-      sum += (mean - a) ** 2;
-    });
-    return Math.sqrt(sum / denominator);
-  }, [data, mean]);
   const stdmin = useMemo(() => mean - stdev, [mean, stdev]);
   const stdmax = useMemo(() => mean + stdev, [mean, stdev]);
   return (
