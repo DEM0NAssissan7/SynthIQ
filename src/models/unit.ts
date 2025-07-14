@@ -11,9 +11,11 @@ namespace Unit {
 
   export enum Time {
     Second = 1,
-    Millis = 1 / 1000,
-    Minute = 60,
-    Hour = 3600,
+    Millis = Second / 1000,
+    Minute = Second * 60,
+    Hour = Minute * 60,
+    Day = Hour * 24,
+    Week = Day * 7,
   }
 }
 
@@ -38,5 +40,9 @@ export function getTimeUnitPrettyName(unit: Unit.Time): string {
       return "minutes";
     case Unit.Time.Hour:
       return "hours";
+    case Unit.Time.Day:
+      return "days";
+    case Unit.Time.Week:
+      return "week";
   }
 }
