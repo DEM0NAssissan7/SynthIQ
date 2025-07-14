@@ -58,4 +58,7 @@ export class MathUtil {
     });
     return Math.sqrt(sum / denominator);
   }
+  static percentError(accepted: number, observed: number) {
+    return Math.abs((observed - accepted) / accepted) * 100;
+  }
 }
