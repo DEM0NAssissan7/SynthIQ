@@ -4,7 +4,7 @@ import { nightscoutStore } from "../storage/nightscoutStore";
 import { getTimestampFromOffset } from "./timing";
 import { changeProfile, profile } from "../storage/metaProfileStore";
 import MetabolismProfile from "../models/metabolism/metabolismProfile";
-import RequestType from "../models/requestType";
+import RequestType from "../models/types/requestType";
 import RequestQueue from "../models/requestQueue";
 import Session from "../models/session";
 import {
