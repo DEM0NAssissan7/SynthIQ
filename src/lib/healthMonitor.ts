@@ -39,6 +39,8 @@ async function populateReadingCache() {
   }
   return null;
 }
+// TODO: Remove
+populateReadingCache;
 
 /** Get readings */
 function getReadings() {
@@ -67,3 +69,5 @@ function getBGVelocity() {
   // We give the median of all the velocities to rule out insane jumps
   return MathUtil.median(velocities);
 }
+// TODO: Remove
+getBGVelocity;
