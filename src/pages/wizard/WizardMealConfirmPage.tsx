@@ -3,7 +3,7 @@
 import { Button, Form, ListGroup } from "react-bootstrap";
 import { round } from "../../lib/util";
 import WizardManager from "../../lib/wizardManager";
-import { WizardState } from "../../models/wizardState";
+import { WizardState } from "../../models/types/wizardState";
 import { useNavigate } from "react-router";
 import useInsulinPrediction from "../../state/useInsulinPrediction";
 import { useEffect, useMemo } from "react";

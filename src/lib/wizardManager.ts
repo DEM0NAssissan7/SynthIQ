@@ -1,6 +1,6 @@
 import Session from "../models/session";
 import Meal from "../models/events/meal";
-import { getStateName, WizardState } from "../models/wizardState";
+import { getStateName, WizardState } from "../models/types/wizardState";
 import { wizardStorage } from "../storage/wizardStore";
 import NightscoutManager from "./nightscoutManager";
 import { type NavigateFunction } from "react-router";

@@ -4,7 +4,7 @@ import { getGlucoseCorrectionCaps } from "../../lib/metabolism";
 import { Button, Form, InputGroup } from "react-bootstrap";
 import { round } from "../../lib/util";
 import WizardManager from "../../lib/wizardManager";
-import { WizardState } from "../../models/wizardState";
+import { WizardState } from "../../models/types/wizardState";
 import { useNavigate } from "react-router";
 import { useWizardSession } from "../../state/useSession";
 import Card from "../../components/Card";

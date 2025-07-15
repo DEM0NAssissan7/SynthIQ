@@ -3,7 +3,7 @@ import { Button, Form, InputGroup } from "react-bootstrap";
 import WizardManager from "../../lib/wizardManager";
 import { round } from "../../lib/util";
 import { useNavigate } from "react-router";
-import { WizardState } from "../../models/wizardState";
+import { WizardState } from "../../models/types/wizardState";
 import useInsulinPrediction from "../../state/useInsulinPrediction";
 import useVersion from "../../state/useVersion";
 import SessionPredictedSugarGraphCard from "../../components/SessionPredictedSugarGraphCard";

@@ -5,7 +5,7 @@ import {
   getStateFromName,
   getStateName,
   WizardState,
-} from "../models/wizardState";
+} from "../models/types/wizardState";
 
 // Persistent Storage
 export const wizardStorage = new StorageNode("wizard");

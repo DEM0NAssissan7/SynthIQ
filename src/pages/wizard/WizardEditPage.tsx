@@ -7,7 +7,7 @@ import GlucoseManager from "../../components/GlucoseManager";
 import InsulinManager from "../../components/InsulinManager";
 import MealAdditionalNutrients from "../../components/MealAdditionalNutrientsCard";
 import WizardManager from "../../lib/wizardManager";
-import { WizardState } from "../../models/wizardState";
+import { WizardState } from "../../models/types/wizardState";
 import { useWizardSession } from "../../state/useSession";
 import { Button } from "react-bootstrap";
 import SessionSummary from "../../components/SessionSummary";

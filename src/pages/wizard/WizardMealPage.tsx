@@ -2,7 +2,7 @@ import { Button, Form, ListGroup } from "react-bootstrap";
 import { useEffect, useMemo, useState, type BaseSyntheticEvent } from "react";
 import { round } from "../../lib/util";
 import WizardManager from "../../lib/wizardManager";
-import { WizardState } from "../../models/wizardState";
+import { WizardState } from "../../models/types/wizardState";
 import { useNavigate } from "react-router";
 import BloodSugarInput from "../../components/BloodSugarInput";
 import Unit from "../../models/unit";
