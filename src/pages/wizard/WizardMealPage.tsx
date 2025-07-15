@@ -17,6 +17,7 @@ import FoodSearchDisplay from "../../components/FoodSearchDisplay";
 import AddedFoodsDisplay from "../../components/AddedFoodsDisplay";
 import NightscoutManager from "../../lib/nightscoutManager";
 import useInsulinSplitPrediction from "../../state/useInsulinSplitPrediction";
+import { profile } from "../../storage/metaProfileStore";
 
 export default function WizardMealPage() {
   const session = useWizardSession();
@@ -50,7 +51,7 @@ export default function WizardMealPage() {
   }
 
   // Continue Buttons
-  const [initialGlucose, setInitialGlucose] = useState(83);
+  const [initialGlucose, setInitialGlucose] = useState(profile.target);
   const takeInsulinFirst = useMemo(() => {
     return getHourDiff(new Date(), insulinTimestamp) >= 0;
   }, [meal.carbs, meal.protein, session.initialGlucose]);

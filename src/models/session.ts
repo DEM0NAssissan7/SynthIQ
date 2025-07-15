@@ -17,8 +17,7 @@ export default class Session {
   subscriptions: (() => void)[] = [];
   uuid: UUID;
 
-  _initialGlucose: number = 83;
-  endTimestamp: Date | null; // The end timestamp of the session
+  _initialGlucose: number = profile.target;
 
   meals: Meal[] = [];
   insulins: Insulin[] = [];
