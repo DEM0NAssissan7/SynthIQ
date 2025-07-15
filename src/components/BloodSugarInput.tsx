@@ -5,11 +5,15 @@ import { useEffect } from "react";
 interface BloodSugarInputProps {
   initialGlucose: number;
   setInitialGlucose: (value: number) => void;
+  pullFromNightscout?: boolean;
+  showAutoButton?: boolean;
 }
 
 export default function BloodSugarInput({
   initialGlucose,
   setInitialGlucose,
+  pullFromNightscout = true,
+  showAutoButton = true,
 }: BloodSugarInputProps) {
   function pullCurrentGlucose() {
     NightscoutManager.getCurrentSugar().then((g) => {
@@ -17,7 +21,7 @@ export default function BloodSugarInput({
     });
   }
   useEffect(() => {
-    pullCurrentGlucose(); // Pull glucose upon component load
+    if (pullFromNightscout) pullCurrentGlucose(); // Pull glucose upon component load
   }, []);
   return (
     <Form.Group controlId="current-glucose" className="mb-3">
@@ -34,9 +38,11 @@ export default function BloodSugarInput({
             setInitialGlucose(!isNaN(value) ? value : 0);
           }}
         />
-        <Button variant="primary" onClick={pullCurrentGlucose}>
-          Auto
-        </Button>
+        {showAutoButton && (
+          <Button variant="primary" onClick={pullCurrentGlucose}>
+            Auto
+          </Button>
+        )}
       </div>
     </Form.Group>
   );
