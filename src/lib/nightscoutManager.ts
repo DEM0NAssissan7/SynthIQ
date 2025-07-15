@@ -178,6 +178,9 @@ class NightscoutManager {
       `entries/sgv.json?find[date][$gte]=${timestampA.getTime()}&find[date][$lte]=${timestampB.getTime()}&count=${count}`
     );
   }
+  static async getLatestReadings(count: number = 10) {
+    return await this.get(`entries/sgv.json?count=${count}`);
+  }
 
   /* Complex Requests */
   static markMeal(_carbs: number, _protein: number, timestamp: Date): void {
