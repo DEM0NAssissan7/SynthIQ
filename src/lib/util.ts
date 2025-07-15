@@ -47,6 +47,31 @@ export class MathUtil {
     if (sortedArray.length % 2 !== 0) return sortedArray[mid];
     else return (sortedArray[mid - 1] + sortedArray[mid]) / 2;
   }
+  static mode(data: number[]): number | null {
+    if (data.length === 0) return null;
+
+    const frequency: { [key: number]: number } = {};
+    data.forEach((a) => {
+      frequency[a] = (frequency[a] || 0) + 1;
+    });
+
+    const freqs = Object.values(frequency);
+    const maxFreq = Math.max(...freqs);
+
+    // Check if all values appear the same number of times
+    const allSame = freqs.every((f) => f === maxFreq);
+    if (allSame) return null;
+
+    let mode = Number(Object.keys(frequency)[0]);
+    for (const key in frequency) {
+      if (frequency[key] === maxFreq) {
+        mode = Number(key);
+        break;
+      }
+    }
+
+    return mode;
+  }
   static stdev(data: number[]): number {
     const denominator = data.length - 1;
     if (denominator <= 0) return 0;
