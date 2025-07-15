@@ -12,6 +12,7 @@ export const wizardStorage = new StorageNode("wizard");
 wizardStorage.add("state", WizardState.Intro, getStateFromName, getStateName);
 wizardStorage.add("mealMarked", false);
 wizardStorage.add("insulinMarked", false);
+wizardStorage.add("initialGlucoseMarked", false);
 
 // Session Storage
 wizardStorage.add("session", new Session(), Session.parse, Session.stringify);

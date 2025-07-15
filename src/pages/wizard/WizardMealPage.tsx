@@ -50,6 +50,7 @@ export default function WizardMealPage() {
   }
 
   // Continue Buttons
+  const [initialGlucose, setInitialGlucose] = useState(83);
   const takeInsulinFirst = useMemo(() => {
     return getHourDiff(new Date(), insulinTimestamp) >= 0;
   }, [meal.carbs, meal.protein, session.initialGlucose]);
@@ -61,6 +62,7 @@ export default function WizardMealPage() {
   function beginEating() {
     if (confirm("Are you ready to start eating?")) {
       WizardManager.markMeal();
+      WizardManager.setInitialGlucose(initialGlucose);
       WizardManager.moveToPage(WizardState.Insulin, navigate);
     }
   }
@@ -159,10 +161,7 @@ export default function WizardMealPage() {
             <ListGroup.Item>
               <BloodSugarInput
                 initialGlucose={session.initialGlucose}
-                setInitialGlucose={(g) => {
-                  if (!WizardManager.getMealMarked())
-                    session.initialGlucose = g;
-                }}
+                setInitialGlucose={(g) => setInitialGlucose(g)}
               />
             </ListGroup.Item>
           )}

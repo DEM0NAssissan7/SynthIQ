@@ -42,6 +42,18 @@ export default class WizardManager {
     const session = wizardStorage.get("session");
     return wizardStorage.get("insulinMarked") && session.insulin;
   }
+  static getInitialGlucoseMarked() {
+    return wizardStorage.get("initialGlucoseMarked");
+  }
+
+  // Glucose marking
+  static setInitialGlucose(BG: number) {
+    if (!this.getInitialGlucoseMarked()) {
+      const session = wizardStorage.get("session");
+      session.initialGlucose = BG;
+      wizardStorage.set("initialGlucoseMarked", true);
+    }
+  }
 
   // Meal
   static markMeal() {
@@ -116,6 +128,7 @@ export default class WizardManager {
 
     wizardStorage.set("mealMarked", false);
     wizardStorage.set("insulinMarked", false);
+    wizardStorage.set("initialGlucoseMarked", false);
 
     this.resetMeal(); // Reset temporary meal
 

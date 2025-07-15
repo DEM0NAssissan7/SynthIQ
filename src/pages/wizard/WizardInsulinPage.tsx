@@ -32,6 +32,7 @@ export default function WizardInsulinPage() {
 
   // Inputted Insulin
   const [insulinTaken, setInsulinTaken] = useState(0);
+  const [currentGlucose, setCurrentGlucose] = useState(session.initialGlucose);
   const markInsulin = () => {
     if (!isNaN(insulinTaken)) {
       if (
@@ -39,6 +40,8 @@ export default function WizardInsulinPage() {
       ) {
         session.clearTestInsulins();
         WizardManager.markInsulin(insulinTaken);
+        if (!WizardManager.getInitialGlucoseMarked())
+          WizardManager.setInitialGlucose(currentGlucose);
         WizardManager.moveToPage(
           WizardManager.getMealMarked()
             ? WizardState.Summary
@@ -61,9 +64,6 @@ export default function WizardInsulinPage() {
       WizardManager.resetWizard(navigate);
     }
   }
-
-  // Correction
-  const [currentGlucose, setCurrentGlucose] = useState(session.initialGlucose);
 
   const correctionInsulin = useMemo(() => {
     return round(getCorrectionInsulin(currentGlucose), 1);
@@ -136,12 +136,10 @@ export default function WizardInsulinPage() {
       <SessionPredictedSugarGraphCard session={session} />
 
       <Card>
-        {session.insulin !== 0 && (
-          <BloodSugarInput
-            initialGlucose={currentGlucose}
-            setInitialGlucose={setCurrentGlucose}
-          />
-        )}
+        <BloodSugarInput
+          initialGlucose={currentGlucose}
+          setInitialGlucose={setCurrentGlucose}
+        />
         <InputGroup className="mb-3">
           <InputGroup.Text id="basic-addon1">
             <i className="bi bi-capsule"></i>
