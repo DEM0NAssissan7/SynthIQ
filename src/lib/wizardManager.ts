@@ -20,7 +20,10 @@ export default class WizardManager {
     this.moveToPage(wizardStorage.get("state"), navigate);
   }
   static moveToFirstPage(navigate: NavigateFunction): void {
-    this.moveToPage(WizardState.Name, navigate);
+    navigate(`/template/select`);
+  }
+  static begin(navigate: NavigateFunction) {
+    this.moveToPage(WizardState.Meal, navigate);
   }
 
   // Activity
@@ -47,11 +50,11 @@ export default class WizardManager {
   }
 
   // Glucose marking
-  static setInitialGlucose(BG: number) {
+  static setInitialGlucose(BG: number, mark = true) {
     if (!this.getInitialGlucoseMarked()) {
-      const session = wizardStorage.get("session");
+      const session = wizardStorage.get("session") as Session;
       session.initialGlucose = BG;
-      wizardStorage.set("initialGlucoseMarked", true);
+      if (mark) wizardStorage.set("initialGlucoseMarked", true);
     }
   }
 

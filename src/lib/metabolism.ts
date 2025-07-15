@@ -13,6 +13,9 @@ export function getInsulin(carbs: number, protein: number) {
 export function getCorrectionInsulin(glucose: number) {
   return (glucose - profile.target) / profile.insulin.effect;
 }
+export function getSessionMealInsulin(session: Session) {
+  return session.insulin - getCorrectionInsulin(session.initialGlucose);
+}
 
 function getPeakGlucose(
   f: (t: number) => number,
@@ -20,7 +23,7 @@ function getPeakGlucose(
   interval: number,
   minThreshold: number,
   maxThreshold: number
-): number {
+): number | null {
   let funcMax = -Infinity;
   let y;
   for (let t = 0; t < until; t += interval) {
@@ -31,7 +34,7 @@ function getPeakGlucose(
     // This is an optimization to discard unwanted data
     if (y < minThreshold || y > maxThreshold) {
       // console.log(testTime, y, t);
-      return -1;
+      return null;
     }
 
     // If we have a smaller maximum
@@ -78,7 +81,7 @@ export function getOptimalInsulinTiming(
       minThreshold,
       minPeak
     );
-    if (peak < 0) continue;
+    if (peak === null) continue;
     if (peak < minPeak) {
       minPeak = peak;
       time = testTime;
@@ -153,7 +156,7 @@ export function getOptimalDualSplit(
         minThreshold,
         minPeak
       );
-      if (peak < 0) continue;
+      if (peak === null) continue;
       if (peak < minPeak) {
         minPeak = peak;
         optimalInsulins = insulins;

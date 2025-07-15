@@ -19,6 +19,13 @@ import { useEffect } from "react";
 import CustomFoodsPage from "./pages/CustomFoodsPage";
 import DextrosePage from "./pages/DextrosePage";
 import StatisticsPage from "./pages/StatisticsPage";
+import TemplateHubPage from "./pages/template/TemplateHubPage";
+import TemplateMealPage from "./pages/template/TemplateMealPage";
+import TemplateSelectionPage from "./pages/template/TemplateSelectionPage";
+import TemplateInsulinPage from "./pages/template/TemplateInsulinPage";
+import TemplateFinalBGPage from "./pages/template/TemplateFinalBGPage";
+import TemplateGlucosePage from "./pages/template/TemplateGlucosePage";
+import TemplateEditPage from "./pages/template/TemplateEditPage";
 
 function App() {
   useEffect(() => {
@@ -72,6 +79,17 @@ function App() {
           <Route path="/wizard/summary" element={<WizardSummaryPage />} />
           <Route path="/wizard/glucose" element={<WizardGlucosePage />} />
           <Route path="/wizard/edit" element={<WizardEditPage />} />
+
+          {/* Template Routes */}
+          <Route path="/template" element={<WizardRouterPage />} />
+          {/* We just reuse wizardrouter because it deals with it properly */}
+          <Route path="/template/select" element={<TemplateSelectionPage />} />
+          <Route path="/template/hub" element={<TemplateHubPage />} />
+          <Route path="/template/meal" element={<TemplateMealPage />} />
+          <Route path="/template/insulin" element={<TemplateInsulinPage />} />
+          <Route path="/template/glucose" element={<TemplateGlucosePage />} />
+          <Route path="/template/edit" element={<TemplateEditPage />} />
+          <Route path="/template/finalbg" element={<TemplateFinalBGPage />} />
         </Routes>
       </div>
     </div>
