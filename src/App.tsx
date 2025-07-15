@@ -41,7 +41,7 @@ function App() {
             element={
               NightscoutManager.urlIsValid() ||
               NightscoutManager.getNightscoutSkipped() ? (
-                WizardManager.isActive() && !WizardManager.isComplete() ? (
+                WizardManager.isActive() ? (
                   <Navigate to="/wizard" replace />
                 ) : (
                   <Navigate to="/hub" replace />
