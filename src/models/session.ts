@@ -120,6 +120,10 @@ export default class Session {
     this.insulins.forEach((a: Insulin) => (insulin += a.units));
     return insulin;
   }
+  get firstInsulinTimestamp(): Date {
+    if (this.insulins.length === 0) return this.timestamp;
+    return this.insulins[0].timestamp;
+  }
   get latestInsulinTimestamp(): Date {
     if (this.insulins.length === 0) return this.timestamp;
     return this.insulins[this.insulins.length - 1].timestamp;
