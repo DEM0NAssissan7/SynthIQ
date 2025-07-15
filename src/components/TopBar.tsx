@@ -29,7 +29,7 @@ function TopBar() {
     <div ref={topBarRef}>
       <Navbar expand="lg" className="bg-body-tertiary" expanded={expanded}>
         <Container>
-          <Navbar.Brand as={Link} to="/">
+          <Navbar.Brand as={Link} to="/hub">
             <img
               src="/favicon.png"
               alt="Logo"
