@@ -15,7 +15,6 @@ import { useWizardSession } from "../../state/useSession";
 import Card from "../../components/Card";
 import FoodSearchDisplay from "../../components/FoodSearchDisplay";
 import AddedFoodsDisplay from "../../components/AddedFoodsDisplay";
-import NightscoutManager from "../../lib/nightscoutManager";
 import useInsulinSplitPrediction from "../../state/useInsulinSplitPrediction";
 import { profile } from "../../storage/metaProfileStore";
 
@@ -78,7 +77,6 @@ export default function WizardMealPage() {
   useEffect(() => {
     session.clearTests();
     session.addTestMeal(meal);
-    NightscoutManager.loadCustomMeals();
   }, []);
 
   return (

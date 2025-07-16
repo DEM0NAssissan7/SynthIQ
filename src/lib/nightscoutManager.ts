@@ -7,13 +7,8 @@ import MetabolismProfile from "../models/metabolism/metabolismProfile";
 import RequestType from "../models/types/requestType";
 import RequestQueue from "../models/requestQueue";
 import Session from "../models/session";
-import {
-  customStore,
-  setCustomFoods,
-  setCustomMeals,
-} from "../storage/customStore";
+import { customStore, setCustomFoods } from "../storage/customStore";
 import Food from "../models/food";
-import Meal from "../models/events/meal";
 
 const selfID = "SynthIQ";
 
@@ -289,26 +284,6 @@ class NightscoutManager {
   static async storeMetaProfile() {
     this.getProfile().then((p) => {
       p.metaProfile = MetabolismProfile.stringify(profile);
-      this.put("profile", p);
-    });
-  }
-
-  // Custom Meals
-  static async loadCustomMeals() {
-    this.getProfile().then((a) => {
-      if (a.customMeals) {
-        const meals: Meal[] = [];
-        a.customMeals.forEach((m: any) => {
-          meals.push(Meal.parse(m));
-        });
-        setCustomMeals(meals);
-      }
-    });
-  }
-  static async storeCustomMeals() {
-    this.getProfile().then((p) => {
-      const customMeals = customStore.get("meals") as Meal[];
-      p.customMeals = customMeals.map((m: Meal) => Meal.stringify(m));
       this.put("profile", p);
     });
   }

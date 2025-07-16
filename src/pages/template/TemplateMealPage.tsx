@@ -9,7 +9,6 @@ import { useWizardSession } from "../../state/useSession";
 import Card from "../../components/Card";
 import FoodSearchDisplay from "../../components/FoodSearchDisplay";
 import AddedFoodsDisplay from "../../components/AddedFoodsDisplay";
-import NightscoutManager from "../../lib/nightscoutManager";
 import TemplateManager from "../../lib/templateManager";
 import { TemplateState } from "../../models/types/templateState";
 import WizardManager from "../../lib/wizardManager";
@@ -53,7 +52,6 @@ export default function TemplateMealPage() {
   useEffect(() => {
     session.clearTests();
     session.addTestMeal(meal);
-    NightscoutManager.loadCustomMeals();
   }, []);
 
   return (
