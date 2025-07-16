@@ -36,7 +36,7 @@ export default function WizardEditPage() {
           }
         >
           <Dropdown.Toggle variant="secondary" id="meal-dropdown">
-            {selectedMealIndex ? `Meal: ${selectedMealIndex}` : "Select Meal"}
+            Meal {selectedMealIndex + 1}
           </Dropdown.Toggle>
           <Dropdown.Menu>
             {session.meals.map((_, i: number) => (
