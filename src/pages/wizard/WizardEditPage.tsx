@@ -13,7 +13,6 @@ import { Button } from "react-bootstrap";
 import SessionSummary from "../../components/SessionSummary";
 import { useMemo, useState } from "react";
 import { Dropdown } from "react-bootstrap";
-import type Meal from "../../models/events/meal";
 
 export default function WizardEditPage() {
   const session = useWizardSession();
@@ -40,9 +39,9 @@ export default function WizardEditPage() {
             {selectedMealIndex ? `Meal: ${selectedMealIndex}` : "Select Meal"}
           </Dropdown.Toggle>
           <Dropdown.Menu>
-            {session.meals.map((meal: Meal, i: number) => (
+            {session.meals.map((_, i: number) => (
               <Dropdown.Item key={i} eventKey={i}>
-                Meal {i + 1} {meal.name !== "" && <>({meal.name})</>}
+                Meal {i + 1}
               </Dropdown.Item>
             ))}
           </Dropdown.Menu>
