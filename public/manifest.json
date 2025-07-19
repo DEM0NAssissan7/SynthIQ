@@ -1,0 +1,16 @@
+{
+  "name": "SynthIQ",
+  "short_name": "SynthIQ",
+  "description": "Web-based diabetic command center",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#317EFB",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
