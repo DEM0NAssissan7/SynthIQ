@@ -111,8 +111,8 @@ export default class WizardManager {
       session.clearTests();
 
       // TODO: Use date selector
-      NightscoutManager.markGlucose(caps, new Date());
     }
+    NightscoutManager.markGlucose(caps, new Date());
   }
 
   // Reset
