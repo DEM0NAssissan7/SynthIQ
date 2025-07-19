@@ -26,6 +26,9 @@ export default function TemplateMealPage() {
   function goBack() {
     TemplateManager.moveToPage(TemplateState.Hub, navigate);
   }
+  function goToSelect() {
+    TemplateManager.moveToPage(TemplateState.Select, navigate);
+  }
   function beginEating() {
     if (confirm("Are you ready to start eating?")) {
       WizardManager.markMeal();
@@ -99,6 +102,11 @@ export default function TemplateMealPage() {
         </ListGroup>
       </Card>
       <div className="d-flex justify-content-between align-items-center mt-3">
+        {!WizardManager.isActive() && (
+          <Button onClick={goToSelect} variant="secondary">
+            Go Back
+          </Button>
+        )}
         {WizardManager.getInsulinMarked() ? (
           <Button onClick={goBack} variant="secondary">
             Go To Hub

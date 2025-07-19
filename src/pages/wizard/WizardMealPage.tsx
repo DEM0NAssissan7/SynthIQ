@@ -66,6 +66,9 @@ export default function WizardMealPage() {
       WizardManager.moveToPage(WizardState.Insulin, navigate);
     }
   }
+  function goToSelect() {
+    navigate("/template/select");
+  }
 
   // Upon Startup
   useEffect(() => {
@@ -169,6 +172,11 @@ export default function WizardMealPage() {
 
       <SessionPredictedSugarGraphCard session={session} />
 
+      {!WizardManager.isActive() && (
+        <Button variant="secondary" onClick={goToSelect} className="me-2">
+          Go Back
+        </Button>
+      )}
       <div className="d-flex justify-content-end">
         <Button
           variant={takeInsulinFirst ? "primary" : "secondary"}
