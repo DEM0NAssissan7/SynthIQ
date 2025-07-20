@@ -42,7 +42,7 @@ export default function RescuePage() {
 
   const navigate = useNavigate();
   function goBack() {
-    WizardManager.moveToCurrentPage(navigate);
+    TemplateManager.moveToCurrentPage(navigate);
   }
   function markGlucose() {
     if (

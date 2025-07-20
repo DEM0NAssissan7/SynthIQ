@@ -78,7 +78,8 @@ export default class TemplateManager {
     navigate(this.getPageRedirect(state));
   }
   static moveToCurrentPage(navigate: NavigateFunction): void {
-    this.moveToPage(templateStore.get("state"), navigate);
+    if (this.isActive()) this.moveToPage(templateStore.get("state"), navigate);
+    else WizardManager.moveToCurrentPage(navigate);
   }
   static moveToFirstPage(navigate: NavigateFunction): void {
     navigate(`/hub`);
