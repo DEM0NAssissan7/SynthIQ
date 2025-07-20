@@ -31,7 +31,7 @@ export default function TemplateHubPage() {
     TemplateManager.moveToPage(TemplateState.Meal, navigate);
   }
   function takeGlucose() {
-    TemplateManager.moveToPage(TemplateState.Glucose, navigate);
+    navigate("/rescue");
   }
   function editSession() {
     TemplateManager.moveToPage(TemplateState.Edit, navigate);

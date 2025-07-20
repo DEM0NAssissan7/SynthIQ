@@ -32,7 +32,7 @@ export default function WizardSummaryPage() {
     WizardManager.moveToPage(WizardState.Meal, navigate);
   }
   function takeGlucose() {
-    WizardManager.moveToPage(WizardState.Glucose, navigate);
+    navigate("/rescue");
   }
   function editSession() {
     WizardManager.moveToPage(WizardState.Edit, navigate);

@@ -12,7 +12,6 @@ import WizardMealPage from "./pages/wizard/WizardMealPage";
 import WizardRouterPage from "./pages/wizard/WizardRouterPage";
 import WizardSummaryPage from "./pages/wizard/WizardSummaryPage";
 import NightscoutManager from "./lib/nightscoutManager";
-import WizardGlucosePage from "./pages/wizard/WizardGlucosePage";
 import PlaygroundPage from "./pages/PlaygroundPage";
 import WizardEditPage from "./pages/wizard/WizardEditPage";
 import { useEffect } from "react";
@@ -24,8 +23,8 @@ import TemplateMealPage from "./pages/template/TemplateMealPage";
 import TemplateSelectionPage from "./pages/template/TemplateSelectionPage";
 import TemplateInsulinPage from "./pages/template/TemplateInsulinPage";
 import TemplateFinalBGPage from "./pages/template/TemplateFinalBGPage";
-import TemplateGlucosePage from "./pages/template/TemplateGlucosePage";
 import TemplateEditPage from "./pages/template/TemplateEditPage";
+import RescuePage from "./pages/RescuePage";
 
 function App() {
   useEffect(() => {
@@ -66,6 +65,7 @@ function App() {
           <Route path="/customfoods" element={<CustomFoodsPage />} />
           <Route path="/dextrose" element={<DextrosePage />} />
           <Route path="/statistics" element={<StatisticsPage />} />
+          <Route path="/rescue" element={<RescuePage />} />
 
           {/* Wizard Routes */}
           <Route path="/wizard" element={<WizardRouterPage />} />
@@ -77,7 +77,6 @@ function App() {
           />
           <Route path="/wizard/insulin" element={<WizardInsulinPage />} />
           <Route path="/wizard/summary" element={<WizardSummaryPage />} />
-          <Route path="/wizard/glucose" element={<WizardGlucosePage />} />
           <Route path="/wizard/edit" element={<WizardEditPage />} />
 
           {/* Template Routes */}
@@ -87,7 +86,6 @@ function App() {
           <Route path="/template/hub" element={<TemplateHubPage />} />
           <Route path="/template/meal" element={<TemplateMealPage />} />
           <Route path="/template/insulin" element={<TemplateInsulinPage />} />
-          <Route path="/template/glucose" element={<TemplateGlucosePage />} />
           <Route path="/template/edit" element={<TemplateEditPage />} />
           <Route path="/template/finalbg" element={<TemplateFinalBGPage />} />
         </Routes>
