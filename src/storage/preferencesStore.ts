@@ -8,6 +8,8 @@ preferencesStore.add("endingHours", 1);
 preferencesStore.add("lowBG", 67);
 preferencesStore.add("dangerBG", 55);
 
+preferencesStore.add("highBG", 125);
+
 preferencesStore.add("insulinStepSize", 1);
 preferencesStore.add("timeStepSize", 5);
 
