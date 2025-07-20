@@ -3,7 +3,6 @@ export enum TemplateState {
   Hub,
   Meal,
   Insulin,
-  Glucose,
   FinalBG,
   Edit,
 }
@@ -14,7 +13,6 @@ const stateNames: StateNameKey[] = [
   [TemplateState.Hub, "hub"],
   [TemplateState.Meal, "meal"],
   [TemplateState.Insulin, "insulin"],
-  [TemplateState.Glucose, "glucose"],
   [TemplateState.FinalBG, "finalbg"],
   [TemplateState.Edit, "edit"],
 ];
