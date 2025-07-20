@@ -183,3 +183,21 @@ export function getOptimalDualSplit(
 export function getGlucoseCorrectionCaps(sugar: number) {
   return (profile.target - sugar) / profile.glucose.effect;
 }
+export function getIntelligentGlucoseCorrection(
+  velocityHours: number,
+  currentBG: number,
+  actingMinutes: number
+) {
+  /**
+   * We consider the current BG velocity to last another 30 minutes.
+   * As in, the current BG effect from the velocity will last another 30 minutes.
+   * For example, if the sugar is moving at a rate of 30 mg/dL per hr, we assume it's gonna
+   * end up going down by 15mg/dL (30 minutes = 1/2 hour), so we add that into the
+   */
+  const velocityMinutes = velocityHours / 60;
+  const predictedDrop = velocityMinutes * actingMinutes;
+  return (
+    getGlucoseCorrectionCaps(currentBG) +
+    getGlucoseCorrectionCaps(predictedDrop)
+  );
+}
