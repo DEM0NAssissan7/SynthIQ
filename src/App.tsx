@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router";
+import { Routes, Route, Navigate, useNavigate } from "react-router";
 import TopBar from "./components/TopBar";
 import WizardManager from "./lib/wizardManager";
 import HubPage from "./pages/HubPage";
@@ -25,8 +25,10 @@ import TemplateInsulinPage from "./pages/template/TemplateInsulinPage";
 import TemplateFinalBGPage from "./pages/template/TemplateFinalBGPage";
 import TemplateEditPage from "./pages/template/TemplateEditPage";
 import RescuePage from "./pages/RescuePage";
+import { smartMonitor } from "./lib/healthMonitor";
 
 function App() {
+  const navigate = useNavigate();
   useEffect(() => {
     // Attempt to fulfill requests upon page load
     NightscoutManager.fulfillRequests();
@@ -36,6 +38,9 @@ function App() {
 
     // Pull custom foods from nightscout if available
     NightscoutManager.loadCustomFoods();
+
+    // Execute health monitor
+    smartMonitor(navigate);
   }, []);
   return (
     <div>
