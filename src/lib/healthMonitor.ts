@@ -81,7 +81,7 @@ export function getBGVelocity() {
  * Gives a time (in minutes) that the user will end up at or below critical blood sugar
  */
 export function timeToCritical() {
-  const pointsPerMinute = -getBGVelocity();
+  const pointsPerMinute = -getBGVelocity() / 60;
   if (pointsPerMinute <= 0) return Infinity;
   const currentBG = getCurrentBG();
   const dangerBG = preferencesStore.get("dangerBG");
