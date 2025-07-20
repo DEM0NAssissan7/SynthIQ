@@ -11,7 +11,7 @@ export function getInsulin(carbs: number, protein: number) {
   );
 }
 export function getCorrectionInsulin(glucose: number) {
-  return (glucose - profile.target) / profile.insulin.effect;
+  return Math.max((glucose - profile.target) / profile.insulin.effect, 0);
 }
 export function getSessionMealInsulin(session: Session) {
   return session.insulin - getCorrectionInsulin(session.initialGlucose);
@@ -181,7 +181,7 @@ export function getOptimalDualSplit(
 
 // Glucose
 export function getGlucoseCorrectionCaps(sugar: number) {
-  return (profile.target - sugar) / profile.glucose.effect;
+  return Math.max((profile.target - sugar) / profile.glucose.effect, 0);
 }
 export function getIntelligentGlucoseCorrection(
   velocityHours: number,
