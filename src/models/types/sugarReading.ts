@@ -6,6 +6,6 @@ export type SugarReading = {
 export function getReadingFromNightscout(o: any): SugarReading {
   return {
     sugar: o.sgv,
-    timestamp: new Date(o.timestamp),
+    timestamp: new Date(o.dateString),
   };
 }
