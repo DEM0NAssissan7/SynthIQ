@@ -1,19 +1,30 @@
 import StorageNode from "../lib/storageNode";
-import HealthMonitorStatus, {
-  getStatusFromName,
-  getStatusName,
-} from "../models/types/healthMonitorStatus";
-import type { SugarReading } from "../models/types/sugarReading";
+import Glucose from "../models/events/glucose";
+import {
+  createNightscoutReading,
+  getReadingFromNightscout,
+  type SugarReading,
+} from "../models/types/sugarReading";
 
 const healthMonitorStore = new StorageNode("healthmonitor");
 export default healthMonitorStore;
 
-healthMonitorStore.add("readingsCache", [] as SugarReading[]);
+healthMonitorStore.add(
+  "readingsCache",
+  [] as SugarReading[],
+  (s: string) => JSON.parse(s).map((a: any) => getReadingFromNightscout(a)),
+  (r: SugarReading[]) =>
+    JSON.stringify(r.map((a) => createNightscoutReading(a)))
+);
 healthMonitorStore.add("readingsCacheSize", 5);
 
 healthMonitorStore.add(
-  "status",
-  HealthMonitorStatus.Nominal,
-  getStatusFromName,
-  getStatusName
+  "lastRescue",
+  new Glucose(new Date(), 0),
+  (s: string) => Glucose.parse(s),
+  (a: any) => Glucose.stringify(a)
 );
+
+healthMonitorStore.add("currentBG", 83);
+healthMonitorStore.add("timeBetweenShots", 15);
+healthMonitorStore.add("dropTime", 20);
