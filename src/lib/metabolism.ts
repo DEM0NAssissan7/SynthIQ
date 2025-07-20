@@ -196,8 +196,5 @@ export function getIntelligentGlucoseCorrection(
    */
   const velocityMinutes = velocityHours / 60;
   const predictedDrop = velocityMinutes * actingMinutes;
-  return (
-    getGlucoseCorrectionCaps(currentBG) +
-    getGlucoseCorrectionCaps(predictedDrop)
-  );
+  return getGlucoseCorrectionCaps(currentBG + predictedDrop); // We add predictedDrop because if the sugar is dropping, the velocity will be negative (along with predictedDrop being negative too)
 }
