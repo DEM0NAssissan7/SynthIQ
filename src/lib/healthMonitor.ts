@@ -15,17 +15,23 @@
  *
  */
 
+import type { NavigateFunction } from "react-router";
+import Glucose from "../models/events/glucose";
+import HealthMonitorStatus from "../models/types/healthMonitorStatus";
 import {
   getReadingFromNightscout,
   type SugarReading,
 } from "../models/types/sugarReading";
 import healthMonitorStore from "../storage/healthMonitorStore";
+import preferencesStore from "../storage/preferencesStore";
 import NightscoutManager from "./nightscoutManager";
-import { getHourDiff } from "./timing";
-import { MathUtil } from "./util";
+import { getHourDiff, getMinuteDiff } from "./timing";
+import { MathUtil, round } from "./util";
+
+export let healthMonitorStatus = HealthMonitorStatus.Nominal;
 
 /** Poll nightscout to fill the reading cache */
-async function populateReadingCache() {
+export async function populateReadingCache() {
   const readingsCacheSize = healthMonitorStore.get("readingsCacheSize");
   const rawReadings = await NightscoutManager.getLatestReadings(
     readingsCacheSize
@@ -35,30 +41,32 @@ async function populateReadingCache() {
       getReadingFromNightscout(r)
     ) as SugarReading[];
     healthMonitorStore.set("readingsCache", readings);
+    healthMonitorStore.set("currentBG", readings[0].sugar);
     return readings;
   }
   return null;
 }
-// TODO: Remove
-populateReadingCache;
 
 /** Get readings */
 function getReadings() {
   return healthMonitorStore.get("readingsCache");
 }
+export function getCurrentBG() {
+  return healthMonitorStore.get("currentBG");
+}
 
 /** This function returns (mg/dL) / hr.
  * It describes how quickly blood sugar is moving based on the CGM readings
  */
-function getBGVelocity() {
+export function getBGVelocity() {
   const readings = getReadings();
   let velocities = [];
   if (readings.length < 2) {
     return 0;
   }
-  for (let i = 1; i < readings.length - 1; i++) {
-    const lastReading = readings[i - 1];
+  for (let i = 0; i < readings.length - 1; i++) {
     const currentReading = readings[i];
+    const lastReading = readings[i + 1];
     const timeDiff = getHourDiff(
       currentReading.timestamp,
       lastReading.timestamp
@@ -69,5 +77,82 @@ function getBGVelocity() {
   // We give the median of all the velocities to rule out insane jumps
   return MathUtil.median(velocities);
 }
-// TODO: Remove
-getBGVelocity;
+/**
+ * Gives a time (in minutes) that the user will end up at or below critical blood sugar
+ */
+export function timeToCritical() {
+  const pointsPerMinute = -getBGVelocity();
+  if (pointsPerMinute <= 0) return Infinity;
+  const currentBG = getCurrentBG();
+  const dangerBG = preferencesStore.get("dangerBG");
+  const pointsToCritical = currentBG - dangerBG;
+  return round(pointsToCritical / pointsPerMinute, 0);
+}
+
+// Rescue Glucose
+export function markGlucose(caps: number) {
+  healthMonitorStore.set("lastRescue", new Glucose(new Date(), caps));
+}
+function getLastRescue() {
+  return healthMonitorStore.get("lastRescue");
+}
+
+export function getLastRescueMinutes() {
+  const minuteDiff = round(
+    getMinuteDiff(new Date(), getLastRescue().timestamp),
+    0
+  );
+  if (minuteDiff > 60) return 0;
+  return minuteDiff;
+}
+export function getLastRescueCaps() {
+  return getLastRescue().caps;
+}
+
+export async function updateHealthMonitorStatus() {
+  const readings: SugarReading[] | null = await populateReadingCache();
+  if (readings) {
+    // Assume things are nominal
+    healthMonitorStatus = HealthMonitorStatus.Nominal;
+
+    // Check critical time
+    const criticalTime = timeToCritical();
+    if (criticalTime <= 20) {
+      healthMonitorStatus = HealthMonitorStatus.Falling;
+      return healthMonitorStatus;
+    }
+
+    const currentBG = getCurrentBG();
+    if (currentBG < preferencesStore.get("lowBG")) {
+      healthMonitorStatus = HealthMonitorStatus.Low;
+      return healthMonitorStatus;
+    }
+
+    if (currentBG > preferencesStore.get("highBG")) {
+      healthMonitorStatus = HealthMonitorStatus.High;
+      return healthMonitorStatus;
+    }
+
+    // Final return
+    return HealthMonitorStatus.Nominal;
+  }
+  return null;
+}
+export async function smartMonitor(navigate: NavigateFunction) {
+  const status: HealthMonitorStatus | null = await updateHealthMonitorStatus();
+  if (status !== null) {
+    switch (status) {
+      case HealthMonitorStatus.Nominal:
+        break;
+      case HealthMonitorStatus.Falling:
+      case HealthMonitorStatus.Low:
+        navigate("/rescue");
+        break;
+      case HealthMonitorStatus.High:
+        navigate("/wizard");
+        break;
+      default:
+        break;
+    }
+  }
+}
