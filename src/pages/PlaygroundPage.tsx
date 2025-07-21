@@ -12,6 +12,7 @@ import Card from "../components/Card";
 import { Form } from "react-bootstrap";
 import MealAdditionalNutrients from "../components/MealAdditionalNutrientsCard";
 import SessionSummary from "../components/SessionSummary";
+import BloodSugarInput from "../components/BloodSugarInput";
 
 let playgroundMeal = new Meal(new Date());
 let playgroundSession = new Session(false);
@@ -40,6 +41,15 @@ export default function PlaygroundPage() {
 
       <Card>
         <MealAdditionalNutrients meal={meal} />
+      </Card>
+
+      <Card>
+        <BloodSugarInput
+          initialGlucose={session.initialGlucose}
+          setInitialGlucose={(g) => (session.initialGlucose = g)}
+          pullFromNightscout={false}
+          showAutoButton={false}
+        />
       </Card>
 
       <Card>

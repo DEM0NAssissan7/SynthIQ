@@ -5,7 +5,7 @@
 import WizardManager from "../../lib/wizardManager";
 import { Button } from "react-bootstrap";
 import { useNavigate } from "react-router";
-import { WizardState } from "../../models/wizardState";
+import { WizardState } from "../../models/types/wizardState";
 import SessionGraph from "../../components/SessionGraph";
 import { useWizardSession } from "../../state/useSession";
 import Card from "../../components/Card";
@@ -32,7 +32,7 @@ export default function WizardSummaryPage() {
     WizardManager.moveToPage(WizardState.Meal, navigate);
   }
   function takeGlucose() {
-    WizardManager.moveToPage(WizardState.Glucose, navigate);
+    navigate("/rescue");
   }
   function editSession() {
     WizardManager.moveToPage(WizardState.Edit, navigate);

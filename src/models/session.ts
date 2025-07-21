@@ -1,6 +1,6 @@
 import NightscoutManager from "../lib/nightscoutManager";
 import { getHourDiff, getTimestampFromOffset } from "../lib/timing";
-import { convertDimensions, genUUID, type UUID } from "../lib/util";
+import { convertDimensions, genUUID, MathUtil, type UUID } from "../lib/util";
 import { nightscoutStore } from "../storage/nightscoutStore";
 import Glucose from "./events/glucose";
 import Insulin from "./events/insulin";
@@ -12,13 +12,16 @@ import type MetaEvent from "./events/metaEvent";
 import type MetabolismProfile from "./metabolism/metabolismProfile";
 import { profile } from "../storage/metaProfileStore";
 import Unit from "./unit";
+import preferencesStore from "../storage/preferencesStore";
 
 export default class Session {
   subscriptions: (() => void)[] = [];
   uuid: UUID;
 
-  _initialGlucose: number = 83;
-  endTimestamp: Date | null; // The end timestamp of the session
+  _initialGlucose: number = profile.target;
+  _endTimestamp: Date | null = null; // The end timestamp of the session
+  finalBG: number | null = null;
+  _isGarbage: boolean = false;
 
   meals: Meal[] = [];
   insulins: Insulin[] = [];
@@ -32,7 +35,6 @@ export default class Session {
 
   constructor(getInitialGlucose: boolean = true) {
     // This timestamp marks when eating _begins_
-    this.endTimestamp = null;
     this.uuid = genUUID();
     if (getInitialGlucose) this.pullInitialGlucose();
   }
@@ -121,6 +123,10 @@ export default class Session {
     this.insulins.forEach((a: Insulin) => (insulin += a.units));
     return insulin;
   }
+  get firstInsulinTimestamp(): Date {
+    if (this.insulins.length === 0) return this.timestamp;
+    return this.insulins[0].timestamp;
+  }
   get latestInsulinTimestamp(): Date {
     if (this.insulins.length === 0) return this.timestamp;
     return this.insulins[this.insulins.length - 1].timestamp;
@@ -208,6 +214,32 @@ export default class Session {
     if (!timestamp) throw new Error("No beginning timestamp found in session");
     return timestamp;
   }
+  get endTimestamp(): Date | null {
+    return this._endTimestamp;
+  }
+  set endTimestamp(value: Date | null) {
+    if (value) {
+      const maxSessionLength = preferencesStore.get("maxSessionLength");
+      if (this.getN(value) > maxSessionLength)
+        this._endTimestamp = getTimestampFromOffset(
+          this.timestamp,
+          maxSessionLength
+        );
+      else this._endTimestamp = value;
+    }
+    // Set final BG once we get an end timestamp
+    if (value) {
+      this.pullFinalBG();
+    }
+  }
+  set isGarbage(value: boolean) {
+    this._isGarbage = value;
+    this.notify();
+  }
+  get isGarbage(): boolean {
+    return this._isGarbage;
+  }
+
   get length(): number {
     if (!this.endTimestamp)
       throw new Error(`Cannot give length - there is no end timestamp!`);
@@ -287,6 +319,18 @@ export default class Session {
       );
     return NightscoutManager.getReadings(this.timestamp, this.endTimestamp);
   }
+  async pullFinalBG() {
+    const hoursBefore = preferencesStore.get("endingHours");
+    const rawReadings = await this.getLastReadings(hoursBefore);
+    if (rawReadings && !this.finalBG) {
+      const readings: number[] = rawReadings.map((r: any) => r.sgv);
+
+      const finalBG = MathUtil.median(readings);
+      if (!this.finalBG) this.finalBG = finalBG;
+      return finalBG;
+    }
+    return null;
+  }
 
   // Initial glucose
   async pullInitialGlucose() {
@@ -305,6 +349,15 @@ export default class Session {
     this.notify();
   }
 
+  // Glucose statistics stuff
+  async getLastReadings(hours: number) {
+    // Give the last readings from [hours] before the end until the actual end
+    let timestampB = new Date();
+    if (this.endTimestamp) timestampB = this.endTimestamp;
+    const timestampA = getTimestampFromOffset(timestampB, -hours);
+    return NightscoutManager.getReadings(timestampA, timestampB);
+  }
+
   // Serialization
   static stringify(session: Session): string {
     return JSON.stringify({
@@ -315,6 +368,8 @@ export default class Session {
       insulins: session.insulins.map((a) => Insulin.stringify(a)),
       glucoses: session.glucoses.map((a) => Glucose.stringify(a)),
       endTimestamp: session.endTimestamp?.toISOString() || null,
+      finalBG: session.finalBG,
+      isGarbage: session.isGarbage,
     });
   }
   static parse(string: string): Session {
@@ -322,7 +377,9 @@ export default class Session {
     let session = new Session(false);
     session.uuid = o.uuid;
     session.initialGlucose = o.initialGlucose;
-    session.endTimestamp = o.endTimestamp ? new Date(o.endTimestamp) : null;
+    session._endTimestamp = o.endTimestamp ? new Date(o.endTimestamp) : null;
+    session.finalBG = o.finalBG || null;
+    session.isGarbage = o.isGarbage || false;
 
     o.meals.map((a: any) => session.addMeal(Meal.parse(a)));
     o.testMeals.map((a: any) => session.addTestMeal(Meal.parse(a)));

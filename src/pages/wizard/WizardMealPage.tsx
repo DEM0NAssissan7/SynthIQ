@@ -2,7 +2,7 @@ import { Button, Form, ListGroup } from "react-bootstrap";
 import { useEffect, useMemo, useState, type BaseSyntheticEvent } from "react";
 import { round } from "../../lib/util";
 import WizardManager from "../../lib/wizardManager";
-import { WizardState } from "../../models/wizardState";
+import { WizardState } from "../../models/types/wizardState";
 import { useNavigate } from "react-router";
 import BloodSugarInput from "../../components/BloodSugarInput";
 import Unit from "../../models/unit";
@@ -15,11 +15,8 @@ import { useWizardSession } from "../../state/useSession";
 import Card from "../../components/Card";
 import FoodSearchDisplay from "../../components/FoodSearchDisplay";
 import AddedFoodsDisplay from "../../components/AddedFoodsDisplay";
-import NightscoutManager from "../../lib/nightscoutManager";
-import CustomMealSearch from "../../components/CustomMealSearch";
-import { setWizardMeal } from "../../storage/wizardStore";
-import type Meal from "../../models/events/meal";
 import useInsulinSplitPrediction from "../../state/useInsulinSplitPrediction";
+import { profile } from "../../storage/metaProfileStore";
 
 export default function WizardMealPage() {
   const session = useWizardSession();
@@ -53,6 +50,7 @@ export default function WizardMealPage() {
   }
 
   // Continue Buttons
+  const [initialGlucose, setInitialGlucose] = useState(profile.target);
   const takeInsulinFirst = useMemo(() => {
     return getHourDiff(new Date(), insulinTimestamp) >= 0;
   }, [meal.carbs, meal.protein, session.initialGlucose]);
@@ -64,8 +62,12 @@ export default function WizardMealPage() {
   function beginEating() {
     if (confirm("Are you ready to start eating?")) {
       WizardManager.markMeal();
+      WizardManager.setInitialGlucose(initialGlucose);
       WizardManager.moveToPage(WizardState.Insulin, navigate);
     }
+  }
+  function goToSelect() {
+    navigate("/template/select");
   }
 
   // Upon Startup
@@ -78,7 +80,6 @@ export default function WizardMealPage() {
   useEffect(() => {
     session.clearTests();
     session.addTestMeal(meal);
-    NightscoutManager.loadCustomMeals();
   }, []);
 
   return (
@@ -162,10 +163,7 @@ export default function WizardMealPage() {
             <ListGroup.Item>
               <BloodSugarInput
                 initialGlucose={session.initialGlucose}
-                setInitialGlucose={(g) => {
-                  if (!WizardManager.getMealMarked())
-                    session.initialGlucose = g;
-                }}
+                setInitialGlucose={(g) => setInitialGlucose(g)}
               />
             </ListGroup.Item>
           )}
@@ -174,16 +172,11 @@ export default function WizardMealPage() {
 
       <SessionPredictedSugarGraphCard session={session} />
 
-      <Card>
-        <CustomMealSearch
-          onChange={(meal: Meal) => {
-            setWizardMeal(meal);
-            navigate(0);
-          }}
-          meal={meal}
-        />
-      </Card>
-
+      {!WizardManager.isActive() && (
+        <Button variant="secondary" onClick={goToSelect} className="me-2">
+          Go Back
+        </Button>
+      )}
       <div className="d-flex justify-content-end">
         <Button
           variant={takeInsulinFirst ? "primary" : "secondary"}

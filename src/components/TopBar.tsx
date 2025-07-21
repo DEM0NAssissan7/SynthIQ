@@ -29,7 +29,7 @@ function TopBar() {
     <div ref={topBarRef}>
       <Navbar expand="lg" className="bg-body-tertiary" expanded={expanded}>
         <Container>
-          <Navbar.Brand as={Link} to="/">
+          <Navbar.Brand as={Link} to="/hub">
             <img
               src="/favicon.png"
               alt="Logo"
@@ -65,6 +65,9 @@ function TopBar() {
               </Nav.Link>
               <Nav.Link as={Link} to="/setup" onClick={handleClose}>
                 Nightscout Setup
+              </Nav.Link>
+              <Nav.Link as={Link} to="/settings" onClick={handleClose}>
+                Settings
               </Nav.Link>
             </Nav>
           </Navbar.Collapse>

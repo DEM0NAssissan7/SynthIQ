@@ -1,6 +1,6 @@
 import Session from "../models/session";
 import Meal from "../models/events/meal";
-import { getStateName, WizardState } from "../models/wizardState";
+import { getStateName, WizardState } from "../models/types/wizardState";
 import { wizardStorage } from "../storage/wizardStore";
 import NightscoutManager from "./nightscoutManager";
 import { type NavigateFunction } from "react-router";
@@ -19,6 +19,12 @@ export default class WizardManager {
   static moveToCurrentPage(navigate: NavigateFunction): void {
     this.moveToPage(wizardStorage.get("state"), navigate);
   }
+  static moveToFirstPage(navigate: NavigateFunction): void {
+    navigate(`/template/select`);
+  }
+  static begin(navigate: NavigateFunction) {
+    this.moveToPage(WizardState.Meal, navigate);
+  }
 
   // Activity
   static isActive() {
@@ -35,9 +41,21 @@ export default class WizardManager {
       wizardStorage.get("mealMarked") && (session.carbs || session.protein)
     );
   }
-  static getInsulinMarked() {
+  static getInsulinMarked(): boolean {
     const session = wizardStorage.get("session");
-    return wizardStorage.get("insulinMarked") && session.insulin;
+    return wizardStorage.get("insulinMarked") && session.insulin !== 0;
+  }
+  static getInitialGlucoseMarked() {
+    return wizardStorage.get("initialGlucoseMarked");
+  }
+
+  // Glucose marking
+  static setInitialGlucose(BG: number, mark = true) {
+    if (!this.getInitialGlucoseMarked()) {
+      const session = wizardStorage.get("session") as Session;
+      session.initialGlucose = BG;
+      if (mark) wizardStorage.set("initialGlucoseMarked", true);
+    }
   }
 
   // Meal
@@ -85,16 +103,16 @@ export default class WizardManager {
   // Glucose
   static markGlucose(caps: number) {
     // We really don't want to mark glucose if we haven't taken insulin. The glucose would never be taken because of a meal. Meals raise glucose.
-    if (this.getInsulinMarked()) {
-      const session: Session = wizardStorage.get("session");
+    const session: Session = wizardStorage.get("session");
+    if (session.insulin !== 0) {
       const timestamp = new Date();
 
       session.createGlucose(timestamp, caps);
       session.clearTests();
 
       // TODO: Use date selector
-      NightscoutManager.markGlucose(caps, new Date());
     }
+    NightscoutManager.markGlucose(caps, new Date());
   }
 
   // Reset
@@ -113,12 +131,11 @@ export default class WizardManager {
 
     wizardStorage.set("mealMarked", false);
     wizardStorage.set("insulinMarked", false);
+    wizardStorage.set("initialGlucoseMarked", false);
 
     this.resetMeal(); // Reset temporary meal
 
-    wizardStorage.set("state", WizardState.Meal);
-
-    this.moveToCurrentPage(navigate);
+    this.moveToFirstPage(navigate); // Move to the first page
   }
   static startNew(navigate: NavigateFunction) {
     const timestamp = new Date();

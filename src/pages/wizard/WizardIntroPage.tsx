@@ -2,7 +2,6 @@ import { Button } from "react-bootstrap";
 import { useNavigate } from "react-router";
 import { useEffect } from "react";
 import WizardManager from "../../lib/wizardManager";
-import { WizardState } from "../../models/wizardState";
 
 export default function WizardIntroPage() {
   const navigate = useNavigate();
@@ -48,7 +47,7 @@ export default function WizardIntroPage() {
       <Button
         variant="primary"
         onClick={() => {
-          WizardManager.moveToPage(WizardState.Meal, navigate);
+          WizardManager.moveToFirstPage(navigate);
         }}
       >
         Continue

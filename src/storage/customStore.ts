@@ -2,41 +2,8 @@
 import NightscoutManager from "../lib/nightscoutManager";
 import StorageNode from "../lib/storageNode";
 import Food, { foods } from "../models/food";
-import Meal from "../models/events/meal";
 
 export const customStore = new StorageNode("custom");
-
-// Custom Meals
-customStore.add(
-  "meals",
-  [],
-  (s: string) => {
-    const mealArray = JSON.parse(s);
-    return mealArray.map((a: any) => Meal.parse(a));
-  },
-  (meals: Meal[]) => {
-    const mealArray = meals.map((a: Meal) => Meal.stringify(a));
-    return JSON.stringify(mealArray);
-  }
-);
-let customMeals = customStore.get("meals") as Meal[];
-function syncCustomMeals() {
-  customStore.write("meals");
-  NightscoutManager.storeCustomMeals();
-}
-export function addCustomMeal(meal: Meal) {
-  customMeals.push(meal);
-  syncCustomMeals();
-}
-export function removeCustomMeal(meal: Meal) {
-  customMeals.splice(customMeals.indexOf(meal), 1);
-  syncCustomMeals();
-}
-export function setCustomMeals(meals: Meal[], sync: boolean = false) {
-  customStore.set("meals", meals);
-  customFoods = customStore.get("meals");
-  if (sync) NightscoutManager.storeCustomMeals();
-}
 
 // Custom Foods
 customStore.add(

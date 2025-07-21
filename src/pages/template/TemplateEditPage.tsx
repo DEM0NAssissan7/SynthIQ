@@ -1,34 +1,37 @@
 import { useNavigate } from "react-router";
 import AddedFoodsDisplay from "../../components/AddedFoodsDisplay";
 import Card from "../../components/Card";
-import SessionGraph from "../../components/SessionGraph";
 import FoodSearchDisplay from "../../components/FoodSearchDisplay";
 import GlucoseManager from "../../components/GlucoseManager";
 import InsulinManager from "../../components/InsulinManager";
 import MealAdditionalNutrients from "../../components/MealAdditionalNutrientsCard";
-import WizardManager from "../../lib/wizardManager";
-import { WizardState } from "../../models/types/wizardState";
 import { useWizardSession } from "../../state/useSession";
 import { Button } from "react-bootstrap";
-import SessionSummary from "../../components/SessionSummary";
 import { useMemo, useState } from "react";
 import { Dropdown } from "react-bootstrap";
+import TemplateManager from "../../lib/templateManager";
+import { TemplateState } from "../../models/types/templateState";
+import TemplateSessionSummary from "../../components/TemplateSessionSummary";
 
-export default function WizardEditPage() {
+export default function TemplateEditPage() {
   const session = useWizardSession();
   const [selectedMealIndex, setSelectedMealIndex] = useState(0);
   const meal = useMemo(
     () => session.meals[selectedMealIndex],
     [selectedMealIndex]
   );
+  const template = TemplateManager.getTemplate();
 
   const navigate = useNavigate();
   function finishEdit() {
-    WizardManager.moveToPage(WizardState.Summary, navigate);
+    TemplateManager.moveToPage(TemplateState.Hub, navigate);
   }
   return (
     <>
       <h1>Edit Session Events</h1>
+      <Card>
+        <TemplateSessionSummary template={template} session={session} />
+      </Card>
       <Card>
         <Dropdown
           onSelect={(eventKey) =>
@@ -36,7 +39,7 @@ export default function WizardEditPage() {
           }
         >
           <Dropdown.Toggle variant="secondary" id="meal-dropdown">
-            Meal {selectedMealIndex + 1}
+            {`Meal ${selectedMealIndex + 1}`}
           </Dropdown.Toggle>
           <Dropdown.Menu>
             {session.meals.map((_, i: number) => (
@@ -65,14 +68,6 @@ export default function WizardEditPage() {
 
       <Card>
         <GlucoseManager session={session} />
-      </Card>
-
-      <Card>
-        <SessionSummary session={session} />
-      </Card>
-
-      <Card>
-        <SessionGraph session={session} from={-1} />
       </Card>
 
       <div style={{ display: "flex", justifyContent: "flex-end" }}>

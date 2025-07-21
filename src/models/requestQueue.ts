@@ -2,7 +2,7 @@ import { genUUID, type UUID } from "../lib/util";
 import RequestType, {
   parseRequestType,
   stringifyRequestType,
-} from "./requestType";
+} from "./types/requestType";
 
 export default class RequestQueue {
   type: RequestType;

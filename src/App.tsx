@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router";
+import { Routes, Route, Navigate, useNavigate } from "react-router";
 import TopBar from "./components/TopBar";
 import WizardManager from "./lib/wizardManager";
 import HubPage from "./pages/HubPage";
@@ -12,15 +12,23 @@ import WizardMealPage from "./pages/wizard/WizardMealPage";
 import WizardRouterPage from "./pages/wizard/WizardRouterPage";
 import WizardSummaryPage from "./pages/wizard/WizardSummaryPage";
 import NightscoutManager from "./lib/nightscoutManager";
-import WizardGlucosePage from "./pages/wizard/WizardGlucosePage";
 import PlaygroundPage from "./pages/PlaygroundPage";
 import WizardEditPage from "./pages/wizard/WizardEditPage";
 import { useEffect } from "react";
 import CustomFoodsPage from "./pages/CustomFoodsPage";
 import DextrosePage from "./pages/DextrosePage";
 import StatisticsPage from "./pages/StatisticsPage";
+import TemplateHubPage from "./pages/template/TemplateHubPage";
+import TemplateMealPage from "./pages/template/TemplateMealPage";
+import TemplateSelectionPage from "./pages/template/TemplateSelectionPage";
+import TemplateInsulinPage from "./pages/template/TemplateInsulinPage";
+import TemplateFinalBGPage from "./pages/template/TemplateFinalBGPage";
+import TemplateEditPage from "./pages/template/TemplateEditPage";
+import RescuePage from "./pages/RescuePage";
+import { smartMonitor } from "./lib/healthMonitor";
 
 function App() {
+  const navigate = useNavigate();
   useEffect(() => {
     // Attempt to fulfill requests upon page load
     NightscoutManager.fulfillRequests();
@@ -30,6 +38,9 @@ function App() {
 
     // Pull custom foods from nightscout if available
     NightscoutManager.loadCustomFoods();
+
+    // Execute health monitor
+    smartMonitor(navigate);
   }, []);
   return (
     <div>
@@ -41,7 +52,7 @@ function App() {
             element={
               NightscoutManager.urlIsValid() ||
               NightscoutManager.getNightscoutSkipped() ? (
-                WizardManager.isActive() && !WizardManager.isComplete() ? (
+                WizardManager.isActive() ? (
                   <Navigate to="/wizard" replace />
                 ) : (
                   <Navigate to="/hub" replace />
@@ -59,6 +70,7 @@ function App() {
           <Route path="/customfoods" element={<CustomFoodsPage />} />
           <Route path="/dextrose" element={<DextrosePage />} />
           <Route path="/statistics" element={<StatisticsPage />} />
+          <Route path="/rescue" element={<RescuePage />} />
 
           {/* Wizard Routes */}
           <Route path="/wizard" element={<WizardRouterPage />} />
@@ -70,8 +82,17 @@ function App() {
           />
           <Route path="/wizard/insulin" element={<WizardInsulinPage />} />
           <Route path="/wizard/summary" element={<WizardSummaryPage />} />
-          <Route path="/wizard/glucose" element={<WizardGlucosePage />} />
           <Route path="/wizard/edit" element={<WizardEditPage />} />
+
+          {/* Template Routes */}
+          <Route path="/template" element={<WizardRouterPage />} />
+          {/* We just reuse wizardrouter because it deals with it properly */}
+          <Route path="/template/select" element={<TemplateSelectionPage />} />
+          <Route path="/template/hub" element={<TemplateHubPage />} />
+          <Route path="/template/meal" element={<TemplateMealPage />} />
+          <Route path="/template/insulin" element={<TemplateInsulinPage />} />
+          <Route path="/template/edit" element={<TemplateEditPage />} />
+          <Route path="/template/finalbg" element={<TemplateFinalBGPage />} />
         </Routes>
       </div>
     </div>

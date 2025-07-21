@@ -11,7 +11,10 @@ export function getInsulin(carbs: number, protein: number) {
   );
 }
 export function getCorrectionInsulin(glucose: number) {
-  return (glucose - profile.target) / profile.insulin.effect;
+  return Math.max((glucose - profile.target) / profile.insulin.effect, 0);
+}
+export function getSessionMealInsulin(session: Session) {
+  return session.insulin - getCorrectionInsulin(session.initialGlucose);
 }
 
 function getPeakGlucose(
@@ -20,7 +23,7 @@ function getPeakGlucose(
   interval: number,
   minThreshold: number,
   maxThreshold: number
-): number {
+): number | null {
   let funcMax = -Infinity;
   let y;
   for (let t = 0; t < until; t += interval) {
@@ -31,7 +34,7 @@ function getPeakGlucose(
     // This is an optimization to discard unwanted data
     if (y < minThreshold || y > maxThreshold) {
       // console.log(testTime, y, t);
-      return -1;
+      return null;
     }
 
     // If we have a smaller maximum
@@ -78,7 +81,7 @@ export function getOptimalInsulinTiming(
       minThreshold,
       minPeak
     );
-    if (peak < 0) continue;
+    if (peak === null) continue;
     if (peak < minPeak) {
       minPeak = peak;
       time = testTime;
@@ -153,7 +156,7 @@ export function getOptimalDualSplit(
         minThreshold,
         minPeak
       );
-      if (peak < 0) continue;
+      if (peak === null) continue;
       if (peak < minPeak) {
         minPeak = peak;
         optimalInsulins = insulins;
@@ -178,5 +181,20 @@ export function getOptimalDualSplit(
 
 // Glucose
 export function getGlucoseCorrectionCaps(sugar: number) {
-  return (profile.target - sugar) / profile.glucose.effect;
+  return Math.max((profile.target - sugar) / profile.glucose.effect, 0);
+}
+export function getIntelligentGlucoseCorrection(
+  velocityHours: number,
+  currentBG: number,
+  actingMinutes: number
+) {
+  /**
+   * We consider the current BG velocity to last another 30 minutes.
+   * As in, the current BG effect from the velocity will last another 30 minutes.
+   * For example, if the sugar is moving at a rate of 30 mg/dL per hr, we assume it's gonna
+   * end up going down by 15mg/dL (30 minutes = 1/2 hour), so we add that into the
+   */
+  const velocityMinutes = velocityHours / 60;
+  const predictedDrop = velocityMinutes * actingMinutes;
+  return getGlucoseCorrectionCaps(currentBG + predictedDrop); // We add predictedDrop because if the sugar is dropping, the velocity will be negative (along with predictedDrop being negative too)
 }

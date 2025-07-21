@@ -12,17 +12,14 @@ function createFatOffset() {
   return new Food("Fat Offset", 0, 0, 1, 0, 1);
 }
 export default class Meal extends MetaEvent {
-  name: string;
-
   foods: Food[] = [
     createCarbsOffset(), // Carbs offset food
     createProteinOffset(), // Protein offset food
     createFatOffset(), // Fat offset food
   ];
 
-  constructor(timestamp: Date, name?: string) {
+  constructor(timestamp: Date) {
     super(timestamp);
-    this.name = name ? name : "";
   }
 
   // Carbs offset
@@ -106,14 +103,13 @@ export default class Meal extends MetaEvent {
     return JSON.stringify({
       timestamp: meal.timestamp,
       foods: meal.foods.map((a) => Food.stringify(a)),
-      name: meal.name,
     });
   }
   static parse(string: string): Meal {
     let o = JSON.parse(string);
     let timestamp = new Date(o.timestamp);
     let foods = o.foods.map((a: any) => Food.parse(a));
-    let newMeal = new Meal(timestamp, o.name);
+    let newMeal = new Meal(timestamp);
     newMeal.foods = foods;
     return newMeal;
   }
