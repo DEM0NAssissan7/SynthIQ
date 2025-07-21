@@ -55,7 +55,7 @@ export default function TemplateStateSummary({
   }
   return (
     <>
-      Take{" "}
+      {template.isFirstTime && "General Profile: "} Take{" "}
       <b>
         {round(
           template.isFirstTime || session.insulin !== 0
