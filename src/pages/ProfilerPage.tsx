@@ -3,7 +3,6 @@ import ProfilerSessionDisplay from "../components/ProfilerSessionDisplay";
 import ProfileSlider from "../components/ProfileSlider";
 import useImportedSessionsState from "../state/useImportedSessionsState";
 import useProfileState from "../state/useProfileState";
-import NightscoutManager from "../lib/nightscoutManager";
 import { optimizeSessions } from "../lib/optimizer";
 
 export default function ProfilerPage() {
@@ -23,8 +22,8 @@ export default function ProfilerPage() {
   function optimizeAll() {
     optimizeSessions(importedSessions, profile, notifySessions);
   }
-  function uploadToNightscout() {
-    NightscoutManager.storeMetaProfile();
+  function upload() {
+    // NightscoutManager.storeMetaProfile();
   }
   function pullNightscoutProfile() {
     if (
@@ -32,9 +31,9 @@ export default function ProfilerPage() {
         "Are you sure you want to pull the Nightscout profile? This will overwrite your current profile."
       )
     ) {
-      NightscoutManager.loadMetaProfile().then(() => {
-        updateViews();
-      });
+      // NightscoutManager.loadMetaProfile().then(() => {
+      //   updateViews();
+      // });
     }
   }
 
@@ -47,7 +46,7 @@ export default function ProfilerPage() {
         <Button onClick={pullNightscoutProfile} variant="danger">
           Use Nightscout Profile
         </Button>
-        <Button onClick={uploadToNightscout} variant="secondary">
+        <Button onClick={upload} variant="secondary">
           Upload Profile
         </Button>
       </div>

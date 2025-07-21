@@ -1,11 +1,11 @@
 import { Container, Row, Col, Card, Button } from "react-bootstrap";
 import WizardManager from "../lib/wizardManager";
 import { Link } from "react-router";
-import NightscoutManager from "../lib/nightscoutManager";
 import { useEffect, useState } from "react";
 import { wizardStorage } from "../storage/wizardStore";
 import { nightscoutStore } from "../storage/nightscoutStore";
 import SessionGraph from "../components/SessionGraph";
+import Backend from "../lib/remote/backend";
 
 enum NightscoutAuthLevel {
   Invalid,
@@ -20,7 +20,7 @@ function HubPage() {
     NightscoutAuthLevel.Invalid
   );
   useEffect(() => {
-    NightscoutManager.verifyAuth()
+    Backend.verifyAuth()
       .then((a) => {
         if (a.message.canWrite) {
           setNightscoutAuthLevel(NightscoutAuthLevel.Write);

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import NightscoutManager from "../lib/nightscoutManager";
 import type Session from "../models/session";
+import RemoteSessions from "../lib/remote/sessions";
 
 export default function useImportedSessionsState(
   allowIgnored: boolean = false
@@ -11,18 +11,18 @@ export default function useImportedSessionsState(
   const rerender = () => setVersion((v) => v + 1); // force re-render
 
   useEffect(() => {
-    NightscoutManager.getAllSessions(allowIgnored).then((s) => {
+    RemoteSessions.getAllSessions(allowIgnored).then((s) => {
       //   console.log(m);
       setImportedSessions(s);
     });
   }, [version]);
 
   const ignoreSession = (session: Session) => {
-    NightscoutManager.ignoreUUID(session.uuid);
+    RemoteSessions.ignoreUUID(session.uuid);
     rerender(); // Trigger a re-render to pull new data from nightscout. This is also some kind of dogfooding.
   };
   function clearIgnoredSessions() {
-    NightscoutManager.clearIgnoredUUIDs();
+    RemoteSessions.clearIgnoredUUIDs();
     rerender(); // Trigger a re-render to pull new data from nightscout. This is also some kind of dogfooding.
   }
 

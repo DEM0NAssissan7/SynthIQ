@@ -163,7 +163,7 @@ export function optimizeSessions(
   };
 
   sessions.forEach((session) => {
-    session.getObservedReadings().then((a) => {
+    session.getObservedReadings().then((a: any) => {
       const observed = a.map((b: any) => b.sgv);
       const info = new SessionInfoCache(session, observed);
       sessionInfos.push(info);

@@ -1,6 +1,6 @@
 import { Button, Form } from "react-bootstrap";
-import NightscoutManager from "../lib/nightscoutManager";
 import { useEffect } from "react";
+import RemoteReadings from "../lib/remote/readings";
 
 interface BloodSugarInputProps {
   initialGlucose: number;
@@ -16,7 +16,7 @@ export default function BloodSugarInput({
   showAutoButton = true,
 }: BloodSugarInputProps) {
   function pullCurrentGlucose() {
-    NightscoutManager.getCurrentSugar().then((g) => {
+    RemoteReadings.getCurrentSugar().then((g) => {
       setInitialGlucose(g);
     });
   }

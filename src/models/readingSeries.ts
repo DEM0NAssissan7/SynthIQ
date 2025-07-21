@@ -3,9 +3,9 @@
  */
 
 import Series, { Color } from "./series";
-import NightscoutManager from "../lib/nightscoutManager";
 import { getHourDiff } from "../lib/timing";
 import { smooth } from "../lib/optimizer";
+import RemoteReadings from "../lib/remote/readings";
 
 class ReadingSeries extends Series {
   timestamp: Date;
@@ -16,7 +16,7 @@ class ReadingSeries extends Series {
     this.timestamp = timestamp;
   }
   async populate(from: Date, until: Date) {
-    NightscoutManager.getReadings(from, until).then((result: any) => {
+    RemoteReadings.getReadings(from, until).then((result: any) => {
       result.forEach((r: any) => {
         let sugar: number = r.sgv;
         let timestamp: Date = new Date(r.date);

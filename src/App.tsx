@@ -11,7 +11,6 @@ import WizardMealConfirmPage from "./pages/wizard/WizardMealConfirmPage";
 import WizardMealPage from "./pages/wizard/WizardMealPage";
 import WizardRouterPage from "./pages/wizard/WizardRouterPage";
 import WizardSummaryPage from "./pages/wizard/WizardSummaryPage";
-import NightscoutManager from "./lib/nightscoutManager";
 import PlaygroundPage from "./pages/PlaygroundPage";
 import WizardEditPage from "./pages/wizard/WizardEditPage";
 import { useEffect } from "react";
@@ -26,18 +25,13 @@ import TemplateFinalBGPage from "./pages/template/TemplateFinalBGPage";
 import TemplateEditPage from "./pages/template/TemplateEditPage";
 import RescuePage from "./pages/RescuePage";
 import { smartMonitor } from "./lib/healthMonitor";
+import Backend from "./lib/remote/backend";
 
 function App() {
   const navigate = useNavigate();
   useEffect(() => {
     // Attempt to fulfill requests upon page load
-    NightscoutManager.fulfillRequests();
-
-    // Load user's metabolism profile from nightscout if available
-    // NightscoutManager.loadMetaProfile();
-
-    // Pull custom foods from nightscout if available
-    NightscoutManager.loadCustomFoods();
+    Backend.fulfillRequests();
 
     // Execute health monitor
     smartMonitor(navigate);
@@ -50,8 +44,7 @@ function App() {
           <Route
             path="/"
             element={
-              NightscoutManager.urlIsValid() ||
-              NightscoutManager.getNightscoutSkipped() ? (
+              Backend.urlIsValid() || Backend.getSkipped() ? (
                 WizardManager.isActive() ? (
                   <Navigate to="/wizard" replace />
                 ) : (

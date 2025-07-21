@@ -2,8 +2,9 @@ import Session from "../models/session";
 import Meal from "../models/events/meal";
 import { getStateName, WizardState } from "../models/types/wizardState";
 import { wizardStorage } from "../storage/wizardStore";
-import NightscoutManager from "./nightscoutManager";
 import { type NavigateFunction } from "react-router";
+import RemoteTreatments from "./remote/treatments";
+import RemoteSessions from "./remote/sessions";
 
 export default class WizardManager {
   // Page Redirects
@@ -72,7 +73,7 @@ export default class WizardManager {
     wizardStorage.set("mealMarked", true);
 
     // TODO: Use date selector
-    NightscoutManager.markMeal(meal.carbs, meal.protein, new Date());
+    RemoteTreatments.markMeal(meal.carbs, meal.protein, new Date());
   }
 
   // Insulin
@@ -86,7 +87,7 @@ export default class WizardManager {
     wizardStorage.set("insulinMarked", true);
 
     // TODO: Use date selector
-    NightscoutManager.markInsulin(units, new Date());
+    RemoteTreatments.markInsulin(units, new Date());
   }
   static markInsulin(units: number) {
     let session: Session = wizardStorage.get("session");
@@ -112,7 +113,7 @@ export default class WizardManager {
 
       // TODO: Use date selector
     }
-    NightscoutManager.markGlucose(caps, new Date());
+    RemoteTreatments.markGlucose(caps, new Date());
   }
 
   // Reset
@@ -142,7 +143,7 @@ export default class WizardManager {
     const session: Session = wizardStorage.get("session");
 
     session.endTimestamp = timestamp; // Store the end time of the session
-    NightscoutManager.storeSession(session); // Store the entire session into nightscout so we can analyze it later
+    RemoteSessions.storeSession(session); // Store the entire session into nightscout so we can analyze it later
     this.resetWizard(navigate); // Reset the wizard states
   }
 }

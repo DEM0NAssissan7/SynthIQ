@@ -1,8 +1,8 @@
 import { InputGroup, Form, Button, Toast } from "react-bootstrap";
-import NightscoutManager from "../lib/nightscoutManager";
 import { useNavigate } from "react-router";
 import { useState } from "react";
 import { nightscoutStore } from "../storage/nightscoutStore";
+import Backend from "../lib/remote/backend";
 
 const autoHideTime = 4000;
 
@@ -21,7 +21,7 @@ function SetupPage() {
         "Are you sure you want to skip Nightscout setup? You can always do this later in settings."
       )
     ) {
-      NightscoutManager.skipNightscoutSetup();
+      Backend.skipSetup();
       advance();
     }
   }
@@ -42,7 +42,7 @@ function SetupPage() {
       errorMsg("Please input a URL");
       return;
     }
-    await NightscoutManager.verifyAuth()
+    await Backend.verifyAuth()
       .then((a) => {
         if (a.message.canRead) {
           advance();
@@ -61,7 +61,7 @@ function SetupPage() {
       errorMsg("Please input a URL and API key");
       return;
     }
-    await NightscoutManager.verifyAuth()
+    await Backend.verifyAuth()
       .then((a) => {
         console.log(a);
         if (a.message.canRead && a.message.canWrite) {

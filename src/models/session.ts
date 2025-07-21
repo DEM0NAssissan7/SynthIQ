@@ -1,4 +1,3 @@
-import NightscoutManager from "../lib/nightscoutManager";
 import { getHourDiff, getTimestampFromOffset } from "../lib/timing";
 import { convertDimensions, genUUID, MathUtil, type UUID } from "../lib/util";
 import { nightscoutStore } from "../storage/nightscoutStore";
@@ -13,6 +12,7 @@ import type MetabolismProfile from "./metabolism/metabolismProfile";
 import { profile } from "../storage/metaProfileStore";
 import Unit from "./unit";
 import preferencesStore from "../storage/preferencesStore";
+import RemoteReadings from "../lib/remote/readings";
 
 export default class Session {
   subscriptions: (() => void)[] = [];
@@ -317,7 +317,7 @@ export default class Session {
       throw new Error(
         `Cannot give total readings - there is no end timestamp!`
       );
-    return NightscoutManager.getReadings(this.timestamp, this.endTimestamp);
+    return RemoteReadings.getReadings(this.timestamp, this.endTimestamp);
   }
   async pullFinalBG() {
     const hoursBefore = preferencesStore.get("endingHours");
@@ -334,7 +334,7 @@ export default class Session {
 
   // Initial glucose
   async pullInitialGlucose() {
-    return NightscoutManager.getSugarAt(this.timestamp).then((a: any) => {
+    return RemoteReadings.getSugarAt(this.timestamp).then((a: any) => {
       if (a) {
         this.initialGlucose = a.sgv;
         return a;
@@ -355,7 +355,7 @@ export default class Session {
     let timestampB = new Date();
     if (this.endTimestamp) timestampB = this.endTimestamp;
     const timestampA = getTimestampFromOffset(timestampB, -hours);
-    return NightscoutManager.getReadings(timestampA, timestampB);
+    return RemoteReadings.getReadings(timestampA, timestampB);
   }
 
   // Serialization

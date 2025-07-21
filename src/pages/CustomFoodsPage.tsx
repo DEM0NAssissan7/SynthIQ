@@ -10,7 +10,6 @@ import {
 import { useEffect, useMemo, useState, type BaseSyntheticEvent } from "react";
 import Unit, { getFoodUnitPrettyName } from "../models/unit";
 import { defaultGI } from "../models/metabolism/carbsProfile";
-import NightscoutManager from "../lib/nightscoutManager";
 
 export default function CustomFoodsPage() {
   const [customFoodsState, setCustomFoodsState] = useState<Food[]>(
@@ -67,9 +66,9 @@ export default function CustomFoodsPage() {
   }
 
   useEffect(() => {
-    NightscoutManager.loadCustomFoods().then(() => {
-      updateFoodState();
-    });
+    // NightscoutManager.loadCustomFoods().then(() => {
+    //   updateFoodState();
+    // });
   }, []);
 
   return (

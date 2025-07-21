@@ -24,18 +24,16 @@ import {
 } from "../models/types/sugarReading";
 import healthMonitorStore from "../storage/healthMonitorStore";
 import preferencesStore from "../storage/preferencesStore";
-import NightscoutManager from "./nightscoutManager";
 import { getHourDiff, getMinuteDiff } from "./timing";
 import { MathUtil, round } from "./util";
+import RemoteReadings from "./remote/readings";
 
 export let healthMonitorStatus = HealthMonitorStatus.Nominal;
 
 /** Poll nightscout to fill the reading cache */
 export async function populateReadingCache() {
   const readingsCacheSize = healthMonitorStore.get("readingsCacheSize");
-  const rawReadings = await NightscoutManager.getLatestReadings(
-    readingsCacheSize
-  );
+  const rawReadings = await RemoteReadings.getLatestReadings(readingsCacheSize);
   if (rawReadings) {
     let readings = rawReadings.map((r: any) =>
       getReadingFromNightscout(r)
