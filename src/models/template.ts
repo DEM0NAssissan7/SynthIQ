@@ -19,7 +19,7 @@ export default class Template {
 
   // Session management
   addSession(session: Session) {
-    if (!session.isGarbage) this.sessions.push(session);
+    this.sessions.push(session);
     this.timestamp = session.timestamp; // We set the timestamp to be the latest added session timestamp
   }
   get isFirstTime(): boolean {
@@ -28,7 +28,14 @@ export default class Template {
   get latestSession(): Session {
     if (this.sessions.length === 0)
       throw new Error(`There are no sessions in this template!`);
-    return this.sessions[this.sessions.length - 1];
+    let session: Session | null = null;
+    for (let i = this.sessions.length - 1; i >= 0; i--) {
+      session = this.sessions[i];
+      if (session.isGarbage) continue;
+    }
+    if (!session)
+      throw new Error(`Cannot retrieve latest session: unknown error`);
+    return session;
   }
 
   // Nutrition Information
