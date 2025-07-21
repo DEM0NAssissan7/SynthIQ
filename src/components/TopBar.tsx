@@ -66,6 +66,9 @@ function TopBar() {
               <Nav.Link as={Link} to="/setup" onClick={handleClose}>
                 Nightscout Setup
               </Nav.Link>
+              <Nav.Link as={Link} to="/settings" onClick={handleClose}>
+                Settings
+              </Nav.Link>
             </Nav>
           </Navbar.Collapse>
         </Container>
