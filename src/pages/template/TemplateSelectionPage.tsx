@@ -10,6 +10,7 @@ export default function TemplateSelectionPage() {
 
   function advance(name: string | null) {
     if (!name) {
+      TemplateManager.deactivate();
       WizardManager.begin(navigate);
       return;
     }
