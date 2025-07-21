@@ -1,4 +1,5 @@
 import StorageNode from "../lib/storageNode";
+import { profile } from "./metaProfileStore";
 
 const preferencesStore = new StorageNode("preferences");
 export default preferencesStore;
@@ -15,3 +16,10 @@ preferencesStore.add("timeStepSize", 5);
 
 preferencesStore.add("sessionHalfLife", 3);
 preferencesStore.add("maxSessionLife", 14);
+
+preferencesStore.add("glucoseEffect", 10);
+// Update profile upon glucose effect changing
+preferencesStore.subscribe(
+  "glucoseEffect",
+  (a: number) => (profile.glucose.effect = a)
+);
