@@ -255,9 +255,13 @@ class StorageNode {
       let keys = o.keys;
       keys.forEach((k: any) => {
         let id = k.id;
-        let entry = this.getEntryById(id);
-        const value = entry.import(k.value);
-        entry.set(value);
+        try {
+          let entry = this.getEntryById(id);
+          const value = entry.import(k.value);
+          entry.set(value);
+        } catch (e) {
+          console.warn(`Couldn't import ${this.name}.${id}: ${e}`);
+        }
       });
     }
   }
