@@ -41,9 +41,9 @@ export default class WizardManager {
       wizardStorage.get("mealMarked") && (session.carbs || session.protein)
     );
   }
-  static getInsulinMarked() {
+  static getInsulinMarked(): boolean {
     const session = wizardStorage.get("session");
-    return wizardStorage.get("insulinMarked") && session.insulin;
+    return wizardStorage.get("insulinMarked") && session.insulin !== 0;
   }
   static getInitialGlucoseMarked() {
     return wizardStorage.get("initialGlucoseMarked");
