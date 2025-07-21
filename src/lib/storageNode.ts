@@ -108,7 +108,7 @@ class StorageEntry {
     return this.writeHandler(this.value);
   }
   import(str: string) {
-    this.value = this.readHandler(str);
+    return (this.value = this.readHandler(str));
   }
 
   // Storage API
@@ -256,8 +256,8 @@ class StorageNode {
       keys.forEach((k: any) => {
         let id = k.id;
         let entry = this.getEntryById(id);
-        entry.import(k.value);
-        entry.write();
+        const value = entry.import(k.value);
+        entry.set(value);
       });
     }
   }
