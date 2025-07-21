@@ -8,9 +8,7 @@ class RemoteStorage {
     return await Backend.get("profile");
   }
   private static async getProfile() {
-    return await this.getProfiles().then(
-      (a) => a[backendStore.get("profileID")]
-    );
+    return (await this.getProfiles())[backendStore.get("profileID")];
   }
   private static async putProfile(p: any) {
     Backend.put("profile", p);
