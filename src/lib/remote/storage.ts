@@ -37,6 +37,34 @@ class RemoteStorage {
     }
     return false;
   }
+
+  // Slave-master dynamic
+  private static get isMaster(): boolean | null {
+    return backendStore.get("isMaster");
+  }
+  static async sync() {
+    switch (this.isMaster) {
+      case null:
+        // If sync is disabled
+        return;
+      case true:
+        // If it is master
+        console.log(`Synchronizing storage to backend.`);
+        await this.upload();
+        break;
+      case false:
+        // If it is slave
+        const synced = await this.download();
+        if (synced) {
+          console.log(`Storage synchronized from backend. Reloading...`);
+          this.setMaster(false); // Set master to false because it gets overridden in sync
+          location.reload(); // Reload page upon sync to ensure state consistency
+        }
+        break;
+    }
+  }
+  static setMaster(state: boolean | null) {
+    backendStore.set("isMaster", state);
   }
 }
 

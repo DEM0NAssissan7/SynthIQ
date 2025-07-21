@@ -26,12 +26,16 @@ import TemplateEditPage from "./pages/template/TemplateEditPage";
 import RescuePage from "./pages/RescuePage";
 import { smartMonitor } from "./lib/healthMonitor";
 import Backend from "./lib/remote/backend";
+import RemoteStorage from "./lib/remote/storage";
 
 function App() {
   const navigate = useNavigate();
   useEffect(() => {
     // Attempt to fulfill requests upon page load
     Backend.fulfillRequests();
+
+    // Synchronize master/slave state (if set)
+    RemoteStorage.sync();
 
     // Execute health monitor
     smartMonitor(navigate);

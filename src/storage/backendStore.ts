@@ -31,3 +31,4 @@ backendStore.add(
 );
 
 backendStore.add("syncUUID", 0);
+backendStore.add("isMaster", null);

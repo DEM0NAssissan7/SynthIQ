@@ -1,4 +1,10 @@
-import { Button, Form, InputGroup } from "react-bootstrap";
+import {
+  Button,
+  ButtonGroup,
+  Form,
+  InputGroup,
+  ToggleButton,
+} from "react-bootstrap";
 import { backendStore } from "../storage/backendStore";
 import preferencesStore from "../storage/preferencesStore";
 import Card from "../components/Card";
@@ -69,6 +75,29 @@ export default function SettingsPage() {
     )
       RemoteStorage.download();
   }
+
+  const syncOptions: [boolean | null, string][] = [
+    [null, "Disabled"],
+    [false, "Slave"],
+    [true, "Master"],
+  ];
+  function getSelectedIndexFromValue(state: boolean | null) {
+    switch (state) {
+      case null:
+        return 0;
+      case false:
+        return 1;
+      case true:
+        return 2;
+    }
+  }
+  const [selectedIndex, setSelectedIndex] = useState(
+    getSelectedIndexFromValue(backendStore.get("isMaster"))
+  );
+  function setSyncState(state: boolean | null) {
+    RemoteStorage.setMaster(state);
+    setSelectedIndex(getSelectedIndexFromValue(state));
+  }
   return (
     <>
       <div className="d-flex gap-2 mb-3">
@@ -101,6 +130,27 @@ export default function SettingsPage() {
           iconClass="bi bi-exclamation-octagon"
           unit="mg/dL"
         />
+      </Card>
+      <Card>
+        <ButtonGroup>
+          {syncOptions.map((a, i) => (
+            <ToggleButton
+              key={i}
+              id={`sync-radio-${i}`}
+              type="radio"
+              variant={
+                (i === 0 && "outline-secondary") ||
+                (i === 1 && "outline-primary") ||
+                "outline-danger"
+              }
+              value={i}
+              onChange={() => setSyncState(a[0])}
+              checked={i === selectedIndex}
+            >
+              {a[1]}
+            </ToggleButton>
+          ))}
+        </ButtonGroup>
       </Card>
       <Card>
         <NumberSetting
