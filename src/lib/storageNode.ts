@@ -29,6 +29,8 @@ type GeneralSubscriptionCallback = () => void;
 const defaultReadHandler: ReadHandler = JSON.parse;
 const defaultWriteHandler: WriteHandler = JSON.stringify;
 
+export let nodes: StorageNode[] = [];
+
 class StorageEntry {
   id: string;
   private nodeName: string;
@@ -159,8 +161,9 @@ class StorageNode {
   name: string;
   generalSubscriptions: GeneralSubscriptionCallback[] = [];
   private entries: StorageEntry[] = [];
-  constructor(name: string) {
+  constructor(name: string, skipRegister: boolean = false) {
     this.name = name;
+    if (!skipRegister) nodes.push(this);
   }
 
   // Bread and butter
