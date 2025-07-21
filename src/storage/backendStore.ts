@@ -3,7 +3,6 @@ import RequestQueue from "../models/requestQueue";
 
 export const backendStore = new StorageNode("nightscout");
 backendStore.add("url", null);
-backendStore.add("apiSecret", "");
 backendStore.add("profileID", 0);
 backendStore.add("skipSetup", false);
 
@@ -29,6 +28,3 @@ backendStore.add(
     return JSON.stringify(stringArray);
   }
 );
-
-backendStore.add("syncUUID", 0);
-backendStore.add("isMaster", null);

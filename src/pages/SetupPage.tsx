@@ -3,12 +3,13 @@ import { useNavigate } from "react-router";
 import { useState } from "react";
 import { backendStore } from "../storage/backendStore";
 import Backend from "../lib/remote/backend";
+import privateStore from "../storage/privateStore";
 
 const autoHideTime = 4000;
 
 // This is usually a bad thing, but we are just pulling the current values to give the user a view on what he currently has, to allow him to change it
 const url = backendStore.get("url");
-const apiSecret = backendStore.get("apiSecret");
+const apiSecret = privateStore.get("apiSecret");
 
 function SetupPage() {
   const navigate = useNavigate();
@@ -57,7 +58,7 @@ function SetupPage() {
   }
 
   async function testAuth() {
-    if (!backendStore.get("url") || !backendStore.get("apiSecret")) {
+    if (!backendStore.get("url") || !privateStore.get("apiSecret")) {
       errorMsg("Please input a URL and API key");
       return;
     }
@@ -101,7 +102,7 @@ function SetupPage() {
           placeholder={apiSecret || "Enter your API key"}
           aria-label="API Key"
           aria-describedby="basic-addon2"
-          onChange={(e) => backendStore.set("apiSecret", e.target.value)}
+          onChange={(e) => privateStore.set("apiSecret", e.target.value)}
         />
       </InputGroup>
       <Toast

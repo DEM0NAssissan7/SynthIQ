@@ -1,6 +1,7 @@
 import RequestQueue from "../../models/requestQueue";
 import RequestType from "../../models/types/requestType";
 import { backendStore } from "../../storage/backendStore";
+import privateStore from "../../storage/privateStore";
 
 // Developer options
 const errorLogging = false;
@@ -37,7 +38,7 @@ class Backend {
       headers: {
         accept: "*/*",
         "accept-language": "en-US,en;q=0.9",
-        "api-secret": backendStore.get("apiSecret"),
+        "api-secret": privateStore.get("apiSecret"),
         "content-type": "application/json; charset=UTF-8",
         "x-requested-with": "XMLHttpRequest",
       },
@@ -53,7 +54,7 @@ class Backend {
       headers: {
         accept: "*/*",
         "accept-language": "en-US,en;q=0.9",
-        "api-secret": backendStore.get("apiSecret"),
+        "api-secret": privateStore.get("apiSecret"),
         "content-type": "application/json; charset=UTF-8",
         "x-requested-with": "XMLHttpRequest",
       },
@@ -70,7 +71,7 @@ class Backend {
     return await fetch(this.getApiPath(api), {
       method: "GET",
       headers: {
-        "api-secret": backendStore.get("apiSecret"),
+        "api-secret": privateStore.get("apiSecret"),
       },
       mode: "cors",
       credentials: "omit",

@@ -1,4 +1,5 @@
 import { backendStore } from "../../storage/backendStore";
+import privateStore from "../../storage/privateStore";
 import StorageNode from "../storageNode";
 import { nodes } from "../storageNode";
 import { genUUID } from "../util";
@@ -22,17 +23,17 @@ class RemoteStorage {
 
     const uuid = genUUID();
     profile.nodeUUID = uuid;
-    backendStore.set("syncUUID", uuid);
+    privateStore.set("syncUUID", uuid);
 
     this.putProfile(profile);
   }
   static async download() {
     const profile = await this.getProfile();
-    if (profile.nodeUUID !== backendStore.get("syncUUID")) {
+    if (profile.nodeUUID !== privateStore.get("syncUUID")) {
       profile.nodeObjects.map((o: any) => {
         nodes.forEach((n: StorageNode) => n.import(o));
       });
-      backendStore.set("syncUUID", profile.nodeUUID);
+      privateStore.set("syncUUID", profile.nodeUUID);
       return true;
     }
     return false;
@@ -40,7 +41,7 @@ class RemoteStorage {
 
   // Slave-master dynamic
   private static get isMaster(): boolean | null {
-    return backendStore.get("isMaster");
+    return privateStore.get("isMaster");
   }
   static async sync() {
     switch (this.isMaster) {
@@ -64,7 +65,7 @@ class RemoteStorage {
     }
   }
   static setMaster(state: boolean | null) {
-    backendStore.set("isMaster", state);
+    privateStore.set("isMaster", state);
   }
 }
 

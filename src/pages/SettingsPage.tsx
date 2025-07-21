@@ -12,6 +12,7 @@ import healthMonitorStore from "../storage/healthMonitorStore";
 import type StorageNode from "../lib/storageNode";
 import { useState } from "react";
 import RemoteStorage from "../lib/remote/storage";
+import privateStore from "../storage/privateStore";
 
 interface Setting {
   title: string;
@@ -92,7 +93,7 @@ export default function SettingsPage() {
     }
   }
   const [selectedIndex, setSelectedIndex] = useState(
-    getSelectedIndexFromValue(backendStore.get("isMaster"))
+    getSelectedIndexFromValue(privateStore.get("isMaster"))
   );
   function setSyncState(state: boolean | null) {
     RemoteStorage.setMaster(state);
