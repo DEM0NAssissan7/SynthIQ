@@ -85,20 +85,24 @@ export default function TemplateMealPage() {
               <TemplateSessionSummary template={template} session={session} />
             </ListGroup.Item>
           )}
-          <ListGroup.Item>
-            <TemplateStateSummary
-              template={template}
-              session={session}
-              meal={meal}
-              currentGlucose={initialGlucose}
-            />
-          </ListGroup.Item>
-          <ListGroup.Item>
-            <BloodSugarInput
-              initialGlucose={initialGlucose}
-              setInitialGlucose={(g) => setInitialGlucose(g)}
-            />
-          </ListGroup.Item>
+          {!WizardManager.getInsulinMarked() && (
+            <ListGroup.Item>
+              <TemplateStateSummary
+                template={template}
+                session={session}
+                meal={meal}
+                currentGlucose={initialGlucose}
+              />
+            </ListGroup.Item>
+          )}
+          {!WizardManager.getInitialGlucoseMarked() && (
+            <ListGroup.Item>
+              <BloodSugarInput
+                initialGlucose={initialGlucose}
+                setInitialGlucose={(g) => setInitialGlucose(g)}
+              />
+            </ListGroup.Item>
+          )}
         </ListGroup>
       </Card>
       <div className="d-flex justify-content-between align-items-center mt-3">
