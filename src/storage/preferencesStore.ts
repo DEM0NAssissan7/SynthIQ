@@ -5,7 +5,7 @@ export default preferencesStore;
 
 preferencesStore.add("maxSessionLength", 8);
 preferencesStore.add("endingHours", 1);
-preferencesStore.add("lowBG", 67);
+preferencesStore.add("lowBG", 70);
 preferencesStore.add("dangerBG", 55);
 
 preferencesStore.add("highBG", 125);
