@@ -1,4 +1,4 @@
-import { nightscoutStore } from "../../storage/nightscoutStore";
+import { backendStore } from "../../storage/backendStore";
 import StorageNode from "../storageNode";
 import { nodes } from "../storageNode";
 import Backend from "./backend";
@@ -9,7 +9,7 @@ class RemoteStorage {
   }
   private static async getProfile() {
     return await this.getProfiles().then(
-      (a) => a[nightscoutStore.get("profileID")]
+      (a) => a[backendStore.get("profileID")]
     );
   }
   private static async putProfile(p: any) {

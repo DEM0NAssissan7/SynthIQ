@@ -1,21 +1,21 @@
 import StorageNode from "../lib/storageNode";
 import RequestQueue from "../models/requestQueue";
 
-export const nightscoutStore = new StorageNode("nightscout");
-nightscoutStore.add("url", null);
-nightscoutStore.add("apiSecret", "");
-nightscoutStore.add("profileID", 0);
-nightscoutStore.add("skipSetup", false);
+export const backendStore = new StorageNode("nightscout");
+backendStore.add("url", null);
+backendStore.add("apiSecret", "");
+backendStore.add("profileID", 0);
+backendStore.add("skipSetup", false);
 
 // CGM
-nightscoutStore.add("minutesPerReading", 5);
-nightscoutStore.add("cgmDelay", 5);
+backendStore.add("minutesPerReading", 5);
+backendStore.add("cgmDelay", 5);
 
 // Meals
-nightscoutStore.add("ignoredUUIDs", []);
+backendStore.add("ignoredUUIDs", []);
 
 // Queue
-nightscoutStore.add(
+backendStore.add(
   "queue",
   [],
   (s: string) => {

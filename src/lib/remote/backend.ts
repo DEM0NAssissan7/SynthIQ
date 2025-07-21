@@ -1,6 +1,6 @@
 import RequestQueue from "../../models/requestQueue";
 import RequestType from "../../models/types/requestType";
-import { nightscoutStore } from "../../storage/nightscoutStore";
+import { backendStore } from "../../storage/backendStore";
 
 // Developer options
 const errorLogging = false;
@@ -12,13 +12,13 @@ function addRequest(
   payload?: any,
   timestamp?: Date
 ): void {
-  const queue = nightscoutStore.get("queue");
+  const queue = backendStore.get("queue");
   queue.push(new RequestQueue(type, api, payload, timestamp));
-  nightscoutStore.write("queue");
+  backendStore.write("queue");
 }
 function fullfilRequest(request: RequestQueue): void {
-  const queue = nightscoutStore.get("queue");
-  nightscoutStore.set(
+  const queue = backendStore.get("queue");
+  backendStore.set(
     "queue",
     queue.filter((a: RequestQueue) => a.uuid !== request.uuid)
   );
@@ -28,7 +28,7 @@ export const selfID = "SynthIQ";
 class Backend {
   // Basic request stuff
   private static getApiPath(api: string): string {
-    return `${nightscoutStore.get("url")}/api/v1/${api}`;
+    return `${backendStore.get("url")}/api/v1/${api}`;
   }
   private static postRequest(api: string, payload: any, timestamp: Date) {
     payload.enteredBy = selfID;
@@ -37,7 +37,7 @@ class Backend {
       headers: {
         accept: "*/*",
         "accept-language": "en-US,en;q=0.9",
-        "api-secret": nightscoutStore.get("apiSecret"),
+        "api-secret": backendStore.get("apiSecret"),
         "content-type": "application/json; charset=UTF-8",
         "x-requested-with": "XMLHttpRequest",
       },
@@ -53,7 +53,7 @@ class Backend {
       headers: {
         accept: "*/*",
         "accept-language": "en-US,en;q=0.9",
-        "api-secret": nightscoutStore.get("apiSecret"),
+        "api-secret": backendStore.get("apiSecret"),
         "content-type": "application/json; charset=UTF-8",
         "x-requested-with": "XMLHttpRequest",
       },
@@ -70,7 +70,7 @@ class Backend {
     return await fetch(this.getApiPath(api), {
       method: "GET",
       headers: {
-        "api-secret": nightscoutStore.get("apiSecret"),
+        "api-secret": backendStore.get("apiSecret"),
       },
       mode: "cors",
       credentials: "omit",
@@ -98,7 +98,7 @@ class Backend {
     this.fulfillRequests();
   }
   static fulfillRequests(): void {
-    const queue = nightscoutStore.get("queue");
+    const queue = backendStore.get("queue");
     for (let request of queue) {
       const api = request.api;
       const payload = request.payload;
@@ -128,13 +128,13 @@ class Backend {
 
   // Meta
   static urlIsValid() {
-    return nightscoutStore.get("url") !== null;
+    return backendStore.get("url") !== null;
   }
   static getSkipped() {
-    return nightscoutStore.get("skipSetup");
+    return backendStore.get("skipSetup");
   }
   static skipSetup() {
-    nightscoutStore.set("skipSetup", true);
+    backendStore.set("skipSetup", true);
   }
 }
 

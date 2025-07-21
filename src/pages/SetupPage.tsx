@@ -1,14 +1,14 @@
 import { InputGroup, Form, Button, Toast } from "react-bootstrap";
 import { useNavigate } from "react-router";
 import { useState } from "react";
-import { nightscoutStore } from "../storage/nightscoutStore";
+import { backendStore } from "../storage/backendStore";
 import Backend from "../lib/remote/backend";
 
 const autoHideTime = 4000;
 
 // This is usually a bad thing, but we are just pulling the current values to give the user a view on what he currently has, to allow him to change it
-const url = nightscoutStore.get("url");
-const apiSecret = nightscoutStore.get("apiSecret");
+const url = backendStore.get("url");
+const apiSecret = backendStore.get("apiSecret");
 
 function SetupPage() {
   const navigate = useNavigate();
@@ -38,7 +38,7 @@ function SetupPage() {
   }
 
   async function attemptContinue() {
-    if (!nightscoutStore.get("url")) {
+    if (!backendStore.get("url")) {
       errorMsg("Please input a URL");
       return;
     }
@@ -57,7 +57,7 @@ function SetupPage() {
   }
 
   async function testAuth() {
-    if (!nightscoutStore.get("url") || !nightscoutStore.get("apiSecret")) {
+    if (!backendStore.get("url") || !backendStore.get("apiSecret")) {
       errorMsg("Please input a URL and API key");
       return;
     }
@@ -89,7 +89,7 @@ function SetupPage() {
           placeholder={url || "Enter your nightscout server URL"}
           aria-label="URL"
           aria-describedby="basic-addon1"
-          onChange={(e) => nightscoutStore.set("url", e.target.value)}
+          onChange={(e) => backendStore.set("url", e.target.value)}
         />
       </InputGroup>
       <InputGroup className="mb-3">
@@ -101,7 +101,7 @@ function SetupPage() {
           placeholder={apiSecret || "Enter your API key"}
           aria-label="API Key"
           aria-describedby="basic-addon2"
-          onChange={(e) => nightscoutStore.set("apiSecret", e.target.value)}
+          onChange={(e) => backendStore.set("apiSecret", e.target.value)}
         />
       </InputGroup>
       <Toast

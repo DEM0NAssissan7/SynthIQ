@@ -1,5 +1,5 @@
 import { Button, Form, InputGroup } from "react-bootstrap";
-import { nightscoutStore } from "../storage/nightscoutStore";
+import { backendStore } from "../storage/backendStore";
 import preferencesStore from "../storage/preferencesStore";
 import Card from "../components/Card";
 import healthMonitorStore from "../storage/healthMonitorStore";
@@ -111,7 +111,7 @@ export default function SettingsPage() {
           unit="mg/dL"
         />
         <NumberSetting
-          node={nightscoutStore}
+          node={backendStore}
           id={"cgmDelay"}
           title="CGM Delay (in minutes)"
           iconClass="bi bi-clock"

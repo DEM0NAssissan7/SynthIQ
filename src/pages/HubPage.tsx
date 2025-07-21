@@ -3,7 +3,7 @@ import WizardManager from "../lib/wizardManager";
 import { Link } from "react-router";
 import { useEffect, useState } from "react";
 import { wizardStorage } from "../storage/wizardStore";
-import { nightscoutStore } from "../storage/nightscoutStore";
+import { backendStore } from "../storage/backendStore";
 import SessionGraph from "../components/SessionGraph";
 import Backend from "../lib/remote/backend";
 
@@ -33,7 +33,7 @@ function HubPage() {
         console.error(e);
         setNightscoutAuthLevel(NightscoutAuthLevel.Invalid);
       });
-  }, [nightscoutStore]);
+  }, [backendStore]);
 
   return (
     <Container fluid className="text-center py-4 bg-light min-vh-100">

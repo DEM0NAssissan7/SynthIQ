@@ -1,5 +1,5 @@
 import Session from "../../models/session";
-import { nightscoutStore } from "../../storage/nightscoutStore";
+import { backendStore } from "../../storage/backendStore";
 import Backend, { selfID } from "./backend";
 
 const metaSessionStoreEventType = "Meta Event Storage";
@@ -20,16 +20,16 @@ class RemoteSessions {
      */
   }
   static ignoreUUID(uuid: number) {
-    let ignored = nightscoutStore.get("ignoredUUIDs");
+    let ignored = backendStore.get("ignoredUUIDs");
     ignored.push(uuid);
     // console.log(ignored);
-    nightscoutStore.set("ignoredUUIDs", ignored);
+    backendStore.set("ignoredUUIDs", ignored);
   }
   static clearIgnoredUUIDs() {
-    nightscoutStore.set("ignoredUUIDs", []);
+    backendStore.set("ignoredUUIDs", []);
   }
   static uuidIsIgnored(uuid: number) {
-    let ignored = nightscoutStore.get("ignoredUUIDs");
+    let ignored = backendStore.get("ignoredUUIDs");
     for (let u of ignored) if (uuid === u) return true;
     return false;
   }

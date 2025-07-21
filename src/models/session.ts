@@ -1,6 +1,6 @@
 import { getHourDiff, getTimestampFromOffset } from "../lib/timing";
 import { convertDimensions, genUUID, MathUtil, type UUID } from "../lib/util";
-import { nightscoutStore } from "../storage/nightscoutStore";
+import { backendStore } from "../storage/backendStore";
 import Glucose from "./events/glucose";
 import Insulin from "./events/insulin";
 import MathSeries from "./mathSeries";
@@ -296,14 +296,14 @@ export default class Session {
     predictionSeries.populate(
       from,
       until,
-      nightscoutStore.get("minutesPerReading") / 60
+      backendStore.get("minutesPerReading") / 60
     );
     return predictionSeries;
   }
 
   // Optimizer
   get tValues(): number[] {
-    const minutesPerReading = nightscoutStore.get("minutesPerReading");
+    const minutesPerReading = backendStore.get("minutesPerReading");
     const numReadings =
       (this.length * convertDimensions(Unit.Time.Hour, Unit.Time.Minute)) /
       minutesPerReading;
