@@ -237,16 +237,29 @@ class StorageNode {
   }
 
   // Exporting and importing
-  static export(node: StorageNode): string {
-    // TODO
-    node;
-    return "";
+  export(): any {
+    let keys: any[] = [];
+    this.entries.forEach((e) => {
+      keys.push({
+        id: e.id,
+        value: e.export(),
+      });
+    });
+    return {
+      name: this.name,
+      keys,
+    };
   }
-  static import(str: string): StorageNode {
-    // TODO
-    let obj = JSON.parse(str);
-    let node = new StorageNode(obj.name);
-    return node;
+  import(o: any): void {
+    if (this.name === o.name) {
+      let keys = o.keys;
+      keys.forEach((k: any) => {
+        let id = k.id;
+        let entry = this.getEntryById(id);
+        entry.import(k.value);
+        entry.write();
+      });
+    }
   }
 
   // ID abstraction
