@@ -82,7 +82,7 @@ export default class TemplateManager {
     else WizardManager.moveToCurrentPage(navigate);
   }
   static moveToFirstPage(navigate: NavigateFunction): void {
-    navigate(`/hub`);
+    this.moveToPage(TemplateState.Select, navigate);
   }
   static begin(navigate: NavigateFunction) {
     const template = this.getTemplate();
