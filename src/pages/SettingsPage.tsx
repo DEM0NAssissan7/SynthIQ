@@ -1,10 +1,11 @@
-import { Form, InputGroup } from "react-bootstrap";
+import { Button, Form, InputGroup } from "react-bootstrap";
 import { nightscoutStore } from "../storage/nightscoutStore";
 import preferencesStore from "../storage/preferencesStore";
 import Card from "../components/Card";
 import healthMonitorStore from "../storage/healthMonitorStore";
 import type StorageNode from "../lib/storageNode";
 import { useState } from "react";
+import RemoteStorage from "../lib/remote/storage";
 
 interface Setting {
   title: string;
@@ -52,8 +53,32 @@ export default function SettingsPage() {
   preferencesStore.get("sessionHalfLife");
   preferencesStore.get("maxSessionLife");
 
+  function uploadStorage() {
+    if (
+      confirm(
+        `Are you sure you want to upload data to backend? You will overwrite ALL user data on backend.`
+      )
+    )
+      RemoteStorage.upload();
+  }
+  function downloadStorage() {
+    if (
+      confirm(
+        `Are you sure you want to download data from backend? You will overwrite ALL local user data.`
+      )
+    )
+      RemoteStorage.download();
+  }
   return (
     <>
+      <div className="d-flex gap-2 mb-3">
+        <Button onClick={downloadStorage} variant="primary">
+          Download Data
+        </Button>
+        <Button onClick={uploadStorage} variant="danger">
+          Upload Data
+        </Button>
+      </div>
       <Card>
         <NumberSetting
           node={preferencesStore}
