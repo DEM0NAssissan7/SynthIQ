@@ -1,6 +1,7 @@
 import { backendStore } from "../../storage/backendStore";
 import StorageNode from "../storageNode";
 import { nodes } from "../storageNode";
+import { genUUID } from "../util";
 import Backend from "./backend";
 
 class RemoteStorage {
@@ -18,13 +19,24 @@ class RemoteStorage {
     nodeObjects = nodes.map((n: StorageNode) => n.export());
     let profile = await this.getProfile();
     profile.nodeObjects = nodeObjects;
+
+    const uuid = genUUID();
+    profile.nodeUUID = uuid;
+    backendStore.set("syncUUID", uuid);
+
     this.putProfile(profile);
   }
   static async download() {
-    let nodeObjects = (await this.getProfile()).nodeObjects;
-    nodeObjects.map((o: any) => {
-      nodes.forEach((n: StorageNode) => n.import(o));
-    });
+    const profile = await this.getProfile();
+    if (profile.nodeUUID !== backendStore.get("syncUUID")) {
+      profile.nodeObjects.map((o: any) => {
+        nodes.forEach((n: StorageNode) => n.import(o));
+      });
+      backendStore.set("syncUUID", profile.nodeUUID);
+      return true;
+    }
+    return false;
+  }
   }
 }
 

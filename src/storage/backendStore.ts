@@ -29,3 +29,5 @@ backendStore.add(
     return JSON.stringify(stringArray);
   }
 );
+
+backendStore.add("syncUUID", 0);
