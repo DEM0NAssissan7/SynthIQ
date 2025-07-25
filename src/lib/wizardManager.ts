@@ -73,7 +73,7 @@ export default class WizardManager {
     wizardStorage.set("mealMarked", true);
 
     // TODO: Use date selector
-    RemoteTreatments.markMeal(meal.carbs, meal.protein, new Date());
+    RemoteTreatments.markMeal(meal.carbs, meal.protein, timestamp);
   }
 
   // Insulin
@@ -87,7 +87,7 @@ export default class WizardManager {
     wizardStorage.set("insulinMarked", true);
 
     // TODO: Use date selector
-    RemoteTreatments.markInsulin(units, new Date());
+    RemoteTreatments.markInsulin(units, timestamp);
   }
   static markInsulin(units: number) {
     let session: Session = wizardStorage.get("session");
@@ -105,15 +105,14 @@ export default class WizardManager {
   static markGlucose(caps: number) {
     // We really don't want to mark glucose if we haven't taken insulin. The glucose would never be taken because of a meal. Meals raise glucose.
     const session: Session = wizardStorage.get("session");
+    const timestamp = new Date();
     if (session.insulin !== 0) {
-      const timestamp = new Date();
-
       session.createGlucose(timestamp, caps);
       session.clearTests();
 
       // TODO: Use date selector
     }
-    RemoteTreatments.markGlucose(caps, new Date());
+    RemoteTreatments.markGlucose(caps, timestamp);
   }
 
   // Reset
