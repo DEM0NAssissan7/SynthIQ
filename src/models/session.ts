@@ -22,6 +22,7 @@ export default class Session {
   _endTimestamp: Date | null = null; // The end timestamp of the session
   finalBG: number | null = null;
   _isGarbage: boolean = false;
+  notes: string = "";
 
   meals: Meal[] = [];
   insulins: Insulin[] = [];
@@ -371,6 +372,7 @@ export default class Session {
       endTimestamp: session.endTimestamp || null,
       finalBG: session.finalBG,
       isGarbage: session.isGarbage,
+      notes: session.notes,
     });
   }
   static parse(str: string): Session {
@@ -382,6 +384,7 @@ export default class Session {
     session._endTimestamp = o.endTimestamp ? new Date(o.endTimestamp) : null;
     session.finalBG = o.finalBG || null;
     session.isGarbage = o.isGarbage || false;
+    session.notes = o.notes || "";
 
     o.meals.map((a: string) => session.addMeal(Meal.parse(a)));
     o.testMeals.map((a: string) => session.addTestMeal(Meal.parse(a)));
