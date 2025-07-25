@@ -27,6 +27,5 @@ export function setWizardMeal(meal: Meal) {
   meal.subscribe(mealStorageWriteHandler);
   wizardStorage.set("meal", meal);
 }
-const meal = new Meal(new Date());
-wizardStorage.add("meal", meal, Meal.parse, Meal.stringify);
+wizardStorage.add("meal", new Meal(new Date()), Meal.parse, Meal.stringify);
 setWizardMeal(wizardStorage.get("meal") as Meal);
