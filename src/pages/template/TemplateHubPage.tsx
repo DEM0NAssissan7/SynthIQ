@@ -60,7 +60,7 @@ export default function TemplateHubPage() {
           }}
         >
           <Button variant="secondary" onClick={startNew}>
-            Start New Session
+            End Session
           </Button>
           <Button variant="secondary" onClick={editSession}>
             Edit Session

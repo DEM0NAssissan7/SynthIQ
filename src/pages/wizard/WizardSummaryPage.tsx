@@ -101,7 +101,7 @@ export default function WizardSummaryPage() {
           Edit Session
         </Button>
         <Button variant="secondary" onClick={startNew}>
-          Start New Session
+          End Session
         </Button>
       </div>
     </>
