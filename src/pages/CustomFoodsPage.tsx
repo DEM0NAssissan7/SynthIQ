@@ -163,8 +163,8 @@ export default function CustomFoodsPage() {
         <Card>
           {customFoodsState.length === 0 && (
             <div className="text-muted">
-              No custom foods added yet. Use the "Add Custom Food" button to
-              create your own food items.
+              No custom foods added yet. Use the form above to add new custom
+              foods.
             </div>
           )}
           <ListGroup className="mt-3">
