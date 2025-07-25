@@ -33,7 +33,6 @@ function getPeakGlucose(
     // Ignore if we go below minThreshold or above maxThreshold
     // This is an optimization to discard unwanted data
     if (y < minThreshold || y > maxThreshold) {
-      // console.log(testTime, y, t);
       return null;
     }
 

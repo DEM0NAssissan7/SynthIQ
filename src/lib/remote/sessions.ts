@@ -22,7 +22,6 @@ class RemoteSessions {
   static ignoreUUID(uuid: number) {
     let ignored = backendStore.get("ignoredUUIDs");
     ignored.push(uuid);
-    // console.log(ignored);
     backendStore.set("ignoredUUIDs", ignored);
   }
   static clearIgnoredUUIDs() {
@@ -41,8 +40,6 @@ class RemoteSessions {
     let treatments = await Backend.get(
       `treatments.json?count=10000&find[eventType]=${metaSessionStoreEventType}&find[created_at][$gte]=2024-01-01T00:00:00Z`
     );
-    // console.log(treatments);
-    // console.log(treatments);
     treatments.forEach((t: any) => {
       if (
         t.eventType === metaSessionStoreEventType &&

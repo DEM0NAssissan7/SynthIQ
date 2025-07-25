@@ -34,7 +34,6 @@ function ProfileSlider({
       setInitialized(true);
     }
   }, []);
-  // console.log(initialValue);
   return (
     <div style={{ width: "50%" }}>
       <Form.Label>

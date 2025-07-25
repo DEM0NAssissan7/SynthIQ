@@ -12,7 +12,6 @@ export default function useImportedSessionsState(
 
   useEffect(() => {
     RemoteSessions.getAllSessions(allowIgnored).then((s) => {
-      //   console.log(m);
       setImportedSessions(s);
     });
   }, [version]);

@@ -104,7 +104,6 @@ export function optimize(
   const result: FMinResult = nelderMead(costFunction, initial);
   const optimizedProfileArray = result.x as ProfileArray;
   modifyProfileFromArray(optimizedProfileArray, targetProfile);
-  console.log(result);
 }
 
 export function optimizeSession(
@@ -156,7 +155,6 @@ export function optimizeSessions(
 
   const checkCompletion = () => {
     if (sessionInfos.length === sessions.length) {
-      console.log(sessionInfos);
       optimize(costFunction, targetProfile);
       if (postHandler) postHandler();
     }

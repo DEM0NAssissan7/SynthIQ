@@ -30,7 +30,6 @@ export default class TemplateManager {
     // Select template to be used for all operations
     const template = this.getTemplateByName(name);
     templateStore.set("template", template);
-    console.log(template);
     if (!template.isFirstTime) {
       setWizardMeal(
         Meal.parse(Meal.stringify(template.latestSession.latestMeal))

@@ -9,7 +9,6 @@ import type Meal from "../models/events/meal";
 import type Session from "../models/session";
 import type Template from "../models/template";
 import SuggestionExplaination from "./SuggestionExplaination";
-import TemplateManager from "../lib/templateManager";
 
 interface TemplateStateSummaryProps {
   template: Template;
@@ -39,13 +38,6 @@ export default function TemplateStateSummary({
     timingAdjustment,
   } = insulinDosingRecommendation(template.sessions);
 
-  console.log(
-    "ELEMENT",
-    amountSuggestion,
-    timingSuggestion,
-    template,
-    TemplateManager.getTemplates()
-  );
   function getTiming() {
     return template.insulinTiming;
   }

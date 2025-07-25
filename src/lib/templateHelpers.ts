@@ -103,7 +103,6 @@ export function insulinRuleEngine(session: Session) {
   // If insulin excess would have dropped you below the low threshold, it's too much
 
   // Rule engine magic
-  console.log(insulinPercentError, takenInsulin - optimalInsulin);
   if (takenInsulin < optimalInsulin) {
     if (insulinPercentError > percentErrorThreshold) amount = LOW;
   } else if (takenInsulin > insulinMaxThreshold) amount = HIGH;
@@ -178,7 +177,6 @@ export function insulinDosingRecommendation(sessions: Session[]) {
       sessionsWeightedAverage((s) => insulinRuleEngine(s).timing, sessions),
       1
     );
-    console.log(amountSuggestion, timingSuggestion);
   } catch (e) {
     console.error(e);
   }
