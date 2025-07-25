@@ -52,13 +52,7 @@ export default function WizardMealConfirmPage() {
 
   // Cancel
   function cancelSession() {
-    if (
-      confirm(
-        "Are you sure you want to discard the entire session? This will delete all data you've inputted so far for this session."
-      )
-    ) {
-      WizardManager.resetWizard(navigate);
-    }
+    WizardManager.cancelSession(navigate);
   }
 
   const optimalMealTiming = useMemo(() => {

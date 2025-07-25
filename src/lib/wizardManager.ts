@@ -137,6 +137,15 @@ export default class WizardManager {
 
     this.moveToFirstPage(navigate); // Move to the first page
   }
+  static cancelSession(navigate: NavigateFunction) {
+    if (
+      confirm(
+        "Are you sure you want to discard the entire session? This will delete all data you've inputted so far for this session."
+      )
+    ) {
+      this.resetWizard(navigate);
+    }
+  }
   static startNew(navigate: NavigateFunction) {
     const timestamp = new Date();
     const session: Session = wizardStorage.get("session");
