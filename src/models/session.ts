@@ -381,10 +381,16 @@ export default class Session {
     session.finalBG = o.finalBG || null;
     session.isGarbage = o.isGarbage || false;
 
-    o.meals.map((a: string) => Meal.parse(a));
-    o.testMeals.map((a: string) => Meal.parse(a));
-    o.insulins.map((a: string) => Insulin.parse(a));
-    o.glucoses.map((a: string) => Glucose.parse(a));
+    o.meals.map((a: string) => session.addMeal(Meal.parse(a)));
+    o.testMeals.map((a: string) => session.addTestMeal(Meal.parse(a)));
+    o.insulins.map((a: string) => {
+      const insulin = Insulin.parse(a);
+      session.createInsulin(insulin.timestamp, insulin.units);
+    });
+    o.glucoses.map((a: string) => {
+      const glucose = Glucose.parse(a);
+      session.createGlucose(glucose.timestamp, glucose.caps);
+    });
 
     return session;
   }
