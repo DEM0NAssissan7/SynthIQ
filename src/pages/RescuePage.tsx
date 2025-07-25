@@ -14,7 +14,11 @@ import { useWizardSession } from "../state/useSession";
 import Card from "../components/Card";
 import GlucoseSuggestion from "../components/GlucoseSuggestion";
 import HealthMonitorMessage from "../components/HealthMonitorMessage";
-import { populateReadingCache, getBGVelocity } from "../lib/healthMonitor";
+import {
+  populateReadingCache,
+  getBGVelocity,
+  markGlucose,
+} from "../lib/healthMonitor";
 import healthMonitorStore from "../storage/healthMonitorStore";
 
 export default function RescuePage() {
@@ -44,11 +48,12 @@ export default function RescuePage() {
   function goBack() {
     TemplateManager.moveToCurrentPage(navigate);
   }
-  function markGlucose() {
+  function confirmGlucose() {
     if (
       confirm(`Confirm that you have taken ${capsTaken} caps/grams of glucose`)
     ) {
       WizardManager.markGlucose(capsTaken);
+      markGlucose(capsTaken);
       goBack();
     }
   }
@@ -98,7 +103,7 @@ export default function RescuePage() {
           </Button>
         )}
         <div style={{ marginLeft: "auto" }}>
-          <Button variant="primary" onClick={markGlucose}>
+          <Button variant="primary" onClick={confirmGlucose}>
             Mark Glucose
           </Button>
         </div>
