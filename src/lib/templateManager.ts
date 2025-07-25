@@ -19,8 +19,10 @@ export default class TemplateManager {
     throw new Error(`Cannot find template named ${name}`);
   }
   private static write() {
-    templateStore.write("template");
-    templateStore.write("templates");
+    setTimeout(() => {
+      templateStore.write("template");
+      templateStore.write("templates");
+    });
   }
 
   // Template management

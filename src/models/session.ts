@@ -47,7 +47,7 @@ export default class Session {
     this.subscriptions = this.subscriptions.filter((sub) => sub !== callback);
   }
   notify() {
-    this.subscriptions.forEach((f) => f());
+    setTimeout(() => this.subscriptions.forEach((f) => f()));
   }
 
   // Event management
@@ -360,6 +360,7 @@ export default class Session {
 
   // Serialization
   static stringify(session: Session): string {
+    console.log(session.glucoses);
     return JSON.stringify({
       uuid: session.uuid,
       initialGlucose: session.initialGlucose,
@@ -374,6 +375,7 @@ export default class Session {
   }
   static parse(str: string): Session {
     let o = JSON.parse(str);
+    console.log(o);
     let session = new Session(false);
     session.uuid = o.uuid;
     session.initialGlucose = o.initialGlucose;
