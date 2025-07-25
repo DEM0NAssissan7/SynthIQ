@@ -37,6 +37,9 @@ export default function WizardSummaryPage() {
   function editSession() {
     WizardManager.moveToPage(WizardState.Edit, navigate);
   }
+  function cancelSession() {
+    WizardManager.cancelSession(navigate);
+  }
 
   // Clear tests upon mount to prevent confusion and improve reliability
   useEffect(() => {
@@ -102,6 +105,9 @@ export default function WizardSummaryPage() {
         </Button>
         <Button variant="secondary" onClick={startNew}>
           End Session
+        </Button>
+        <Button variant="danger" onClick={cancelSession}>
+          Cancel Session
         </Button>
       </div>
     </>

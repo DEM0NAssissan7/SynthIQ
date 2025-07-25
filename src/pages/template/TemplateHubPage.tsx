@@ -36,6 +36,9 @@ export default function TemplateHubPage() {
   function editSession() {
     TemplateManager.moveToPage(TemplateState.Edit, navigate);
   }
+  function cancelSession() {
+    WizardManager.cancelSession(navigate);
+  }
 
   return (
     <>
@@ -64,6 +67,9 @@ export default function TemplateHubPage() {
           </Button>
           <Button variant="secondary" onClick={editSession}>
             Edit Session
+          </Button>
+          <Button variant="danger" onClick={cancelSession}>
+            Cancel Session
           </Button>
           <ToggleButton
             id="toggle-check"
