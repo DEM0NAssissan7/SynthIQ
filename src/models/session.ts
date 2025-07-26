@@ -63,12 +63,12 @@ export default class Session {
 
   // Meals
   addMeal(meal: Meal): void {
-    this.addEvent(meal);
     this.meals.push(meal);
+    this.addEvent(meal);
   }
   removeMeal(meal: Meal) {
-    this.removeEvent(meal);
     this.meals = this.meals.filter((m) => m !== meal);
+    this.removeEvent(meal);
   }
   get carbs(): number {
     let carbs = 0;
@@ -111,13 +111,13 @@ export default class Session {
   // Insulins
   createInsulin(timestamp: Date, units: number): Insulin {
     const insulin = new Insulin(timestamp, units);
-    this.addEvent(insulin);
     this.insulins.push(insulin);
+    this.addEvent(insulin);
     return insulin;
   }
   removeInsulin(insulin: Insulin) {
-    this.removeEvent(insulin);
     this.insulins = this.insulins.filter((i) => i !== insulin);
+    this.removeEvent(insulin);
   }
   get insulin(): number {
     let insulin = 0;
@@ -136,13 +136,13 @@ export default class Session {
   // Glucoses
   createGlucose(timestamp: Date, caps: number): Glucose {
     const glucose = new Glucose(timestamp, caps);
-    this.addEvent(glucose);
     this.glucoses.push(glucose);
+    this.addEvent(glucose);
     return glucose;
   }
   removeGlucose(glucose: Glucose) {
-    this.removeEvent(glucose);
     this.glucoses = this.glucoses.filter((g) => g !== glucose);
+    this.removeEvent(glucose);
   }
   get glucose(): number {
     let glucose = 0;
@@ -156,35 +156,38 @@ export default class Session {
 
   // Test Meals
   addTestMeal(meal: Meal): void {
-    this.addEvent(meal);
     this.testMeals.push(meal);
+    this.addEvent(meal);
   }
   clearTestMeals(): void {
     this.testMeals.forEach((e) => this.removeEvent(e));
     this.testMeals = [];
+    this.notify();
   }
 
   // Test Insulins
   createTestInsulin(timestamp: Date, units: number): Insulin {
     const insulin = new Insulin(timestamp, units);
-    this.addEvent(insulin);
     this.testInsulins.push(insulin);
+    this.addEvent(insulin);
     return insulin;
   }
   clearTestInsulins(): void {
     this.testInsulins.forEach((e) => this.removeEvent(e));
     this.testInsulins = [];
+    this.notify();
   }
 
   // Test Glucoses
   createTestGlucose(timestamp: Date, caps: number): void {
     const glucose = new Glucose(timestamp, caps);
-    this.addEvent(glucose);
     this.testGlucoses.push(glucose);
+    this.addEvent(glucose);
   }
   clearTestGlucoses(): void {
     this.testGlucoses.forEach((e) => this.removeEvent(e));
     this.testGlucoses = [];
+    this.notify();
   }
 
   // General Tests
