@@ -54,21 +54,21 @@ export default class Session {
   // Event management
   addEvent(e: MetaEvent) {
     e.subscribe(() => this.notify());
-    this.notify();
   }
   removeEvent(e: MetaEvent) {
     e.unsubscribe(() => this.notify());
-    this.notify();
   }
 
   // Meals
   addMeal(meal: Meal): void {
     this.meals.push(meal);
     this.addEvent(meal);
+    this.notify();
   }
   removeMeal(meal: Meal) {
     this.meals = this.meals.filter((m) => m !== meal);
     this.removeEvent(meal);
+    this.notify();
   }
   get carbs(): number {
     let carbs = 0;
@@ -113,11 +113,13 @@ export default class Session {
     const insulin = new Insulin(timestamp, units);
     this.insulins.push(insulin);
     this.addEvent(insulin);
+    this.notify();
     return insulin;
   }
   removeInsulin(insulin: Insulin) {
     this.insulins = this.insulins.filter((i) => i !== insulin);
     this.removeEvent(insulin);
+    this.notify();
   }
   get insulin(): number {
     let insulin = 0;
@@ -138,11 +140,13 @@ export default class Session {
     const glucose = new Glucose(timestamp, caps);
     this.glucoses.push(glucose);
     this.addEvent(glucose);
+    this.notify();
     return glucose;
   }
   removeGlucose(glucose: Glucose) {
     this.glucoses = this.glucoses.filter((g) => g !== glucose);
     this.removeEvent(glucose);
+    this.notify();
   }
   get glucose(): number {
     let glucose = 0;
@@ -158,6 +162,7 @@ export default class Session {
   addTestMeal(meal: Meal): void {
     this.testMeals.push(meal);
     this.addEvent(meal);
+    this.notify();
   }
   clearTestMeals(): void {
     this.testMeals.forEach((e) => this.removeEvent(e));
@@ -170,6 +175,7 @@ export default class Session {
     const insulin = new Insulin(timestamp, units);
     this.testInsulins.push(insulin);
     this.addEvent(insulin);
+    this.notify();
     return insulin;
   }
   clearTestInsulins(): void {
@@ -183,6 +189,7 @@ export default class Session {
     const glucose = new Glucose(timestamp, caps);
     this.testGlucoses.push(glucose);
     this.addEvent(glucose);
+    this.notify();
   }
   clearTestGlucoses(): void {
     this.testGlucoses.forEach((e) => this.removeEvent(e));
@@ -235,6 +242,7 @@ export default class Session {
     if (value) {
       this.pullFinalBG();
     }
+    this.notify();
   }
   set isGarbage(value: boolean) {
     this._isGarbage = value;
