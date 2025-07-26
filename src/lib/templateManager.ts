@@ -11,18 +11,27 @@ export default class TemplateManager {
   static getTemplates() {
     return templateStore.get("templates") as Template[];
   }
-  private static getTemplateByName(name: string): Template {
+  private static getTemplateIndexByName(name: string): number {
     const templates = this.getTemplates();
-    for (let t of templates) {
-      if (t.name === name) return t;
+    for (let i = 0; i < templates.length; i++) {
+      if (templates[i].name === name) return i;
     }
     throw new Error(`Cannot find template named ${name}`);
   }
+  private static getTemplateByName(name: string): Template {
+    const templates = this.getTemplates();
+    return templates[this.getTemplateIndexByName(name)];
+  }
+  private static replaceTemplateToArray() {
+    const template = this.getTemplate();
+    const index = this.getTemplateIndexByName(template.name);
+    const templates = this.getTemplates();
+    templates[index] = template;
+    this.write();
+  }
   private static write() {
-    setTimeout(() => {
-      templateStore.write("template");
-      templateStore.write("templates");
-    });
+    templateStore.write("template");
+    templateStore.write("templates");
   }
 
   // Template management
@@ -109,8 +118,8 @@ export default class TemplateManager {
   static resetTemplate() {
     const session = wizardStorage.get("session");
     this.addSessionToTemplate(session);
+    this.replaceTemplateToArray();
     templateStore.set("template", new Template(""));
-    this.write();
   }
   static startNew(navigate: NavigateFunction) {
     this.resetTemplate();
