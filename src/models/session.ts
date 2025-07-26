@@ -48,7 +48,7 @@ export default class Session {
     this.subscriptions = this.subscriptions.filter((sub) => sub !== callback);
   }
   notify() {
-    setTimeout(() => this.subscriptions.forEach((f) => f()));
+    this.subscriptions.forEach((f) => f());
   }
 
   // Event management
