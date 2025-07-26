@@ -43,6 +43,8 @@ export default class TemplateManager {
       setWizardMeal(
         Meal.parse(Meal.stringify(template.latestSession.latestMeal))
       );
+    } else {
+      setWizardMeal(new Meal(new Date())); // If it's the first time, we make the meal blank
     }
     this.write();
   }
