@@ -30,8 +30,9 @@ export default class Template {
       throw new Error(`There are no sessions in this template!`);
     let session: Session | null = null;
     for (let i = this.sessions.length - 1; i >= 0; i--) {
-      session = this.sessions[i];
-      if (session.isGarbage) continue;
+      const _session = this.sessions[i];
+      if (_session.isGarbage) continue;
+      session = _session;
     }
     if (!session)
       throw new Error(`Cannot retrieve latest session: unknown error`);
