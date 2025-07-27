@@ -80,11 +80,13 @@ export default function TemplateStateSummary({
           {(amountAdjustment !== 0 || timingAdjustment !== 0) && (
             <>
               <hr />
+              {amountAdjustment > 0 && `+`}
               {amountAdjustment !== 0 && `${amountAdjustment}u adjustment`}
               <br />
+              {timingAdjustment > 0 && `+`}
               {timingAdjustment !== 0 &&
                 `${timingAdjustment} minutes adjustment`}
-              <br />
+              <hr />
               <SuggestionExplaination
                 amountSuggestion={amountSuggestion}
                 timingSuggestion={timingSuggestion}

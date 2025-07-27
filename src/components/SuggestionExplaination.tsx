@@ -16,6 +16,7 @@ export default function ({
     <>
       {tooMuchInsulin && "Your previous doses appear to have been too high"}
       {tooLittleInsulin && "Your previous doses may have been too low"}
+      <br />
       {tooEarly && "Your insulin timing might have been too early"}
       {tooLate && "Your insulin timing might have been too late"}
     </>
