@@ -100,7 +100,6 @@ export function getLastRescueMinutes() {
     getMinuteDiff(new Date(), getLastRescue().timestamp),
     0
   );
-  if (minuteDiff > 60) return 0;
   return minuteDiff;
 }
 export function getLastRescueCaps() {
