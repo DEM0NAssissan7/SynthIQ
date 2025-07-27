@@ -31,7 +31,7 @@ export default class Template {
     let session: Session | null = null;
     for (let i = this.sessions.length - 1; i >= 0; i--) {
       const _session = this.sessions[i];
-      if (_session.isGarbage) continue;
+      if (session && _session.isGarbage) continue;
       session = _session;
     }
     if (!session)
