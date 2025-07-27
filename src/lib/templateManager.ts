@@ -46,6 +46,7 @@ export default class TemplateManager {
     } else {
       setWizardMeal(new Meal(new Date())); // If it's the first time, we make the meal blank
     }
+    console.log(template);
     this.write();
   }
   static getTemplate() {
