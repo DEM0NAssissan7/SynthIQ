@@ -88,6 +88,16 @@ export default class Meal extends MetaEvent {
     this.foods.forEach((a: Food) => (fat += a.fat));
     return fat;
   }
+  get calories(): number {
+    let calories = 0;
+    const calPerCarb = 4;
+    const calPerProtein = 4;
+    const calPerFat = 9;
+    calories += this.carbs * calPerCarb;
+    calories += this.protein * calPerProtein;
+    calories += this.fat * calPerFat;
+    return calories;
+  }
   deltaBG(t: number, profile: MetabolismProfile): number {
     let retval: number = 0;
     this.foods.forEach((a) => (retval += a.carbsDeltaBG(t, profile))); // Carbs

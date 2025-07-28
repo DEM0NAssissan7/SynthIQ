@@ -85,6 +85,11 @@ export default class Session {
     this.meals.forEach((a: Meal) => (fat += a.fat));
     return fat;
   }
+  get calories(): number {
+    let calories = 0;
+    this.meals.forEach((a: Meal) => (calories += a.calories));
+    return calories;
+  }
   get latestMealTimestamp(): Date {
     if (this.testMeals.length !== 0)
       return this.testMeals[this.testMeals.length - 1].timestamp;
