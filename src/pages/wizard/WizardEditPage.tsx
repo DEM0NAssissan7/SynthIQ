@@ -13,6 +13,7 @@ import { Button } from "react-bootstrap";
 import SessionSummary from "../../components/SessionSummary";
 import { useMemo, useState } from "react";
 import { Dropdown } from "react-bootstrap";
+import BloodSugarInput from "../../components/BloodSugarInput";
 
 export default function WizardEditPage() {
   const session = useWizardSession();
@@ -57,6 +58,16 @@ export default function WizardEditPage() {
 
       <Card>
         <MealAdditionalNutrients meal={meal} />
+      </Card>
+
+      <Card>
+        <BloodSugarInput
+          initialGlucose={session.initialGlucose}
+          setInitialGlucose={(g) => (session.initialGlucose = g)}
+          pullFromNightscout={false}
+          showAutoButton={false}
+          label="Initial Blood Sugar"
+        />
       </Card>
 
       <Card>

@@ -12,6 +12,7 @@ import { Dropdown } from "react-bootstrap";
 import TemplateManager from "../../lib/templateManager";
 import { TemplateState } from "../../models/types/templateState";
 import TemplateSessionSummary from "../../components/TemplateSessionSummary";
+import BloodSugarInput from "../../components/BloodSugarInput";
 
 export default function TemplateEditPage() {
   const session = useWizardSession();
@@ -25,6 +26,9 @@ export default function TemplateEditPage() {
   const navigate = useNavigate();
   function finishEdit() {
     TemplateManager.moveToPage(TemplateState.Hub, navigate);
+  }
+  function setGlucose(a: number) {
+    session.initialGlucose = a;
   }
   return (
     <>
@@ -60,6 +64,16 @@ export default function TemplateEditPage() {
 
       <Card>
         <MealAdditionalNutrients meal={meal} />
+      </Card>
+
+      <Card>
+        <BloodSugarInput
+          initialGlucose={session.initialGlucose}
+          setInitialGlucose={setGlucose}
+          pullFromNightscout={false}
+          showAutoButton={false}
+          label="Initial Blood Sugar"
+        />
       </Card>
 
       <Card>
