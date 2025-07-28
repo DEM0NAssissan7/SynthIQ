@@ -40,6 +40,10 @@ export default function StatisticsPage() {
     () => importedSessions.map((s) => s.protein),
     [importedSessions]
   );
+  const calories = useMemo(
+    () => importedSessions.map((s) => s.calories),
+    [importedSessions]
+  );
   const insulin = useMemo(
     () => importedSessions.map((s) => s.insulin),
     [importedSessions]
@@ -78,6 +82,7 @@ export default function StatisticsPage() {
       </p>
       <DataStatistics title="Carbs (g)" data={carbs} />
       <DataStatistics title="Protein (g)" data={protein} />
+      <DataStatistics title="Calories (kcal)" data={calories} />
       <DataStatistics title="Insulin (u)" data={insulin} />
       <DataStatistics title="Glucose (caps)" data={glucose} />
       <DataStatistics title="Blood Sugar (mg/dL)" data={allReadings} />
