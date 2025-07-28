@@ -84,7 +84,7 @@ export default function RescuePage() {
             <i className="bi bi-capsule"></i>
           </InputGroup.Text>
           <Form.Control
-            placeholder={intelligentCorrection.toString()}
+            placeholder={round(intelligentCorrection, 1).toString()}
             aria-label="URL"
             aria-describedby="basic-addon1"
             onChange={(e: any) => {
