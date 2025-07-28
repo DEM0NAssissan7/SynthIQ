@@ -1,6 +1,5 @@
 import { Button, Form, ListGroup } from "react-bootstrap";
 import { useEffect, useState } from "react";
-import { round } from "../../lib/util";
 import { useNavigate } from "react-router";
 import BloodSugarInput from "../../components/BloodSugarInput";
 import MealAdditionalNutrients from "../../components/MealAdditionalNutrientsCard";
@@ -12,9 +11,8 @@ import AddedFoodsDisplay from "../../components/AddedFoodsDisplay";
 import TemplateManager from "../../lib/templateManager";
 import { TemplateState } from "../../models/types/templateState";
 import WizardManager from "../../lib/wizardManager";
-import TemplateStateSummary from "../../components/TemplateStateSummary";
 import { profile } from "../../storage/metaProfileStore";
-import TemplateSessionSummary from "../../components/TemplateSessionSummary";
+import TemplateSummary from "../../components/TemplateSummary";
 
 export default function TemplateMealPage() {
   const session = useWizardSession();
@@ -77,24 +75,13 @@ export default function TemplateMealPage() {
       <Card>
         <ListGroup>
           <ListGroup.Item>
-            {round(meal.carbs, 2)}g carbs<br></br>
-            {round(meal.protein, 2)}g protein<br></br>
+            <TemplateSummary
+              template={template}
+              session={session}
+              meal={meal}
+              currentBG={initialGlucose}
+            />
           </ListGroup.Item>
-          {WizardManager.getMealMarked() && (
-            <ListGroup.Item>
-              <TemplateSessionSummary template={template} session={session} />
-            </ListGroup.Item>
-          )}
-          {!WizardManager.getInsulinMarked() && (
-            <ListGroup.Item>
-              <TemplateStateSummary
-                template={template}
-                session={session}
-                meal={meal}
-                currentGlucose={initialGlucose}
-              />
-            </ListGroup.Item>
-          )}
           {!WizardManager.getInitialGlucoseMarked() && (
             <ListGroup.Item>
               <BloodSugarInput

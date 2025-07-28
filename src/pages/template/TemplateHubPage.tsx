@@ -1,11 +1,11 @@
 import { Button, ToggleButton } from "react-bootstrap";
 import Card from "../../components/Card";
-import TemplateSessionSummary from "../../components/TemplateSessionSummary";
 import TemplateManager from "../../lib/templateManager";
 import { useWizardSession } from "../../state/useSession";
 import { TemplateState } from "../../models/types/templateState";
 import { useNavigate } from "react-router";
 import WizardManager from "../../lib/wizardManager";
+import TemplateSummary from "../../components/TemplateSummary";
 
 export default function TemplateHubPage() {
   const session = useWizardSession();
@@ -44,7 +44,7 @@ export default function TemplateHubPage() {
     <>
       {" "}
       <Card>
-        <TemplateSessionSummary session={session} template={template} />
+        <TemplateSummary session={session} template={template} />
       </Card>
       <div
         style={{

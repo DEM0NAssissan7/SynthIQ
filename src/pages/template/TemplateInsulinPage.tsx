@@ -9,10 +9,9 @@ import { useWizardMeal } from "../../state/useMeal";
 import BloodSugarInput from "../../components/BloodSugarInput";
 import { getCorrectionInsulin, getInsulin } from "../../lib/metabolism";
 import Card from "../../components/Card";
-import TemplateStateSummary from "../../components/TemplateStateSummary";
 import TemplateManager from "../../lib/templateManager";
-import TemplateSessionSummary from "../../components/TemplateSessionSummary";
 import { TemplateState } from "../../models/types/templateState";
+import TemplateSummary from "../../components/TemplateSummary";
 
 export default function TemplateInsulinPage() {
   const navigate = useNavigate();
@@ -87,18 +86,12 @@ export default function TemplateInsulinPage() {
     <div>
       <h1>Insulin Dosing</h1>
       <Card>
-        <TemplateSessionSummary template={template} session={session} />
-        {WizardManager.getInsulinMarked() && (
-          <>
-            <hr />
-            <TemplateStateSummary
-              template={template}
-              session={session}
-              meal={meal}
-              currentGlucose={currentGlucose}
-            />
-          </>
-        )}
+        <TemplateSummary
+          template={template}
+          session={session}
+          meal={meal}
+          currentBG={currentGlucose}
+        />
       </Card>
 
       <Card>

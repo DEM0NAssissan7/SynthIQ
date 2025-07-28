@@ -11,8 +11,8 @@ import { useMemo, useState } from "react";
 import { Dropdown } from "react-bootstrap";
 import TemplateManager from "../../lib/templateManager";
 import { TemplateState } from "../../models/types/templateState";
-import TemplateSessionSummary from "../../components/TemplateSessionSummary";
 import BloodSugarInput from "../../components/BloodSugarInput";
+import TemplateSummary from "../../components/TemplateSummary";
 
 export default function TemplateEditPage() {
   const session = useWizardSession();
@@ -34,7 +34,7 @@ export default function TemplateEditPage() {
     <>
       <h1>Edit Session Events</h1>
       <Card>
-        <TemplateSessionSummary template={template} session={session} />
+        <TemplateSummary template={template} session={session} />
       </Card>
       <Card>
         <Dropdown

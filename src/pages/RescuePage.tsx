@@ -2,7 +2,6 @@ import { useState, useMemo, useEffect } from "react";
 import { Button, Form, InputGroup } from "react-bootstrap";
 import { useNavigate } from "react-router";
 import BloodSugarInput from "../components/BloodSugarInput";
-import TemplateSessionSummary from "../components/TemplateSessionSummary";
 import {
   getGlucoseCorrectionCaps,
   getIntelligentGlucoseCorrection,
@@ -20,6 +19,7 @@ import {
   markGlucose,
 } from "../lib/healthMonitor";
 import healthMonitorStore from "../storage/healthMonitorStore";
+import TemplateSummary from "../components/TemplateSummary";
 
 export default function RescuePage() {
   const session = useWizardSession();
@@ -63,7 +63,7 @@ export default function RescuePage() {
       <h1>Glucose Correction</h1>
       {WizardManager.isActive() && (
         <Card>
-          <TemplateSessionSummary template={template} session={session} />
+          <TemplateSummary template={template} session={session} />
         </Card>
       )}
       <Card>
