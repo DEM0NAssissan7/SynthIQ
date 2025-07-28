@@ -7,6 +7,7 @@ interface BloodSugarInputProps {
   setInitialGlucose: (value: number) => void;
   pullFromNightscout?: boolean;
   showAutoButton?: boolean;
+  label?: string;
 }
 
 export default function BloodSugarInput({
@@ -14,6 +15,7 @@ export default function BloodSugarInput({
   setInitialGlucose,
   pullFromNightscout = true,
   showAutoButton = true,
+  label = "Current Blood Sugar",
 }: BloodSugarInputProps) {
   function pullCurrentGlucose() {
     RemoteReadings.getCurrentSugar().then((g) => {
@@ -25,7 +27,7 @@ export default function BloodSugarInput({
   }, []);
   return (
     <Form.Group controlId="current-glucose" className="mb-3">
-      <Form.Label className="text-muted">Current Blood Sugar</Form.Label>
+      <Form.Label className="text-muted">{label}</Form.Label>
       <div className="input-group">
         <span className="input-group-text">
           <i className="bi bi-droplet"></i>
