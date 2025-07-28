@@ -162,6 +162,13 @@ export default function SettingsPage() {
           unit="mg/dL"
         />
         <NumberSetting
+          node={preferencesStore}
+          id={"insulinEffect"}
+          title="Insulin Effect (per unit)"
+          iconClass="bi bi-eyedropper"
+          unit="mg/dL"
+        />
+        <NumberSetting
           node={backendStore}
           id={"cgmDelay"}
           title="CGM Delay (in minutes)"

@@ -23,3 +23,10 @@ preferencesStore.subscribe(
   "glucoseEffect",
   (a: number) => (profile.glucose.effect = a)
 );
+
+preferencesStore.add("insulinEffect", 50);
+// Update profile upon glucose effect changing
+preferencesStore.subscribe(
+  "insulinEffect",
+  (a: number) => (profile.insulin.effect = a)
+);
