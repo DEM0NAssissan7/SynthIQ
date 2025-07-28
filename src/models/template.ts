@@ -41,24 +41,29 @@ export default class Template {
 
   // Nutrition Information
   get carbs(): number {
+    if (this.isFirstTime) return 0;
     return this.latestSession.carbs;
   }
   get protein(): number {
+    if (this.isFirstTime) return 0;
     return this.latestSession.protein;
   }
   get fat(): number {
+    if (this.isFirstTime) return 0;
     return this.latestSession.fat;
   }
 
   // Dosing info
   /** This gives you the meal dose insulin taken last, not accounting for correction */
   get insulin(): number {
+    if (this.isFirstTime) return 0;
     return (
       this.latestSession.insulin -
       getCorrectionInsulin(this.latestSession.initialGlucose)
     );
   }
   get insulinTiming(): number {
+    if (this.isFirstTime) return 0;
     return (
       sessionsWeightedAverage(
         (s: Session) => s.getN(s.firstInsulinTimestamp),
