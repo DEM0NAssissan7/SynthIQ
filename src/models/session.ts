@@ -230,6 +230,11 @@ export default class Session {
     if (!timestamp) throw new Error("No beginning timestamp found in session");
     return timestamp;
   }
+  get started() {
+    return (
+      this.meals.length + this.insulins.length + this.glucoses.length !== 0
+    );
+  }
   get endTimestamp(): Date | null {
     return this._endTimestamp;
   }
