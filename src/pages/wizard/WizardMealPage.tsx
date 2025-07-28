@@ -162,7 +162,7 @@ export default function WizardMealPage() {
           {!WizardManager.getMealMarked() && (
             <ListGroup.Item>
               <BloodSugarInput
-                initialGlucose={session.initialGlucose}
+                initialGlucose={initialGlucose}
                 setInitialGlucose={(g) => setInitialGlucose(g)}
               />
             </ListGroup.Item>
