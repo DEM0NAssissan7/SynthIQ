@@ -1,9 +1,7 @@
 import { round } from "../util";
 import Backend from "./backend";
 
-const insulinEventType = "Meal Bolus";
-const mealEventType = "Meal";
-const glucoseEventType = "Carb Correction";
+export const basalEventType = "Basal Insulin";
 
 class RemoteTreatments {
   static markMeal(_carbs: number, _protein: number, timestamp: Date): void {
@@ -26,6 +24,16 @@ class RemoteTreatments {
       {
         insulin: units,
         eventType: insulinEventType,
+      },
+      timestamp
+    );
+  }
+  static markBasal(units: number, timestamp: Date): void {
+    Backend.post(
+      "treatments",
+      {
+        insulin: units,
+        eventType: basalEventType,
       },
       timestamp
     );
