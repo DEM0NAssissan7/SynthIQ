@@ -43,8 +43,8 @@ export default function BasalPage() {
     let strings: string[] = [];
     for (let i = 0; i < shotsPerDay; i++) {
       const hour = firstShotHour + i * interval;
-      const suffix = hour < 12 ? "AM" : "PM";
-      strings.push(`${hour % 12}:00 ${suffix}`);
+      const suffix = hour < 12 || hour === 24 ? "AM" : "PM";
+      strings.push(`${hour % 12 || 12}:00 ${suffix}`);
     }
     return strings;
   }
