@@ -37,9 +37,11 @@ function NumberSetting({ title, node, id, iconClass, unit }: Setting) {
           value={value}
           aria-describedby="basic-addon1"
           onChange={(a) => {
-            const v = a.target.value;
-            node.set(id, v);
-            setValue(v);
+            const v = parseFloat(a.target.value);
+            if (!Number.isNaN(v)) {
+              node.set(id, v);
+              setValue(v);
+            }
           }}
         />
         <InputGroup.Text>{unit}</InputGroup.Text>
