@@ -27,6 +27,7 @@ import preferencesStore from "../storage/preferencesStore";
 import { getHourDiff, getMinuteDiff } from "./timing";
 import { MathUtil, round } from "./util";
 import RemoteReadings from "./remote/readings";
+import { getBGVelocities } from "./readingsUtil";
 
 export let healthMonitorStatus = HealthMonitorStatus.Nominal;
 
@@ -47,10 +48,10 @@ export async function populateReadingCache() {
 
 /** Get readings */
 function getReadings() {
-  return healthMonitorStore.get("readingsCache");
+  return healthMonitorStore.get("readingsCache") as SugarReading[];
 }
 export function getCurrentBG() {
-  return healthMonitorStore.get("currentBG");
+  return healthMonitorStore.get("currentBG") as number;
 }
 
 /** This function returns (mg/dL) / hr.
@@ -58,20 +59,7 @@ export function getCurrentBG() {
  */
 export function getBGVelocity() {
   const readings = getReadings();
-  let velocities = [];
-  if (readings.length < 2) {
-    return 0;
-  }
-  for (let i = 0; i < readings.length - 1; i++) {
-    const currentReading = readings[i];
-    const lastReading = readings[i + 1];
-    const timeDiff = getHourDiff(
-      currentReading.timestamp,
-      lastReading.timestamp
-    );
-    const velocity = (currentReading.sugar - lastReading.sugar) / timeDiff;
-    velocities.push(velocity);
-  }
+  const velocities = getBGVelocities(readings);
   // We give the median of all the velocities to rule out insane jumps
   return MathUtil.median(velocities);
 }
