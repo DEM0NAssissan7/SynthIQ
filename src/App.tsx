@@ -27,6 +27,7 @@ import RescuePage from "./pages/RescuePage";
 import { smartMonitor } from "./lib/healthMonitor";
 import Backend from "./lib/remote/backend";
 import RemoteStorage from "./lib/remote/storage";
+import BasalPage from "./pages/BasalPage";
 
 function App() {
   const navigate = useNavigate();
@@ -68,6 +69,7 @@ function App() {
           <Route path="/dextrose" element={<DextrosePage />} />
           <Route path="/statistics" element={<StatisticsPage />} />
           <Route path="/rescue" element={<RescuePage />} />
+          <Route path="/basal" element={<BasalPage />} />
 
           {/* Wizard Routes */}
           <Route path="/wizard" element={<WizardRouterPage />} />
