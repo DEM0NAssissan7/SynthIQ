@@ -22,12 +22,16 @@ export default function BasalPage() {
   const lastBasalTimestamp = getLastBasalTimestamp();
 
   const suggestedBasal = basals[basals.length - shotsPerDay] || 0;
-  const [basalDose, setBasalDose] = useState(suggestedBasal);
+  const [basalDose, setBasalDose] = useState(0);
 
   const navigate = useNavigate();
   function markBasalInjection() {
-    markBasal(basalDose);
-    navigate("/");
+    if (
+      confirm(`Confirm that you have injected ${basalDose}u of basal insulin`)
+    ) {
+      markBasal(basalDose);
+      navigate("/");
+    }
   }
 
   const firstShotHour = healthMonitorStore.get("basalShotTime"); // 8 => 8:00 AM, 16 => 4:00 PM
