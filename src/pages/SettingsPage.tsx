@@ -179,6 +179,20 @@ export default function SettingsPage() {
       </Card>
       <Card>
         <NumberSetting
+          node={healthMonitorStore}
+          id={"basalShotsPerDay"}
+          title="Basal Injections Per Day"
+          iconClass="bi bi-capsule"
+          unit="shots"
+        />
+        <NumberSetting
+          node={healthMonitorStore}
+          id={"basalShotTime"}
+          title="Basal Injection First Hour"
+          iconClass="bi bi-clock"
+          unit=""
+        />
+        <NumberSetting
           node={basalStore}
           id={"basalEffect"}
           title="Basal Insulin Effect (per unit)"
