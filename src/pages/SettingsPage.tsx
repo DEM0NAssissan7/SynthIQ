@@ -13,6 +13,7 @@ import type StorageNode from "../lib/storageNode";
 import { useState } from "react";
 import RemoteStorage from "../lib/remote/storage";
 import privateStore from "../storage/privateStore";
+import basalStore from "../storage/basalStore";
 
 interface Setting {
   title: string;
@@ -174,6 +175,15 @@ export default function SettingsPage() {
           title="CGM Delay (in minutes)"
           iconClass="bi bi-clock"
           unit="min"
+        />
+      </Card>
+      <Card>
+        <NumberSetting
+          node={basalStore}
+          id={"basalEffect"}
+          title="Basal Insulin Effect (per unit)"
+          iconClass="bi bi-eyedropper"
+          unit="mg/dL per hr"
         />
       </Card>
     </>
