@@ -31,14 +31,16 @@ export function getHoursMinutes(_min: number) {
 
 // Statistics
 export class MathUtil {
-  static mean(data: number[]): number {
+  static sum(data: number[]): number {
     if (data.length === 0) return 0;
     let retval = 0;
     data.forEach((a) => {
       retval += a;
     });
-    retval = retval / data.length;
     return retval;
+  }
+  static mean(data: number[]): number {
+    return this.sum(data) / data.length;
   }
   static median(data: number[]): number {
     if (data.length === 0) return 0;
