@@ -21,7 +21,7 @@ export default function BasalPage() {
   const basals = getBasals();
   const lastBasalTimestamp = getLastBasalTimestamp();
 
-  const suggestedBasal = basals[basals.length - shotsPerDay] || 0;
+  const suggestedBasal = basals[shotsPerDay - 1] || 0;
   const [basalDose, setBasalDose] = useState(0);
 
   const navigate = useNavigate();
@@ -64,17 +64,16 @@ export default function BasalPage() {
           );
         })}
         <hr />
-        Previous Doses:
+        Previous doses (newest first):
         <br />
-        <b>
-          {basals.map((a: number) => {
-            return (
-              <>
-                {a}u<br />
-              </>
-            );
-          })}
-        </b>
+        {basals.map((a: number, i: number) => {
+          return (
+            <>
+              <b>{a}u</b> {i === 0 && `(${getPrettyTime(lastBasalTimestamp)})`}
+              <br />
+            </>
+          );
+        })}
         <hr />
         Last dose taken at {getPrettyTime(lastBasalTimestamp)},{" "}
         {getHoursSince(lastBasalTimestamp)} hours ago

@@ -121,7 +121,7 @@ export function markBasal(units: number) {
 
   // Add dose to the list of doses
   let doses: number[] = basalStore.get("basalDoses");
-  doses.push(units);
+  doses.splice(0, 0, units);
   basalStore.set("basalDoses", doses.slice(0, days * shotsPerDay));
 
   // Set last basal timestamp internally
