@@ -21,3 +21,7 @@ basalStore.add("minTimeSinceDextrose", 30); // Minutes
 
 basalStore.add("basalEffect", 1.5); // Rate effect (mg/dL) per hour of 1 unit of basal insulin
 basalStore.add("basalEffectDays", 3); // Days basal stays in system
+
+// Changes logic
+basalStore.add("lastRecommendation", []);
+basalStore.add("shotsSinceLastChange", 0);

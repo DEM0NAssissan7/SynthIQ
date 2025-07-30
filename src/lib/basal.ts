@@ -5,15 +5,17 @@ import {
 import Unit from "../models/unit";
 import basalStore from "../storage/basalStore";
 import healthMonitorStore from "../storage/healthMonitorStore";
+import { getBasalCorrection } from "./metabolism";
 import { getBGVelocities } from "./readingsUtil";
 import RemoteReadings from "./remote/readings";
 import RemoteTreatments, {
   mealEventType,
   insulinEventType,
   glucoseEventType,
+  basalEventType,
 } from "./remote/treatments";
 import { getTimestampFromOffset, timestampIsBetween } from "./timing";
-import { convertDimensions, MathUtil } from "./util";
+import { convertDimensions, MathUtil, round } from "./util";
 
 export async function isFasting(timestamp: Date) {
   const minTimeSinceMeal = basalStore.get("minTimeSinceMeal");
@@ -46,7 +48,8 @@ function getFastingVelocities(
   let nonFasting: [Date, Date][] = []; // A set of date pairs to describe when we are not fasting
   treatments.forEach((a: any) => {
     let hoursNonFasting: number | null = null;
-    if (a.insulin) hoursNonFasting = minTimeSinceBolus;
+    if (a.insulin && a.eventType !== basalEventType)
+      hoursNonFasting = minTimeSinceBolus;
     switch (a.eventType) {
       case mealEventType:
         hoursNonFasting = minTimeSinceMeal;
@@ -119,6 +122,14 @@ export function markBasal(units: number) {
   const days = basalStore.get("basalEffectDays");
   const shotsPerDay = healthMonitorStore.get("basalShotsPerDay");
 
+  // Detect if user has made changes to dosing pattern
+  const lastShot = getLastShot();
+  let shotsSinceChange = basalStore.get("shotsSinceLastChange");
+  if (lastShot && Math.abs(lastShot - units) > 0.01) {
+    shotsSinceChange = getRecommendationIndex();
+  }
+  basalStore.set("shotsSinceLastChange", shotsSinceChange + 1);
+
   // Add dose to the list of doses
   let doses: number[] = basalStore.get("basalDoses");
   doses.splice(0, 0, units);
@@ -157,4 +168,52 @@ export function getDailyBasal() {
 export function getDailyBasalPerShot() {
   const shotsPerDay = healthMonitorStore.get("basalShotsPerDay");
   return getDailyBasal() / shotsPerDay;
+}
+
+// Shot patterns
+export function getLastShot(): number {
+  const shotsPerDay = healthMonitorStore.get("basalShotsPerDay");
+  const basals = getBasals();
+  return basals[shotsPerDay - 1] || 0;
+}
+export function dosingChangeComplete() {
+  const shotsSinceChange = basalStore.get("shotsSinceLastChange");
+  const shotsPerDay = healthMonitorStore.get("basalShotsPerDay");
+  const minDays = basalStore.get("basalEffectDays");
+
+  const minShots = shotsPerDay * minDays;
+  return shotsSinceChange >= minShots;
+}
+function getRecommendationIndex() {
+  const shotsPerDay = healthMonitorStore.get("basalShotsPerDay");
+  const shotsSinceChange = basalStore.get("shotsSinceLastChange");
+  return shotsSinceChange % shotsPerDay;
+}
+export function setLastRecommendation(units: number) {
+  // Units per day, not per shot
+  const index = getRecommendationIndex();
+
+  let recommendations = basalStore.get("lastRecommendation");
+  recommendations[index] = units;
+  basalStore.write("lastRecommendation");
+}
+export function getLastRecommendation() {
+  const index = getRecommendationIndex();
+
+  return basalStore.get("lastRecommendation")[index];
+}
+export function getRecommendedBasal(): number {
+  const lastShot = getLastShot();
+  if (dosingChangeComplete()) {
+    const shotsPerDay = healthMonitorStore.get("basalShotsPerDay");
+    const correction = round(getBasalCorrection(getFastingVelocity()), 0);
+
+    const shotCorrection = round(correction / shotsPerDay, 1);
+    const newBasal = lastShot + shotCorrection;
+
+    setLastRecommendation(newBasal);
+    return lastShot + shotCorrection;
+  } else {
+    return getLastRecommendation() > 0 ? getLastRecommendation() : lastShot;
+  }
 }

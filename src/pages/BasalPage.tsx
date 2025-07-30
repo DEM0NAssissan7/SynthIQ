@@ -1,9 +1,11 @@
 import { Button, Form, InputGroup } from "react-bootstrap";
 import Card from "../components/Card";
 import {
+  dosingChangeComplete,
   getBasals,
   getFastingVelocity,
   getLastBasalTimestamp,
+  getRecommendedBasal,
   markBasal,
 } from "../lib/basal";
 import { getBasalCorrection } from "../lib/metabolism";
@@ -21,7 +23,8 @@ export default function BasalPage() {
   const basals = getBasals();
   const lastBasalTimestamp = getLastBasalTimestamp();
 
-  const suggestedBasal = basals[shotsPerDay - 1] || 0;
+  const suggestedBasal = getRecommendedBasal();
+  const changeIsComplete = dosingChangeComplete();
   const [basalDose, setBasalDose] = useState(0);
 
   const navigate = useNavigate();
@@ -79,15 +82,22 @@ export default function BasalPage() {
         {getHoursSince(lastBasalTimestamp)} hours ago
       </Card>
       <Card>
-        You fasting glucose rise rate is {round(fastingVelocity, 0)}mg/dL per
-        hour
+        You fasting glucose rise rate is around {round(fastingVelocity, 0)}mg/dL
+        per hour
         <br />
         {Math.abs(basalCorrection) > 0.5 && (
           <>
-            Consider raising the dosage by <b>{basalCorrection}u per day</b>{" "}
-            <i>{shotsPerDay > 1 && `(${basalCorrectionPerDay}u per shot)`}</i>
+            Consider raising the dosage to <b>{suggestedBasal}u per shot</b>{" "}
+            <i>
+              {shotsPerDay > 1 &&
+                `(${basalCorrectionPerDay}u increase per shot)`}
+            </i>
           </>
         )}
+        <hr />
+        {changeIsComplete
+          ? `Your current dosing cycle is complete`
+          : `Your current dosing cycle is not complete`}
       </Card>
       <Card>
         <InputGroup className="mb-3">
