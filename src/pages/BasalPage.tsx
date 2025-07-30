@@ -82,15 +82,20 @@ export default function BasalPage() {
         {getHoursSince(lastBasalTimestamp)} hours ago
       </Card>
       <Card>
-        You fasting glucose rise rate is around {round(fastingVelocity, 0)}mg/dL
-        per hour
+        You fasting blood glucose rate is around{" "}
+        <b>
+          {fastingVelocity > 0 && "+"}
+          {round(fastingVelocity, 0)}mg/dL per hour
+        </b>
         <br />
         {Math.abs(basalCorrection) > 0.5 && (
           <>
-            Consider raising the dosage to <b>{suggestedBasal}u per shot</b>{" "}
+            Consider adjusting dosage to <b>{suggestedBasal}u per shot</b>{" "}
             <i>
               {shotsPerDay > 1 &&
-                `(${basalCorrectionPerDay}u increase per shot)`}
+                `(${
+                  basalCorrectionPerDay > 0 ? "+" : ""
+                }${basalCorrectionPerDay}u per shot)`}
             </i>
           </>
         )}
