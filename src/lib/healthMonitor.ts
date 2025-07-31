@@ -27,6 +27,9 @@ import preferencesStore from "../storage/preferencesStore";
 import { getHourDiff, getMinuteDiff } from "./timing";
 import { MathUtil, round } from "./util";
 import RemoteReadings from "./remote/readings";
+import { getBGVelocities } from "./readingsUtil";
+import basalStore from "../storage/basalStore";
+import { populateFastingVelocitiesCache } from "./basal";
 
 export let healthMonitorStatus = HealthMonitorStatus.Nominal;
 
@@ -47,10 +50,10 @@ export async function populateReadingCache() {
 
 /** Get readings */
 function getReadings() {
-  return healthMonitorStore.get("readingsCache");
+  return healthMonitorStore.get("readingsCache") as SugarReading[];
 }
 export function getCurrentBG() {
-  return healthMonitorStore.get("currentBG");
+  return healthMonitorStore.get("currentBG") as number;
 }
 
 /** This function returns (mg/dL) / hr.
@@ -58,20 +61,7 @@ export function getCurrentBG() {
  */
 export function getBGVelocity() {
   const readings = getReadings();
-  let velocities = [];
-  if (readings.length < 2) {
-    return 0;
-  }
-  for (let i = 0; i < readings.length - 1; i++) {
-    const currentReading = readings[i];
-    const lastReading = readings[i + 1];
-    const timeDiff = getHourDiff(
-      currentReading.timestamp,
-      lastReading.timestamp
-    );
-    const velocity = (currentReading.sugar - lastReading.sugar) / timeDiff;
-    velocities.push(velocity);
-  }
+  const velocities = getBGVelocities(readings);
   // We give the median of all the velocities to rule out insane jumps
   return MathUtil.median(velocities);
 }
@@ -106,8 +96,50 @@ export function getLastRescueCaps() {
   return getLastRescue().caps;
 }
 
+// Basal
+export function getTimeSinceLastBasal() {
+  const lastBasalTimestamp = basalStore.get("lastBasalTimestamp");
+  return getHourDiff(new Date(), lastBasalTimestamp);
+}
+export function basalIsDue() {
+  const shotsPerDay = healthMonitorStore.get("basalShotsPerDay");
+  const interval = 24 / shotsPerDay;
+  const timeSinceLastBasal = getTimeSinceLastBasal();
+
+  // Rule 1: If it's been too long since last shot
+  if (timeSinceLastBasal >= interval) {
+    return true;
+  }
+
+  // We infer the following times being equally spaced. For example, if two shots, our first shot is at 8, and the second is at 20. If three shots, it's 8, 16, 24
+
+  // If it's been longer than the allowed interval since the last basal, or if the current time has passed the scheduled basal shot time and the shot hasn't been taken yet, basal is due
+  // Rule 2: Based on scheduled times
+  const firstShotHour = healthMonitorStore.get("basalShotTime"); // 8 => 8:00 AM, 16 => 4:00 PM
+  const now = new Date();
+  const nowTime = now.getTime();
+  const lastBasal = basalStore.get("lastBasalTimestamp");
+
+  // Get the current hour we are targetting
+  for (let i = 0; i < shotsPerDay; i++) {
+    const hour = firstShotHour + i * interval; // Scheduled hour. We consider yesterday as well
+    const scheduledTimestamp = new Date();
+    scheduledTimestamp.setHours(hour % 24, 0, 0, 0);
+
+    if (hour >= 24)
+      scheduledTimestamp.setDate(scheduledTimestamp.getDate() + 1);
+    if (scheduledTimestamp.getTime() <= nowTime) {
+      if (lastBasal.getTime() < scheduledTimestamp.getTime()) return true;
+      continue;
+    }
+  }
+
+  return false;
+}
+
 export async function updateHealthMonitorStatus() {
   const readings: SugarReading[] | null = await populateReadingCache();
+  populateFastingVelocitiesCache();
   if (readings) {
     // Assume things are nominal
     healthMonitorStatus = HealthMonitorStatus.Nominal;
@@ -130,6 +162,12 @@ export async function updateHealthMonitorStatus() {
       return healthMonitorStatus;
     }
 
+    // If we need to take basal insulin
+    if (basalIsDue()) {
+      healthMonitorStatus = HealthMonitorStatus.Basal;
+      return healthMonitorStatus;
+    }
+
     // Final return
     return HealthMonitorStatus.Nominal;
   }
@@ -147,6 +185,9 @@ export async function smartMonitor(navigate: NavigateFunction) {
         break;
       case HealthMonitorStatus.High:
         navigate("/wizard");
+        break;
+      case HealthMonitorStatus.Basal:
+        navigate("/basal");
         break;
       default:
         break;

@@ -1,11 +1,32 @@
 import { round } from "../util";
 import Backend from "./backend";
 
-const insulinEventType = "Meal Bolus";
-const mealEventType = "Meal";
-const glucoseEventType = "Carb Correction";
+export const insulinEventType = "Meal Bolus";
+export const basalEventType = "Basal Insulin";
+export const mealEventType = "Meal";
+export const glucoseEventType = "Carb Correction";
 
 class RemoteTreatments {
+  static async getTreatments(timestampA: Date, timestampB: Date) {
+    return await Backend.get(
+      `treatments.json?find[created_at][$gte]=${timestampA.toString()}&find[created_at][$lte]=${timestampB.toString()}`
+    ).then((a: any[]) => {
+      return a.map((b: any) => {
+        b.timestamp = new Date(b.created_at);
+        return b;
+      });
+    });
+  }
+  static async getTreatmentByType(
+    eventType: string,
+    timestampA: Date,
+    timestampB: Date
+  ) {
+    const urlSafeEventType = eventType.replace(/ /g, "+");
+    return await Backend.get(
+      `treatments.json?&find[eventType]=${urlSafeEventType}&find[created_at][$gte]=${timestampA.toString()}&find[created_at][$lte]=${timestampB.toString()}`
+    );
+  }
   static markMeal(_carbs: number, _protein: number, timestamp: Date): void {
     const carbs = round(_carbs, 1);
     const protein = round(_protein, 1);
@@ -26,6 +47,16 @@ class RemoteTreatments {
       {
         insulin: units,
         eventType: insulinEventType,
+      },
+      timestamp
+    );
+  }
+  static markBasal(units: number, timestamp: Date): void {
+    Backend.post(
+      "treatments",
+      {
+        insulin: units,
+        eventType: basalEventType,
       },
       timestamp
     );

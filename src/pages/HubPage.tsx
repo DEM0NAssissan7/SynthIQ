@@ -71,11 +71,7 @@ function HubPage() {
                       Build and interact with meals easily using our session
                       wizard.
                     </Card.Text>
-                    <Button
-                      variant="primary"
-                      as={Link as any}
-                      to="/template/select"
-                    >
+                    <Button variant="primary" as={Link as any} to="/wizard">
                       Get Started
                     </Button>
                   </>

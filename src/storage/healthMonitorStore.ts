@@ -28,3 +28,6 @@ healthMonitorStore.add(
 healthMonitorStore.add("currentBG", 83);
 healthMonitorStore.add("timeBetweenShots", 15);
 healthMonitorStore.add("dropTime", 20);
+
+healthMonitorStore.add("basalShotsPerDay", 1);
+healthMonitorStore.add("basalShotTime", 8); // The hour time we take our first shot of the day. E.g. 8 => 8:00 AM, 16 => 4:00 PM

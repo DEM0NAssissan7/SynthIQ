@@ -13,6 +13,7 @@ import type StorageNode from "../lib/storageNode";
 import { useState } from "react";
 import RemoteStorage from "../lib/remote/storage";
 import privateStore from "../storage/privateStore";
+import basalStore from "../storage/basalStore";
 
 interface Setting {
   title: string;
@@ -36,9 +37,11 @@ function NumberSetting({ title, node, id, iconClass, unit }: Setting) {
           value={value}
           aria-describedby="basic-addon1"
           onChange={(a) => {
-            const v = a.target.value;
-            node.set(id, v);
-            setValue(v);
+            const v = parseFloat(a.target.value);
+            if (!Number.isNaN(v)) {
+              node.set(id, v);
+              setValue(v);
+            }
           }}
         />
         <InputGroup.Text>{unit}</InputGroup.Text>
@@ -174,6 +177,29 @@ export default function SettingsPage() {
           title="CGM Delay (in minutes)"
           iconClass="bi bi-clock"
           unit="min"
+        />
+      </Card>
+      <Card>
+        <NumberSetting
+          node={healthMonitorStore}
+          id={"basalShotsPerDay"}
+          title="Basal Injections Per Day"
+          iconClass="bi bi-capsule"
+          unit="shots"
+        />
+        <NumberSetting
+          node={healthMonitorStore}
+          id={"basalShotTime"}
+          title="Basal Injection First Hour"
+          iconClass="bi bi-clock"
+          unit=""
+        />
+        <NumberSetting
+          node={basalStore}
+          id={"basalEffect"}
+          title="Basal Insulin Effect (per unit)"
+          iconClass="bi bi-eyedropper"
+          unit="mg/dL per hr"
         />
       </Card>
     </>

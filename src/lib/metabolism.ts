@@ -2,6 +2,7 @@ import type Session from "../models/session";
 import Insulin from "../models/events/insulin";
 import { profile } from "../storage/metaProfileStore";
 import { getTimestampFromOffset } from "./timing";
+import basalStore from "../storage/basalStore";
 
 // Insulin
 export function getInsulin(carbs: number, protein: number) {
@@ -196,4 +197,13 @@ export function getIntelligentGlucoseCorrection(
   const velocityMinutes = velocityHours / 60;
   const predictedDrop = velocityMinutes * actingMinutes;
   return getGlucoseCorrectionCaps(currentBG + predictedDrop); // We add predictedDrop because if the sugar is dropping, the velocity will be negative (along with predictedDrop being negative too)
+}
+
+// Basal
+/**
+ * velocity: (mg/dL) / hr
+ */
+export function getBasalCorrection(velocity: number): number {
+  const basalVelocityEffect = basalStore.get("basalEffect"); // [(mg/dL) per hour] / unit
+  return velocity / basalVelocityEffect;
 }

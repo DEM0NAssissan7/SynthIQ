@@ -18,6 +18,19 @@ export function getHourDiff(timestampA: Date, timestampB: Date): number {
 export function getMinuteDiff(timestampA: Date, timestampB: Date): number {
   return getEpochMinutes(timestampA) - getEpochMinutes(timestampB);
 }
+export function timestampIsBetween(
+  timestamp: Date,
+  timestampA: Date,
+  timestampB: Date
+) {
+  const timestampEpoch = timestamp.getTime();
+  if (
+    timestampEpoch <= timestampB.getTime() &&
+    timestampEpoch >= timestampA.getTime()
+  )
+    return true;
+  return false;
+}
 
 export function getTimestampFromOffset(timestamp: Date, hours: number): Date {
   const unixTimestamp = timestamp.getTime();
