@@ -32,6 +32,7 @@ export default class Template {
       const _session = this.sessions[i];
       if (session && _session.isGarbage) continue;
       session = _session;
+      break;
     }
     if (!session)
       throw new Error(`Cannot retrieve latest session: unknown error`);
