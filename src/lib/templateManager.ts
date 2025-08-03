@@ -50,7 +50,9 @@ export default class TemplateManager {
     this.write();
   }
   static getTemplate() {
-    return templateStore.get("template") as Template;
+    const template = templateStore.get("template") as Template;
+    console.log(template);
+    return template;
   }
   static createTemplate(name: string) {
     try {
