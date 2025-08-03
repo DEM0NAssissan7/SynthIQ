@@ -1,4 +1,3 @@
-import { getCorrectionInsulin } from "../lib/metabolism";
 import { sessionsWeightedAverage } from "../lib/templateHelpers";
 import { profile } from "../storage/metaProfileStore";
 import type Meal from "./events/meal";
@@ -57,10 +56,7 @@ export default class Template {
   /** This gives you the meal dose insulin taken last, not accounting for correction */
   get insulin(): number {
     if (this.isFirstTime) return 0;
-    return (
-      this.latestSession.insulin -
-      getCorrectionInsulin(this.latestSession.initialGlucose)
-    );
+    return this.latestSession.mealInsulin;
   }
   get insulinTiming(): number {
     if (this.isFirstTime) return 0;
