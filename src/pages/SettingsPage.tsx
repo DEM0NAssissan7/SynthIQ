@@ -10,7 +10,7 @@ import preferencesStore from "../storage/preferencesStore";
 import Card from "../components/Card";
 import healthMonitorStore from "../storage/healthMonitorStore";
 import type StorageNode from "../lib/storageNode";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import RemoteStorage from "../lib/remote/storage";
 import privateStore from "../storage/privateStore";
 import basalStore from "../storage/basalStore";
@@ -25,6 +25,7 @@ interface Setting {
 function NumberSetting({ title, node, id, iconClass, unit }: Setting) {
   const [value, setValue] = useState(node.get(id));
 
+  const initialValue = useMemo(() => node.get(id), []);
   return (
     <>
       <Form.Label htmlFor="basic-url">{title}</Form.Label>
@@ -33,15 +34,15 @@ function NumberSetting({ title, node, id, iconClass, unit }: Setting) {
           <i className={iconClass}></i>
         </InputGroup.Text>
         <Form.Control
-          placeholder={node.get(id)}
+          placeholder={initialValue}
           value={value}
           aria-describedby="basic-addon1"
           onChange={(a) => {
             const v = parseFloat(a.target.value);
             if (!Number.isNaN(v)) {
               node.set(id, v);
-              setValue(v);
             }
+            setValue(a.target.value);
           }}
         />
         <InputGroup.Text>{unit}</InputGroup.Text>
