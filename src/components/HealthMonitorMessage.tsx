@@ -6,6 +6,7 @@ import {
 } from "../lib/healthMonitor";
 import { round } from "../lib/util";
 import HealthMonitorStatus from "../models/types/healthMonitorStatus";
+import { profile } from "../storage/metaProfileStore";
 import preferencesStore from "../storage/preferencesStore";
 
 export default function HealthMonitorMessage() {
@@ -14,7 +15,7 @@ export default function HealthMonitorMessage() {
   const dangerBG = preferencesStore.get("dangerBG");
 
   const currentBG = getCurrentBG();
-  const lowBG = preferencesStore.get("lowBG");
+  const targetBG = profile.target;
   const highBG = preferencesStore.get("highBG");
 
   switch (healthMonitorStatus) {
@@ -32,8 +33,9 @@ export default function HealthMonitorMessage() {
       return (
         <>
           {" "}
-          Your blood sugar was <b>{currentBG} mg/dL</b>, {lowBG - currentBG}{" "}
-          mg/dL below the low threshold.
+          Your blood sugar was <b>{currentBG} mg/dL</b>, {targetBG - currentBG}{" "}
+          mg/dL below the target. Your blood sugar is falling at a rate of{" "}
+          <b>{round(fallRate, 0)} pts/hr</b>.
         </>
       );
     case HealthMonitorStatus.High:
