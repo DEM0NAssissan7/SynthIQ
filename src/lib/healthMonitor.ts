@@ -141,20 +141,25 @@ export async function updateHealthMonitorStatus() {
   const readings: SugarReading[] | null = await populateReadingCache();
   populateFastingVelocitiesCache();
   if (readings) {
+    const currentBG = getCurrentBG();
+
     // Assume things are nominal
     healthMonitorStatus = HealthMonitorStatus.Nominal;
 
-    // Check critical time
-    const criticalTime = timeToCritical();
-    if (criticalTime <= 20) {
-      healthMonitorStatus = HealthMonitorStatus.Falling;
-      return healthMonitorStatus;
-    }
+    // If the user hasn't already taken glucose
+    const timeBetweenShots = healthMonitorStore.get("timeBetweenShots");
+    if (getLastRescueMinutes() >= timeBetweenShots) {
+      // Check critical time
+      const criticalTime = timeToCritical();
+      if (criticalTime <= 20) {
+        healthMonitorStatus = HealthMonitorStatus.Falling;
+        return healthMonitorStatus;
+      }
 
-    const currentBG = getCurrentBG();
-    if (currentBG < preferencesStore.get("lowBG")) {
-      healthMonitorStatus = HealthMonitorStatus.Low;
-      return healthMonitorStatus;
+      if (currentBG < preferencesStore.get("lowBG")) {
+        healthMonitorStatus = HealthMonitorStatus.Low;
+        return healthMonitorStatus;
+      }
     }
 
     if (currentBG > preferencesStore.get("highBG")) {
