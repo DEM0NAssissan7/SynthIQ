@@ -106,7 +106,7 @@ export default class WizardManager {
     // We really don't want to mark glucose if we haven't taken insulin. The glucose would never be taken because of a meal. Meals raise glucose.
     const session: Session = wizardStorage.get("session");
     const timestamp = new Date();
-    if (session.insulin !== 0) {
+    if (session.started) {
       session.createGlucose(timestamp, caps);
       session.clearTests();
 
