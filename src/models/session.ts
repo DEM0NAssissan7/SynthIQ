@@ -236,7 +236,7 @@ export default class Session {
   }
   get started() {
     return (
-      this.meals.length + this.insulins.length + this.glucoses.length !== 0
+      this.meals.length + this.insulins.length !== 0
     );
   }
   get endTimestamp(): Date | null {
