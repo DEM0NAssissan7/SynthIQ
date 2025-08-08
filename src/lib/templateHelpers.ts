@@ -2,12 +2,9 @@ import type Meal from "../models/events/meal";
 import type MetabolismProfile from "../models/metabolism/metabolismProfile";
 import type Session from "../models/session";
 import type Template from "../models/template";
-import Unit from "../models/unit";
 import { profile } from "../storage/metaProfileStore";
 import preferencesStore from "../storage/preferencesStore";
-import { getCorrectionInsulin } from "./metabolism";
-import { getHourDiff } from "./timing";
-import { convertDimensions, MathUtil, round } from "./util";
+import { MathUtil, round } from "./util";
 
 // Basic Insulin Dosing Optimization
 function getCorrectMealDosing(session: Session) {
@@ -103,13 +100,6 @@ export function getProfileError(session: Session, profile: MetabolismProfile) {
 }
 
 // Misc helper functions
-function getSessionAge(session: Session) {
-  const date = new Date();
-  const hoursSince = getHourDiff(date, session.timestamp);
-  const daysSince =
-    hoursSince * convertDimensions(Unit.Time.Hour, Unit.Time.Day);
-  return daysSince;
-}
 export function sessionsWeightedAverage(
   f: (s: any) => number,
   sessions: Session[]
@@ -121,7 +111,7 @@ export function sessionsWeightedAverage(
   for (let i = sessions.length - 1; i >= 0; i--) {
     const session = sessions[i];
     if (session.isGarbage) continue;
-    const age = getSessionAge(session);
+    const age = session.age;
     if (age > maxSessionLife) break;
     const weight = Math.pow(0.5, age / sessionHalfLife);
     weightedSum += f(session) * weight;
