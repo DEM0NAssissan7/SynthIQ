@@ -59,18 +59,13 @@ export function insulinRuleEngine(session: Session) {
 
   const takenInsulin = session.mealInsulin;
   const optimalInsulin = session.optimalMealInsulin;
-  const insulinPercentError = MathUtil.percentError(
-    optimalInsulin,
-    takenInsulin
-  );
-  const percentErrorThreshold = 10;
   const insulinMaxThreshold =
     optimalInsulin + (profile.target - lowBG) / profile.insulin.effect;
   // If insulin excess would have dropped you below the low threshold, it's too much
 
   // Rule engine magic
   if (takenInsulin < optimalInsulin) {
-    if (insulinPercentError > percentErrorThreshold) amount = LOW;
+    amount = LOW;
   } else if (takenInsulin > insulinMaxThreshold) amount = HIGH;
 
   // Timing
