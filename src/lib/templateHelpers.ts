@@ -11,39 +11,7 @@ import { convertDimensions, MathUtil, round } from "./util";
 
 // Basic Insulin Dosing Optimization
 function getCorrectMealDosing(session: Session) {
-  const finalBG = session.finalBG;
-  if (!finalBG)
-    throw new Error(
-      `Cannot get insulin dosing: there is no final blood glucose`
-    );
-  const initialGlucose = session.initialGlucose;
-
-  const totalDeltaBG = finalBG - initialGlucose;
-
-  const glucose = session.glucose;
-  const glucoseDeltaBG = glucose * profile.glucose.effect;
-
-  const insulin = session.insulin;
-  const insulinDeltaBG = insulin * profile.insulin.effect;
-
-  /* 
-  The following statement is true:
-  totalDeltaBG = mealDeltaBG - insulinDeltaBG + glucoseDeltaBG
-
-  -> Because, the total change in blood sugar is:
-  The rise from the meal
-  The fall from insulin
-  The rise from glucoses
-
-  Of course there's variance and other factors, but these are the major players, and all we can realistically measure
-
-  so to rearrange to solve for effectMeal, we have:
-  mealDeltaBG = totalDeltaBG + insulinDeltaBG - glucoseDeltaBG
-
-  */
-  const mealDeltaBG = totalDeltaBG + insulinDeltaBG - glucoseDeltaBG;
-
-  const optimalMealInsulin = mealDeltaBG / profile.insulin.effect;
+  const optimalMealInsulin = session.mealRise / profile.insulin.effect;
   return optimalMealInsulin;
 }
 export function getCorrectDosing(session: Session) {
