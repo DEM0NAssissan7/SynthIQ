@@ -25,6 +25,10 @@ export default class Session {
   _isGarbage: boolean = false;
   notes: string = "";
 
+  // Save user calibrations upon creation
+  insulinEffect: number = profile.insulin.effect;
+  glucoseEffect: number = profile.glucose.effect;
+
   meals: Meal[] = [];
   insulins: Insulin[] = [];
   glucoses: Glucose[] = [];
@@ -112,6 +116,41 @@ export default class Session {
     if (this.meals.length === 0)
       throw new Error("No meal events found in session");
     return this.meals[0];
+  }
+  // Profile-based stuff
+  get mealRise(): number {
+    const finalBG = this.finalBG;
+    if (!finalBG)
+      throw new Error(
+        `Cannot get insulin dosing: there is no final blood glucose`
+      );
+    const initialGlucose = this.initialGlucose;
+
+    const totalDeltaBG = finalBG - initialGlucose;
+
+    const glucose = this.glucose;
+    const glucoseDeltaBG = glucose * this.glucoseEffect;
+
+    const insulin = this.insulin;
+    const insulinDeltaBG = insulin * this.insulinEffect;
+
+    /* 
+  The following statement is roughly true:
+  totalDeltaBG = mealDeltaBG - insulinDeltaBG + glucoseDeltaBG
+
+  -> Because, the total change in blood sugar is:
+  The rise from the meal
+  The fall from insulin
+  The rise from glucoses
+
+  Of course there's variance and other factors, but these are the major players, and all we can realistically measure
+
+  so to rearrange to solve for effectMeal, we have:
+  mealDeltaBG = totalDeltaBG + insulinDeltaBG - glucoseDeltaBG
+
+  */
+    const mealDeltaBG = totalDeltaBG + insulinDeltaBG - glucoseDeltaBG;
+    return mealDeltaBG;
   }
 
   // Insulins
@@ -235,9 +274,7 @@ export default class Session {
     return timestamp;
   }
   get started() {
-    return (
-      this.meals.length + this.insulins.length !== 0
-    );
+    return this.meals.length + this.insulins.length !== 0;
   }
   get endTimestamp(): Date | null {
     return this._endTimestamp;
@@ -397,6 +434,8 @@ export default class Session {
       finalBG: session.finalBG,
       isGarbage: session.isGarbage,
       notes: session.notes,
+      insulinEffect: session.insulinEffect,
+      glucoseEffect: session.glucoseEffect,
     });
   }
   static parse(str: string): Session {
@@ -408,6 +447,8 @@ export default class Session {
     session.finalBG = o.finalBG || null;
     session.isGarbage = o.isGarbage || false;
     session.notes = o.notes || "";
+    session.insulinEffect = o.insulinEffect || profile.insulin.effect;
+    session.glucoseEffect = o.glucoseEffect || profile.glucose.effect;
 
     o.meals.map((a: string) => session.addMeal(Meal.parse(a)));
     o.testMeals.map((a: string) => session.addTestMeal(Meal.parse(a)));
