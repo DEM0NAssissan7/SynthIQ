@@ -13,7 +13,6 @@ import { profile } from "../storage/metaProfileStore";
 import Unit from "./unit";
 import preferencesStore from "../storage/preferencesStore";
 import RemoteReadings from "../lib/remote/readings";
-import { getCorrectionInsulin } from "../lib/metabolism";
 
 export default class Session {
   subscriptions: (() => void)[] = [];
@@ -172,7 +171,9 @@ export default class Session {
     return insulin;
   }
   get mealInsulin(): number {
-    return this.insulin - getCorrectionInsulin(this.initialGlucose);
+    return (
+      this.insulin - (this.initialGlucose - profile.target) / this.insulinEffect
+    );
   }
   get firstInsulinTimestamp(): Date {
     if (this.insulins.length === 0) return this.timestamp;
