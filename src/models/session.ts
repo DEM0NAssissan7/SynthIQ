@@ -273,6 +273,14 @@ export default class Session {
     if (!timestamp) throw new Error("No beginning timestamp found in session");
     return timestamp;
   }
+  get age(): number {
+    // Session age (in days)
+    const now = new Date();
+    const hoursSince = getHourDiff(now, this.timestamp);
+    const daysSince =
+      hoursSince * convertDimensions(Unit.Time.Hour, Unit.Time.Day);
+    return daysSince;
+  }
   get started() {
     return this.meals.length + this.insulins.length !== 0;
   }
