@@ -151,6 +151,26 @@ export default class Session {
     const mealDeltaBG = totalDeltaBG + insulinDeltaBG - glucoseDeltaBG;
     return mealDeltaBG;
   }
+  get insulinErrorCorrection(): number {
+    const finalBG = this.finalBG;
+    if (!finalBG)
+      throw new Error(`Cannot get optimal insulin: no final blood sugar`);
+
+    const target = profile.target;
+    const glucoseRise = this.glucose * profile.glucose.effect;
+
+    const BGError = finalBG - target; // The amount that the final blood sugar deviated from the target
+    // We wanna bring BG back to target, but we also negate
+    // typicalFinalBG describes the typical (i.e. without glucose) final BG if the user never took glucose. This is what we wanna correct for
+    const typicalFinalBG = BGError - glucoseRise;
+    const errorCorrection = typicalFinalBG / this.insulinEffect;
+    return errorCorrection;
+  }
+  get optimalMealInsulin(): number {
+    const errorCorrection = this.insulinErrorCorrection;
+    const optimalMealInsulin = this.mealInsulin + errorCorrection; // This is the amount of insulin
+    return optimalMealInsulin;
+  }
 
   // Insulins
   createInsulin(timestamp: Date, units: number): Insulin {
