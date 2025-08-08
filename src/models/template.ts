@@ -1,6 +1,6 @@
 import { sessionsWeightedAverage } from "../lib/templateHelpers";
 import { profile } from "../storage/metaProfileStore";
-import type Meal from "./events/meal";
+import preferencesStore from "../storage/preferencesStore";
 import MetabolismProfile from "./metabolism/metabolismProfile";
 import Session from "./session";
 
@@ -54,8 +54,8 @@ export default class Template {
   }
 
   // Dosing info
-  /** This gives you the meal dose insulin taken last, not accounting for correction */
-  get insulin(): number {
+  /** This gies you the meal dose insulin taken last, not accounting for correction */
+  get previousInsulin(): number {
     if (this.isFirstTime) return 0;
     return this.latestSession.mealInsulin;
   }
@@ -71,32 +71,75 @@ export default class Template {
 
   // Meal Vectorization
   get alpha(): {
-    carbs: number,
-    protein: number
+    carbs: number;
+    protein: number;
   } {
     // The alpha is basically a gradient descent from the general profile
     let alphaCarbs = profile.carbs.effect;
     let alphaProtein = profile.protein.effect;
 
-    // Formula: alpha_new = alpha_old + mu * error/amount
-    // In other words: alpha += mu * error / amount
+    const baseLearningRate = 0.0003;
+
+    const sessionHalfLife = preferencesStore.get("sessionHalfLife");
+    const maxSessionLife = preferencesStore.get("maxSessionLife");
+
+    // Don't allow less than 3 sessions before making any conclusions
+    if (this.sessions.length >= 3) {
+      for (let i = this.sessions.length - 1; i >= 0; i--) {
+        const session = this.sessions[i];
+        if (session.isGarbage) continue;
+        const age = session.age;
+        if (age > maxSessionLife) break; // If the session exceeds the max age
+        const weight = Math.pow(0.5, age / sessionHalfLife);
+        const eta = baseLearningRate * weight;
+
+        const predictedMealRise =
+          alphaCarbs * session.carbs + alphaProtein * session.protein;
+        const actualMealRise = session.mealRise;
+        const error = predictedMealRise - actualMealRise;
+
+        console.log(
+          "Carbs Change:",
+          eta * error * session.carbs,
+          "Protein Change",
+          eta * error * session.protein
+        );
+        alphaCarbs -= eta * error * session.carbs;
+        alphaProtein -= eta * error * session.protein;
+      }
+    }
+
+    //DEBUG
+    console.log(
+      "Profile Carbs:",
+      profile.carbs.effect,
+      "Profile Protein:",
+      profile.protein.effect
+    );
+    console.log("Alpha Carbs:", alphaCarbs, "Alpha Protein:", alphaProtein);
+    for (let session of this.sessions) {
+      if (session.isGarbage) continue;
+    }
+
     return {
       carbs: alphaCarbs,
-      protein: alphaProtein
-    }
+      protein: alphaProtein,
+    };
   }
   getClosestSession(carbs: number, protein: number): Session | null {
     if (this.isFirstTime) return null;
-    let session: Session = this.sessions[0];
+    let session: Session | null = null;
     let lowestScore = Infinity;
-    const carbsRise = carbs * this.alpha.carbs;
-    const proteinRise = protein * this.alpha.protein;
+    const alpha = this.alpha;
+    const carbsRise = carbs * alpha.carbs;
+    const proteinRise = protein * alpha.protein;
     const totalRise = carbsRise + proteinRise;
-    this.sessions.forEach((s: Session) => {
-      if (s.isGarbage) return;
+    for (let i = this.sessions.length - 1; i >= 0; i--) {
+      const s: Session = this.sessions[i];
+      if (s.isGarbage) continue;
       // fractionDifference(new, old) = [new - old] / old
-      const sessionCarbsRise = s.carbs * this.alpha.carbs;
-      const sessionProteinRise = s.protein * this.alpha.protein;
+      const sessionCarbsRise = s.carbs * alpha.carbs;
+      const sessionProteinRise = s.protein * alpha.protein;
       const sessionTotalRise = sessionCarbsRise + sessionProteinRise;
 
       const score = Math.abs(totalRise - sessionTotalRise);
@@ -104,17 +147,31 @@ export default class Template {
         session = s;
         lowestScore = score;
       }
-    });
+    }
     return session;
   }
 
   // Dosing helpers
-  getMealInsulinOffset(meal: Meal) {
-    const additionalCarbs = meal.carbs - this.carbs;
-    const additionalProtein = meal.protein - this.protein;
+  vectorizeInsulin(carbs: number, protein: number) {
+    const session = this.getClosestSession(carbs, protein);
+    if (!session) return null;
+    const optimalMealInsulin = session.optimalMealInsulin;
+    const neededInsulin =
+      optimalMealInsulin +
+      this.getMealInsulinOffset(session.carbs, session.protein, carbs, protein);
+    return neededInsulin;
+  }
+  getMealInsulinOffset(
+    baseCarbs: number,
+    baseProtein: number,
+    carbs: number,
+    protein: number
+  ) {
+    const alpha = this.alpha;
+    const additionalCarbs = carbs - baseCarbs;
+    const additionalProtein = protein - baseProtein;
     const effect =
-      additionalCarbs * profile.carbs.effect +
-      additionalProtein * profile.protein.effect;
+      additionalCarbs * alpha.carbs + additionalProtein * alpha.protein;
     const neededInsulin = effect / profile.insulin.effect;
     return neededInsulin;
   }

@@ -4,6 +4,7 @@ import type Session from "../models/session";
 import type Template from "../models/template";
 import { profile } from "../storage/metaProfileStore";
 import preferencesStore from "../storage/preferencesStore";
+import { getCorrectionInsulin, getInsulin } from "./metabolism";
 import { MathUtil, round } from "./util";
 
 // Basic Insulin Dosing Optimization
@@ -56,8 +57,8 @@ export function insulinRuleEngine(session: Session) {
   // Some nice stuff to define
   const lowBG = preferencesStore.get("lowBG");
 
-  const takenInsulin = session.insulin;
-  const optimalInsulin = getCorrectDosing(session);
+  const takenInsulin = session.mealInsulin;
+  const optimalInsulin = session.optimalMealInsulin;
   const insulinPercentError = MathUtil.percentError(
     optimalInsulin,
     takenInsulin
@@ -164,8 +165,15 @@ export function getInsulinDose(
   meal: Meal,
   currentSugar: number
 ) {
-  const base = template.insulin; // Previous dose for the _meal_ itself
-  const mealOffset = template.getMealInsulinOffset(meal);
+  const session = template.getClosestSession(meal.carbs, meal.protein);
+  if (!session) return getInsulin(meal.carbs, meal.protein);
+  const base = session.insulin; // Previous dose for the _meal_ itself
+  const mealOffset = template.getMealInsulinOffset(
+    session.carbs,
+    session.protein,
+    meal.carbs,
+    meal.protein
+  );
   const correction = getCorrectionInsulin(currentSugar);
   const adjustment = insulinDosingRecommendation(
     template.sessions

@@ -58,8 +58,9 @@ export default function TemplateInsulinPage() {
     if (session.insulin !== 0 && correctionInsulin > 0)
       return correctionInsulin;
     if (session.insulin === 0) {
-      if (template.isFirstTime) return suggestedInsulin + correctionInsulin;
-      return template.insulin + correctionInsulin;
+      let insulin = template.vectorizeInsulin(meal.carbs, meal.protein);
+      if (!insulin) insulin = suggestedInsulin;
+      return insulin + correctionInsulin;
     }
     return Math.max(suggestedInsulin - session.insulin, 0);
   }, [session, correctionInsulin, suggestedInsulin]);

@@ -34,14 +34,34 @@ export default function TemplateMealSummary({
     return insulinDosingRecommendation(template.sessions);
   }
 
-  function getFinalAmount() {
-    return round(
-      template.insulin +
-        template.getMealInsulinOffset(meal) +
-        getCorrectionInsulin(currentBG) +
-        adjustments().amountAdjustment,
-      1
+  function getSession() {
+    return template.getClosestSession(meal.carbs, meal.protein);
+  }
+  function getInsulinAdjustment() {
+    const session = getSession();
+    if (!session) return 0;
+    return session.insulinErrorCorrection;
+  }
+  function getInsulinOffset() {
+    const session = getSession();
+    if (!session) return 0;
+    return template.getMealInsulinOffset(
+      session.carbs,
+      session.protein,
+      meal.carbs,
+      meal.protein
     );
+  }
+  function getVectorizedInsulin() {
+    const vectorizedInsulin = template.vectorizeInsulin(
+      meal.carbs,
+      meal.protein
+    );
+    if (!vectorizedInsulin) return getInsulin(meal.carbs, meal.protein);
+    return vectorizedInsulin;
+  }
+  function getFinalAmount() {
+    return round(getVectorizedInsulin() + getCorrectionInsulin(currentBG), 1);
   }
   function getFinalTiming() {
     return template.insulinTiming + adjustments().timingAdjustment;
@@ -69,8 +89,8 @@ export default function TemplateMealSummary({
       )}
       <hr />
       {getFactorDesc(getCorrectionInsulin(currentBG), "u", "correction")}
-      {getFactorDesc(template.getMealInsulinOffset(meal), "u", "offset")}
-      {getFactorDesc(adjustments().amountAdjustment, "u", "adjustment")}
+      {getFactorDesc(getInsulinOffset(), "u", "offset")}
+      {getFactorDesc(getInsulinAdjustment(), " u", "adjustment")}
       {getFactorDesc(adjustments().timingAdjustment, " min", "adjustment")}
       <br />
       <Button
@@ -98,8 +118,8 @@ export default function TemplateMealSummary({
           {!template.isFirstTime && (
             <>
               <br />
-              <b>Previous session</b>: {round(template.insulin, 1)}u insulin{" "}
-              {round(template.insulinTiming, 0)} min{" "}
+              <b>Previous session</b>: {round(template.previousInsulin, 1)}u
+              insulin {round(template.insulinTiming, 0)} min{" "}
               {template.insulinTiming > 0 ? "after" : "before"} eating began
             </>
           )}
