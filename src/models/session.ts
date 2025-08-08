@@ -128,7 +128,7 @@ export default class Session {
     const totalDeltaBG = finalBG - initialGlucose;
 
     const glucose = this.glucose;
-    const glucoseDeltaBG = glucose * this.glucoseEffect;
+    const glucoseDeltaBG = glucose * profile.glucose.effect;
 
     const insulin = this.insulin;
     const insulinDeltaBG = insulin * this.insulinEffect;
