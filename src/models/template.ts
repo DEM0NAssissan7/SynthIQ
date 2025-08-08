@@ -69,6 +69,45 @@ export default class Template {
     );
   }
 
+  // Meal Vectorization
+  get alpha(): {
+    carbs: number,
+    protein: number
+  } {
+    // The alpha is basically a gradient descent from the general profile
+    let alphaCarbs = profile.carbs.effect;
+    let alphaProtein = profile.protein.effect;
+
+    // Formula: alpha_new = alpha_old + mu * error/amount
+    // In other words: alpha += mu * error / amount
+    return {
+      carbs: alphaCarbs,
+      protein: alphaProtein
+    }
+  }
+  getClosestSession(carbs: number, protein: number): Session | null {
+    if (this.isFirstTime) return null;
+    let session: Session = this.sessions[0];
+    let lowestScore = Infinity;
+    const carbsRise = carbs * this.alpha.carbs;
+    const proteinRise = protein * this.alpha.protein;
+    const totalRise = carbsRise + proteinRise;
+    this.sessions.forEach((s: Session) => {
+      if (s.isGarbage) return;
+      // fractionDifference(new, old) = [new - old] / old
+      const sessionCarbsRise = s.carbs * this.alpha.carbs;
+      const sessionProteinRise = s.protein * this.alpha.protein;
+      const sessionTotalRise = sessionCarbsRise + sessionProteinRise;
+
+      const score = Math.abs(totalRise - sessionTotalRise);
+      if (score < lowestScore) {
+        session = s;
+        lowestScore = score;
+      }
+    });
+    return session;
+  }
+
   // Dosing helpers
   getMealInsulinOffset(meal: Meal) {
     const additionalCarbs = meal.carbs - this.carbs;
