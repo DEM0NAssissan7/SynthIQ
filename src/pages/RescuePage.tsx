@@ -46,7 +46,7 @@ export default function RescuePage() {
 
   const navigate = useNavigate();
   function goBack() {
-    TemplateManager.moveToCurrentPage(navigate);
+    navigate("/");
   }
   function confirmGlucose() {
     if (
