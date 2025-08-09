@@ -5,7 +5,7 @@ import type Template from "../models/template";
 import { profile } from "../storage/metaProfileStore";
 import preferencesStore from "../storage/preferencesStore";
 import { getCorrectionInsulin, getInsulin } from "./metabolism";
-import { MathUtil, round } from "./util";
+import { round } from "./util";
 
 // Basic Insulin Dosing Optimization
 function getCorrectMealDosing(session: Session) {
