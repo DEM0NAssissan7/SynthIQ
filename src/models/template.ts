@@ -130,19 +130,12 @@ export default class Template {
     if (this.isFirstTime) return null;
     let session: Session | null = null;
     let lowestScore = Infinity;
-    const { carbs: alphaCarbs, protein: alphaProtein } = this.alpha;
-    const carbsRise = carbs * alphaCarbs;
-    const proteinRise = protein * alphaProtein;
     for (let i = this.sessions.length - 1; i >= 0; i--) {
       const s: Session = this.sessions[i];
       if (s.isGarbage) continue;
       // fractionDifference(new, old) = [new - old] / old
-      const sessionCarbsRise = s.carbs * alphaCarbs;
-      const sessionProteinRise = s.protein * alphaProtein;
 
-      const score =
-        (carbsRise - sessionCarbsRise) ** 2 +
-        (proteinRise - sessionProteinRise) ** 2; // Squared ecludian distance
+      const score = (carbs - s.carbs) ** 2 + (protein - s.protein) ** 2; // Squared ecludian distance
       if (score < lowestScore) {
         session = s;
         lowestScore = score;
