@@ -133,7 +133,6 @@ export default class Template {
     for (let i = this.sessions.length - 1; i >= 0; i--) {
       const s: Session = this.sessions[i];
       if (s.isGarbage) continue;
-      // fractionDifference(new, old) = [new - old] / old
 
       const score = (carbs - s.carbs) ** 2 + (protein - s.protein) ** 2; // Squared ecludian distance
       if (score < lowestScore) {
