@@ -1,9 +1,8 @@
 import StorageNode from "../lib/storageNode";
 import Glucose from "../models/events/glucose";
-import {
+import SugarReading, {
   createNightscoutReading,
   getReadingFromNightscout,
-  type SugarReading,
 } from "../models/types/sugarReading";
 
 const healthMonitorStore = new StorageNode("healthmonitor");

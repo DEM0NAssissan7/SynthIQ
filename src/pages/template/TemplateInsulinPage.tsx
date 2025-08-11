@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Button, Form, InputGroup } from "react-bootstrap";
 import WizardManager from "../../lib/wizardManager";
 import { round } from "../../lib/util";
 import { useNavigate } from "react-router";
-import useVersion from "../../state/useVersion";
 import { useWizardSession } from "../../state/useSession";
 import { useWizardMeal } from "../../state/useMeal";
 import BloodSugarInput from "../../components/BloodSugarInput";
@@ -35,8 +34,7 @@ export default function TemplateInsulinPage() {
       if (
         confirm(`Confirm that you have taken ${insulinTaken} units of insulin`)
       ) {
-        session.clearTestInsulins();
-        WizardManager.markInsulin(insulinTaken);
+        WizardManager.markInsulin(insulinTaken, currentGlucose);
         WizardManager.setInitialGlucose(currentGlucose);
         TemplateManager.moveToPage(
           WizardManager.getMealMarked()
@@ -66,22 +64,12 @@ export default function TemplateInsulinPage() {
   }, [session, correctionInsulin, suggestedInsulin]);
 
   // A variable that changes once per minute
-  const version = useVersion(1);
   function goBack() {
     TemplateManager.moveToPage(
       WizardManager.getMealMarked() ? TemplateState.Hub : TemplateState.Meal,
       navigate
     );
   }
-
-  // We show the user what we predict if they take insulin now
-  useEffect(() => {
-    session.clearTestInsulins();
-    session.createTestInsulin(
-      new Date(),
-      insulinTaken ? insulinTaken : displayedInsulin
-    );
-  }, [version, insulinTaken, displayedInsulin]);
 
   return (
     <div>

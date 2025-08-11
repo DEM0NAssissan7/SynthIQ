@@ -8,13 +8,14 @@ import TemplateManager from "../../lib/templateManager";
 import { TemplateState } from "../../models/types/templateState";
 import { useNavigate } from "react-router";
 import { Button } from "react-bootstrap";
+import RemoteReadings from "../../lib/remote/readings";
 
 export default function TemplateFinalBGPage() {
   const session = wizardStorage.get("session") as Session;
 
   const [bloodSugar, setBloodSugar] = useState(profile.target);
   useEffect(() => {
-    session.pullFinalBG().then((a) => {
+    RemoteReadings.getCurrentSugar().then((a) => {
       if (a) setBloodSugar(a);
     });
   }, []);

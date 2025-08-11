@@ -2,9 +2,7 @@ import { Container, Row, Col, Card, Button } from "react-bootstrap";
 import WizardManager from "../lib/wizardManager";
 import { Link } from "react-router";
 import { useEffect, useState } from "react";
-import { wizardStorage } from "../storage/wizardStore";
 import { backendStore } from "../storage/backendStore";
-import SessionGraph from "../components/SessionGraph";
 import Backend from "../lib/remote/backend";
 
 enum NightscoutAuthLevel {
@@ -14,8 +12,6 @@ enum NightscoutAuthLevel {
 }
 
 function HubPage() {
-  const session = wizardStorage.get("session");
-
   const [nightscoutAuthLevel, setNightscoutAuthLevel] = useState(
     NightscoutAuthLevel.Invalid
   );
@@ -49,10 +45,9 @@ function HubPage() {
                 {WizardManager.isActive() ? (
                   WizardManager.isComplete() ? (
                     <>
-                      <Card.Title>Realtime Meal Prediction</Card.Title>
-                      <SessionGraph session={session} from={-1} width="100%" />
+                      <Card.Title>Meal In Progress</Card.Title>
                       <Button variant="primary" as={Link as any} to="/wizard">
-                        View Summary
+                        Go To Hub
                       </Button>
                     </>
                   ) : (

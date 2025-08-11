@@ -1,4 +1,4 @@
-import type { SugarReading } from "../models/types/sugarReading";
+import type SugarReading from "../models/types/sugarReading";
 import { getHourDiff } from "./timing";
 
 /** This function returns (mg/dL) / hr.

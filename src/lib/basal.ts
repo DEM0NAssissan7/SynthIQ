@@ -1,6 +1,5 @@
-import {
+import SugarReading, {
   getReadingFromNightscout,
-  type SugarReading,
 } from "../models/types/sugarReading";
 import Unit from "../models/unit";
 import basalStore from "../storage/basalStore";

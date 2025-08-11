@@ -49,12 +49,6 @@ export default function TemplateMealPage() {
     meal._timestamp = new Date();
   });
 
-  // We add the meal to the testmeals upon change
-  useEffect(() => {
-    session.clearTests();
-    session.addTestMeal(meal);
-  }, []);
-
   return (
     <>
       <h1 className="mb-3">Meal Creation</h1>

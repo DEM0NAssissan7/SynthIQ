@@ -1,28 +1,24 @@
 import { getHourDiff, getTimestampFromOffset } from "../lib/timing";
-import { convertDimensions, genUUID, MathUtil, type UUID } from "../lib/util";
-import { backendStore } from "../storage/backendStore";
+import { convertDimensions, genUUID, type UUID } from "../lib/util";
 import Glucose from "./events/glucose";
 import Insulin from "./events/insulin";
-import MathSeries from "./mathSeries";
 import Meal from "./events/meal";
-import ReadingSeries from "./readingSeries";
-import Series, { Color } from "./series";
 import type MetaEvent from "./events/metaEvent";
-import type MetabolismProfile from "./metabolism/metabolismProfile";
 import { profile } from "../storage/metaProfileStore";
 import Unit from "./unit";
-import preferencesStore from "../storage/preferencesStore";
 import RemoteReadings from "../lib/remote/readings";
+import Snapshot from "./snapshot";
+import SugarReading from "./types/sugarReading";
 
 export default class Session {
   subscriptions: (() => void)[] = [];
   uuid: UUID;
 
-  _initialGlucose: number = profile.target;
-  _endTimestamp: Date | null = null; // The end timestamp of the session
-  finalBG: number | null = null;
+  snapshots: Snapshot[];
+
   _isGarbage: boolean = false;
   notes: string = "";
+  version: number = 1;
 
   // Save user calibrations upon creation
   insulinEffect: number = profile.insulin.effect;
@@ -32,16 +28,10 @@ export default class Session {
   insulins: Insulin[] = [];
   glucoses: Glucose[] = [];
 
-  // This is used for the prediction graph so the user can see how the meal will look
-  // This is not stored in the database
-  testMeals: Meal[] = [];
-  testInsulins: Insulin[] = [];
-  testGlucoses: Glucose[] = [];
-
-  constructor(getInitialGlucose: boolean = true) {
+  constructor() {
     // This timestamp marks when eating _begins_
     this.uuid = genUUID();
-    if (getInitialGlucose) this.pullInitialGlucose();
+    this.snapshots = [new Snapshot()];
   }
 
   // Subscriptions
@@ -95,8 +85,6 @@ export default class Session {
     return calories;
   }
   get latestMealTimestamp(): Date {
-    if (this.testMeals.length !== 0)
-      return this.testMeals[this.testMeals.length - 1].timestamp;
     if (this.meals.length !== 0)
       return this.meals[this.meals.length - 1].timestamp;
     return this.timestamp;
@@ -107,7 +95,6 @@ export default class Session {
     return this.meals[this.meals.length - 1];
   }
   get firstMealTimestamp(): Date {
-    if (this.testMeals.length !== 0) return this.testMeals[0].timestamp;
     if (this.meals.length !== 0) return this.meals[0].timestamp;
     return this.timestamp;
   }
@@ -116,6 +103,33 @@ export default class Session {
       throw new Error("No meal events found in session");
     return this.meals[0];
   }
+
+  // Snapshot abstractions
+  get firstSnapshot() {
+    if (this.snapshots.length === 0) throw new Error(`No snapshots exist`);
+    return this.snapshots[0];
+  }
+  get snapshot() {
+    const snapshot = this.snapshots[Math.max(this.insulins.length - 1, 0)];
+    if (!snapshot) throw new Error(`Latest snapshot is invalid`);
+    return snapshot;
+  }
+  get finalBG() {
+    return this.snapshot.finalBG.sugar;
+  }
+  set finalBG(sugar: number) {
+    this.snapshot.finalBG = new SugarReading(sugar, new Date());
+  }
+  get endTimestamp() {
+    return this.snapshot.finalBG.timestamp;
+  }
+  get initialGlucose() {
+    return this.firstSnapshot.initialBG.sugar;
+  }
+  set initialGlucose(sugar: number) {
+    this.firstSnapshot.initialBG = new SugarReading(sugar, new Date());
+  }
+
   // Profile-based stuff
   get mealRise(): number {
     const finalBG = this.finalBG;
@@ -173,7 +187,15 @@ export default class Session {
   }
 
   // Insulins
-  createInsulin(timestamp: Date, units: number): Insulin {
+  createInsulin(timestamp: Date, units: number, BG: number): Insulin {
+    // Mark snapshot
+    if (this.insulins.length !== 0) {
+      this.snapshot.finalBG = new SugarReading(BG, new Date());
+      const snapshot = new Snapshot();
+      snapshot.initialBG = new SugarReading(BG, new Date());
+      this.snapshots.push(snapshot);
+    }
+
     const insulin = new Insulin(timestamp, units);
     this.insulins.push(insulin);
     this.addEvent(insulin);
@@ -227,52 +249,6 @@ export default class Session {
     return this.glucoses[this.glucoses.length - 1].timestamp;
   }
 
-  // Test Meals
-  addTestMeal(meal: Meal): void {
-    this.testMeals.push(meal);
-    this.addEvent(meal);
-    this.notify();
-  }
-  clearTestMeals(): void {
-    this.testMeals.forEach((e) => this.removeEvent(e));
-    this.testMeals = [];
-    this.notify();
-  }
-
-  // Test Insulins
-  createTestInsulin(timestamp: Date, units: number): Insulin {
-    const insulin = new Insulin(timestamp, units);
-    this.testInsulins.push(insulin);
-    this.addEvent(insulin);
-    this.notify();
-    return insulin;
-  }
-  clearTestInsulins(): void {
-    this.testInsulins.forEach((e) => this.removeEvent(e));
-    this.testInsulins = [];
-    this.notify();
-  }
-
-  // Test Glucoses
-  createTestGlucose(timestamp: Date, caps: number): void {
-    const glucose = new Glucose(timestamp, caps);
-    this.testGlucoses.push(glucose);
-    this.addEvent(glucose);
-    this.notify();
-  }
-  clearTestGlucoses(): void {
-    this.testGlucoses.forEach((e) => this.removeEvent(e));
-    this.testGlucoses = [];
-    this.notify();
-  }
-
-  // General Tests
-  clearTests(): void {
-    this.clearTestMeals();
-    this.clearTestInsulins();
-    this.clearTestGlucoses();
-  }
-
   // Timing
   getN(timestamp: Date) {
     return getHourDiff(timestamp, this.timestamp);
@@ -287,10 +263,6 @@ export default class Session {
     this.insulins.forEach((a: MetaEvent) => callback(a));
     this.glucoses.forEach((a: MetaEvent) => callback(a));
 
-    // Tests
-    this.testMeals.forEach((a: MetaEvent) => callback(a));
-    this.testInsulins.forEach((a: MetaEvent) => callback(a));
-    this.testGlucoses.forEach((a: MetaEvent) => callback(a));
     if (!timestamp) throw new Error("No beginning timestamp found in session");
     return timestamp;
   }
@@ -304,25 +276,6 @@ export default class Session {
   }
   get started() {
     return this.meals.length + this.insulins.length !== 0;
-  }
-  get endTimestamp(): Date | null {
-    return this._endTimestamp;
-  }
-  set endTimestamp(value: Date | null) {
-    if (value) {
-      const maxSessionLength = preferencesStore.get("maxSessionLength");
-      if (this.getN(value) > maxSessionLength)
-        this._endTimestamp = getTimestampFromOffset(
-          this.timestamp,
-          maxSessionLength
-        );
-      else this._endTimestamp = value;
-    }
-    // Set final BG once we get an end timestamp
-    if (value) {
-      this.pullFinalBG();
-    }
-    this.notify();
   }
   set isGarbage(value: boolean) {
     this._isGarbage = value;
@@ -338,72 +291,6 @@ export default class Session {
     return this.getN(this.endTimestamp);
   }
 
-  deltaBG(t: number, _profile_?: MetabolismProfile): number {
-    const _profile = _profile_ ? _profile_ : profile;
-    let retval = this._initialGlucose;
-
-    // Meals
-    this.meals.forEach(
-      (a) => (retval += a.deltaBG(t - this.getN(a.timestamp), _profile))
-    );
-    this.testMeals.forEach(
-      (a) => (retval += a.deltaBG(t - this.getN(a.timestamp), _profile))
-    );
-
-    // Insulin
-    this.insulins.forEach(
-      (a) => (retval += a.deltaBG(t - this.getN(a.timestamp), _profile))
-    );
-    this.testInsulins.forEach(
-      (a) => (retval += a.deltaBG(t - this.getN(a.timestamp), _profile))
-    );
-
-    // Glucose
-    this.glucoses.forEach(
-      (a) => (retval += a.deltaBG(t - this.getN(a.timestamp), _profile))
-    );
-    this.testGlucoses.forEach(
-      (a) => (retval += a.deltaBG(t - this.getN(a.timestamp), _profile))
-    );
-
-    return retval;
-  }
-
-  // Graphing
-  getSeriesList(from: number, until: number): Series[] {
-    return [
-      this.getReadingSeries(from, until),
-      this.getPredictionSeries(from, until),
-    ];
-  }
-  getReadingSeries(from: number, until: number): ReadingSeries {
-    let readingSeries = new ReadingSeries(Color.Black, this.timestamp);
-    const A = getTimestampFromOffset(this.timestamp, from);
-    const B = getTimestampFromOffset(this.timestamp, until);
-    readingSeries.populate(A, B);
-    return readingSeries;
-  }
-  getPredictionSeries(from: number, until: number): MathSeries {
-    let predictionSeries = new MathSeries(Color.Blue, [(t) => this.deltaBG(t)]);
-    predictionSeries.populate(
-      from,
-      until,
-      backendStore.get("minutesPerReading") / 60
-    );
-    return predictionSeries;
-  }
-
-  // Optimizer
-  get tValues(): number[] {
-    const minutesPerReading = backendStore.get("minutesPerReading");
-    const numReadings =
-      (this.length * convertDimensions(Unit.Time.Hour, Unit.Time.Minute)) /
-      minutesPerReading;
-    let retval = [];
-    for (let i = 0; i < numReadings; i++)
-      retval.push((minutesPerReading * i) / 60);
-    return retval;
-  }
   getObservedReadings() {
     if (!this.endTimestamp)
       throw new Error(
@@ -411,35 +298,8 @@ export default class Session {
       );
     return RemoteReadings.getReadings(this.timestamp, this.endTimestamp);
   }
-  async pullFinalBG() {
-    const hoursBefore = preferencesStore.get("endingHours");
-    const rawReadings = await this.getLastReadings(hoursBefore);
-    if (rawReadings && !this.finalBG) {
-      const readings: number[] = rawReadings.map((r: any) => r.sgv);
-
-      const finalBG = MathUtil.median(readings);
-      if (!this.finalBG) this.finalBG = finalBG;
-      return finalBG;
-    }
-    return null;
-  }
 
   // Initial glucose
-  async pullInitialGlucose() {
-    return RemoteReadings.getSugarAt(this.timestamp).then((a: any) => {
-      if (a) {
-        this.initialGlucose = a.sgv;
-        return a;
-      }
-    });
-  }
-  get initialGlucose() {
-    return this._initialGlucose;
-  }
-  set initialGlucose(glucose: number) {
-    this._initialGlucose = glucose;
-    this.notify();
-  }
 
   // Glucose statistics stuff
   async getLastReadings(hours: number) {
@@ -454,41 +314,54 @@ export default class Session {
   static stringify(session: Session): string {
     return JSON.stringify({
       uuid: session.uuid,
-      initialGlucose: session.initialGlucose,
+      snapshots: session.snapshots.map((s) => Snapshot.stringify(s)),
       meals: session.meals.map((a) => Meal.stringify(a)),
-      testMeals: session.testMeals.map((a) => Meal.stringify(a)),
       insulins: session.insulins.map((a) => Insulin.stringify(a)),
       glucoses: session.glucoses.map((a) => Glucose.stringify(a)),
-      endTimestamp: session.endTimestamp || null,
-      finalBG: session.finalBG,
       isGarbage: session.isGarbage,
       notes: session.notes,
       insulinEffect: session.insulinEffect,
       glucoseEffect: session.glucoseEffect,
+      version: session.version,
     });
   }
   static parse(str: string): Session {
     let o = JSON.parse(str);
-    let session = new Session(false);
+    let session = new Session();
     session.uuid = o.uuid;
-    session.initialGlucose = o.initialGlucose;
-    session._endTimestamp = o.endTimestamp ? new Date(o.endTimestamp) : null;
-    session.finalBG = o.finalBG || null;
     session.isGarbage = o.isGarbage || false;
     session.notes = o.notes || "";
     session.insulinEffect = o.insulinEffect || profile.insulin.effect;
     session.glucoseEffect = o.glucoseEffect || profile.glucose.effect;
 
     o.meals.map((a: string) => session.addMeal(Meal.parse(a)));
-    o.testMeals.map((a: string) => session.addTestMeal(Meal.parse(a)));
     o.insulins.map((a: string) => {
       const insulin = Insulin.parse(a);
-      session.createInsulin(insulin.timestamp, insulin.units);
+      session.createInsulin(insulin.timestamp, insulin.units, 0);
     });
     o.glucoses.map((a: string) => {
       const glucose = Glucose.parse(a);
       session.createGlucose(glucose.timestamp, glucose.caps);
     });
+
+    // Compatibility
+    if (!o.version) {
+      session.firstSnapshot.initialBG = new SugarReading(
+        o.initialGlucose,
+        session.timestamp
+      );
+
+      const endTimestamp = o.endTimestamp ? new Date(o.endTimestamp) : null;
+      const finalBG = o.finalBG || null;
+      if (endTimestamp && finalBG) {
+        session.snapshot.finalBG = new SugarReading(finalBG, endTimestamp);
+      }
+      session.version = 1;
+    } else {
+      if (o.version === 1) {
+        session.snapshots = o.snapshots.map((a: string) => Snapshot.parse(a));
+      }
+    }
 
     return session;
   }

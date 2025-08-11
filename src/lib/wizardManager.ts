@@ -67,7 +67,6 @@ export default class WizardManager {
 
     meal.timestamp = timestamp;
     session.addMeal(meal);
-    session.clearTests(); // Clear all test stuff on the session
     this.resetMeal(); // Reset the meal to make room for additional
 
     wizardStorage.set("mealMarked", true);
@@ -77,19 +76,18 @@ export default class WizardManager {
   }
 
   // Insulin
-  private static insulin(units: number) {
+  private static insulin(units: number, BG: number) {
     const session: Session = wizardStorage.get("session");
     const timestamp = new Date();
 
-    session.createInsulin(timestamp, units);
-    session.clearTests();
+    session.createInsulin(timestamp, units, BG);
 
     wizardStorage.set("insulinMarked", true);
 
     // TODO: Use date selector
     RemoteTreatments.markInsulin(units, timestamp);
   }
-  static markInsulin(units: number) {
+  static markInsulin(units: number, BG: number) {
     let session: Session = wizardStorage.get("session");
     if (this.getInsulinMarked()) {
       if (
@@ -99,7 +97,7 @@ export default class WizardManager {
       )
         return;
     }
-    this.insulin(units);
+    this.insulin(units, BG);
   }
   // Glucose
   static markGlucose(caps: number) {
@@ -108,7 +106,6 @@ export default class WizardManager {
     const timestamp = new Date();
     if (session.started) {
       session.createGlucose(timestamp, caps);
-      session.clearTests();
 
       // TODO: Use date selector
     }
@@ -147,10 +144,8 @@ export default class WizardManager {
     }
   }
   static startNew(navigate: NavigateFunction) {
-    const timestamp = new Date();
     const session: Session = wizardStorage.get("session");
 
-    session.endTimestamp = timestamp; // Store the end time of the session
     RemoteSessions.storeSession(session); // Store the entire session into nightscout so we can analyze it later
     this.resetWizard(navigate); // Reset the wizard states
   }

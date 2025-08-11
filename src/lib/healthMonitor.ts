@@ -18,9 +18,8 @@
 import type { NavigateFunction } from "react-router";
 import Glucose from "../models/events/glucose";
 import HealthMonitorStatus from "../models/types/healthMonitorStatus";
-import {
+import SugarReading, {
   getReadingFromNightscout,
-  type SugarReading,
 } from "../models/types/sugarReading";
 import healthMonitorStore from "../storage/healthMonitorStore";
 import preferencesStore from "../storage/preferencesStore";

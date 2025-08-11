@@ -4,7 +4,7 @@ import { useNavigate } from "react-router";
 import { useEffect } from "react";
 import TemplateManager from "../../lib/templateManager";
 
-function WizardRouterPage() {
+function RouterPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -13,4 +13,4 @@ function WizardRouterPage() {
   return <></>;
 }
 
-export default WizardRouterPage;
+export default RouterPage;
