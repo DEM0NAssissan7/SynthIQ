@@ -27,9 +27,9 @@ class RemoteStorage {
 
     this.putProfile(profile);
   }
-  static async download() {
+  static async download(forced = false) {
     const profile = await this.getProfile();
-    if (profile.nodeUUID !== privateStore.get("syncUUID")) {
+    if (profile.nodeUUID !== privateStore.get("syncUUID") || forced) {
       profile.nodeObjects.map((o: any) => {
         nodes.forEach((n: StorageNode) => n.import(o));
       });

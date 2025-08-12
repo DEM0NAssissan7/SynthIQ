@@ -72,13 +72,16 @@ export default function SettingsPage() {
     )
       RemoteStorage.upload();
   }
-  function downloadStorage() {
+  async function downloadStorage() {
     if (
       confirm(
         `Are you sure you want to download data from backend? You will overwrite ALL local user data.`
       )
-    )
-      RemoteStorage.download();
+    ) {
+      const synced = await RemoteStorage.download(true);
+      if (synced) location.reload();
+      else console.warn(`Force download didn't work properly`);
+    }
   }
 
   const syncOptions: [boolean | null, string][] = [
