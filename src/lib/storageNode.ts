@@ -214,6 +214,9 @@ class StorageNode {
   write(id: string): void {
     this.getEntryById(id).write();
   }
+  writeAll(): void {
+    this.entries.forEach((e) => e.write());
+  }
 
   // Entry Subscriptions
   subscribe(id: string, callback: SubscriptionCallback): void {
