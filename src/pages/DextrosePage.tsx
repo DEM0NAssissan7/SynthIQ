@@ -10,7 +10,7 @@ interface InputBoxParams {
   unit?: string;
 }
 function InputBox({ keyInterface, unit }: InputBoxParams) {
-  const [, setVal] = keyInterface.useState();
+  const [value, setVal] = keyInterface.useState();
 
   return (
     <InputGroup
@@ -19,6 +19,7 @@ function InputBox({ keyInterface, unit }: InputBoxParams) {
     >
       <Form.Control
         type="number"
+        value={value || ""}
         onChange={(e) => {
           const value = parseFloat(e.target.value);
           setVal(!isNaN(value) ? value : 0);
