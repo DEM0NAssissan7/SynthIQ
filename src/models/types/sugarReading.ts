@@ -10,7 +10,7 @@ export default class SugarReading {
   static serialize: Serializer<SugarReading> = (r: SugarReading) => {
     return {
       sugar: r.sugar,
-      timestamp: r.timestamp.toString(),
+      timestamp: r.timestamp.getTime(),
       isCalibration: r.isCalibration,
     };
   };

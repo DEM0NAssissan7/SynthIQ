@@ -24,8 +24,8 @@ export default class Activity extends MetaEvent {
 
   static serialize: Serializer<Activity> = (a: Activity) => {
     return {
-      startTimestamp: a.timestamp.toString(),
-      endTimestamp: a.endTimestamp?.toString() || null,
+      startTimestamp: a.timestamp.getTime(),
+      endTimestamp: a.endTimestamp?.getTime() || null,
     };
   };
   static deserialize: Deserializer<Activity> = (o) => {

@@ -24,7 +24,7 @@ export default class RequestQueue {
       api: q.api,
       payload: q.payload,
       uuid: q.uuid,
-      timestamp: q.timestamp.toString(),
+      timestamp: q.timestamp.getTime(),
     };
   };
   static deserialize: Deserializer<RequestQueue> = (o) => {

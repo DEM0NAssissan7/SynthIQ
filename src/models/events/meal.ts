@@ -103,7 +103,7 @@ export default class Meal extends MetaEvent {
   // Storage Transience
   static serialize: Serializer<Meal> = (meal) => {
     return {
-      timestamp: meal.timestamp.toString(),
+      timestamp: meal.timestamp.getTime(),
       foods: meal.foods.map((a) => Food.serialize(a)),
     };
   };

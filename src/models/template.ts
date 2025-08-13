@@ -154,7 +154,7 @@ export default class Template extends Subscribable {
     return {
       name: template.name,
       sessions: template.sessions.map((s) => Session.serialize(s)),
-      timestamp: template.timestamp.toString(),
+      timestamp: template.timestamp.getTime(),
     };
   };
   static deserialize: Deserializer<Template> = (o) => {

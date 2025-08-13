@@ -20,7 +20,7 @@ export default class ScalarMetaEvent extends MetaEvent {
   static serialize: Serializer<ScalarMetaEvent> = (e: ScalarMetaEvent) => {
     return {
       value: e.value,
-      timestamp: e.timestamp.toString(),
+      timestamp: e.timestamp.getTime(),
     };
   };
   static deserialize: Deserializer<ScalarMetaEvent> = (o) => {
