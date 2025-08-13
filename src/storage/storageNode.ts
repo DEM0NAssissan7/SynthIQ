@@ -17,7 +17,7 @@ export interface KeyInterface<T> {
   useState: () => [T, (v: T) => void];
 }
 
-const appID = "pulseiq";
+const appID = "synthiq";
 const storageBackend = StorageBackends.getDefault();
 function useStorageState<T>(entry: StorageEntry): [T, (v: T) => void] {
   // Keep the latest value in a ref (doesn't cause renders by itself)
