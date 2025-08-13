@@ -13,6 +13,7 @@ import TemplateSummary from "../../components/TemplateSummary";
 import { WizardStore } from "../../storage/wizardStore";
 import WizardManager from "../../lib/wizardManager";
 import { WizardPage } from "../../models/types/wizardState";
+import { PreferencesStore } from "../../storage/preferencesStore";
 
 export default function WizardEditPage() {
   const [session] = WizardStore.session.useState();
@@ -27,8 +28,8 @@ export default function WizardEditPage() {
   function finishEdit() {
     WizardManager.moveToPage(WizardPage.Hub, navigate);
   }
-  function setGlucose(a: number) {
-    session.initialGlucose = a;
+  function setGlucose(_: number) {
+    // session.initialGlucose = a;
   }
   return (
     <>
@@ -68,7 +69,11 @@ export default function WizardEditPage() {
 
       <Card>
         <BloodSugarInput
-          initialGlucose={session.initialGlucose}
+          initialGlucose={
+            session.initialGlucose
+              ? session.initialGlucose
+              : PreferencesStore.targetBG.value
+          }
           setInitialGlucose={setGlucose}
           pullFromNightscout={false}
           showAutoButton={false}

@@ -35,6 +35,9 @@ function App() {
     // Execute health monitor
     smartMonitor(navigate);
   }, []);
+
+  console.log(WizardStore.session.value);
+  console.log(WizardStore.template.value);
   return (
     <div>
       <TopBar />

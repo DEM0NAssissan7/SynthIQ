@@ -9,6 +9,7 @@ import Card from "../../components/Card";
 import TemplateSummary from "../../components/TemplateSummary";
 import { WizardStore } from "../../storage/wizardStore";
 import { WizardPage } from "../../models/types/wizardState";
+import { PreferencesStore } from "../../storage/preferencesStore";
 
 export default function WizardInsulinPage() {
   const navigate = useNavigate();
@@ -22,7 +23,11 @@ export default function WizardInsulinPage() {
 
   // Inputted Insulin
   const [insulinTaken, setInsulinTaken] = useState(0);
-  const [currentGlucose, setCurrentGlucose] = useState(session.initialGlucose);
+  const [currentGlucose, setCurrentGlucose] = useState(
+    session.initialGlucose
+      ? session.initialGlucose
+      : PreferencesStore.targetBG.value
+  );
   const markInsulin = () => {
     if (!isNaN(insulinTaken)) {
       if (
@@ -75,7 +80,7 @@ export default function WizardInsulinPage() {
           template={template}
           session={session}
           meal={meal}
-          currentBG={currentGlucose}
+          currentBG={session.initialGlucose ? undefined : currentGlucose}
         />
       </Card>
 

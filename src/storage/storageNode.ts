@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useReducer, useCallback } from "react";
 import type {
   Deserializer,
   Serializer,
@@ -20,19 +20,34 @@ export interface KeyInterface<T> {
 const appID = "pulseiq";
 const storageBackend = StorageBackends.getDefault();
 function useStorageState<T>(entry: StorageEntry): [T, (v: T) => void] {
-  const [value, setValue] = useState(entry.get() as T);
+  // Keep the latest value in a ref (doesn't cause renders by itself)
+  const valueRef = useRef<T>(entry.get() as T);
+
+  // Use a reducer as a "version" to force rerenders on every emission
+  const [, bump] = useReducer((n) => n + 1, 0);
 
   useEffect(() => {
-    const callback = (newVal: T) => setValue(newVal);
-    entry.subscribe(callback);
-    return () => entry.unsubscribe(callback);
+    let isCalling = false;
+    const onChange = (newVal: T) => {
+      if (!isCalling) {
+        isCalling = true;
+        valueRef.current = newVal; // update, even if reference is the same
+        bump(); // force a rerender every time
+      }
+      isCalling = false;
+    };
+    entry.subscribe(onChange);
+    return () => entry.unsubscribe(onChange);
   }, [entry]);
 
-  const updateValue = (v: T) => {
-    entry.set(v);
-  };
+  const updateValue = useCallback(
+    (v: T) => {
+      entry.set(v); // this will eventually call our subscriber
+    },
+    [entry]
+  );
 
-  return [value as T, updateValue];
+  return [valueRef.current as T, updateValue];
 }
 
 const defaultDeserializer: Deserializer<any> = JSON.parse;

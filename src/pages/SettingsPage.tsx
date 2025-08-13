@@ -8,7 +8,7 @@ import {
 import Card from "../components/Card";
 import { useState } from "react";
 import RemoteStorage from "../lib/remote/storage";
-import type { KeyInterface } from "../lib/storageNode";
+import type { KeyInterface } from "../storage/storageNode";
 import { PrivateStore } from "../storage/privateStore";
 import { PreferencesStore } from "../storage/preferencesStore";
 import { CalibrationStore } from "../storage/calibrationStore";

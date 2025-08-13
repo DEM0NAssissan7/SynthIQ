@@ -13,6 +13,8 @@ function getCorrectMealDosing(session: Session) {
   return optimalMealInsulin;
 }
 export function getCorrectDosing(session: Session) {
+  if (!session.initialGlucose)
+    throw new Error(`Session does not have an initial glucose marked`);
   const optimalInsulin =
     getCorrectMealDosing(session) +
     getCorrectionInsulin(session.initialGlucose); // Account for BG correction

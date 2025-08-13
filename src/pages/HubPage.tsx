@@ -44,10 +44,10 @@ function HubPage() {
               <Card.Body>
                 {session.started ? (
                   <>
-                    <Card.Title>Active Meal</Card.Title>
+                    <Card.Title>Active Session</Card.Title>
                     <Card.Text>You have an active session</Card.Text>
                     <Button variant="primary" as={Link as any} to="/wizard">
-                      Continue
+                      View
                     </Button>
                   </>
                 ) : (

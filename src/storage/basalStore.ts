@@ -1,5 +1,5 @@
 import Serialization from "../lib/serialization";
-import StorageNode from "../lib/storageNode";
+import StorageNode from "./storageNode";
 import Insulin from "../models/events/insulin";
 
 export namespace BasalStore {

@@ -1,6 +1,6 @@
 /* This is where we store custom meals, foods, etc. */
 import Serialization from "../lib/serialization";
-import StorageNode from "../lib/storageNode";
+import StorageNode from "./storageNode";
 import Food, { foods as globalFoods } from "../models/food";
 
 export namespace CustomStore {

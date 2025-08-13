@@ -19,12 +19,17 @@ import {
 import TemplateSummary from "../components/TemplateSummary";
 import { HealthMonitorStore } from "../storage/healthMonitorStore";
 import { WizardStore } from "../storage/wizardStore";
+import { PreferencesStore } from "../storage/preferencesStore";
 
 export default function RescuePage() {
   const [session] = WizardStore.session.useState();
   const [template] = WizardStore.template.useState();
 
-  const [currentBG, setCurrentBG] = useState(session.initialGlucose);
+  const [currentBG, setCurrentBG] = useState(
+    session.initialGlucose
+      ? session.initialGlucose
+      : PreferencesStore.targetBG.value
+  );
   const [gramsTaken, setCapsTaken] = useState(0);
 
   const correction = useMemo(() => {

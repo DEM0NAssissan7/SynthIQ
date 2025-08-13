@@ -1,4 +1,4 @@
-import StorageNode from "../lib/storageNode";
+import StorageNode from "./storageNode";
 
 export namespace PreferencesStore {
   const node = new StorageNode("preferences");

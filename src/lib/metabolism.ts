@@ -18,6 +18,8 @@ export function getCorrectionInsulin(glucose: number) {
   );
 }
 export function getSessionMealInsulin(session: Session) {
+  if (!session.initialGlucose)
+    throw new Error(`Cannot get session meal insulin: no initial glucose`);
   return session.insulin - getCorrectionInsulin(session.initialGlucose);
 }
 

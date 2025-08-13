@@ -1,4 +1,4 @@
-import StorageNode from "../lib/storageNode";
+import StorageNode from "./storageNode";
 
 export const defaultBodyWeight = 155;
 export namespace CalibrationStore {

@@ -1,5 +1,5 @@
 import Serialization from "../lib/serialization";
-import StorageNode from "../lib/storageNode";
+import StorageNode from "./storageNode";
 import Glucose from "../models/events/glucose";
 import SugarReading from "../models/types/sugarReading";
 

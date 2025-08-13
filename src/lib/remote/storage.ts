@@ -1,7 +1,7 @@
 import { BackendStore } from "../../storage/backendStore";
 import { PrivateStore } from "../../storage/privateStore";
-import StorageNode from "../storageNode";
-import { nodes } from "../storageNode";
+import StorageNode from "../../storage/storageNode";
+import { nodes } from "../../storage/storageNode";
 import { genUUID } from "../util";
 import Backend from "./backend";
 

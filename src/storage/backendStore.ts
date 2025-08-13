@@ -1,5 +1,5 @@
 import Serialization from "../lib/serialization";
-import StorageNode from "../lib/storageNode";
+import StorageNode from "./storageNode";
 import RequestQueue from "../models/requestQueue";
 
 export namespace BackendStore {

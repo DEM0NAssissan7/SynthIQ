@@ -1,4 +1,4 @@
-import StorageNode from "../lib/storageNode";
+import StorageNode from "./storageNode";
 
 export namespace PrivateStore {
   const node = new StorageNode("private", true);

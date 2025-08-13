@@ -45,7 +45,7 @@ export default function WizardMealPage() {
   useEffect(() => {
     // We intentionally assign the timestamp directly so that we do not trigger notify()
     meal._timestamp = new Date();
-  });
+  }, [meal]);
 
   return (
     <>
@@ -71,7 +71,7 @@ export default function WizardMealPage() {
               template={template}
               session={session}
               meal={meal}
-              currentBG={initialGlucose}
+              currentBG={session.initialGlucose ? undefined : initialGlucose}
             />
           </ListGroup.Item>
           {!session.started && (

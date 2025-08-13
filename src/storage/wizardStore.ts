@@ -1,4 +1,4 @@
-import StorageNode from "../lib/storageNode";
+import StorageNode from "./storageNode";
 import Session from "../models/session";
 import Meal from "../models/events/meal";
 import {
@@ -29,7 +29,7 @@ export namespace WizardStore {
   // Page
   export const page = node.add<WizardPage>(
     "page",
-    WizardPage.Hub,
+    WizardPage.Select,
     serializeWizardPage,
     deserializeWizardPage
   );
@@ -41,13 +41,14 @@ export namespace WizardStore {
     Session.serialize,
     Session.deserialize
   );
-  session.subscribe((value: Session) => {
-    value.subscribe(() => {
-      // Upon session change, subscribe
-      session.write();
+  {
+    const callback = () => session.write();
+    session.subscribe((value: Session) => {
+      value.unsubscribe(callback); // Unsubscribe if we already subscribed
+      value.subscribe(callback);
     });
-  });
-  session.notify(); // Notify to push the new subscriber handler
+    session.notify(); // Notify to push the new subscriber handler
+  }
 
   export const meal = node.add<Meal>(
     "meal",
@@ -55,10 +56,12 @@ export namespace WizardStore {
     Meal.serialize,
     Meal.deserialize
   );
-  meal.subscribe((value: Meal) => {
-    value.subscribe(() => {
-      meal.write();
+  {
+    const callback = () => meal.write();
+    meal.subscribe((value: Meal) => {
+      value.unsubscribe(callback);
+      value.subscribe(callback);
     });
-  });
-  meal.notify();
+    meal.notify();
+  }
 }

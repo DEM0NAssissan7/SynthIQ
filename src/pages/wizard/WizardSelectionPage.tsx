@@ -9,7 +9,7 @@ export default function WizardSelectionPage() {
 
   function advance(name: string | null) {
     if (!name) {
-      WizardManager.createTemplate("Generic");
+      WizardManager.createTemplate("Session");
       WizardManager.begin(navigate);
       return;
     }

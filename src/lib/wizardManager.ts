@@ -22,7 +22,7 @@ export default class WizardManager {
     this.moveToPage(WizardStore.page.value, navigate);
   }
   static moveToFirstPage(navigate: NavigateFunction): void {
-    navigate(`/template/select`);
+    this.moveToPage(WizardPage.Select, navigate);
   }
   static begin(navigate: NavigateFunction) {
     this.moveToPage(WizardPage.Meal, navigate);
@@ -31,7 +31,7 @@ export default class WizardManager {
   // Glucose marking
   static setInitialGlucose(BG: number) {
     const session = WizardStore.session.value;
-    if (!session.started) {
+    if (!session.initialGlucose) {
       session.initialGlucose = BG;
     }
   }

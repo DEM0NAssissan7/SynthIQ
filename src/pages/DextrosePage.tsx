@@ -1,7 +1,7 @@
 import Card from "../components/Card";
 import { Form, InputGroup } from "react-bootstrap";
 import { round } from "../lib/util";
-import type { KeyInterface } from "../lib/storageNode";
+import type { KeyInterface } from "../storage/storageNode";
 import { DextroseStore } from "../storage/dextroseStore";
 import { useMemo } from "react";
 

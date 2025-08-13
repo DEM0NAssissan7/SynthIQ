@@ -64,9 +64,8 @@ export default class Snapshot extends Subscribable {
     return this.valueSortedCache;
   }
 
-  private checkValid() {
-    if (this.rawReadings.length === 0)
-      throw new Error(`No readings present in snapshot!`);
+  private get isValid() {
+    return this.rawReadings.length !== 0;
   }
   private createContemporaryCalibration(value: number) {
     this.addReading(new SugarReading(value, new Date(), true));
@@ -74,7 +73,8 @@ export default class Snapshot extends Subscribable {
 
   async pullReadings() {
     // Pull readings from backend
-    this.checkValid();
+    if (!this.initialBG || !this.finalBG)
+      throw new Error(`Cannot pull glucose readings: snapshot incomplete`);
     const remoteReadings = await RemoteReadings.getReadings(
       this.initialBG.timestamp,
       this.finalBG.timestamp
@@ -85,30 +85,27 @@ export default class Snapshot extends Subscribable {
     this.notify();
   }
 
-  get initialBG(): SugarReading {
-    this.checkValid();
-    return this.timeSorted[0];
+  get initialBG(): SugarReading | null {
+    if (!this.isValid) return null;
+    return this.isValid ? this.timeSorted[0] : null;
   }
   set initialBG(value: number) {
     this.createContemporaryCalibration(value);
   }
 
-  get finalBG(): SugarReading {
-    this.checkValid();
-    return this.timeSorted[this.timeSorted.length - 1];
+  get finalBG(): SugarReading | null {
+    return this.isValid ? this.timeSorted[this.timeSorted.length - 1] : null;
   }
   set finalBG(value: number) {
     this.createContemporaryCalibration(value);
     this.pullReadings();
   }
 
-  get minBG(): SugarReading {
-    this.checkValid();
-    return this.valueSorted[0];
+  get minBG(): SugarReading | null {
+    return this.isValid ? this.valueSorted[0] : null;
   }
-  get peakBG(): SugarReading {
-    this.checkValid();
-    return this.valueSorted[this.valueSorted.length - 1];
+  get peakBG(): SugarReading | null {
+    return this.isValid ? this.valueSorted[this.valueSorted.length - 1] : null;
   }
 
   // Serialization

@@ -95,10 +95,8 @@ export default class Session extends Subscribable {
   addSnapshot(_snapshot?: Snapshot) {
     let snapshot: Snapshot = new Snapshot();
     if (_snapshot) snapshot = _snapshot;
-    snapshot.subscribe(() => {
-      this.notify();
-    });
     this.snapshots.push(snapshot);
+    this.addChildSubscribable(snapshot);
     return snapshot;
   }
   get firstSnapshot() {
@@ -116,26 +114,26 @@ export default class Session extends Subscribable {
     this.snapshots.forEach((s) => snapshot.absorb(s));
     return snapshot;
   }
-  get finalBG() {
-    return this.snapshot.finalBG.sugar;
+  get finalBG(): number | null {
+    return this.snapshot.finalBG ? this.snapshot.finalBG.sugar : null;
   }
   set finalBG(sugar: number) {
     this.lastSnapshot.finalBG = sugar;
   }
   get endTimestamp() {
-    return this.snapshot.finalBG.timestamp;
+    return this.snapshot.finalBG ? this.snapshot.finalBG.timestamp : null;
   }
-  get initialGlucose() {
-    return this.snapshot.initialBG.sugar;
+  get initialGlucose(): number | null {
+    return this.snapshot.initialBG ? this.snapshot.initialBG.sugar : null;
   }
   set initialGlucose(sugar: number) {
     this.firstSnapshot.initialBG = sugar;
   }
   get peakGlucose() {
-    return this.snapshot.peakBG.sugar;
+    return this.snapshot.peakBG ? this.snapshot.peakBG.sugar : null;
   }
   get minGlucose() {
-    return this.snapshot.minBG.sugar;
+    return this.snapshot.minBG ? this.snapshot.minBG.sugar : null;
   }
 
   // Profile-based stuff
@@ -146,6 +144,10 @@ export default class Session extends Subscribable {
         `Cannot get insulin dosing: there is no final blood glucose`
       );
     const initialGlucose = this.initialGlucose;
+    if (!initialGlucose)
+      throw new Error(
+        `Cannot get insulin dosing: there is no initial blood glucose`
+      );
 
     const totalDeltaBG = finalBG - initialGlucose;
 
@@ -223,10 +225,12 @@ export default class Session extends Subscribable {
     return insulin;
   }
   get mealInsulin(): number {
+    const initialGlucose = this.initialGlucose;
+    if (!initialGlucose)
+      throw new Error(`Cannot get meal insulin: no initial glucose`);
     return (
       this.insulin -
-      (this.initialGlucose - PreferencesStore.targetBG.value) /
-        this.insulinEffect
+      (initialGlucose - PreferencesStore.targetBG.value) / this.insulinEffect
     );
   }
   get firstInsulinTimestamp(): Date {

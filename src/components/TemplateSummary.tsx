@@ -5,6 +5,7 @@ import type Meal from "../models/events/meal";
 import type Session from "../models/session";
 import type Template from "../models/template";
 import TemplateMealSummary from "./TemplateMealSummary";
+import { PreferencesStore } from "../storage/preferencesStore";
 
 interface TemplateSummaryProps {
   template: Template;
@@ -19,7 +20,12 @@ export default function TemplateSummary({
   session,
 }: TemplateSummaryProps) {
   const bloodSugar = useMemo(
-    () => (currentBG ? currentBG : session.initialGlucose),
+    () =>
+      currentBG
+        ? currentBG
+        : session.initialGlucose
+        ? session.initialGlucose
+        : PreferencesStore.targetBG.value,
     [currentBG, session]
   );
 
