@@ -1,6 +1,7 @@
 import { useEffect, useRef, useReducer, useCallback } from "react";
 import type {
   Deserializer,
+  JSONValue,
   Serializer,
   SubscriptionCallback,
 } from "../models/types/types";
@@ -95,7 +96,7 @@ class StorageEntry {
 
   // Storage Abstraction (through handlers and try/catch)
   read(): void {
-    let val: string;
+    let val: JSONValue;
     try {
       val = this.getFromStorage();
     } catch {
@@ -130,30 +131,24 @@ class StorageEntry {
 
   // Serializer Abstraction
   export() {
-    return JSON.stringify(this.serializer(this.value));
+    return this.serializer(this.value);
   }
-  import(str: string) {
-    return (this.value = this.deserializer(JSON.parse(str)));
+  import(object: JSONValue) {
+    return (this.value = this.deserializer(object));
   }
 
   // Storage API
-  private writeToStorage(value: any) {
-    if (typeof value === "string") {
-      storageBackend.setItem(this.getStorageKey(), value);
-    } else {
-      throw new Error(
-        `StorageEntry[${this.getStorageKey()}]: Cannot write non-string to storage.`
-      );
-    }
+  private writeToStorage(value: JSONValue) {
+    storageBackend.setItem(this.getStorageKey(), JSON.stringify(value));
   }
-  private getFromStorage() {
+  private getFromStorage(): JSONValue {
     let retval: any;
     retval = storageBackend.getItem(this.getStorageKey());
     if (retval === null)
       throw new Error(
         `StorageEntry[${this.getStorageKey()}]: Failed to retrieve key`
       );
-    return retval;
+    return JSON.parse(retval);
   }
   private getStorageKey() {
     return `${appID}.${this.nodeName}.${this.id}`;
