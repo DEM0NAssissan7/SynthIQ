@@ -14,6 +14,7 @@ import { PreferencesStore } from "../storage/preferencesStore";
 import { CalibrationStore } from "../storage/calibrationStore";
 import { BackendStore } from "../storage/backendStore";
 import { HealthMonitorStore } from "../storage/healthMonitorStore";
+import StorageBackends from "../registries/storageBackends";
 
 interface Setting {
   title: string;
@@ -72,6 +73,23 @@ export default function SettingsPage() {
       else console.warn(`Force download didn't work properly`);
     }
   }
+  function clearData() {
+    if (
+      confirm(
+        `Are you sure you want to clear ALL local data? This action cannot be reversed, and you will lose ALL local data.`
+      )
+    ) {
+      if (
+        confirm(
+          `Confirmation: Are you absolutely sure that you want to wipe ALL local data`
+        )
+      ) {
+        const backend = StorageBackends.getDefault();
+        backend.clear();
+        location.reload();
+      }
+    }
+  }
 
   const syncOptions: [boolean | null, string][] = [
     [null, "Disabled"],
@@ -103,6 +121,9 @@ export default function SettingsPage() {
         </Button>
         <Button onClick={uploadStorage} variant="danger">
           Upload Data
+        </Button>
+        <Button onClick={clearData} variant="danger">
+          Clear All Data
         </Button>
       </div>
       <Card>
