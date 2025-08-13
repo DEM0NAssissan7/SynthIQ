@@ -51,8 +51,8 @@ function useStorageState<T>(entry: StorageEntry): [T, (v: T) => void] {
   return [valueRef.current as T, updateValue];
 }
 
-const defaultDeserializer: Deserializer<any> = (a: any) => a;
-const defaultSerializer: Serializer<any> = (a: any) => a;
+const defaultDeserializer: Deserializer<any> = (a: JSONValue) => a;
+const defaultSerializer: Serializer<any> = (a: JSONValue) => a;
 
 export let nodes: StorageNode[] = [];
 
