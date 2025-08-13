@@ -23,6 +23,13 @@ namespace StorageBackends {
         throw new StorageBackendFailedError();
       }
     },
+    clear: () => {
+      if (typeof window !== "undefined" && window.localStorage) {
+        localStorage.clear();
+      } else {
+        throw new StorageBackendFailedError();
+      }
+    },
   };
 
   export function getDefault(): StorageBackend {
