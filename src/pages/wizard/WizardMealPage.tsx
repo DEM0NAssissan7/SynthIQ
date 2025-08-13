@@ -3,44 +3,42 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import BloodSugarInput from "../../components/BloodSugarInput";
 import MealAdditionalNutrients from "../../components/MealAdditionalNutrientsCard";
-import { useWizardMeal } from "../../state/useMeal";
-import { useWizardSession } from "../../state/useSession";
 import Card from "../../components/Card";
 import FoodSearchDisplay from "../../components/FoodSearchDisplay";
 import AddedFoodsDisplay from "../../components/AddedFoodsDisplay";
-import TemplateManager from "../../lib/templateManager";
-import { TemplateState } from "../../models/types/templateState";
 import WizardManager from "../../lib/wizardManager";
-import { profile } from "../../storage/metaProfileStore";
 import TemplateSummary from "../../components/TemplateSummary";
+import { WizardStore } from "../../storage/wizardStore";
+import { PreferencesStore } from "../../storage/preferencesStore";
+import { WizardPage } from "../../models/types/wizardState";
 
-export default function TemplateMealPage() {
-  const session = useWizardSession();
-  const meal = useWizardMeal();
-  const template = TemplateManager.getTemplate();
+export default function WizardMealPage() {
+  const [template] = WizardStore.template.useState();
+  const [session] = WizardStore.session.useState();
+  const [meal] = WizardStore.meal.useState();
 
-  const [initialGlucose, setInitialGlucose] = useState(profile.target);
+  const [initialGlucose, setInitialGlucose] = useState(
+    PreferencesStore.targetBG.value
+  ); // We are not wanting to modify the actual targetbg, so we do not use the store state
   const navigate = useNavigate();
   function goBack() {
-    TemplateManager.moveToPage(TemplateState.Hub, navigate);
+    WizardManager.moveToPage(WizardPage.Hub, navigate);
   }
   function goToSelect() {
-    TemplateManager.moveToPage(TemplateState.Select, navigate);
+    WizardManager.moveToPage(WizardPage.Select, navigate);
   }
   function beginEating() {
     if (confirm("Are you ready to start eating?")) {
       WizardManager.markMeal();
       WizardManager.setInitialGlucose(initialGlucose);
-      TemplateManager.moveToPage(
-        WizardManager.getInsulinMarked()
-          ? TemplateState.Hub
-          : TemplateState.Insulin,
+      WizardManager.moveToPage(
+        session.insulinMarked ? WizardPage.Hub : WizardPage.Insulin,
         navigate
       );
     }
   }
   function markInsulin() {
-    TemplateManager.moveToPage(TemplateState.Insulin, navigate);
+    WizardManager.moveToPage(WizardPage.Insulin, navigate);
   }
 
   // Upon Startup
@@ -76,7 +74,7 @@ export default function TemplateMealPage() {
               currentBG={initialGlucose}
             />
           </ListGroup.Item>
-          {!WizardManager.getInitialGlucoseMarked() && (
+          {!session.started && (
             <ListGroup.Item>
               <BloodSugarInput
                 initialGlucose={initialGlucose}
@@ -87,12 +85,12 @@ export default function TemplateMealPage() {
         </ListGroup>
       </Card>
       <div className="d-flex justify-content-between align-items-center mt-3">
-        {!WizardManager.isActive() && (
+        {!session.started && (
           <Button onClick={goToSelect} variant="secondary">
             Go Back
           </Button>
         )}
-        {WizardManager.getInsulinMarked() ? (
+        {session.insulinMarked ? (
           <Button onClick={goBack} variant="secondary">
             Go To Hub
           </Button>

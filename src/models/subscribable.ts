@@ -1,12 +1,12 @@
-import type { SubscriptionCallback } from "./types/subscriptionCallback";
+import type { GeneralSubscriptionCallback } from "./types/types";
 
 export default class Subscribable {
-  subscriptions: SubscriptionCallback[] = [];
+  subscriptions: GeneralSubscriptionCallback[] = [];
   // Subscriptions
-  subscribe(callback: SubscriptionCallback) {
+  subscribe(callback: GeneralSubscriptionCallback) {
     this.subscriptions.push(callback);
   }
-  unsubscribe(callback: SubscriptionCallback) {
+  unsubscribe(callback: GeneralSubscriptionCallback) {
     this.subscriptions = this.subscriptions.filter((sub) => sub !== callback);
   }
   notify() {

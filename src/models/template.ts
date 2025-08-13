@@ -1,20 +1,16 @@
 import { sessionsWeightedAverage } from "../lib/templateHelpers";
-import { profile } from "../storage/metaProfileStore";
-import preferencesStore from "../storage/preferencesStore";
-import MetabolismProfile from "./metabolism/metabolismProfile";
+import { CalibrationStore } from "../storage/calibrationStore";
+import { PreferencesStore } from "../storage/preferencesStore";
 import Session from "./session";
 import Subscribable from "./subscribable";
+import type { Deserializer, Serializer } from "./types/types";
 
 export default class Template extends Subscribable {
   sessions: Session[] = [];
-  profile: MetabolismProfile;
   timestamp: Date;
 
   constructor(public name: string) {
     super();
-    this.profile = MetabolismProfile.parse(
-      MetabolismProfile.stringify(profile)
-    ); // Hard copy profile into own profile to give baseline profile
     this.timestamp = new Date();
   }
 
@@ -78,13 +74,13 @@ export default class Template extends Subscribable {
     protein: number;
   } {
     // The alpha is basically a gradient descent from the general profile
-    let alphaCarbs = profile.carbs.effect;
-    let alphaProtein = profile.protein.effect;
+    let alphaCarbs = CalibrationStore.carbsEffect.value;
+    let alphaProtein = CalibrationStore.proteinEffect.value;
 
     const baseLearningRate = 0.0003;
 
-    const sessionHalfLife = preferencesStore.get("sessionHalfLife");
-    const maxSessionLife = preferencesStore.get("maxSessionLife");
+    const sessionHalfLife = PreferencesStore.sessionHalfLife.value;
+    const maxSessionLife = PreferencesStore.maxSessionLife.value;
 
     // Don't allow less than 3 sessions before making any conclusions
     if (this.sessions.length >= 3) {
@@ -149,25 +145,25 @@ export default class Template extends Subscribable {
     const additionalProtein = protein - baseProtein;
     const effect =
       additionalCarbs * alpha.carbs + additionalProtein * alpha.protein;
-    const neededInsulin = effect / profile.insulin.effect;
+    const neededInsulin = effect / CalibrationStore.insulinEffect.value;
     return neededInsulin;
   }
 
   // Serialization
-  static stringify(template: Template): string {
+  static serialize: Serializer<Template> = (template: Template) => {
     return JSON.stringify({
       name: template.name,
-      sessions: template.sessions.map((s) => Session.stringify(s)),
-      profile: MetabolismProfile.stringify(template.profile),
+      sessions: template.sessions.map((s) => Session.serialize(s)),
       timestamp: template.timestamp,
     });
-  }
-  static parse(s: string): Template {
+  };
+  static deserialize: Deserializer<Template> = (s: string) => {
     const o = JSON.parse(s);
     let template = new Template(o.name);
-    o.sessions.forEach((s: string) => template.addSession(Session.parse(s)));
-    template.profile = MetabolismProfile.parse(o.profile);
+    o.sessions.forEach((s: string) =>
+      template.addSession(Session.deserialize(s))
+    );
     template.timestamp = new Date(o.timestamp);
     return template;
-  }
+  };
 }

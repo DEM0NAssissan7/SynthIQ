@@ -16,50 +16,42 @@
  */
 
 import type { NavigateFunction } from "react-router";
-import Glucose from "../models/events/glucose";
 import HealthMonitorStatus from "../models/types/healthMonitorStatus";
 import SugarReading, {
   getReadingFromNightscout,
 } from "../models/types/sugarReading";
-import healthMonitorStore from "../storage/healthMonitorStore";
-import preferencesStore from "../storage/preferencesStore";
 import { getHourDiff, getMinuteDiff } from "./timing";
 import { MathUtil, round } from "./util";
 import RemoteReadings from "./remote/readings";
 import { getBGVelocities } from "./readingsUtil";
-import basalStore from "../storage/basalStore";
 import { populateFastingVelocitiesCache } from "./basal";
+import Glucose from "../models/events/glucose";
+import { HealthMonitorStore } from "../storage/healthMonitorStore";
+import { PreferencesStore } from "../storage/preferencesStore";
+import { BasalStore } from "../storage/basalStore";
 
 export let healthMonitorStatus = HealthMonitorStatus.Nominal;
 
 /** Poll nightscout to fill the reading cache */
 export async function populateReadingCache() {
-  const readingsCacheSize = healthMonitorStore.get("readingsCacheSize");
+  const readingsCacheSize = HealthMonitorStore.readingsCacheSize.value;
   const rawReadings = await RemoteReadings.getLatestReadings(readingsCacheSize);
   if (rawReadings) {
     let readings = rawReadings.map((r: any) =>
       getReadingFromNightscout(r)
     ) as SugarReading[];
-    healthMonitorStore.set("readingsCache", readings);
-    healthMonitorStore.set("currentBG", readings[0].sugar);
+    HealthMonitorStore.readingsCache.value = readings;
+    HealthMonitorStore.currentBG.value = readings[0].sugar;
     return readings;
   }
   return null;
-}
-
-/** Get readings */
-function getReadings() {
-  return healthMonitorStore.get("readingsCache") as SugarReading[];
-}
-export function getCurrentBG() {
-  return healthMonitorStore.get("currentBG") as number;
 }
 
 /** This function returns (mg/dL) / hr.
  * It describes how quickly blood sugar is moving based on the CGM readings
  */
 export function getBGVelocity() {
-  const readings = getReadings();
+  const readings = HealthMonitorStore.readingsCache.value;
   const velocities = getBGVelocities(readings);
   // We give the median of all the velocities to rule out insane jumps
   return MathUtil.median(velocities);
@@ -70,38 +62,46 @@ export function getBGVelocity() {
 export function timeToCritical() {
   const pointsPerMinute = -getBGVelocity() / 60;
   if (pointsPerMinute <= 0) return Infinity;
-  const currentBG = getCurrentBG();
-  const dangerBG = preferencesStore.get("dangerBG");
-  const pointsToCritical = currentBG - dangerBG;
+  const pointsToCritical =
+    HealthMonitorStore.currentBG.value - PreferencesStore.dangerBG.value;
   return round(pointsToCritical / pointsPerMinute, 0);
 }
 
 // Rescue Glucose
-export function markGlucose(caps: number) {
-  healthMonitorStore.set("lastRescue", new Glucose(new Date(), caps));
-}
-function getLastRescue() {
-  return healthMonitorStore.get("lastRescue");
+export function markGlucose(grams: number) {
+  HealthMonitorStore.lastRescue.value = new Glucose(grams, new Date());
 }
 
 export function getLastRescueMinutes() {
   const minuteDiff = round(
-    getMinuteDiff(new Date(), getLastRescue().timestamp),
+    getMinuteDiff(new Date(), HealthMonitorStore.lastRescue.value.timestamp),
     0
   );
   return minuteDiff;
 }
 export function getLastRescueCaps() {
-  return getLastRescue().caps;
+  return HealthMonitorStore.lastRescue.value.value;
+}
+
+function getLatestBasal() {
+  const basals = BasalStore.basalDoses.value;
+  return basals[basals.length - 1];
+}
+export function getLatestBasalTimestamp() {
+  const latestBasal = getLatestBasal();
+  const lastBasalTimestamp = latestBasal ? latestBasal.timestamp : new Date();
+  return lastBasalTimestamp;
 }
 
 // Basal
 export function getTimeSinceLastBasal() {
-  const lastBasalTimestamp = basalStore.get("lastBasalTimestamp");
-  return getHourDiff(new Date(), lastBasalTimestamp);
+  const now = new Date();
+  const latestBasal = getLatestBasal();
+  const lastBasalTimestamp = latestBasal ? latestBasal.timestamp : now;
+  return getHourDiff(now, lastBasalTimestamp);
 }
 export function basalIsDue() {
-  const shotsPerDay = healthMonitorStore.get("basalShotsPerDay");
+  const shotsPerDay = HealthMonitorStore.basalShotsPerDay.value;
   const interval = 24 / shotsPerDay;
   const timeSinceLastBasal = getTimeSinceLastBasal();
 
@@ -114,10 +114,10 @@ export function basalIsDue() {
 
   // If it's been longer than the allowed interval since the last basal, or if the current time has passed the scheduled basal shot time and the shot hasn't been taken yet, basal is due
   // Rule 2: Based on scheduled times
-  const firstShotHour = healthMonitorStore.get("basalShotTime"); // 8 => 8:00 AM, 16 => 4:00 PM
+  const firstShotHour = HealthMonitorStore.basalShotTime.value; // 8 => 8:00 AM, 16 => 4:00 PM
   const now = new Date();
   const nowTime = now.getTime();
-  const lastBasal = basalStore.get("lastBasalTimestamp");
+  const lastBasal = getLatestBasalTimestamp();
 
   // Get the current hour we are targetting
   for (let i = 0; i < shotsPerDay; i++) {
@@ -140,13 +140,13 @@ export async function updateHealthMonitorStatus() {
   const readings: SugarReading[] | null = await populateReadingCache();
   populateFastingVelocitiesCache();
   if (readings) {
-    const currentBG = getCurrentBG();
+    const currentBG = HealthMonitorStore.currentBG.value;
 
     // Assume things are nominal
     healthMonitorStatus = HealthMonitorStatus.Nominal;
 
     // If the user hasn't already taken glucose
-    const timeBetweenShots = healthMonitorStore.get("timeBetweenShots");
+    const timeBetweenShots = HealthMonitorStore.timeBetweenShots.value;
     if (getLastRescueMinutes() >= timeBetweenShots) {
       // Check critical time
       const criticalTime = timeToCritical();
@@ -155,13 +155,13 @@ export async function updateHealthMonitorStatus() {
         return healthMonitorStatus;
       }
 
-      if (currentBG < preferencesStore.get("lowBG")) {
+      if (currentBG < PreferencesStore.lowBG.value) {
         healthMonitorStatus = HealthMonitorStatus.Low;
         return healthMonitorStatus;
       }
     }
 
-    if (currentBG > preferencesStore.get("highBG")) {
+    if (currentBG > PreferencesStore.highBG.value) {
       healthMonitorStatus = HealthMonitorStatus.High;
       return healthMonitorStatus;
     }

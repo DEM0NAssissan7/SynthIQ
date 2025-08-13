@@ -2,15 +2,15 @@
 
 import { useNavigate } from "react-router";
 import { useEffect } from "react";
-import TemplateManager from "../../lib/templateManager";
+import WizardManager from "../../lib/wizardManager";
 
-function RouterPage() {
+function WizardRouterPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    TemplateManager.moveToCurrentPage(navigate);
+    WizardManager.moveToCurrentPage(navigate);
   });
   return <></>;
 }
 
-export default RouterPage;
+export default WizardRouterPage;

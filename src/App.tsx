@@ -1,26 +1,27 @@
 import { Routes, Route, Navigate, useNavigate } from "react-router";
 import TopBar from "./components/TopBar";
-import WizardManager from "./lib/wizardManager";
 import HubPage from "./pages/HubPage";
 import SettingsPage from "./pages/SettingsPage";
 import SetupPage from "./pages/SetupPage";
-import WizardIntroPage from "./pages/template/WizardIntroPage";
-import RouterPage from "./pages/template/RouterPage";
+import WizardIntroPage from "./pages/wizard/WizardIntroPage";
+import WizardRouterPage from "./pages/wizard/WizardRouterPage";
 import { useEffect } from "react";
 import CustomFoodsPage from "./pages/CustomFoodsPage";
 import DextrosePage from "./pages/DextrosePage";
 import StatisticsPage from "./pages/StatisticsPage";
-import TemplateHubPage from "./pages/template/TemplateHubPage";
-import TemplateMealPage from "./pages/template/TemplateMealPage";
-import TemplateSelectionPage from "./pages/template/TemplateSelectionPage";
-import TemplateInsulinPage from "./pages/template/TemplateInsulinPage";
-import TemplateFinalBGPage from "./pages/template/TemplateFinalBGPage";
-import TemplateEditPage from "./pages/template/TemplateEditPage";
+import WizardHubPage from "./pages/wizard/WizardHubPage";
+import WizardMealPage from "./pages/wizard/WizardMealPage";
+import WizardSelectionPage from "./pages/wizard/WizardSelectionPage";
+import WizardFinalBGPage from "./pages/wizard/WizardFinalBGPage";
+import WizardEditPage from "./pages/wizard/WizardEditPage";
 import RescuePage from "./pages/RescuePage";
 import { smartMonitor } from "./lib/healthMonitor";
 import Backend from "./lib/remote/backend";
 import RemoteStorage from "./lib/remote/storage";
 import BasalPage from "./pages/BasalPage";
+import { BackendStore } from "./storage/backendStore";
+import { WizardStore } from "./storage/wizardStore";
+import WizardInsulinPage from "./pages/wizard/WizardInsulinPage";
 
 function App() {
   const navigate = useNavigate();
@@ -42,8 +43,8 @@ function App() {
           <Route
             path="/"
             element={
-              Backend.urlIsValid() || Backend.getSkipped() ? (
-                WizardManager.isActive() ? (
+              Backend.urlIsValid() || BackendStore.skipSetup.value ? (
+                WizardStore.session.value.started ? (
                   <Navigate to="/wizard" replace />
                 ) : (
                   <Navigate to="/hub" replace />
@@ -63,18 +64,14 @@ function App() {
           <Route path="/basal" element={<BasalPage />} />
 
           {/* Wizard Routes */}
-          <Route path="/wizard" element={<RouterPage />} />
+          <Route path="/wizard" element={<WizardRouterPage />} />
           <Route path="/wizard/intro" element={<WizardIntroPage />} />
-
-          {/* Template Routes */}
-          <Route path="/template" element={<RouterPage />} />
-          {/* We just reuse wizardrouter because it deals with it properly */}
-          <Route path="/template/select" element={<TemplateSelectionPage />} />
-          <Route path="/template/hub" element={<TemplateHubPage />} />
-          <Route path="/template/meal" element={<TemplateMealPage />} />
-          <Route path="/template/insulin" element={<TemplateInsulinPage />} />
-          <Route path="/template/edit" element={<TemplateEditPage />} />
-          <Route path="/template/finalbg" element={<TemplateFinalBGPage />} />
+          <Route path="/wizard/select" element={<WizardSelectionPage />} />
+          <Route path="/wizard/hub" element={<WizardHubPage />} />
+          <Route path="/wizard/meal" element={<WizardMealPage />} />
+          <Route path="/wizard/insulin" element={<WizardInsulinPage />} />
+          <Route path="/wizard/edit" element={<WizardEditPage />} />
+          <Route path="/wizard/finalbg" element={<WizardFinalBGPage />} />
         </Routes>
       </div>
     </div>

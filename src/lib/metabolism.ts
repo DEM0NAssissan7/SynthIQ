@@ -1,16 +1,21 @@
 import type Session from "../models/session";
-import { profile } from "../storage/metaProfileStore";
-import basalStore from "../storage/basalStore";
+import { CalibrationStore } from "../storage/calibrationStore";
+import { PreferencesStore } from "../storage/preferencesStore";
 
 // Insulin
 export function getInsulin(carbs: number, protein: number) {
   return (
-    (carbs * profile.carbs.effect + protein * profile.protein.effect) /
-    profile.insulin.effect
+    (carbs * CalibrationStore.carbsEffect.value +
+      protein * CalibrationStore.proteinEffect.value) /
+    CalibrationStore.insulinEffect.value
   );
 }
 export function getCorrectionInsulin(glucose: number) {
-  return Math.max((glucose - profile.target) / profile.insulin.effect, 0);
+  return Math.max(
+    (glucose - PreferencesStore.targetBG.value) /
+      CalibrationStore.insulinEffect.value,
+    0
+  );
 }
 export function getSessionMealInsulin(session: Session) {
   return session.insulin - getCorrectionInsulin(session.initialGlucose);
@@ -18,7 +23,11 @@ export function getSessionMealInsulin(session: Session) {
 
 // Glucose
 export function getGlucoseCorrectionCaps(sugar: number) {
-  return Math.max((profile.target - sugar) / profile.glucose.effect, 0);
+  return Math.max(
+    (PreferencesStore.targetBG.value - sugar) /
+      CalibrationStore.glucoseEffect.value,
+    0
+  );
 }
 export function getIntelligentGlucoseCorrection(
   velocityHours: number,
@@ -41,6 +50,6 @@ export function getIntelligentGlucoseCorrection(
  * velocity: (mg/dL) / hr
  */
 export function getBasalCorrection(velocity: number): number {
-  const basalVelocityEffect = basalStore.get("basalEffect"); // [(mg/dL) per hour] / unit
+  const basalVelocityEffect = CalibrationStore.basalEffect.value; // [(mg/dL) per hour] / unit
   return velocity / basalVelocityEffect;
 }

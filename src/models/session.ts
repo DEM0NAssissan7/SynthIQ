@@ -4,12 +4,14 @@ import Glucose from "./events/glucose";
 import Insulin from "./events/insulin";
 import Meal from "./events/meal";
 import type MetaEvent from "./events/metaEvent";
-import { profile } from "../storage/metaProfileStore";
 import Unit from "./unit";
 import RemoteReadings from "../lib/remote/readings";
 import SugarReading from "./types/sugarReading";
 import Snapshot from "./snapshot";
 import Subscribable from "./subscribable";
+import type { Deserializer, Serializer } from "./types/types";
+import { CalibrationStore } from "../storage/calibrationStore";
+import { PreferencesStore } from "../storage/preferencesStore";
 
 export default class Session extends Subscribable {
   uuid: UUID;
@@ -21,8 +23,8 @@ export default class Session extends Subscribable {
   version: number = 1;
 
   // Save user calibrations upon creation
-  insulinEffect: number = profile.insulin.effect;
-  glucoseEffect: number = profile.glucose.effect;
+  insulinEffect: number = CalibrationStore.insulinEffect.value;
+  glucoseEffect: number = CalibrationStore.glucoseEffect.value;
 
   meals: Meal[] = [];
   insulins: Insulin[] = [];
@@ -45,6 +47,9 @@ export default class Session extends Subscribable {
     this.meals = this.meals.filter((m) => m !== meal);
     this.removeChildSubscribable(meal);
     this.notify();
+  }
+  get mealMarked(): boolean {
+    return this.meals.length !== 0;
   }
   get carbs(): number {
     let carbs = 0;
@@ -145,7 +150,7 @@ export default class Session extends Subscribable {
     const totalDeltaBG = finalBG - initialGlucose;
 
     const glucose = this.glucose;
-    const glucoseDeltaBG = glucose * profile.glucose.effect;
+    const glucoseDeltaBG = glucose * CalibrationStore.glucoseEffect.value;
 
     const insulin = this.insulin;
     const insulinDeltaBG = insulin * this.insulinEffect;
@@ -173,8 +178,8 @@ export default class Session extends Subscribable {
     if (!finalBG)
       throw new Error(`Cannot get optimal insulin: no final blood sugar`);
 
-    const target = profile.target;
-    const glucoseRise = this.glucose * profile.glucose.effect;
+    const target = PreferencesStore.targetBG.value;
+    const glucoseRise = this.glucose * CalibrationStore.glucoseEffect.value;
 
     const BGError = finalBG - target; // The amount that the final blood sugar deviated from the target
     // We wanna bring BG back to target, but we also negate
@@ -190,7 +195,7 @@ export default class Session extends Subscribable {
   }
 
   // Insulins
-  createInsulin(timestamp: Date, units: number, BG?: number): Insulin {
+  createInsulin(units: number, timestamp: Date, BG?: number): Insulin {
     // Mark snapshot
     if (this.insulins.length !== 0 && BG) {
       this.lastSnapshot.finalBG = BG;
@@ -198,7 +203,7 @@ export default class Session extends Subscribable {
       snapshot.initialBG = BG;
     }
 
-    const insulin = new Insulin(timestamp, units);
+    const insulin = new Insulin(units, timestamp);
     this.insulins.push(insulin);
     this.addChildSubscribable(insulin);
     this.notify();
@@ -209,14 +214,19 @@ export default class Session extends Subscribable {
     this.removeChildSubscribable(insulin);
     this.notify();
   }
+  get insulinMarked(): boolean {
+    return this.insulins.length !== 0;
+  }
   get insulin(): number {
     let insulin = 0;
-    this.insulins.forEach((a: Insulin) => (insulin += a.units));
+    this.insulins.forEach((a: Insulin) => (insulin += a.value));
     return insulin;
   }
   get mealInsulin(): number {
     return (
-      this.insulin - (this.initialGlucose - profile.target) / this.insulinEffect
+      this.insulin -
+      (this.initialGlucose - PreferencesStore.targetBG.value) /
+        this.insulinEffect
     );
   }
   get firstInsulinTimestamp(): Date {
@@ -229,8 +239,8 @@ export default class Session extends Subscribable {
   }
 
   // Glucoses
-  createGlucose(timestamp: Date, caps: number): Glucose {
-    const glucose = new Glucose(timestamp, caps);
+  createGlucose(grams: number, timestamp: Date): Glucose {
+    const glucose = new Glucose(grams, timestamp);
     this.glucoses.push(glucose);
     this.addChildSubscribable(glucose);
     this.notify();
@@ -243,7 +253,7 @@ export default class Session extends Subscribable {
   }
   get glucose(): number {
     let glucose = 0;
-    this.glucoses.forEach((a: Glucose) => (glucose += a._caps));
+    this.glucoses.forEach((a: Glucose) => (glucose += a.value));
     return glucose;
   }
   get latestGlucoseTimestamp(): Date {
@@ -313,37 +323,39 @@ export default class Session extends Subscribable {
   }
 
   // Serialization
-  static stringify(session: Session): string {
+  static serialize: Serializer<Session> = (session: Session) => {
     return JSON.stringify({
       uuid: session.uuid,
-      snapshots: session.snapshots.map((s) => Snapshot.stringify(s)),
-      meals: session.meals.map((a) => Meal.stringify(a)),
-      insulins: session.insulins.map((a) => Insulin.stringify(a)),
-      glucoses: session.glucoses.map((a) => Glucose.stringify(a)),
+      snapshots: session.snapshots.map((s) => Snapshot.serialize(s)),
+      meals: session.meals.map((a) => Meal.serialize(a)),
+      insulins: session.insulins.map((a) => Insulin.serialize(a)),
+      glucoses: session.glucoses.map((a) => Glucose.serialize(a)),
       isGarbage: session.isGarbage,
       notes: session.notes,
       insulinEffect: session.insulinEffect,
       glucoseEffect: session.glucoseEffect,
       version: session.version,
     });
-  }
-  static parse(str: string): Session {
+  };
+  static deserialize: Deserializer<Session> = (str: string) => {
     const o = JSON.parse(str);
     let session = new Session(false);
     session.uuid = o.uuid;
     session.isGarbage = o.isGarbage || false;
     session.notes = o.notes || "";
-    session.insulinEffect = o.insulinEffect || profile.insulin.effect;
-    session.glucoseEffect = o.glucoseEffect || profile.glucose.effect;
+    session.insulinEffect =
+      o.insulinEffect || CalibrationStore.insulinEffect.value;
+    session.glucoseEffect =
+      o.glucoseEffect || CalibrationStore.glucoseEffect.value;
 
-    o.meals.map((a: string) => session.addMeal(Meal.parse(a)));
+    o.meals.map((a: string) => session.addMeal(Meal.deserialize(a)));
     o.insulins.map((a: string) => {
-      const insulin = Insulin.parse(a);
-      session.createInsulin(insulin.timestamp, insulin.units); // Create insulin without modifying snapshots
+      const insulin = Insulin.deserialize(a);
+      session.createInsulin(insulin.value, insulin.timestamp); // Create insulin without modifying snapshots
     });
     o.glucoses.map((a: string) => {
-      const glucose = Glucose.parse(a);
-      session.createGlucose(glucose.timestamp, glucose.caps);
+      const glucose = Glucose.deserialize(a);
+      session.createGlucose(glucose.value, glucose.timestamp);
     });
 
     // Compatibility
@@ -365,12 +377,12 @@ export default class Session extends Subscribable {
     } else {
       if (o.version === 1) {
         const snapshots: Snapshot[] = o.snapshots.map((a: string) =>
-          Snapshot.parse(a)
+          Snapshot.deserialize(a)
         );
         snapshots.forEach((s) => session.addSnapshot(s));
       }
     }
 
     return session;
-  }
+  };
 }

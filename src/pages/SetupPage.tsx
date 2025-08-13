@@ -1,15 +1,15 @@
 import { InputGroup, Form, Button, Toast } from "react-bootstrap";
 import { useNavigate } from "react-router";
 import { useState } from "react";
-import { backendStore } from "../storage/backendStore";
 import Backend from "../lib/remote/backend";
-import privateStore from "../storage/privateStore";
+import { BackendStore } from "../storage/backendStore";
+import { PrivateStore } from "../storage/privateStore";
 
 const autoHideTime = 4000;
 
 // This is usually a bad thing, but we are just pulling the current values to give the user a view on what he currently has, to allow him to change it
-const url = backendStore.get("url");
-const apiSecret = privateStore.get("apiSecret");
+const [url, setUrl] = BackendStore.url.useState();
+const [apiSecret, setApiSecret] = PrivateStore.apiSecret.useState();
 
 function SetupPage() {
   const navigate = useNavigate();
@@ -39,7 +39,7 @@ function SetupPage() {
   }
 
   async function attemptContinue() {
-    if (!backendStore.get("url")) {
+    if (!url) {
       errorMsg("Please input a URL");
       return;
     }
@@ -58,7 +58,7 @@ function SetupPage() {
   }
 
   async function testAuth() {
-    if (!backendStore.get("url") || !privateStore.get("apiSecret")) {
+    if (!url || !apiSecret) {
       errorMsg("Please input a URL and API key");
       return;
     }
@@ -90,7 +90,7 @@ function SetupPage() {
           placeholder={url || "Enter your nightscout server URL"}
           aria-label="URL"
           aria-describedby="basic-addon1"
-          onChange={(e) => backendStore.set("url", e.target.value)}
+          onChange={(e) => setUrl(e.target.value)}
         />
       </InputGroup>
       <InputGroup className="mb-3">
@@ -102,7 +102,7 @@ function SetupPage() {
           placeholder={apiSecret || "Enter your API key"}
           aria-label="API Key"
           aria-describedby="basic-addon2"
-          onChange={(e) => privateStore.set("apiSecret", e.target.value)}
+          onChange={(e) => setApiSecret(e.target.value)}
         />
       </InputGroup>
       <Toast

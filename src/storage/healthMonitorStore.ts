@@ -1,32 +1,27 @@
+import Serialization from "../lib/serialization";
 import StorageNode from "../lib/storageNode";
 import Glucose from "../models/events/glucose";
-import SugarReading, {
-  createNightscoutReading,
-  getReadingFromNightscout,
-} from "../models/types/sugarReading";
+import SugarReading from "../models/types/sugarReading";
 
-const healthMonitorStore = new StorageNode("healthmonitor");
-export default healthMonitorStore;
+export namespace HealthMonitorStore {
+  const node = new StorageNode("healthMonitor");
 
-healthMonitorStore.add(
-  "readingsCache",
-  [] as SugarReading[],
-  (s: string) => JSON.parse(s).map((a: any) => getReadingFromNightscout(a)),
-  (r: SugarReading[]) =>
-    JSON.stringify(r.map((a) => createNightscoutReading(a)))
-);
-healthMonitorStore.add("readingsCacheSize", 5);
-
-healthMonitorStore.add(
-  "lastRescue",
-  new Glucose(new Date(), 0),
-  (s: string) => Glucose.parse(s),
-  (a: any) => Glucose.stringify(a)
-);
-
-healthMonitorStore.add("currentBG", 83);
-healthMonitorStore.add("timeBetweenShots", 15);
-healthMonitorStore.add("dropTime", 20);
-
-healthMonitorStore.add("basalShotsPerDay", 1);
-healthMonitorStore.add("basalShotTime", 8); // The hour time we take our first shot of the day. E.g. 8 => 8:00 AM, 16 => 4:00 PM
+  export const readingsCache = node.add<SugarReading[]>(
+    "readingsCache",
+    [],
+    Serialization.getArraySerializer(SugarReading.serialize),
+    Serialization.getArrayDeserializer(SugarReading.deserialize)
+  );
+  export const lastRescue = node.add<Glucose>(
+    "lastRescue",
+    new Glucose(0, new Date()),
+    Glucose.serialize,
+    Glucose.deserialize
+  );
+  export const readingsCacheSize = node.add("readingsCacheSize", 5);
+  export const currentBG = node.add("currentBG", 83);
+  export const timeBetweenShots = node.add("timeBetweenShots", 15);
+  export const dropTime = node.add("dropTime", 20);
+  export const basalShotsPerDay = node.add("basalShotsPerDay", 1);
+  export const basalShotTime = node.add("basalShotTime", 8);
+}

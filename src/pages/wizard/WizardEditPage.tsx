@@ -5,27 +5,27 @@ import FoodSearchDisplay from "../../components/FoodSearchDisplay";
 import GlucoseManager from "../../components/GlucoseManager";
 import InsulinManager from "../../components/InsulinManager";
 import MealAdditionalNutrients from "../../components/MealAdditionalNutrientsCard";
-import { useWizardSession } from "../../state/useSession";
 import { Button } from "react-bootstrap";
 import { useMemo, useState } from "react";
 import { Dropdown } from "react-bootstrap";
-import TemplateManager from "../../lib/templateManager";
-import { TemplateState } from "../../models/types/templateState";
 import BloodSugarInput from "../../components/BloodSugarInput";
 import TemplateSummary from "../../components/TemplateSummary";
+import { WizardStore } from "../../storage/wizardStore";
+import WizardManager from "../../lib/wizardManager";
+import { WizardPage } from "../../models/types/wizardState";
 
-export default function TemplateEditPage() {
-  const session = useWizardSession();
+export default function WizardEditPage() {
+  const [session] = WizardStore.session.useState();
   const [selectedMealIndex, setSelectedMealIndex] = useState(0);
   const meal = useMemo(
     () => session.meals[selectedMealIndex],
     [selectedMealIndex]
   );
-  const template = TemplateManager.getTemplate();
+  const template = WizardStore.template.value;
 
   const navigate = useNavigate();
   function finishEdit() {
-    TemplateManager.moveToPage(TemplateState.Hub, navigate);
+    WizardManager.moveToPage(WizardPage.Hub, navigate);
   }
   function setGlucose(a: number) {
     session.initialGlucose = a;

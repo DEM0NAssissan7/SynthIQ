@@ -3,32 +3,26 @@ import { Button, Form, InputGroup } from "react-bootstrap";
 import WizardManager from "../../lib/wizardManager";
 import { round } from "../../lib/util";
 import { useNavigate } from "react-router";
-import { useWizardSession } from "../../state/useSession";
-import { useWizardMeal } from "../../state/useMeal";
 import BloodSugarInput from "../../components/BloodSugarInput";
 import { getCorrectionInsulin, getInsulin } from "../../lib/metabolism";
 import Card from "../../components/Card";
-import TemplateManager from "../../lib/templateManager";
-import { TemplateState } from "../../models/types/templateState";
 import TemplateSummary from "../../components/TemplateSummary";
+import { WizardStore } from "../../storage/wizardStore";
+import { WizardPage } from "../../models/types/wizardState";
 
-export default function TemplateInsulinPage() {
+export default function WizardInsulinPage() {
   const navigate = useNavigate();
-  const session = useWizardSession();
-  const meal = WizardManager.getMealMarked()
+  const [session] = WizardStore.session.useState();
+  const meal = session.mealMarked
     ? session.latestMeal
-    : useWizardMeal();
-  const template = TemplateManager.getTemplate();
+    : WizardStore.meal.useState()[0];
+  const [template] = WizardStore.template.useState();
 
   const suggestedInsulin = getInsulin(meal.carbs, meal.protein);
 
   // Inputted Insulin
   const [insulinTaken, setInsulinTaken] = useState(0);
   const [currentGlucose, setCurrentGlucose] = useState(session.initialGlucose);
-  function setGlucose(value: number) {
-    setCurrentGlucose(value);
-    WizardManager.setInitialGlucose(value, false);
-  }
   const markInsulin = () => {
     if (!isNaN(insulinTaken)) {
       if (
@@ -36,12 +30,14 @@ export default function TemplateInsulinPage() {
       ) {
         WizardManager.markInsulin(insulinTaken, currentGlucose);
         WizardManager.setInitialGlucose(currentGlucose);
-        TemplateManager.moveToPage(
-          WizardManager.getMealMarked()
-            ? TemplateState.Hub
-            : TemplateState.Meal,
-          navigate
-        );
+        if (session.started) {
+          WizardManager.moveToPage(
+            session.mealMarked ? WizardPage.Hub : WizardPage.Meal,
+            navigate
+          );
+        } else {
+          navigate("/hub");
+        }
       }
     } else {
       alert("Please enter a valid number");
@@ -65,8 +61,8 @@ export default function TemplateInsulinPage() {
 
   // A variable that changes once per minute
   function goBack() {
-    TemplateManager.moveToPage(
-      WizardManager.getMealMarked() ? TemplateState.Hub : TemplateState.Meal,
+    WizardManager.moveToPage(
+      session.mealMarked ? WizardPage.Hub : WizardPage.Meal,
       navigate
     );
   }
@@ -86,7 +82,7 @@ export default function TemplateInsulinPage() {
       <Card>
         <BloodSugarInput
           initialGlucose={currentGlucose}
-          setInitialGlucose={setGlucose}
+          setInitialGlucose={setCurrentGlucose}
         />
         <InputGroup className="mb-3">
           <InputGroup.Text id="basic-addon1">

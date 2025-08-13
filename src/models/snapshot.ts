@@ -8,6 +8,7 @@
 import RemoteReadings from "../lib/remote/readings";
 import Subscribable from "./subscribable";
 import SugarReading, { getReadingFromNightscout } from "./types/sugarReading";
+import type { Deserializer, Serializer } from "./types/types";
 
 export default class Snapshot extends Subscribable {
   private rawReadings: SugarReading[] = [];
@@ -111,18 +112,18 @@ export default class Snapshot extends Subscribable {
   }
 
   // Serialization
-  static stringify(s: Snapshot) {
+  static serialize: Serializer<Snapshot> = (s: Snapshot) => {
     return JSON.stringify({
-      rawReadings: s.rawReadings.map((r) => SugarReading.stringify(r)),
+      rawReadings: s.rawReadings.map((r) => SugarReading.serialize(r)),
     });
-  }
-  static parse(s: string) {
+  };
+  static deserialize: Deserializer<Snapshot> = (s: string) => {
     const o = JSON.parse(s);
     let snapshot = new Snapshot();
     const readings: SugarReading[] = o.rawReadings.map((s: string) =>
-      SugarReading.parse(s)
+      SugarReading.deserialize(s)
     );
     readings.forEach((r) => snapshot.addReading(r, false));
     return snapshot;
-  }
+  };
 }

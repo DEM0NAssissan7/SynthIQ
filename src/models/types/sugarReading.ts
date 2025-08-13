@@ -1,3 +1,5 @@
+import type { Deserializer, Serializer } from "./types";
+
 export default class SugarReading {
   constructor(
     public sugar: number,
@@ -5,21 +7,21 @@ export default class SugarReading {
     public isCalibration: boolean = false
   ) {}
 
-  static stringify(r: SugarReading) {
+  static serialize: Serializer<SugarReading> = (r: SugarReading) => {
     return JSON.stringify({
       sugar: r.sugar,
       timestamp: r.timestamp.toString(),
       isCalibration: r.isCalibration,
     });
-  }
-  static parse(s: string) {
+  };
+  static deserialize: Deserializer<SugarReading> = (s: string) => {
     const o = JSON.parse(s);
     return new SugarReading(
       o.sugar,
       new Date(o.timestamp),
       o.isCalibration || false
     );
-  }
+  };
 }
 
 export function getReadingFromNightscout(o: {

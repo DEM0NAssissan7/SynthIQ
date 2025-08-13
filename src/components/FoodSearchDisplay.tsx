@@ -17,7 +17,6 @@ export default function FoodSearchDisplay({ meal }: FoodSearchDisplayProps) {
       food.carbsRate,
       food.proteinRate,
       food.unit,
-      food.GI,
       food.fatRate
     );
     newFood.amount = amount;

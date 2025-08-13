@@ -1,18 +1,16 @@
-import { useState } from "react";
 import Card from "../components/Card";
-import useStorageNode from "../state/useStorageNode";
-import dextroseStore from "../storage/dextroseStore";
 import { Form, InputGroup } from "react-bootstrap";
-import type StorageNode from "../lib/storageNode";
 import { round } from "../lib/util";
+import type { KeyInterface } from "../lib/storageNode";
+import { DextroseStore } from "../storage/dextroseStore";
+import { useMemo } from "react";
 
 interface InputBoxParams {
-  store: StorageNode;
-  name: string;
+  keyInterface: KeyInterface<number>;
   unit?: string;
 }
-function InputBox({ store, name, unit }: InputBoxParams) {
-  const [val, setVal] = useState(store.get(name));
+function InputBox({ keyInterface, unit }: InputBoxParams) {
+  const [, setVal] = keyInterface.useState();
 
   return (
     <InputGroup
@@ -21,11 +19,9 @@ function InputBox({ store, name, unit }: InputBoxParams) {
     >
       <Form.Control
         type="number"
-        value={val || ""}
         onChange={(e) => {
-          setVal(e.target.value);
           const value = parseFloat(e.target.value);
-          store.set(name, !isNaN(value) ? value : 0);
+          setVal(!isNaN(value) ? value : 0);
         }}
       />
       {unit && (
@@ -36,46 +32,62 @@ function InputBox({ store, name, unit }: InputBoxParams) {
 }
 
 export default function DextrosePage() {
-  const store = useStorageNode(dextroseStore);
+  const [powderGlucoseContent] = DextroseStore.powderGlucoseContent.useState();
+  const [powderMassContent] = DextroseStore.powderMassContent.useState();
+  const [totalSolution] = DextroseStore.totalSolution.useState();
+  const [concentrationGlucose] = DextroseStore.concentrationGlucose.useState();
+  const [concentrationVolume] = DextroseStore.concentrationVolume.useState();
 
-  function getPowderMass() {
-    let glucoseInPowder =
-      store.get("powderGlucoseContent") / store.get("powderMassContent");
+  const powderMass = useMemo(() => {
+    let glucoseInPowder = powderGlucoseContent / powderMassContent;
     if (glucoseInPowder === 0) return 0;
 
-    let gramsPerMl =
-      store.get("concentrationGlucose") / store.get("concentrationVolume");
+    let gramsPerMl = concentrationGlucose / concentrationVolume;
 
-    return (gramsPerMl * store.get("totalSolution")) / glucoseInPowder;
-  }
+    return (gramsPerMl * totalSolution) / glucoseInPowder;
+  }, [
+    powderGlucoseContent,
+    powderMassContent,
+    concentrationGlucose,
+    concentrationVolume,
+    totalSolution,
+  ]);
 
-  function getWaterVolume() {
-    return store.get("totalSolution") - getPowderMass();
-  }
+  const waterVolume = useMemo(() => {
+    return totalSolution - powderMass;
+  }, [totalSolution, powderMass]);
 
   return (
     <>
       <h1>Dextrose Mixing</h1>
       <Card>
         <h3>Powder Concentration</h3>
-        <InputBox store={store} name={"powderGlucoseContent"} unit="g" /> carbs
-        per <InputBox store={store} name={"powderMassContent"} unit="g" />{" "}
+        <InputBox
+          keyInterface={DextroseStore.powderGlucoseContent}
+          unit="g"
+        />{" "}
+        carbs per{" "}
+        <InputBox keyInterface={DextroseStore.powderMassContent} unit="g" />{" "}
         dextrose powder
       </Card>
       <Card>
         <h3></h3>
         Total solution:{" "}
-        <InputBox store={store} name={"totalSolution"} unit="ml" />
+        <InputBox keyInterface={DextroseStore.totalSolution} unit="ml" />
         <br />
         <br />
         Concentration:{" "}
-        <InputBox store={store} name={"concentrationGlucose"} unit="g" /> carbs
-        per <InputBox store={store} name={"concentrationVolume"} unit="ml" />{" "}
+        <InputBox
+          keyInterface={DextroseStore.concentrationGlucose}
+          unit="g"
+        />{" "}
+        carbs per{" "}
+        <InputBox keyInterface={DextroseStore.concentrationVolume} unit="ml" />{" "}
         solution
       </Card>
       <Card>
-        Mix <b>{round(getPowderMass(), 0)}g</b> of dextrose powder with{" "}
-        <b>{round(getWaterVolume(), 0)}ml</b> of water
+        Mix <b>{round(powderMass, 0)}g</b> of dextrose powder with{" "}
+        <b>{round(waterVolume, 0)}ml</b> of water
       </Card>
     </>
   );

@@ -1,13 +1,11 @@
 import StorageNode from "../lib/storageNode";
 
-const dextroseStore = new StorageNode("dextrose");
-// desired concentration
-dextroseStore.add("concentrationGlucose", 1);
-dextroseStore.add("concentrationVolume", 3);
+export namespace DextroseStore {
+  const node = new StorageNode("dextrose");
 
-// glucose in powder
-dextroseStore.add("powderGlucoseContent", 1);
-dextroseStore.add("powderMassContent", 1);
-
-dextroseStore.add("totalSolution", 300);
-export default dextroseStore;
+  export const concentrationGlucose = node.add("concentrationGlucose", 1);
+  export const concentrationVolume = node.add("concentrationVolume", 3);
+  export const powderGlucoseContent = node.add("powderGlucoseContent", 1);
+  export const powderMassContent = node.add("powderMassContent", 1);
+  export const totalSolution = node.add("totalSolution", 300);
+}

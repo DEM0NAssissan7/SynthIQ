@@ -1,5 +1,5 @@
-import { backendStore } from "../../storage/backendStore";
-import privateStore from "../../storage/privateStore";
+import { BackendStore } from "../../storage/backendStore";
+import { PrivateStore } from "../../storage/privateStore";
 import StorageNode from "../storageNode";
 import { nodes } from "../storageNode";
 import { genUUID } from "../util";
@@ -10,7 +10,7 @@ class RemoteStorage {
     return await Backend.get("profile");
   }
   private static async getProfile() {
-    return (await this.getProfiles())[backendStore.get("profileID")];
+    return (await this.getProfiles())[BackendStore.profileID.value];
   }
   private static async putProfile(p: any) {
     Backend.put("profile", p);
@@ -23,28 +23,25 @@ class RemoteStorage {
 
     const uuid = genUUID();
     profile.nodeUUID = uuid;
-    privateStore.set("syncUUID", uuid);
+    PrivateStore.syncUUID.value = uuid;
 
     this.putProfile(profile);
   }
   static async download(forced = false) {
     const profile = await this.getProfile();
-    if (profile.nodeUUID !== privateStore.get("syncUUID") || forced) {
+    if (profile.nodeUUID !== PrivateStore.syncUUID.value || forced) {
       profile.nodeObjects.map((o: any) => {
         nodes.forEach((n: StorageNode) => n.import(o));
       });
-      privateStore.set("syncUUID", profile.nodeUUID);
+      PrivateStore.syncUUID.value = profile.nodeUUID;
       return true;
     }
     return false;
   }
 
   // Slave-master dynamic
-  private static get isMaster(): boolean | null {
-    return privateStore.get("isMaster");
-  }
   static async sync() {
-    switch (this.isMaster) {
+    switch (PrivateStore.isMaster.value) {
       case null:
         // If sync is disabled
         return;
@@ -58,14 +55,11 @@ class RemoteStorage {
         const synced = await this.download();
         if (synced) {
           console.log(`Storage synchronized from backend. Reloading...`);
-          this.setMaster(false); // Set master to false because it gets overridden in sync
+          PrivateStore.isMaster.value = false;
           location.reload(); // Reload page upon sync to ensure state consistency
         }
         break;
     }
-  }
-  static setMaster(state: boolean | null) {
-    privateStore.set("isMaster", state);
   }
 }
 

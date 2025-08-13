@@ -1,8 +1,9 @@
 import { useMemo, useState, type BaseSyntheticEvent } from "react";
 import { Button, Form, ListGroup } from "react-bootstrap";
-import TemplateManager from "../lib/templateManager";
 import type Template from "../models/template";
 import { getFullPrettyDate } from "../lib/timing";
+import { WizardStore } from "../storage/wizardStore";
+import WizardManager from "../lib/wizardManager";
 
 export default function TemplateNameSearch({
   onInput,
@@ -10,7 +11,7 @@ export default function TemplateNameSearch({
   onInput: (name: string) => void;
 }) {
   const [query, setQuery] = useState("");
-  const templates = TemplateManager.getTemplates();
+  const templates = WizardStore.templates.value;
 
   const filteredTemplates: Template[] = useMemo(() => {
     let result: Template[] = [];
@@ -44,7 +45,7 @@ export default function TemplateNameSearch({
           "This action will be irreversable, and all associated data with the template WILL be permanently destroyed."
         )
       ) {
-        TemplateManager.deleteTemplate(name);
+        WizardManager.deleteTemplate(name);
         location.reload();
       }
     }

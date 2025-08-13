@@ -2,29 +2,18 @@ import { Button, Form, ListGroup } from "react-bootstrap";
 import Card from "../components/Card";
 import FoodDisplay from "../components/FoodDisplay";
 import Food from "../models/food";
-import {
-  addCustomFood,
-  customStore,
-  removeCustomFood,
-} from "../storage/customStore";
-import { useEffect, useMemo, useState, type BaseSyntheticEvent } from "react";
+import { useMemo, useState, type BaseSyntheticEvent } from "react";
 import Unit, { getFoodUnitPrettyName } from "../models/unit";
-import { defaultGI } from "../models/metabolism/carbsProfile";
+import { CustomStore } from "../storage/customStore";
 
 export default function CustomFoodsPage() {
-  const [customFoodsState, setCustomFoodsState] = useState<Food[]>(
-    customStore.get("foods") as Food[]
-  );
+  const [customFoods] = CustomStore.foods.useState();
 
   const [foodName, setFoodName] = useState("");
   const [carbsRate, setCarbsRate] = useState(0);
-  const [GI, setGI] = useState(defaultGI);
   const [proteinRate, setProteinRate] = useState(0);
   const [fatRate, setFatRate] = useState(0);
   const [unit, setUnit] = useState(Unit.Food.HundredGrams);
-
-  const [, setVersion] = useState(0);
-  const rerender = () => setVersion((v) => v + 1);
 
   const handleFormSubmit = (e: BaseSyntheticEvent) => {
     e.preventDefault(); // Prevent the default form submission behavior
@@ -34,14 +23,9 @@ export default function CustomFoodsPage() {
     return getFoodUnitPrettyName(unit);
   }, [unit]);
 
-  function updateFoodState() {
-    setCustomFoodsState(customStore.get("foods") as Food[]);
-    rerender();
-  }
-  function resetStates() {
+  function resetUIStates() {
     setFoodName("");
     setCarbsRate(0);
-    setGI(defaultGI);
     setProteinRate(0);
     setFatRate(0);
     setUnit(Unit.Food.HundredGrams);
@@ -51,25 +35,17 @@ export default function CustomFoodsPage() {
       alert("Please enter a valid food name.");
       return;
     }
-    const food = new Food(foodName, carbsRate, proteinRate, unit, GI, fatRate);
-    addCustomFood(food);
-    updateFoodState();
-    resetStates();
+    const food = new Food(foodName, carbsRate, proteinRate, unit, fatRate);
+    CustomStore.addFood(food);
+    resetUIStates();
     console.log(`Added ${foodName} to custom foods.`);
   }
   function removeFood(food: Food) {
     if (confirm(`Are you sure you want to remove '${food.name}'?`)) {
-      removeCustomFood(food);
-      updateFoodState();
+      CustomStore.removeFood(food);
       console.log(`Removed ${food.name} from custom foods.`);
     }
   }
-
-  useEffect(() => {
-    // NightscoutManager.loadCustomFoods().then(() => {
-    //   updateFoodState();
-    // });
-  }, []);
 
   return (
     <>
@@ -115,18 +91,6 @@ export default function CustomFoodsPage() {
                   }}
                 />
                 <br />
-                Glycemic Index (GI):
-                <Form.Control
-                  type="number"
-                  placeholder={defaultGI.toString()}
-                  className="text-center"
-                  value={GI || ""}
-                  onInput={(e: BaseSyntheticEvent) => {
-                    const value = parseFloat(e.target.value) || 0;
-                    setGI(value);
-                  }}
-                />
-                <br />
                 protein/{prettyUnit}:
                 <Form.Control
                   type="number"
@@ -161,14 +125,14 @@ export default function CustomFoodsPage() {
           </Form>
         </Card>
         <Card>
-          {customFoodsState.length === 0 && (
+          {customFoods.length === 0 && (
             <div className="text-muted">
               No custom foods added yet. Use the form above to add new custom
               foods.
             </div>
           )}
           <ListGroup className="mt-3">
-            {customFoodsState.map((food, i) => (
+            {customFoods.map((food, i) => (
               <ListGroup.Item key={i} className="d-flex flex-column gap-3 p-3">
                 <FoodDisplay food={food} />
                 <Button variant="danger" onClick={() => removeFood(food)}>

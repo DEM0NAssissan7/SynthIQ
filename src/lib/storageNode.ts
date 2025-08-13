@@ -1,60 +1,68 @@
-import Subscribable from "../models/subscribable";
-import type { SubscriptionCallback } from "../models/types/subscriptionCallback";
+import { useState, useEffect } from "react";
+import type {
+  Deserializer,
+  Serializer,
+  SubscriptionCallback,
+} from "../models/types/types";
+import StorageBackends from "../registries/storageBackends";
 
-const appID = "synthiq";
-const storageBackend = {
-  // Allow for use with alternative storage APIs
-  getItem: (key: string) => {
-    if (typeof window !== "undefined" && window.localStorage) {
-      return localStorage.getItem(key);
-    } else {
-      console.error(
-        "StorageNode: Something went wrong with the storage backend (getItem)"
-      );
-    }
-  },
-  setItem: (key: string, value: string) => {
-    if (typeof window !== "undefined" && window.localStorage) {
-      localStorage.setItem(key, value);
-    } else {
-      console.error(
-        "StorageNode: Something went wrong with the storage backend (setItem)"
-      );
-    }
-  },
-};
+export interface KeyInterface<T> {
+  get value(): T;
+  set value(a: T);
+  write: () => void;
+  reset: () => void;
+  subscribe: (callback: SubscriptionCallback<T>) => void;
+  unsubscribe: (callback: SubscriptionCallback<T>) => void;
+  notify: () => void;
+  useState: () => [T, (v: T) => void];
+}
 
-type ReadHandler = (val: string) => any;
-type WriteHandler = (val: any) => string;
+const appID = "pulseiq";
+const storageBackend = StorageBackends.getDefault();
+function useStorageState<T>(entry: StorageEntry): [T, (v: T) => void] {
+  const [value, setValue] = useState(entry.get() as T);
 
-const defaultReadHandler: ReadHandler = JSON.parse;
-const defaultWriteHandler: WriteHandler = JSON.stringify;
+  useEffect(() => {
+    const callback = (newVal: T) => setValue(newVal);
+    entry.subscribe(callback);
+    return () => entry.unsubscribe(callback);
+  }, [entry]);
+
+  const updateValue = (v: T) => {
+    entry.set(v);
+  };
+
+  return [value as T, updateValue];
+}
+
+const defaultDeserializer: Deserializer<any> = JSON.parse;
+const defaultSerializer: Serializer<any> = JSON.stringify;
 
 export let nodes: StorageNode[] = [];
 
-class StorageEntry extends Subscribable {
+class StorageEntry {
   id: string;
   private nodeName: string;
-  private writeHandler: WriteHandler;
-  private readHandler: ReadHandler;
+  private serializer: Serializer<any>;
+  private deserializer: Deserializer<any>;
   private defaultValue: any;
 
   value: any;
+  subscriptions: SubscriptionCallback<any>[] = [];
 
   constructor(
     id: string,
     nodeName: string,
     defaultValue: any,
-    writeHandler: WriteHandler,
-    readHandler: ReadHandler
+    serializer: Serializer<any>,
+    deserializer: Deserializer<any>
   ) {
-    super();
     this.id = id;
     this.nodeName = nodeName;
     this.defaultValue = defaultValue;
     this.value = defaultValue;
-    this.writeHandler = writeHandler;
-    this.readHandler = readHandler;
+    this.serializer = serializer;
+    this.deserializer = deserializer;
   }
 
   // Basic, fast, in-memory frontend
@@ -62,9 +70,9 @@ class StorageEntry extends Subscribable {
     return this.value;
   }
   set(value: any) {
-    this.value = value;
-    this.write();
-    this.notify();
+    this.value = value; // Update in-memory cache value
+    this.write(); // Write to storage
+    this.notify(); // Notify subscribers
   }
   reset() {
     this.set(this.defaultValue);
@@ -77,7 +85,7 @@ class StorageEntry extends Subscribable {
       val = this.getFromStorage();
     } catch {
       console.warn(
-        `StorageEntry: did not find an entry in localstorage for ${this.getLocalstorageId()}. Creating new entry...`
+        `StorageEntry: did not find an entry in storage for ${this.getStorageKey()}. Creating new entry...`
       );
       this.write();
       return;
@@ -89,120 +97,129 @@ class StorageEntry extends Subscribable {
     } catch (e) {
       console.error(e);
       throw new Error(
-        `StorageEntry[${this.getLocalstorageId()}]: Read handler is invalid: ${e}`
+        `StorageEntry[${this.getStorageKey()}]: Deserializer is invalid: ${e}`
       );
     }
   }
   write() {
     try {
       this.writeToStorage(this.export());
+      this.notify();
     } catch (e) {
       console.error(e);
       throw new Error(
-        `StorageEntry[${this.getLocalstorageId()}]: Write handler is invalid: ${e}`
+        `StorageEntry[${this.getStorageKey()}]: Serializer is invalid: ${e}`
       );
     }
   }
 
-  // Handler Abstraction
+  // Serializer Abstraction
   export() {
-    return this.writeHandler(this.value);
+    return this.serializer(this.value);
   }
   import(str: string) {
-    return (this.value = this.readHandler(str));
+    return (this.value = this.deserializer(str));
   }
 
   // Storage API
   private writeToStorage(value: any) {
     if (typeof value === "string") {
-      storageBackend.setItem(this.getLocalstorageId(), value);
+      storageBackend.setItem(this.getStorageKey(), value);
     } else {
       throw new Error(
-        `StorageEntry[${this.getLocalstorageId()}]: Cannot write non-string to localstorage.`
+        `StorageEntry[${this.getStorageKey()}]: Cannot write non-string to storage.`
       );
     }
   }
   private getFromStorage() {
     let retval: any;
-    retval = storageBackend.getItem(this.getLocalstorageId());
+    retval = storageBackend.getItem(this.getStorageKey());
     if (retval === null)
       throw new Error(
-        `StorageEntry[${this.getLocalstorageId()}]: Failed to retrieve key`
+        `StorageEntry[${this.getStorageKey()}]: Failed to retrieve key`
       );
     return retval;
   }
-  private getLocalstorageId() {
+  private getStorageKey() {
     return `${appID}.${this.nodeName}.${this.id}`;
+  }
+
+  // Key interface
+  getKeyInterface<T>(): KeyInterface<T> {
+    const self = this;
+    return {
+      get value() {
+        return self.get();
+      },
+      set value(val: T) {
+        self.set(val);
+      },
+      write: () => self.write(),
+      reset: () => self.reset(),
+      subscribe: (callback) => self.subscribe(callback),
+      unsubscribe: (callback) => self.unsubscribe(callback),
+      notify: () => self.notify(),
+      useState: () => useStorageState<T>(self),
+    };
+  }
+
+  // Subscriptions
+  subscribe(callback: SubscriptionCallback<any>) {
+    this.subscriptions.push(callback);
+  }
+  unsubscribe(callback: SubscriptionCallback<any>) {
+    this.subscriptions = this.subscriptions.filter(
+      (subscriber) => subscriber !== callback
+    );
+  }
+  private notify() {
+    this.subscriptions.forEach((callback) => {
+      try {
+        callback(this.value);
+      } catch (e: any) {
+        console.error(
+          `StorageEntry[${this.getStorageKey()}]: Subscription callback failed.`
+        );
+        throw new Error(e);
+      }
+    });
   }
 }
 
-class StorageNode extends Subscribable {
+class StorageNode {
   name: string;
   private entries: StorageEntry[] = [];
   constructor(name: string, skipRegister: boolean = false) {
-    super();
     this.name = name;
     if (!skipRegister) nodes.push(this);
   }
 
   // Bread and butter
-  set(id: string, value: any): void {
-    this.getEntryById(id).set(value);
-    this.notify();
-  }
-  get(id: string): any {
-    return this.getEntryById(id).get();
-  }
-  add(
+  add<T>(
     id: string,
-    defaultValue: any,
-    readHandler: ReadHandler = defaultReadHandler,
-    writeHandler: WriteHandler = defaultWriteHandler
-  ): void {
+    defaultValue: T,
+    serializer: Serializer<T> = defaultSerializer,
+    deserializer: Deserializer<T> = defaultDeserializer
+  ): KeyInterface<T> {
     try {
-      this.getEntryById(id); // Try to see if it already exists
+      return this.getEntryById(id).getKeyInterface<T>(); // Try to see if it already exists
     } catch {
       const entry = new StorageEntry(
         id,
         this.name,
         defaultValue,
-        writeHandler,
-        readHandler
+        serializer,
+        deserializer
       );
       entry.read(); // Automatically pull value from storage
       this.entries.push(entry);
-      return;
+      return entry.getKeyInterface<T>();
     }
-    throw new Error(
-      `StorageNode[${this.name}]: Cannot add entry - entry with id '${id}' already exists.`
-    );
   }
 
   // Resetting
-  reset(id: string): void {
-    this.getEntryById(id).reset();
-  }
   reset_all(): void {
     this.entries.forEach((e) => e.reset());
-  }
-
-  // Manual Entry Storage Control
-  read(id: string): void {
-    this.getEntryById(id).read();
-  }
-  write(id: string): void {
-    this.getEntryById(id).write();
-  }
-  writeAll(): void {
-    this.entries.forEach((e) => e.write());
-  }
-
-  // Entry Subscriptions
-  subscribeNode(id: string, callback: SubscriptionCallback): void {
-    this.getEntryById(id).subscribe(callback);
-  }
-  unsubscribeNode(id: string, callback: SubscriptionCallback): void {
-    this.getEntryById(id).unsubscribe(callback);
   }
 
   // Exporting and importing
@@ -229,7 +246,7 @@ class StorageNode extends Subscribable {
           const value = entry.import(k.value);
           entry.set(value);
         } catch (e) {
-          console.warn(`Couldn't import ${this.name}.${id}: ${e}`);
+          console.warn(`Couldn't import ${appID}.${this.name}.${id}: ${e}`);
         }
       });
     }

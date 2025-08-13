@@ -5,27 +5,25 @@ import {
   InputGroup,
   ToggleButton,
 } from "react-bootstrap";
-import { backendStore } from "../storage/backendStore";
-import preferencesStore from "../storage/preferencesStore";
 import Card from "../components/Card";
-import healthMonitorStore from "../storage/healthMonitorStore";
-import type StorageNode from "../lib/storageNode";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import RemoteStorage from "../lib/remote/storage";
-import privateStore from "../storage/privateStore";
-import basalStore from "../storage/basalStore";
+import type { KeyInterface } from "../lib/storageNode";
+import { PrivateStore } from "../storage/privateStore";
+import { PreferencesStore } from "../storage/preferencesStore";
+import { CalibrationStore } from "../storage/calibrationStore";
+import { BackendStore } from "../storage/backendStore";
+import { HealthMonitorStore } from "../storage/healthMonitorStore";
 
 interface Setting {
   title: string;
-  node: StorageNode;
-  id: string;
+  keyInterface: KeyInterface<number>;
   iconClass: string;
   unit: string;
 }
-function NumberSetting({ title, node, id, iconClass, unit }: Setting) {
-  const [value, setValue] = useState(node.get(id));
-
-  const initialValue = useMemo(() => node.get(id), []);
+function NumberSetting({ title, keyInterface, iconClass, unit }: Setting) {
+  const [, setValue] = keyInterface.useState();
+  const initialValue = keyInterface.value.toString();
   return (
     <>
       <Form.Label htmlFor="basic-url">{title}</Form.Label>
@@ -35,14 +33,13 @@ function NumberSetting({ title, node, id, iconClass, unit }: Setting) {
         </InputGroup.Text>
         <Form.Control
           placeholder={initialValue}
-          value={value}
+          value={initialValue}
           aria-describedby="basic-addon1"
           onChange={(a) => {
             const v = parseFloat(a.target.value);
             if (!Number.isNaN(v)) {
-              node.set(id, v);
+              setValue(v);
             }
-            setValue(a.target.value);
           }}
         />
         <InputGroup.Text>{unit}</InputGroup.Text>
@@ -52,18 +49,6 @@ function NumberSetting({ title, node, id, iconClass, unit }: Setting) {
 }
 
 export default function SettingsPage() {
-  preferencesStore.get("maxSessionLength");
-  preferencesStore.get("endingHours");
-
-  healthMonitorStore.get("dropTime");
-  healthMonitorStore.get("timeBetweenShots");
-
-  preferencesStore.get("insulinStepSize");
-  preferencesStore.get("timeStepSize");
-
-  preferencesStore.get("sessionHalfLife");
-  preferencesStore.get("maxSessionLife");
-
   function uploadStorage() {
     if (
       confirm(
@@ -100,11 +85,11 @@ export default function SettingsPage() {
     }
   }
   const [selectedIndex, setSelectedIndex] = useState(
-    getSelectedIndexFromValue(privateStore.get("isMaster"))
+    getSelectedIndexFromValue(PrivateStore.isMaster.value)
   );
-  function setSyncState(state: boolean | null) {
-    RemoteStorage.setMaster(state);
-    setSelectedIndex(getSelectedIndexFromValue(state));
+  function setSyncState(value: boolean | null) {
+    PrivateStore.isMaster.value = value;
+    setSelectedIndex(getSelectedIndexFromValue(value));
   }
   return (
     <>
@@ -118,22 +103,19 @@ export default function SettingsPage() {
       </div>
       <Card>
         <NumberSetting
-          node={preferencesStore}
-          id="highBG"
+          keyInterface={PreferencesStore.highBG}
           title="High Blood Sugar Threshold"
           iconClass="bi bi-arrow-up-circle"
           unit="mg/dL"
         />
         <NumberSetting
-          node={preferencesStore}
-          id="lowBG"
+          keyInterface={PreferencesStore.lowBG}
           title="Low Blood Sugar Threshold"
           iconClass="bi bi-arrow-down-circle"
           unit="mg/dL"
         />
         <NumberSetting
-          node={preferencesStore}
-          id="dangerBG"
+          keyInterface={PreferencesStore.dangerBG}
           title="Hypoglycemic Threshold"
           iconClass="bi bi-exclamation-octagon"
           unit="mg/dL"
@@ -162,22 +144,19 @@ export default function SettingsPage() {
       </Card>
       <Card>
         <NumberSetting
-          node={preferencesStore}
-          id={"glucoseEffect"}
+          keyInterface={CalibrationStore.glucoseEffect}
           title="Dextrose Effect (per cap/gram)"
           iconClass="bi bi-capsule"
           unit="mg/dL"
         />
         <NumberSetting
-          node={preferencesStore}
-          id={"insulinEffect"}
+          keyInterface={CalibrationStore.insulinEffect}
           title="Insulin Effect (per unit)"
           iconClass="bi bi-eyedropper"
           unit="mg/dL"
         />
         <NumberSetting
-          node={backendStore}
-          id={"cgmDelay"}
+          keyInterface={BackendStore.cgmDelay}
           title="CGM Delay (in minutes)"
           iconClass="bi bi-clock"
           unit="min"
@@ -185,22 +164,19 @@ export default function SettingsPage() {
       </Card>
       <Card>
         <NumberSetting
-          node={healthMonitorStore}
-          id={"basalShotsPerDay"}
+          keyInterface={HealthMonitorStore.basalShotsPerDay}
           title="Basal Injections Per Day"
           iconClass="bi bi-capsule"
           unit="shots"
         />
         <NumberSetting
-          node={healthMonitorStore}
-          id={"basalShotTime"}
+          keyInterface={HealthMonitorStore.basalShotTime}
           title="Basal Injection First Hour"
           iconClass="bi bi-clock"
           unit=""
         />
         <NumberSetting
-          node={basalStore}
-          id={"basalEffect"}
+          keyInterface={CalibrationStore.basalEffect}
           title="Basal Insulin Effect (per unit)"
           iconClass="bi bi-eyedropper"
           unit="mg/dL per hr"

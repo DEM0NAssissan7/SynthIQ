@@ -1,9 +1,8 @@
 import { Container, Row, Col, Card, Button } from "react-bootstrap";
-import WizardManager from "../lib/wizardManager";
 import { Link } from "react-router";
 import { useEffect, useState } from "react";
-import { backendStore } from "../storage/backendStore";
 import Backend from "../lib/remote/backend";
+import { WizardStore } from "../storage/wizardStore";
 
 enum NightscoutAuthLevel {
   Invalid,
@@ -15,6 +14,7 @@ function HubPage() {
   const [nightscoutAuthLevel, setNightscoutAuthLevel] = useState(
     NightscoutAuthLevel.Invalid
   );
+  const [session] = WizardStore.session.useState();
   useEffect(() => {
     Backend.verifyAuth()
       .then((a) => {
@@ -29,7 +29,7 @@ function HubPage() {
         console.error(e);
         setNightscoutAuthLevel(NightscoutAuthLevel.Invalid);
       });
-  }, [backendStore]);
+  }, []);
 
   return (
     <Container fluid className="text-center py-4 bg-light min-vh-100">
@@ -42,23 +42,14 @@ function HubPage() {
           <Col xs={12} sm={6} md={4} lg={3}>
             <Card className="h-100 shadow-sm">
               <Card.Body>
-                {WizardManager.isActive() ? (
-                  WizardManager.isComplete() ? (
-                    <>
-                      <Card.Title>Meal In Progress</Card.Title>
-                      <Button variant="primary" as={Link as any} to="/wizard">
-                        Go To Hub
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <Card.Title>Active Meal</Card.Title>
-                      <Card.Text>You have an active session</Card.Text>
-                      <Button variant="primary" as={Link as any} to="/wizard">
-                        Continue
-                      </Button>
-                    </>
-                  )
+                {session.started ? (
+                  <>
+                    <Card.Title>Active Meal</Card.Title>
+                    <Card.Text>You have an active session</Card.Text>
+                    <Button variant="primary" as={Link as any} to="/wizard">
+                      Continue
+                    </Button>
+                  </>
                 ) : (
                   <>
                     <Card.Title>Start A Session</Card.Title>

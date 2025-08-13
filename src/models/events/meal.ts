@@ -1,15 +1,16 @@
 import Food from "../food";
 import MetaEvent from "./metaEvent";
-import type MetabolismProfile from "../metabolism/metabolismProfile";
+import type { Deserializer, Serializer } from "../types/types";
+import Unit from "../unit";
 
 function createCarbsOffset() {
-  return new Food("Carbs Offset", 1, 0, 1);
+  return new Food("Carbs Offset", 1, 0, Unit.Food.Unit, 0);
 }
 function createProteinOffset() {
-  return new Food("Protein Offset", 0, 1, 1);
+  return new Food("Protein Offset", 0, 1, Unit.Food.Unit);
 }
 function createFatOffset() {
-  return new Food("Fat Offset", 0, 0, 1, 0, 1);
+  return new Food("Fat Offset", 0, 0, Unit.Food.Unit, 1);
 }
 export default class Meal extends MetaEvent {
   foods: Food[] = [
@@ -98,43 +99,27 @@ export default class Meal extends MetaEvent {
     calories += this.fat * calPerFat;
     return calories;
   }
-  deltaBG(t: number, profile: MetabolismProfile): number {
-    let retval: number = 0;
-    this.foods.forEach((a) => (retval += a.carbsDeltaBG(t, profile))); // Carbs
-
-    // Protein metabolism accounts for the total meal protein, so we have to collect all of it
-    retval += profile.protein.deltaBG(t, this.protein); // Protein
-
-    return retval;
-  }
 
   // Storage Transience
-  static stringify(meal: Meal): string {
+  static serialize: Serializer<Meal> = (meal) => {
     return JSON.stringify({
       timestamp: meal.timestamp,
-      foods: meal.foods.map((a) => Food.stringify(a)),
+      foods: meal.foods.map((a) => Food.serialize(a)),
     });
-  }
-  static parse(string: string): Meal {
+  };
+  static deserialize: Deserializer<Meal> = (string: string) => {
     let o = JSON.parse(string);
     let timestamp = new Date(o.timestamp);
-    let foods = o.foods.map((a: any) => Food.parse(a));
+    let foods: Food[] = o.foods.map((a: string) => Food.deserialize(a));
     let newMeal = new Meal(timestamp);
     newMeal.foods = foods;
     return newMeal;
-  }
+  };
 
   copyFoods(foods: Food[]) {
     this.foods = [];
     foods.forEach((a: Food) => {
-      const f = new Food(
-        a.name,
-        a.carbsRate,
-        a.proteinRate,
-        a.unit,
-        a.GI,
-        a.fatRate
-      );
+      const f = new Food(a.name, a.carbsRate, a.proteinRate, a.unit, a.fatRate);
       f.amount = a.amount;
       this.foods.push(f);
     });

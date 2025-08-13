@@ -3,24 +3,23 @@ import TemplateNameSearch from "../../components/TemplateNameSearch";
 import Card from "../../components/Card";
 import { Button } from "react-bootstrap";
 import WizardManager from "../../lib/wizardManager";
-import TemplateManager from "../../lib/templateManager";
 
-export default function TemplateSelectionPage() {
+export default function WizardSelectionPage() {
   const navigate = useNavigate();
 
   function advance(name: string | null) {
     if (!name) {
-      TemplateManager.deactivate();
+      WizardManager.createTemplate("Generic");
       WizardManager.begin(navigate);
       return;
     }
     try {
-      TemplateManager.selectTemplate(name);
+      WizardManager.selectTemplate(name);
     } catch (e) {
       alert(`Template named ${name} encountered an error`);
       console.error(e);
     }
-    TemplateManager.begin(navigate);
+    WizardManager.begin(navigate);
   }
   function skip() {
     if (confirm("Are you sure you wanna skip naming your session?")) {
@@ -30,7 +29,7 @@ export default function TemplateSelectionPage() {
   function addTemplate() {
     const name = prompt("Template name:");
     if (name) {
-      TemplateManager.createTemplate(name);
+      WizardManager.createTemplate(name);
       advance(name);
     }
   }

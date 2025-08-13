@@ -1,19 +1,18 @@
 import { useEffect, useState } from "react";
 import BloodSugarInput from "../../components/BloodSugarInput";
 import Card from "../../components/Card";
-import { wizardStorage } from "../../storage/wizardStore";
-import type Session from "../../models/session";
-import { profile } from "../../storage/metaProfileStore";
-import TemplateManager from "../../lib/templateManager";
-import { TemplateState } from "../../models/types/templateState";
 import { useNavigate } from "react-router";
 import { Button } from "react-bootstrap";
 import RemoteReadings from "../../lib/remote/readings";
+import { WizardStore } from "../../storage/wizardStore";
+import { PreferencesStore } from "../../storage/preferencesStore";
+import WizardManager from "../../lib/wizardManager";
+import { WizardPage } from "../../models/types/wizardState";
 
-export default function TemplateFinalBGPage() {
-  const session = wizardStorage.get("session") as Session;
+export default function WizardFinalBGPage() {
+  const session = WizardStore.session.value;
 
-  const [bloodSugar, setBloodSugar] = useState(profile.target);
+  const [bloodSugar, setBloodSugar] = useState(PreferencesStore.targetBG.value);
   useEffect(() => {
     RemoteReadings.getCurrentSugar().then((a) => {
       if (a) setBloodSugar(a);
@@ -22,12 +21,12 @@ export default function TemplateFinalBGPage() {
 
   const navigate = useNavigate();
   function goBack() {
-    TemplateManager.moveToPage(TemplateState.Hub, navigate);
+    WizardManager.moveToPage(WizardPage.Hub, navigate);
   }
   function conclude() {
     if (confirm("Are you sure you want to end your session?")) {
       session.finalBG = bloodSugar;
-      TemplateManager.startNew(navigate);
+      WizardManager.startNew(navigate);
     }
   }
   return (

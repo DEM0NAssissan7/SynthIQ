@@ -3,6 +3,7 @@ import RequestType, {
   parseRequestType,
   stringifyRequestType,
 } from "./types/requestType";
+import type { Deserializer, Serializer } from "./types/types";
 
 export default class RequestQueue {
   type: RequestType;
@@ -17,7 +18,7 @@ export default class RequestQueue {
     this.uuid = genUUID();
     this.payload = payload || {};
   }
-  static stringify(q: RequestQueue): string {
+  static serialize: Serializer<RequestQueue> = (q: RequestQueue) => {
     return JSON.stringify({
       type: stringifyRequestType(q.type),
       api: q.api,
@@ -25,13 +26,13 @@ export default class RequestQueue {
       uuid: q.uuid,
       timestamp: q.timestamp,
     });
-  }
-  static parse(s: string): RequestQueue {
+  };
+  static deserialize: Deserializer<RequestQueue> = (s: string) => {
     const o = JSON.parse(s);
     const type = parseRequestType(o.type);
     const timestamp = new Date(o.timestamp);
     const q = new RequestQueue(type, o.api, o.payload, timestamp);
     q.uuid = o.uuid;
     return q;
-  }
+  };
 }

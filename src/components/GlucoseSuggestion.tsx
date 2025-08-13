@@ -1,6 +1,6 @@
 import { getLastRescueMinutes, getLastRescueCaps } from "../lib/healthMonitor";
 import { round } from "../lib/util";
-import healthMonitorStore from "../storage/healthMonitorStore";
+import { HealthMonitorStore } from "../storage/healthMonitorStore";
 
 export default function GlucoseSuggestion({
   intelligentCorrection,
@@ -9,7 +9,7 @@ export default function GlucoseSuggestion({
   intelligentCorrection: number;
   baseCorrection: number;
 }) {
-  const timeBetweenShots = healthMonitorStore.get("timeBetweenShots");
+  const [timeBetweenShots] = HealthMonitorStore.timeBetweenShots.useState();
   const lastRescueMinutes = round(getLastRescueMinutes(), 0);
   const lastRescueCaps = getLastRescueCaps();
   if (lastRescueMinutes < timeBetweenShots && lastRescueCaps > 0) {

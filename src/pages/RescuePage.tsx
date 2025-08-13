@@ -6,10 +6,8 @@ import {
   getGlucoseCorrectionCaps,
   getIntelligentGlucoseCorrection,
 } from "../lib/metabolism";
-import TemplateManager from "../lib/templateManager";
 import { round } from "../lib/util";
 import WizardManager from "../lib/wizardManager";
-import { useWizardSession } from "../state/useSession";
 import Card from "../components/Card";
 import GlucoseSuggestion from "../components/GlucoseSuggestion";
 import HealthMonitorMessage from "../components/HealthMonitorMessage";
@@ -18,15 +16,16 @@ import {
   getBGVelocity,
   markGlucose,
 } from "../lib/healthMonitor";
-import healthMonitorStore from "../storage/healthMonitorStore";
 import TemplateSummary from "../components/TemplateSummary";
+import { HealthMonitorStore } from "../storage/healthMonitorStore";
+import { WizardStore } from "../storage/wizardStore";
 
 export default function RescuePage() {
-  const session = useWizardSession();
-  const template = TemplateManager.getTemplate();
+  const [session] = WizardStore.session.useState();
+  const [template] = WizardStore.template.useState();
 
   const [currentBG, setCurrentBG] = useState(session.initialGlucose);
-  const [capsTaken, setCapsTaken] = useState(0);
+  const [gramsTaken, setCapsTaken] = useState(0);
 
   const correction = useMemo(() => {
     return round(getGlucoseCorrectionCaps(currentBG), 1);
@@ -36,7 +35,7 @@ export default function RescuePage() {
   useEffect(() => {
     populateReadingCache().then(() => {
       const velocityHours = getBGVelocity();
-      const actingMinutes = healthMonitorStore.get("dropTime");
+      const actingMinutes = HealthMonitorStore.dropTime.value;
 
       setIntelligentCorrection(
         getIntelligentGlucoseCorrection(velocityHours, currentBG, actingMinutes)
@@ -49,11 +48,9 @@ export default function RescuePage() {
     navigate("/");
   }
   function confirmGlucose() {
-    if (
-      confirm(`Confirm that you have taken ${capsTaken} caps/grams of glucose`)
-    ) {
-      WizardManager.markGlucose(capsTaken);
-      markGlucose(capsTaken);
+    if (confirm(`Confirm that you have taken ${gramsTaken} grams of glucose`)) {
+      WizardManager.markGlucose(gramsTaken);
+      markGlucose(gramsTaken);
       goBack();
     }
   }
@@ -61,7 +58,7 @@ export default function RescuePage() {
   return (
     <>
       <h1>Glucose Correction</h1>
-      {WizardManager.isActive() && (
+      {session.started && (
         <Card>
           <TemplateSummary template={template} session={session} />
         </Card>
@@ -97,7 +94,7 @@ export default function RescuePage() {
         </InputGroup>
       </Card>
       <div style={{ display: "flex", justifyContent: "space-between" }}>
-        {WizardManager.isActive() && (
+        {session.started && (
           <Button variant="secondary" onClick={goBack}>
             Go To Wizard
           </Button>

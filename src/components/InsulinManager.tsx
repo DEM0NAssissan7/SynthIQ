@@ -9,7 +9,7 @@ interface InsulinManagerProps {
 
 export default function InsulinManager({ session }: InsulinManagerProps) {
   function addInsulin() {
-    session.createInsulin(new Date(), 0, 0);
+    session.createInsulin(0, new Date());
   }
   return (
     <ListGroup>

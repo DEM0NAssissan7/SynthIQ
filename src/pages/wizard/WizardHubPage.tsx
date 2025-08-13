@@ -1,15 +1,14 @@
 import { Button, ToggleButton } from "react-bootstrap";
 import Card from "../../components/Card";
-import TemplateManager from "../../lib/templateManager";
-import { useWizardSession } from "../../state/useSession";
-import { TemplateState } from "../../models/types/templateState";
 import { useNavigate } from "react-router";
 import WizardManager from "../../lib/wizardManager";
 import TemplateSummary from "../../components/TemplateSummary";
+import { WizardStore } from "../../storage/wizardStore";
+import { WizardPage } from "../../models/types/wizardState";
 
-export default function TemplateHubPage() {
-  const session = useWizardSession();
-  const template = TemplateManager.getTemplate();
+export default function WizardHubPage() {
+  const [session] = WizardStore.session.useState();
+  const [template] = WizardStore.template.useState();
 
   // Garbage
   function setGarbage(value: boolean) {
@@ -22,19 +21,19 @@ export default function TemplateHubPage() {
   const navigate = useNavigate();
 
   function startNew() {
-    TemplateManager.moveToPage(TemplateState.FinalBG, navigate);
+    WizardManager.moveToPage(WizardPage.FinalBG, navigate);
   }
   function takeInsulin() {
-    TemplateManager.moveToPage(TemplateState.Insulin, navigate);
+    WizardManager.moveToPage(WizardPage.Insulin, navigate);
   }
   function addMeal() {
-    TemplateManager.moveToPage(TemplateState.Meal, navigate);
+    WizardManager.moveToPage(WizardPage.Meal, navigate);
   }
   function takeGlucose() {
     navigate("/rescue");
   }
   function editSession() {
-    TemplateManager.moveToPage(TemplateState.Edit, navigate);
+    WizardManager.moveToPage(WizardPage.Edit, navigate);
   }
   function cancelSession() {
     WizardManager.cancelSession(navigate);
@@ -96,16 +95,16 @@ export default function TemplateHubPage() {
             Take Glucose
           </Button>
           <Button
-            variant={WizardManager.getMealMarked() ? "danger" : "primary"}
+            variant={session.mealMarked ? "danger" : "primary"}
             onClick={addMeal}
           >
-            Eat {WizardManager.getMealMarked() && "Additional"} Meal
+            Eat {session.mealMarked && "Additional"} Meal
           </Button>
           <Button
-            variant={WizardManager.getInsulinMarked() ? "danger" : "primary"}
+            variant={session.insulinMarked ? "danger" : "primary"}
             onClick={takeInsulin}
           >
-            Take {WizardManager.getInsulinMarked() && "Additional"} Insulin
+            Take {session.insulinMarked && "Additional"} Insulin
           </Button>
         </div>
       </div>
