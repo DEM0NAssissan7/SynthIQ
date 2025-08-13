@@ -15,13 +15,10 @@ export default function TemplateNameSearch({
 
   const filteredTemplates: Template[] = useMemo(() => {
     let result: Template[] = [];
-    if (query.length === 0) {
-      result = templates;
-    } else {
-      for (let n of templates) {
-        if (n.name.toLowerCase().includes(query.trim().toLowerCase())) {
-          result.push(n);
-        }
+    for (let n of templates) {
+      if (n.name === "Session") continue; // Reserved template name for "Skip"
+      if (n.name.toLowerCase().includes(query.trim().toLowerCase())) {
+        result.push(n);
       }
     }
 
