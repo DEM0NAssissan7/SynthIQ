@@ -9,7 +9,7 @@ namespace StorageBackends {
     name: "localStorage",
     getItem: (key: string) => {
       if (typeof window !== "undefined" && window.localStorage) {
-        const retval = webLocal.getItem(key);
+        const retval = localStorage.getItem(key);
         if (retval === null) throw new KeyDoesNotExistError();
         return retval;
       } else {
@@ -18,7 +18,7 @@ namespace StorageBackends {
     },
     setItem: (key: string, value: string) => {
       if (typeof window !== "undefined" && window.localStorage) {
-        webLocal.setItem(key, value);
+        localStorage.setItem(key, value);
       } else {
         throw new StorageBackendFailedError();
       }
