@@ -151,14 +151,13 @@ export default class Template extends Subscribable {
 
   // Serialization
   static serialize: Serializer<Template> = (template: Template) => {
-    return JSON.stringify({
+    return {
       name: template.name,
       sessions: template.sessions.map((s) => Session.serialize(s)),
-      timestamp: template.timestamp,
-    });
+      timestamp: template.timestamp.toString(),
+    };
   };
-  static deserialize: Deserializer<Template> = (s: string) => {
-    const o = JSON.parse(s);
+  static deserialize: Deserializer<Template> = (o) => {
     let template = new Template(o.name);
     o.sessions.forEach((s: string) =>
       template.addSession(Session.deserialize(s))

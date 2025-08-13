@@ -18,13 +18,12 @@ export default class ScalarMetaEvent extends MetaEvent {
 
   // Serialization
   static serialize: Serializer<ScalarMetaEvent> = (e: ScalarMetaEvent) => {
-    return JSON.stringify({
+    return {
       value: e.value,
       timestamp: e.timestamp.toString(),
-    });
+    };
   };
-  static deserialize: Deserializer<ScalarMetaEvent> = (s: string) => {
-    const o = JSON.parse(s);
+  static deserialize: Deserializer<ScalarMetaEvent> = (o) => {
     return new ScalarMetaEvent(o.value, new Date(o.timestamp));
   };
 }

@@ -328,7 +328,7 @@ export default class Session extends Subscribable {
 
   // Serialization
   static serialize: Serializer<Session> = (session: Session) => {
-    return JSON.stringify({
+    return {
       uuid: session.uuid,
       snapshots: session.snapshots.map((s) => Snapshot.serialize(s)),
       meals: session.meals.map((a) => Meal.serialize(a)),
@@ -339,10 +339,9 @@ export default class Session extends Subscribable {
       insulinEffect: session.insulinEffect,
       glucoseEffect: session.glucoseEffect,
       version: session.version,
-    });
+    };
   };
-  static deserialize: Deserializer<Session> = (str: string) => {
-    const o = JSON.parse(str);
+  static deserialize: Deserializer<Session> = (o) => {
     let session = new Session(false);
     session.uuid = o.uuid;
     session.isGarbage = o.isGarbage || false;

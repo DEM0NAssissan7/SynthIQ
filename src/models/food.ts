@@ -67,25 +67,24 @@ export default class Food {
 
   static serialize: Serializer<Food> = (food: Food) => {
     // TODO
-    return JSON.stringify({
+    return {
       name: food.name,
       carbs: food.carbsRate,
       protein: food.proteinRate,
       fat: food.fatRate,
       units: food.unit,
       amount: food.amount,
-    });
+    };
   };
-  static deserialize: Deserializer<Food> = (string) => {
-    let food = JSON.parse(string);
+  static deserialize: Deserializer<Food> = (o) => {
     let newFood: Food;
     try {
-      newFood = getFoodByName(food.name);
+      newFood = getFoodByName(o.name);
     } catch (e: any) {
       // console.warn(`${e} - using hardcoded info`);
-      newFood = Food.createFromImport(food);
+      newFood = Food.createFromImport(o);
     }
-    newFood.amount = food.amount || 0;
+    newFood.amount = o.amount || 0;
     return newFood;
   };
 }

@@ -19,16 +19,15 @@ export default class RequestQueue {
     this.payload = payload || {};
   }
   static serialize: Serializer<RequestQueue> = (q: RequestQueue) => {
-    return JSON.stringify({
+    return {
       type: stringifyRequestType(q.type),
       api: q.api,
       payload: q.payload,
       uuid: q.uuid,
-      timestamp: q.timestamp,
-    });
+      timestamp: q.timestamp.toString(),
+    };
   };
-  static deserialize: Deserializer<RequestQueue> = (s: string) => {
-    const o = JSON.parse(s);
+  static deserialize: Deserializer<RequestQueue> = (o) => {
     const type = parseRequestType(o.type);
     const timestamp = new Date(o.timestamp);
     const q = new RequestQueue(type, o.api, o.payload, timestamp);

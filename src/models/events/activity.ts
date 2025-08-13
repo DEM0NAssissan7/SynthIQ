@@ -23,13 +23,12 @@ export default class Activity extends MetaEvent {
   }
 
   static serialize: Serializer<Activity> = (a: Activity) => {
-    return JSON.stringify({
-      startTimestamp: a.timestamp,
-      endTimestamp: a.endTimestamp,
-    });
+    return {
+      startTimestamp: a.timestamp.toString(),
+      endTimestamp: a.endTimestamp?.toString() || null,
+    };
   };
-  static deserialize: Deserializer<Activity> = (s: string) => {
-    const o = JSON.parse(s);
+  static deserialize: Deserializer<Activity> = (o) => {
     const activity = new Activity(new Date(o.startTimestamp));
     activity.endTimestamp = o.endTimestamp ? new Date(o.endTimestamp) : null;
     return activity;

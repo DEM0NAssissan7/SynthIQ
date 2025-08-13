@@ -8,14 +8,13 @@ export default class SugarReading {
   ) {}
 
   static serialize: Serializer<SugarReading> = (r: SugarReading) => {
-    return JSON.stringify({
+    return {
       sugar: r.sugar,
       timestamp: r.timestamp.toString(),
       isCalibration: r.isCalibration,
-    });
+    };
   };
-  static deserialize: Deserializer<SugarReading> = (s: string) => {
-    const o = JSON.parse(s);
+  static deserialize: Deserializer<SugarReading> = (o) => {
     return new SugarReading(
       o.sugar,
       new Date(o.timestamp),

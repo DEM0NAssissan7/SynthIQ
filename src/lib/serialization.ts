@@ -1,18 +1,23 @@
-import type { Deserializer, Serializer } from "../models/types/types";
+import type {
+  Deserializer,
+  JSONValue,
+  Serializer,
+} from "../models/types/types";
 
 namespace Serialization {
   export function getArraySerializer<T>(
     serializer: Serializer<T>
   ): Serializer<T[]> {
     return (a) => {
-      return JSON.stringify(a.map((b: any) => serializer(b)));
+      return a.map((b: any) => serializer(b));
     };
   }
   export function getArrayDeserializer<T>(
     deserializer: Deserializer<T>
   ): Deserializer<T[]> {
-    return (s) => {
-      return JSON.parse(s).map((a: any) => deserializer(a));
+    return (o: JSONValue) => {
+      if (Array.isArray(o)) return o.map((a: any) => deserializer(a));
+      return [];
     };
   }
 }

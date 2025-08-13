@@ -102,13 +102,12 @@ export default class Meal extends MetaEvent {
 
   // Storage Transience
   static serialize: Serializer<Meal> = (meal) => {
-    return JSON.stringify({
-      timestamp: meal.timestamp,
+    return {
+      timestamp: meal.timestamp.toString(),
       foods: meal.foods.map((a) => Food.serialize(a)),
-    });
+    };
   };
-  static deserialize: Deserializer<Meal> = (string: string) => {
-    let o = JSON.parse(string);
+  static deserialize: Deserializer<Meal> = (o) => {
     let timestamp = new Date(o.timestamp);
     let foods: Food[] = o.foods.map((a: string) => Food.deserialize(a));
     let newMeal = new Meal(timestamp);

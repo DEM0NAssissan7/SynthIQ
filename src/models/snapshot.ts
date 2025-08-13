@@ -110,12 +110,11 @@ export default class Snapshot extends Subscribable {
 
   // Serialization
   static serialize: Serializer<Snapshot> = (s: Snapshot) => {
-    return JSON.stringify({
+    return {
       rawReadings: s.rawReadings.map((r) => SugarReading.serialize(r)),
-    });
+    };
   };
-  static deserialize: Deserializer<Snapshot> = (s: string) => {
-    const o = JSON.parse(s);
+  static deserialize: Deserializer<Snapshot> = (o) => {
     let snapshot = new Snapshot();
     const readings: SugarReading[] = o.rawReadings.map((s: string) =>
       SugarReading.deserialize(s)
