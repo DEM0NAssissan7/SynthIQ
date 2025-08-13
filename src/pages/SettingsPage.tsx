@@ -6,7 +6,7 @@ import {
   ToggleButton,
 } from "react-bootstrap";
 import Card from "../components/Card";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import RemoteStorage from "../lib/remote/storage";
 import type { KeyInterface } from "../storage/storageNode";
 import { PrivateStore } from "../storage/privateStore";
@@ -23,7 +23,10 @@ interface Setting {
 }
 function NumberSetting({ title, keyInterface, iconClass, unit }: Setting) {
   const [, setValue] = keyInterface.useState();
-  const initialValue = keyInterface.value.toString();
+  const [displayValue, setDisplayValue] = useState(
+    keyInterface.value.toString()
+  );
+  const initialValue = useMemo(() => keyInterface.value.toString(), []);
   return (
     <>
       <Form.Label htmlFor="basic-url">{title}</Form.Label>
@@ -33,13 +36,14 @@ function NumberSetting({ title, keyInterface, iconClass, unit }: Setting) {
         </InputGroup.Text>
         <Form.Control
           placeholder={initialValue}
-          value={initialValue}
+          value={displayValue}
           aria-describedby="basic-addon1"
           onChange={(a) => {
             const v = parseFloat(a.target.value);
             if (!Number.isNaN(v)) {
               setValue(v);
             }
+            setDisplayValue(a.target.value);
           }}
         />
         <InputGroup.Text>{unit}</InputGroup.Text>
