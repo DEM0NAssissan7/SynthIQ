@@ -7,11 +7,11 @@ import { PrivateStore } from "../storage/privateStore";
 
 const autoHideTime = 4000;
 
-// This is usually a bad thing, but we are just pulling the current values to give the user a view on what he currently has, to allow him to change it
-const [url, setUrl] = BackendStore.url.useState();
-const [apiSecret, setApiSecret] = PrivateStore.apiSecret.useState();
-
 function SetupPage() {
+  // This is usually a bad thing, but we are just pulling the current values to give the user a view on what he currently has, to allow him to change it
+  const [url, setUrl] = BackendStore.url.useState();
+  const [apiSecret, setApiSecret] = PrivateStore.apiSecret.useState();
+
   const navigate = useNavigate();
   function advance() {
     navigate("/hub");
