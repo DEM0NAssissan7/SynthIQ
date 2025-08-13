@@ -1,7 +1,7 @@
+import Subscribable from "../subscribable";
 import MetaFunctions, { metaKernel } from "./metaFunctions";
-import NutrientProfile from "./nutrientProfile";
 
-export default class ProteinProfile extends NutrientProfile {
+export default class ProteinProfile extends Subscribable {
   private _effect = 1.14;
   private _delay = 2.0;
   private _minTime = 4.0;

@@ -7,14 +7,14 @@ import type MetaEvent from "./events/metaEvent";
 import { profile } from "../storage/metaProfileStore";
 import Unit from "./unit";
 import RemoteReadings from "../lib/remote/readings";
-import Snapshot from "./snapshot";
 import SugarReading from "./types/sugarReading";
+import Snapshot from "./snapshot";
+import Subscribable from "./subscribable";
 
-export default class Session {
-  subscriptions: (() => void)[] = [];
+export default class Session extends Subscribable {
   uuid: UUID;
 
-  snapshots: Snapshot[];
+  snapshots: Snapshot[] = [];
 
   _isGarbage: boolean = false;
   notes: string = "";
@@ -28,40 +28,22 @@ export default class Session {
   insulins: Insulin[] = [];
   glucoses: Glucose[] = [];
 
-  constructor() {
+  constructor(createSnapshot = true) {
     // This timestamp marks when eating _begins_
+    super();
     this.uuid = genUUID();
-    this.snapshots = [new Snapshot()];
-  }
-
-  // Subscriptions
-  subscribe(callback: () => void) {
-    this.subscriptions.push(callback);
-  }
-  unsubscribe(callback: () => void) {
-    this.subscriptions = this.subscriptions.filter((sub) => sub !== callback);
-  }
-  notify() {
-    this.subscriptions.forEach((f) => f());
-  }
-
-  // Event management
-  addEvent(e: MetaEvent) {
-    e.subscribe(() => this.notify());
-  }
-  removeEvent(e: MetaEvent) {
-    e.unsubscribe(() => this.notify());
+    if (createSnapshot) this.addSnapshot(); // Create the initial snapshot
   }
 
   // Meals
   addMeal(meal: Meal): void {
     this.meals.push(meal);
-    this.addEvent(meal);
+    this.addChildSubscribable(meal);
     this.notify();
   }
   removeMeal(meal: Meal) {
     this.meals = this.meals.filter((m) => m !== meal);
-    this.removeEvent(meal);
+    this.removeChildSubscribable(meal);
     this.notify();
   }
   get carbs(): number {
@@ -105,29 +87,50 @@ export default class Session {
   }
 
   // Snapshot abstractions
+  addSnapshot(_snapshot?: Snapshot) {
+    let snapshot: Snapshot = new Snapshot();
+    if (_snapshot) snapshot = _snapshot;
+    snapshot.subscribe(() => {
+      this.notify();
+    });
+    this.snapshots.push(snapshot);
+    return snapshot;
+  }
   get firstSnapshot() {
     if (this.snapshots.length === 0) throw new Error(`No snapshots exist`);
     return this.snapshots[0];
   }
-  get snapshot() {
+  get lastSnapshot() {
     const snapshot = this.snapshots[Math.max(this.insulins.length - 1, 0)];
     if (!snapshot) throw new Error(`Latest snapshot is invalid`);
+    return snapshot;
+  }
+  get snapshot() {
+    // This is a meta snapshot that is a symbolic summation of all the snapshots
+    let snapshot = new Snapshot();
+    this.snapshots.forEach((s) => snapshot.absorb(s));
     return snapshot;
   }
   get finalBG() {
     return this.snapshot.finalBG.sugar;
   }
   set finalBG(sugar: number) {
-    this.snapshot.finalBG = new SugarReading(sugar, new Date());
+    this.lastSnapshot.finalBG = sugar;
   }
   get endTimestamp() {
     return this.snapshot.finalBG.timestamp;
   }
   get initialGlucose() {
-    return this.firstSnapshot.initialBG.sugar;
+    return this.snapshot.initialBG.sugar;
   }
   set initialGlucose(sugar: number) {
-    this.firstSnapshot.initialBG = new SugarReading(sugar, new Date());
+    this.firstSnapshot.initialBG = sugar;
+  }
+  get peakGlucose() {
+    return this.snapshot.peakBG.sugar;
+  }
+  get minGlucose() {
+    return this.snapshot.minBG.sugar;
   }
 
   // Profile-based stuff
@@ -187,24 +190,23 @@ export default class Session {
   }
 
   // Insulins
-  createInsulin(timestamp: Date, units: number, BG: number): Insulin {
+  createInsulin(timestamp: Date, units: number, BG?: number): Insulin {
     // Mark snapshot
-    if (this.insulins.length !== 0) {
-      this.snapshot.finalBG = new SugarReading(BG, new Date());
-      const snapshot = new Snapshot();
-      snapshot.initialBG = new SugarReading(BG, new Date());
-      this.snapshots.push(snapshot);
+    if (this.insulins.length !== 0 && BG) {
+      this.lastSnapshot.finalBG = BG;
+      const snapshot = this.addSnapshot();
+      snapshot.initialBG = BG;
     }
 
     const insulin = new Insulin(timestamp, units);
     this.insulins.push(insulin);
-    this.addEvent(insulin);
+    this.addChildSubscribable(insulin);
     this.notify();
     return insulin;
   }
   removeInsulin(insulin: Insulin) {
     this.insulins = this.insulins.filter((i) => i !== insulin);
-    this.removeEvent(insulin);
+    this.removeChildSubscribable(insulin);
     this.notify();
   }
   get insulin(): number {
@@ -230,13 +232,13 @@ export default class Session {
   createGlucose(timestamp: Date, caps: number): Glucose {
     const glucose = new Glucose(timestamp, caps);
     this.glucoses.push(glucose);
-    this.addEvent(glucose);
+    this.addChildSubscribable(glucose);
     this.notify();
     return glucose;
   }
   removeGlucose(glucose: Glucose) {
     this.glucoses = this.glucoses.filter((g) => g !== glucose);
-    this.removeEvent(glucose);
+    this.removeChildSubscribable(glucose);
     this.notify();
   }
   get glucose(): number {
@@ -326,8 +328,8 @@ export default class Session {
     });
   }
   static parse(str: string): Session {
-    let o = JSON.parse(str);
-    let session = new Session();
+    const o = JSON.parse(str);
+    let session = new Session(false);
     session.uuid = o.uuid;
     session.isGarbage = o.isGarbage || false;
     session.notes = o.notes || "";
@@ -337,7 +339,7 @@ export default class Session {
     o.meals.map((a: string) => session.addMeal(Meal.parse(a)));
     o.insulins.map((a: string) => {
       const insulin = Insulin.parse(a);
-      session.createInsulin(insulin.timestamp, insulin.units, 0);
+      session.createInsulin(insulin.timestamp, insulin.units); // Create insulin without modifying snapshots
     });
     o.glucoses.map((a: string) => {
       const glucose = Glucose.parse(a);
@@ -346,20 +348,26 @@ export default class Session {
 
     // Compatibility
     if (!o.version) {
-      session.firstSnapshot.initialBG = new SugarReading(
-        o.initialGlucose,
-        session.timestamp
+      // We just assume that there is only one usable snapshot for the entire session as we never recorded BGs in between
+      session.addSnapshot();
+      session.firstSnapshot.addReading(
+        new SugarReading(o.initialGlucose, session.timestamp, true)
       );
 
       const endTimestamp = o.endTimestamp ? new Date(o.endTimestamp) : null;
       const finalBG = o.finalBG || null;
-      if (endTimestamp && finalBG) {
-        session.snapshot.finalBG = new SugarReading(finalBG, endTimestamp);
+      if (finalBG !== null) {
+        session.firstSnapshot.addReading(
+          new SugarReading(finalBG, endTimestamp || new Date(), true)
+        );
       }
       session.version = 1;
     } else {
       if (o.version === 1) {
-        session.snapshots = o.snapshots.map((a: string) => Snapshot.parse(a));
+        const snapshots: Snapshot[] = o.snapshots.map((a: string) =>
+          Snapshot.parse(a)
+        );
+        snapshots.forEach((s) => session.addSnapshot(s));
       }
     }
 

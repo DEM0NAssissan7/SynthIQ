@@ -6,9 +6,9 @@ export default function useStorageNode(node: StorageNode) {
 
   useEffect(() => {
     const rerender = () => setVersion((v) => v + 1);
-    node.subscribeGeneral(rerender);
+    node.subscribe(rerender);
     return () => {
-      node.unsubscribeGeneral(rerender);
+      node.unsubscribe(rerender);
     };
   }, [node]);
 

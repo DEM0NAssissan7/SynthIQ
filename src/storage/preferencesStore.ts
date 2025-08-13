@@ -19,14 +19,14 @@ preferencesStore.add("maxSessionLife", 14);
 
 preferencesStore.add("glucoseEffect", 10);
 // Update profile upon glucose effect changing
-preferencesStore.subscribe(
+preferencesStore.subscribeNode(
   "glucoseEffect",
-  (a: number) => (profile.glucose.effect = a)
+  () => (profile.glucose.effect = preferencesStore.get("glucoseEffect"))
 );
 
 preferencesStore.add("insulinEffect", 50);
 // Update profile upon glucose effect changing
-preferencesStore.subscribe(
+preferencesStore.subscribeNode(
   "insulinEffect",
-  (a: number) => (profile.insulin.effect = a)
+  () => (profile.insulin.effect = preferencesStore.get("insulinEffect"))
 );

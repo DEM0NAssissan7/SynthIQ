@@ -1,10 +1,10 @@
+import Subscribable from "../subscribable";
 import MetaFunctions, { metaKernel } from "./metaFunctions";
-import NutrientProfile from "./nutrientProfile";
 
 // Metabolism Simulations
 export const defaultGI = 15;
 
-export default class CarbsProfile extends NutrientProfile {
+export default class CarbsProfile extends Subscribable {
   private _effect = 4.11;
   private _peak = 1.17;
   private _delay = 0;

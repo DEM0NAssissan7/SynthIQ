@@ -1,10 +1,10 @@
+import Subscribable from "../subscribable";
 import CarbsProfile from "./carbsProfile";
 import GlucoseShotProfile from "./glucoseShotProfile";
 import InsulinProfile from "./insulinProfile";
-import NutrientProfile from "./nutrientProfile";
 import ProteinProfile from "./proteinProfile";
 
-export default class MetabolismProfile extends NutrientProfile {
+export default class MetabolismProfile extends Subscribable {
   private _target: number = 83;
   private _minThreshold: number = 75;
 

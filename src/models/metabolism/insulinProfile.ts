@@ -1,7 +1,7 @@
+import Subscribable from "../subscribable";
 import MetaFunctions, { metaKernel } from "./metaFunctions";
-import NutrientProfile from "./nutrientProfile";
 
-export default class InsulinProfile extends NutrientProfile {
+export default class InsulinProfile extends Subscribable {
   private _effect = 19;
   private _delay = 0.5;
   private _absorptionRate = 0.7;

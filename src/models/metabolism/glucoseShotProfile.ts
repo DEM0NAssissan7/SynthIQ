@@ -1,7 +1,7 @@
+import Subscribable from "../subscribable";
 import MetaFunctions, { metaKernel } from "./metaFunctions";
-import NutrientProfile from "./nutrientProfile";
 
-export default class GlucoseShotProfile extends NutrientProfile {
+export default class GlucoseShotProfile extends Subscribable {
   private _effect = 10;
   private _peak = 2 / 60;
   private _delay = 10 / 60;

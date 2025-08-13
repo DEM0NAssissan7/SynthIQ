@@ -1,3 +1,6 @@
+import Subscribable from "../models/subscribable";
+import type { SubscriptionCallback } from "../models/types/subscriptionCallback";
+
 const appID = "synthiq";
 const storageBackend = {
   // Allow for use with alternative storage APIs
@@ -23,15 +26,13 @@ const storageBackend = {
 
 type ReadHandler = (val: string) => any;
 type WriteHandler = (val: any) => string;
-type SubscriptionCallback = (val: any) => void;
-type GeneralSubscriptionCallback = () => void;
 
 const defaultReadHandler: ReadHandler = JSON.parse;
 const defaultWriteHandler: WriteHandler = JSON.stringify;
 
 export let nodes: StorageNode[] = [];
 
-class StorageEntry {
+class StorageEntry extends Subscribable {
   id: string;
   private nodeName: string;
   private writeHandler: WriteHandler;
@@ -39,7 +40,6 @@ class StorageEntry {
   private defaultValue: any;
 
   value: any;
-  subscriptions: SubscriptionCallback[] = [];
 
   constructor(
     id: string,
@@ -48,6 +48,7 @@ class StorageEntry {
     writeHandler: WriteHandler,
     readHandler: ReadHandler
   ) {
+    super();
     this.id = id;
     this.nodeName = nodeName;
     this.defaultValue = defaultValue;
@@ -133,35 +134,13 @@ class StorageEntry {
   private getLocalstorageId() {
     return `${appID}.${this.nodeName}.${this.id}`;
   }
-
-  // Subscriptions
-  subscribe(callback: SubscriptionCallback) {
-    this.subscriptions.push(callback);
-  }
-  unsubscribe(callback: SubscriptionCallback) {
-    this.subscriptions = this.subscriptions.filter(
-      (subscriber) => subscriber !== callback
-    );
-  }
-  private notify() {
-    this.subscriptions.forEach((callback) => {
-      try {
-        callback(this.value);
-      } catch (e: any) {
-        console.error(
-          `StorageEntry[${this.getLocalstorageId()}]: Subscription callback failed.`
-        );
-        throw new Error(e);
-      }
-    });
-  }
 }
 
-class StorageNode {
+class StorageNode extends Subscribable {
   name: string;
-  generalSubscriptions: GeneralSubscriptionCallback[] = [];
   private entries: StorageEntry[] = [];
   constructor(name: string, skipRegister: boolean = false) {
+    super();
     this.name = name;
     if (!skipRegister) nodes.push(this);
   }
@@ -169,7 +148,7 @@ class StorageNode {
   // Bread and butter
   set(id: string, value: any): void {
     this.getEntryById(id).set(value);
-    this.notifyGeneral();
+    this.notify();
   }
   get(id: string): any {
     return this.getEntryById(id).get();
@@ -219,24 +198,11 @@ class StorageNode {
   }
 
   // Entry Subscriptions
-  subscribe(id: string, callback: SubscriptionCallback): void {
+  subscribeNode(id: string, callback: SubscriptionCallback): void {
     this.getEntryById(id).subscribe(callback);
   }
-  unsubscribe(id: string, callback: SubscriptionCallback): void {
+  unsubscribeNode(id: string, callback: SubscriptionCallback): void {
     this.getEntryById(id).unsubscribe(callback);
-  }
-
-  // General Subscriptions
-  subscribeGeneral(callback: GeneralSubscriptionCallback): void {
-    this.generalSubscriptions.push(callback);
-  }
-  unsubscribeGeneral(callback: GeneralSubscriptionCallback) {
-    this.generalSubscriptions = this.generalSubscriptions.filter(
-      (subscriber) => subscriber !== callback
-    );
-  }
-  private notifyGeneral() {
-    this.generalSubscriptions.forEach((callback) => callback());
   }
 
   // Exporting and importing

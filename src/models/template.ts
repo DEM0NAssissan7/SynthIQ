@@ -3,13 +3,15 @@ import { profile } from "../storage/metaProfileStore";
 import preferencesStore from "../storage/preferencesStore";
 import MetabolismProfile from "./metabolism/metabolismProfile";
 import Session from "./session";
+import Subscribable from "./subscribable";
 
-export default class Template {
+export default class Template extends Subscribable {
   sessions: Session[] = [];
   profile: MetabolismProfile;
   timestamp: Date;
 
   constructor(public name: string) {
+    super();
     this.profile = MetabolismProfile.parse(
       MetabolismProfile.stringify(profile)
     ); // Hard copy profile into own profile to give baseline profile
@@ -20,6 +22,7 @@ export default class Template {
   addSession(session: Session) {
     this.sessions.push(session);
     this.timestamp = session.timestamp; // We set the timestamp to be the latest added session timestamp
+    this.addChildSubscribable(session);
   }
   get isFirstTime(): boolean {
     return this.sessions.length === 0;
@@ -98,27 +101,9 @@ export default class Template {
         const actualMealRise = session.mealRise;
         const error = predictedMealRise - actualMealRise;
 
-        console.log(
-          "Carbs Change:",
-          eta * error * session.carbs,
-          "Protein Change",
-          eta * error * session.protein
-        );
         alphaCarbs -= eta * error * session.carbs;
         alphaProtein -= eta * error * session.protein;
       }
-    }
-
-    //DEBUG
-    console.log(
-      "Profile Carbs:",
-      profile.carbs.effect,
-      "Profile Protein:",
-      profile.protein.effect
-    );
-    console.log("Alpha Carbs:", alphaCarbs, "Alpha Protein:", alphaProtein);
-    for (let session of this.sessions) {
-      if (session.isGarbage) continue;
     }
 
     return {
@@ -180,7 +165,7 @@ export default class Template {
   static parse(s: string): Template {
     const o = JSON.parse(s);
     let template = new Template(o.name);
-    template.sessions = o.sessions.map((s: string) => Session.parse(s));
+    o.sessions.forEach((s: string) => template.addSession(Session.parse(s)));
     template.profile = MetabolismProfile.parse(o.profile);
     template.timestamp = new Date(o.timestamp);
     return template;
