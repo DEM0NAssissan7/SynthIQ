@@ -156,6 +156,20 @@ export default function SettingsPage() {
           unit="mg/dL"
         />
         <NumberSetting
+          keyInterface={CalibrationStore.carbsEffect}
+          title="Carbs Effect (per gram)"
+          iconClass="bi bi-cake2"
+          unit="mg/dL"
+        />
+        <NumberSetting
+          keyInterface={CalibrationStore.proteinEffect}
+          title="Protein Effect (per gram)"
+          iconClass="bi bi-egg-fried"
+          unit="mg/dL"
+        />
+      </Card>
+      <Card>
+        <NumberSetting
           keyInterface={BackendStore.cgmDelay}
           title="CGM Delay (in minutes)"
           iconClass="bi bi-clock"
