@@ -9,15 +9,15 @@ import { PreferencesStore } from "../storage/preferencesStore";
 
 interface TemplateSummaryProps {
   template: Template;
+  session: Session;
   meal?: Meal;
   currentBG?: number;
-  session: Session;
 }
 export default function TemplateSummary({
   template,
+  session,
   meal,
   currentBG,
-  session,
 }: TemplateSummaryProps) {
   const bloodSugar = useMemo(
     () =>
