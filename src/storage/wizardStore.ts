@@ -57,7 +57,9 @@ export namespace WizardStore {
     Meal.deserialize
   );
   {
-    const callback = () => meal.write();
+    const callback = () => {
+      meal.write();
+    };
     meal.subscribe((value: Meal) => {
       value.unsubscribe(callback);
       value.subscribe(callback);

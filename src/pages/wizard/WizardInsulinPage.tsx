@@ -53,16 +53,20 @@ export default function WizardInsulinPage() {
     return round(getCorrectionInsulin(currentGlucose), 1);
   }, [currentGlucose]);
 
-  const displayedInsulin = useMemo(() => {
+  const displayedInsulin = (() => {
     if (session.insulin !== 0 && correctionInsulin > 0)
       return correctionInsulin;
     if (session.insulin === 0) {
-      let insulin = template.vectorizeInsulin(meal.carbs, meal.protein);
-      if (!insulin) insulin = suggestedInsulin;
+      const insulins = template.vectorizeInsulin(meal.carbs, meal.protein);
+      let insulin: number = suggestedInsulin;
+      if (insulins) {
+        insulin = 0;
+        insulins.forEach((i) => (insulin += i.value));
+      }
       return insulin + correctionInsulin;
     }
     return Math.max(suggestedInsulin - session.insulin, 0);
-  }, [session, correctionInsulin, suggestedInsulin]);
+  })();
 
   // A variable that changes once per minute
   function goBack() {

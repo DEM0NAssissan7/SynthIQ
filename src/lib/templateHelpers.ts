@@ -6,20 +6,6 @@ import { PreferencesStore } from "../storage/preferencesStore";
 import { getCorrectionInsulin, getInsulin } from "./metabolism";
 import { round } from "./util";
 
-// Basic Insulin Dosing Optimization
-function getCorrectMealDosing(session: Session) {
-  const optimalMealInsulin =
-    session.mealRise / CalibrationStore.insulinEffect.value;
-  return optimalMealInsulin;
-}
-export function getCorrectDosing(session: Session) {
-  if (!session.initialGlucose)
-    throw new Error(`Session does not have an initial glucose marked`);
-  const optimalInsulin =
-    getCorrectMealDosing(session) +
-    getCorrectionInsulin(session.initialGlucose); // Account for BG correction
-  return optimalInsulin;
-}
 export function insulinRuleEngine(session: Session) {
   /**
    * This is a rule engine to determine if timing was right, too late, or too early

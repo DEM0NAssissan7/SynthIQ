@@ -1,6 +1,8 @@
+import { getOptimalMealInsulins } from "../lib/metabolism";
 import { sessionsWeightedAverage } from "../lib/templateHelpers";
 import { CalibrationStore } from "../storage/calibrationStore";
 import { PreferencesStore } from "../storage/preferencesStore";
+import type Insulin from "./events/insulin";
 import Session from "./session";
 import Subscribable from "./subscribable";
 import type { Deserializer, Serializer } from "./types/types";
@@ -125,14 +127,19 @@ export default class Template extends Subscribable {
   }
 
   // Dosing helpers
-  vectorizeInsulin(carbs: number, protein: number) {
+  vectorizeInsulin(carbs: number, protein: number): Insulin[] | null {
     const session = this.getClosestSession(carbs, protein);
     if (!session) return null;
-    const optimalMealInsulin = session.optimalMealInsulin;
-    const neededInsulin =
-      optimalMealInsulin +
-      this.getMealInsulinOffset(session.carbs, session.protein, carbs, protein);
-    return neededInsulin;
+    const insulins = getOptimalMealInsulins(session);
+    const insulinOffset = this.getMealInsulinOffset(
+      session.carbs,
+      session.protein,
+      carbs,
+      protein
+    );
+    const insulinPerShot = insulinOffset / insulins.length;
+    insulins.forEach((i) => (i.value += insulinPerShot)); // Distribute offset between all shots
+    return insulins;
   }
   getMealInsulinOffset(
     baseCarbs: number,
