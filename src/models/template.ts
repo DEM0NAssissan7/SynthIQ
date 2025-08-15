@@ -131,14 +131,22 @@ export default class Template extends Subscribable {
     const session = this.getClosestSession(carbs, protein);
     if (!session) return null;
     const insulins = getOptimalMealInsulins(session);
-    const insulinOffset = this.getMealInsulinOffset(
+    const carbsInsulinOffset = this.getMealInsulinOffset(
       session.carbs,
-      session.protein,
+      0,
       carbs,
+      0
+    );
+    const proteinInsulinOffset = this.getMealInsulinOffset(
+      0,
+      session.protein,
+      0,
       protein
     );
-    const insulinPerShot = insulinOffset / insulins.length;
-    insulins.forEach((i) => (i.value += insulinPerShot)); // Distribute offset between all shots
+    insulins[0].value += carbsInsulinOffset; // Add extra carbs offset to first shot, as they typically only act on first shot timeframe
+
+    const proteinInsulinPerShot = proteinInsulinOffset / insulins.length;
+    insulins.forEach((i) => (i.value += proteinInsulinPerShot)); // Distribute protein offset between all shots
     return insulins;
   }
   getMealInsulinOffset(
