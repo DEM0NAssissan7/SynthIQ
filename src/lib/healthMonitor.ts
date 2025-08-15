@@ -85,7 +85,7 @@ export function getLastRescueCaps() {
 
 function getLatestBasal() {
   const basals = BasalStore.basalDoses.value;
-  return basals[basals.length - 1];
+  return basals[0];
 }
 export function getLatestBasalTimestamp() {
   const latestBasal = getLatestBasal();
