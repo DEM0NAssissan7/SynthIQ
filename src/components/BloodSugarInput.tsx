@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import RemoteReadings from "../lib/remote/readings";
 
 interface BloodSugarInputProps {
-  initialGlucose: number;
+  initialGlucose: number | null;
   setInitialGlucose: (value: number) => void;
   pullFromNightscout?: boolean;
   showAutoButton?: boolean;
@@ -13,7 +13,7 @@ interface BloodSugarInputProps {
 export default function BloodSugarInput({
   initialGlucose,
   setInitialGlucose,
-  pullFromNightscout = true,
+  pullFromNightscout = false,
   showAutoButton = true,
   label = "Current Blood Sugar",
 }: BloodSugarInputProps) {
@@ -23,7 +23,9 @@ export default function BloodSugarInput({
     });
   }
   useEffect(() => {
-    if (pullFromNightscout) pullCurrentGlucose(); // Pull glucose upon component load
+    if (pullFromNightscout)
+      pullCurrentGlucose(); // Pull glucose upon component load
+    else setInitialGlucose(0);
   }, []);
   return (
     <Form.Group controlId="current-glucose" className="mb-3">

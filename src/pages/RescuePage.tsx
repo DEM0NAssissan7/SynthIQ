@@ -80,6 +80,7 @@ export default function RescuePage() {
         <BloodSugarInput
           initialGlucose={currentBG}
           setInitialGlucose={setCurrentBG}
+          pullFromNightscout={true}
         />
         <InputGroup className="mb-3">
           <InputGroup.Text id="basic-addon1">

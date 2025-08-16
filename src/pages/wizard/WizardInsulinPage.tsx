@@ -23,12 +23,12 @@ export default function WizardInsulinPage() {
 
   // Inputted Insulin
   const [insulinTaken, setInsulinTaken] = useState(0);
-  const [currentGlucose, setCurrentGlucose] = useState(
-    session.initialGlucose
-      ? session.initialGlucose
-      : PreferencesStore.targetBG.value
-  );
+  const [currentGlucose, setCurrentGlucose] = useState<number | null>(null);
   const markInsulin = () => {
+    if (!currentGlucose) {
+      alert(`You must input your current blood sugar`);
+      return;
+    }
     if (!isNaN(insulinTaken)) {
       if (
         confirm(`Confirm that you have taken ${insulinTaken} units of insulin`)
@@ -50,7 +50,7 @@ export default function WizardInsulinPage() {
   };
 
   const correctionInsulin = useMemo(() => {
-    return round(getCorrectionInsulin(currentGlucose), 1);
+    return currentGlucose ? round(getCorrectionInsulin(currentGlucose), 1) : 0;
   }, [currentGlucose]);
 
   const displayedInsulin = (() => {
@@ -84,7 +84,11 @@ export default function WizardInsulinPage() {
           template={template}
           session={session}
           meal={meal}
-          currentBG={session.initialGlucose ? undefined : currentGlucose}
+          currentBG={
+            session.initialGlucose
+              ? undefined
+              : currentGlucose || PreferencesStore.targetBG.value
+          }
         />
       </Card>
 

@@ -24,6 +24,10 @@ export default function WizardFinalBGPage() {
     WizardManager.moveToPage(WizardPage.Hub, navigate);
   }
   function conclude() {
+    if (!bloodSugar) {
+      alert(`You must input a proper final blood sugar`);
+      return;
+    }
     if (confirm("Are you sure you want to end your session?")) {
       session.finalBG = bloodSugar;
       WizardManager.startNew(navigate);
