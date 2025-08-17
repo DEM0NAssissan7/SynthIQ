@@ -26,13 +26,13 @@ export default function WizardMealPage() {
     WizardManager.moveToPage(WizardPage.Select, navigate);
   }
   function beginEating() {
-    if (!initialGlucose) {
+    if (!initialGlucose && !session.insulinMarked) {
       alert(`You must input your current blood sugar`);
       return;
     }
     if (confirm("Are you ready to start eating?")) {
       WizardManager.markMeal();
-      WizardManager.setInitialGlucose(initialGlucose);
+      if (initialGlucose) WizardManager.setInitialGlucose(initialGlucose);
       WizardManager.moveToPage(
         session.insulinMarked ? WizardPage.Hub : WizardPage.Insulin,
         navigate
