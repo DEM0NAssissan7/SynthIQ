@@ -54,6 +54,9 @@ function TopBar() {
               <Nav.Link as={Link} to="/rescue" onClick={handleClose}>
                 Rescue Glucose
               </Nav.Link>
+              <Nav.Link as={Link} to="/activity" onClick={handleClose}>
+                Activity
+              </Nav.Link>
               <Nav.Link as={Link} to="/customfoods" onClick={handleClose}>
                 Custom Foods
               </Nav.Link>

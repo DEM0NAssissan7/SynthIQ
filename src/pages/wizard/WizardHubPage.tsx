@@ -32,6 +32,9 @@ export default function WizardHubPage() {
   function takeGlucose() {
     navigate("/rescue");
   }
+  function doActivity() {
+    navigate("/activity");
+  }
   function editSession() {
     WizardManager.moveToPage(WizardPage.Edit, navigate);
   }
@@ -93,6 +96,9 @@ export default function WizardHubPage() {
         >
           <Button variant="primary" onClick={takeGlucose}>
             Take Glucose
+          </Button>
+          <Button variant="primary" onClick={doActivity}>
+            Do Activity
           </Button>
           <Button
             variant={session.mealMarked ? "danger" : "primary"}
