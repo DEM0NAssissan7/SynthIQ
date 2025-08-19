@@ -69,6 +69,7 @@ export namespace ActivityManager {
   function resetStates() {
     ActivityStore.template.value = new ActivityTemplate(""); // Reset activity
     ActivityStore.activity.value = new Activity(""); // Reset activity
+    ActivityStore.page.reset();
   }
 
   // Execution
