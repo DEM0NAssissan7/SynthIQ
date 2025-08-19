@@ -3,6 +3,7 @@ import TemplateNameSearch from "../../components/TemplateNameSearch";
 import Card from "../../components/Card";
 import { Button } from "react-bootstrap";
 import WizardManager from "../../managers/wizardManager";
+import { WizardStore } from "../../storage/wizardStore";
 
 export default function WizardSelectionPage() {
   const navigate = useNavigate();
@@ -39,7 +40,11 @@ export default function WizardSelectionPage() {
       <h2>Get Started With a Template</h2>
       <p>Select a template from the list below or add a new one.</p>
       <Card>
-        <TemplateNameSearch onInput={(name: string) => advance(name)} />
+        <TemplateNameSearch
+          templates={WizardStore.templates.value}
+          onInput={(name: string) => advance(name)}
+          onDelete={(name: string) => WizardManager.deleteTemplate(name)}
+        />
       </Card>
       <div className="pt-3 d-flex justify-content-end">
         <Button variant="danger" onClick={skip} className="me-auto">
