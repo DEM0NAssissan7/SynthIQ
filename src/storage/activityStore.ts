@@ -26,7 +26,7 @@ export namespace ActivityStore {
 
   export const activity = node.add(
     "activity",
-    new Activity(),
+    new Activity(""),
     Activity.serialize,
     Activity.deserialize
   );

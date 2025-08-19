@@ -23,7 +23,7 @@ export class ActivityTemplate implements Template {
     return this.latestActivity.timestamp;
   }
   get activity(): Activity {
-    if (this.isFirstTime) return new Activity();
+    if (this.isFirstTime) return new Activity(this.name);
     return this.activities[this.activities.length - 1];
   }
 

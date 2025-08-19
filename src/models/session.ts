@@ -6,12 +6,12 @@ import Meal from "./events/meal";
 import type MetaEvent from "./events/metaEvent";
 import Unit from "./unit";
 import RemoteReadings from "../lib/remote/readings";
-import SugarReading from "./types/sugarReading";
 import Snapshot from "./snapshot";
 import Subscribable from "./subscribable";
-import type { Deserializer, Serializer } from "./types/types";
+import type { Deserializer, JSONObject, Serializer } from "./types/types";
 import { CalibrationStore } from "../storage/calibrationStore";
 import { PreferencesStore } from "../storage/preferencesStore";
+import Activity from "./events/activity";
 
 export default class Session extends Subscribable {
   uuid: UUID;
@@ -29,6 +29,7 @@ export default class Session extends Subscribable {
   meals: Meal[] = [];
   insulins: Insulin[] = [];
   glucoses: Glucose[] = [];
+  activities: Activity[] = [];
 
   constructor(createSnapshot = true) {
     // This timestamp marks when eating _begins_
@@ -265,6 +266,13 @@ export default class Session extends Subscribable {
     return this.glucoses[this.glucoses.length - 1].timestamp;
   }
 
+  // Activity
+  addActivity(activity: Activity) {
+    this.activities.push(activity);
+    this.addChildSubscribable(activity);
+    this.notify();
+  }
+
   // Timing
   getN(timestamp: Date) {
     return getHourDiff(timestamp, this.timestamp);
@@ -334,6 +342,7 @@ export default class Session extends Subscribable {
       meals: session.meals.map((a) => Meal.serialize(a)),
       insulins: session.insulins.map((a) => Insulin.serialize(a)),
       glucoses: session.glucoses.map((a) => Glucose.serialize(a)),
+      activities: session.activities.map((a) => Activity.serialize(a)),
       isGarbage: session.isGarbage,
       notes: session.notes,
       insulinEffect: session.insulinEffect,
@@ -361,30 +370,15 @@ export default class Session extends Subscribable {
       session.createGlucose(glucose.value, glucose.timestamp);
     });
 
-    // Compatibility
-    if (!o.version) {
-      // We just assume that there is only one usable snapshot for the entire session as we never recorded BGs in between
-      session.addSnapshot();
-      session.firstSnapshot.addReading(
-        new SugarReading(o.initialGlucose, session.timestamp, true)
-      );
+    const snapshots: Snapshot[] = o.snapshots.map((a: JSONObject) =>
+      Snapshot.deserialize(a)
+    );
+    snapshots.forEach((s) => session.addSnapshot(s));
 
-      const endTimestamp = o.endTimestamp ? new Date(o.endTimestamp) : null;
-      const finalBG = o.finalBG || null;
-      if (finalBG !== null) {
-        session.firstSnapshot.addReading(
-          new SugarReading(finalBG, endTimestamp || new Date(), true)
-        );
-      }
-      session.version = 1;
-    } else {
-      if (o.version === 1) {
-        const snapshots: Snapshot[] = o.snapshots.map((a: string) =>
-          Snapshot.deserialize(a)
-        );
-        snapshots.forEach((s) => session.addSnapshot(s));
-      }
-    }
+    const activities: Activity[] = o.activities
+      ? o.activities.map((a: JSONObject) => Activity.deserialize(a))
+      : [];
+    activities.forEach((a) => session.addActivity(a));
 
     return session;
   };

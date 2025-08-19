@@ -6,6 +6,7 @@ import RemoteTreatments from "../lib/remote/treatments";
 import RemoteSessions from "../lib/remote/sessions";
 import { WizardStore } from "../storage/wizardStore";
 import MealTemplate from "../models/mealTemplate";
+import type Activity from "../models/events/activity";
 
 export default class WizardManager {
   // Page Redirects
@@ -81,6 +82,17 @@ export default class WizardManager {
       session.createGlucose(grams, timestamp);
     }
     RemoteTreatments.markGlucose(grams, timestamp);
+  }
+
+  // Activity
+  static markActivity(activity: Activity) {
+    RemoteTreatments.markActivity(
+      activity.name,
+      activity.timestamp,
+      activity.length
+    );
+    const session = WizardStore.session.value;
+    session.addActivity(activity);
   }
 
   // Template selection

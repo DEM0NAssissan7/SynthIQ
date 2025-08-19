@@ -6,6 +6,7 @@ import {
   serializeActivityPage,
 } from "../models/types/activityPage";
 import Activity from "../models/events/activity";
+import WizardManager from "./wizardManager";
 
 export namespace ActivityManager {
   // Navigation
@@ -36,7 +37,7 @@ export namespace ActivityManager {
     for (let template of templates) {
       if (template.name === name) {
         ActivityStore.template.value = template;
-        ActivityStore.activity.value = template.activity;
+        ActivityStore.activity.value = new Activity(template.name);
         return;
       }
     }
@@ -67,7 +68,7 @@ export namespace ActivityManager {
   // Housekeeping
   function resetStates() {
     ActivityStore.template.value = new ActivityTemplate(""); // Reset activity
-    ActivityStore.activity.value = new Activity(); // Reset activity
+    ActivityStore.activity.value = new Activity(""); // Reset activity
   }
 
   // Execution
@@ -86,6 +87,7 @@ export namespace ActivityManager {
 
     activity.finalBG = finalBG;
     template.addActivity(activity);
+    WizardManager.markActivity(activity); // Communicate with the wizard to store the activity
     updateTemplate(template);
 
     cancel(navigate);

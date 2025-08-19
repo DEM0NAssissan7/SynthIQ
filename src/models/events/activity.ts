@@ -1,10 +1,13 @@
-import { getHourDiff } from "../../lib/timing";
+import { getMinuteDiff } from "../../lib/timing";
 import Snapshot from "../snapshot";
 import type { Deserializer, Serializer } from "../types/types";
+import MetaEvent from "./metaEvent";
 
-export default class Activity {
+export default class Activity extends MetaEvent {
   snapshot: Snapshot = new Snapshot();
-  constructor() {}
+  constructor(public name: string) {
+    super(new Date());
+  }
 
   get timestamp(): Date {
     const readings = this.snapshot.initialBG;
@@ -20,12 +23,13 @@ export default class Activity {
   }
 
   get length() {
-    // Returns the length (in hours) of the activity
-    return getHourDiff(this.endTimestamp, this.timestamp);
+    // Returns the length (in minutes) of the activity
+    return getMinuteDiff(this.endTimestamp, this.timestamp);
   }
 
   set initialBG(val: number) {
     this.snapshot.initialBG = val;
+    this.notify();
   }
   get initialBG(): number | null {
     const reading = this.snapshot.initialBG;
@@ -38,6 +42,7 @@ export default class Activity {
 
   set finalBG(val: number) {
     this.snapshot.finalBG = val;
+    this.notify();
   }
   get finalBG(): number | null {
     const reading = this.snapshot.finalBG;
@@ -56,10 +61,11 @@ export default class Activity {
   static serialize: Serializer<Activity> = (a) => {
     return {
       snapshot: Snapshot.serialize(a.snapshot),
+      name: a.name,
     };
   };
   static deserialize: Deserializer<Activity> = (o) => {
-    const a = new Activity();
+    const a = new Activity(o.name);
     a.snapshot = Snapshot.deserialize(o.snapshot);
     return a;
   };

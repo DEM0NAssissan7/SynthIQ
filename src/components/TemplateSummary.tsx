@@ -64,6 +64,22 @@ export default function TemplateSummary({
           <b>{getMinutesAgo(session.latestGlucoseTimestamp)} minutes ago</b>
         </>
       )}
+      {session.activities.length > 0 && (
+        <>
+          <br />
+          <br />
+          Activities:
+          <br />
+          {session.activities.map((a) => {
+            return (
+              <>
+                <b>{a.name}</b>: <i>{getPrettyTime(a.timestamp)}</i>, {a.length}{" "}
+                mins | {a.initialBG}mg/dL {"->"} {a.finalBG}mg/dL
+              </>
+            );
+          })}
+        </>
+      )}
       {meal && (
         <TemplateMealSummary
           template={template}
