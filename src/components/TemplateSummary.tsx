@@ -3,12 +3,12 @@ import { getMinuteDiff, getPrettyTime } from "../lib/timing";
 import { round } from "../lib/util";
 import type Meal from "../models/events/meal";
 import type Session from "../models/session";
-import type Template from "../models/template";
+import type MealTemplate from "../models/mealTemplate";
 import TemplateMealSummary from "./TemplateMealSummary";
 import { PreferencesStore } from "../storage/preferencesStore";
 
 interface TemplateSummaryProps {
-  template: Template;
+  template: MealTemplate;
   session: Session;
   meal?: Meal;
   currentBG?: number;

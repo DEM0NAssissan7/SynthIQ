@@ -35,3 +35,9 @@ export interface HealthMonitorService {
     href: string;
   };
 }
+
+export interface Template {
+  name: string;
+  timestamp: Date;
+  isFirstTime: boolean;
+}

@@ -6,10 +6,10 @@ import MealAdditionalNutrients from "../../components/MealAdditionalNutrientsCar
 import Card from "../../components/Card";
 import FoodSearchDisplay from "../../components/FoodSearchDisplay";
 import AddedFoodsDisplay from "../../components/AddedFoodsDisplay";
-import WizardManager from "../../lib/wizardManager";
+import WizardManager from "../../managers/wizardManager";
 import TemplateSummary from "../../components/TemplateSummary";
 import { WizardStore } from "../../storage/wizardStore";
-import { WizardPage } from "../../models/types/wizardState";
+import { WizardPage } from "../../models/types/wizardPage";
 import { PreferencesStore } from "../../storage/preferencesStore";
 
 export default function WizardMealPage() {

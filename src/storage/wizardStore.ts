@@ -5,25 +5,25 @@ import {
   deserializeWizardPage,
   serializeWizardPage,
   WizardPage,
-} from "../models/types/wizardState";
-import Template from "../models/template";
+} from "../models/types/wizardPage";
+import MealTemplate from "../models/mealTemplate";
 import Serialization from "../lib/serialization";
 
 export namespace WizardStore {
   const node = new StorageNode("wizard");
 
   // Templates
-  export const templates = node.add<Template[]>(
+  export const templates = node.add<MealTemplate[]>(
     "templates",
     [],
-    Serialization.getArraySerializer(Template.serialize),
-    Serialization.getArrayDeserializer(Template.deserialize)
+    Serialization.getArraySerializer(MealTemplate.serialize),
+    Serialization.getArrayDeserializer(MealTemplate.deserialize)
   );
-  export const template = node.add<Template>(
+  export const template = node.add<MealTemplate>(
     "currentTemplate",
-    new Template(""),
-    Template.serialize,
-    Template.deserialize
+    new MealTemplate(""),
+    MealTemplate.serialize,
+    MealTemplate.deserialize
   );
 
   // Page

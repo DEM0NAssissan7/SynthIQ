@@ -7,7 +7,7 @@ import {
   getIntelligentGlucoseCorrection,
 } from "../lib/metabolism";
 import { round } from "../lib/util";
-import WizardManager from "../lib/wizardManager";
+import WizardManager from "../managers/wizardManager";
 import Card from "../components/Card";
 import GlucoseSuggestion from "../components/GlucoseSuggestion";
 import HealthMonitorMessage from "../components/HealthMonitorMessage";

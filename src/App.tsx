@@ -22,6 +22,11 @@ import BasalPage from "./pages/BasalPage";
 import { BackendStore } from "./storage/backendStore";
 import { WizardStore } from "./storage/wizardStore";
 import WizardInsulinPage from "./pages/wizard/WizardInsulinPage";
+import ActivityRouterPage from "./pages/activity/ActivityRouterPage";
+import ActivitySelectPage from "./pages/activity/ActivitySelectPage";
+import ActivityStartPage from "./pages/activity/ActivityStartPage";
+import ActivityEndPage from "./pages/activity/ActivityEndPage";
+import { ActivityStore } from "./storage/activityStore";
 
 function App() {
   const navigate = useNavigate();
@@ -38,6 +43,8 @@ function App() {
 
   console.log(WizardStore.session.value);
   console.log(WizardStore.template.value);
+  console.log(ActivityStore.activity.value);
+  console.log(ActivityStore.template.value);
   return (
     <div>
       <TopBar />
@@ -47,7 +54,9 @@ function App() {
             path="/"
             element={
               Backend.urlIsValid() || BackendStore.skipSetup.value ? (
-                WizardStore.session.value.started ? (
+                ActivityStore.activity.value.started ? (
+                  <Navigate to="/activity" replace />
+                ) : WizardStore.session.value.started ? (
                   <Navigate to="/wizard" replace />
                 ) : (
                   <Navigate to="/hub" replace />
@@ -75,6 +84,12 @@ function App() {
           <Route path="/wizard/insulin" element={<WizardInsulinPage />} />
           <Route path="/wizard/edit" element={<WizardEditPage />} />
           <Route path="/wizard/finalbg" element={<WizardFinalBGPage />} />
+
+          {/* Activity Routes */}
+          <Route path="/activity" element={<ActivityRouterPage />} />
+          <Route path="/activity/select" element={<ActivitySelectPage />} />
+          <Route path="/activity/start" element={<ActivityStartPage />} />
+          <Route path="/activity/end" element={<ActivityEndPage />} />
         </Routes>
       </div>
     </div>

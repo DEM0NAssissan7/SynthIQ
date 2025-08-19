@@ -1,10 +1,10 @@
 import { Button, ToggleButton } from "react-bootstrap";
 import Card from "../../components/Card";
 import { useNavigate } from "react-router";
-import WizardManager from "../../lib/wizardManager";
+import WizardManager from "../../managers/wizardManager";
 import TemplateSummary from "../../components/TemplateSummary";
 import { WizardStore } from "../../storage/wizardStore";
-import { WizardPage } from "../../models/types/wizardState";
+import { WizardPage } from "../../models/types/wizardPage";
 
 export default function WizardHubPage() {
   const [session] = WizardStore.session.useState();

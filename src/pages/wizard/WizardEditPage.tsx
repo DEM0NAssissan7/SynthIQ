@@ -11,8 +11,8 @@ import { Dropdown } from "react-bootstrap";
 import BloodSugarInput from "../../components/BloodSugarInput";
 import TemplateSummary from "../../components/TemplateSummary";
 import { WizardStore } from "../../storage/wizardStore";
-import WizardManager from "../../lib/wizardManager";
-import { WizardPage } from "../../models/types/wizardState";
+import WizardManager from "../../managers/wizardManager";
+import { WizardPage } from "../../models/types/wizardPage";
 import { PreferencesStore } from "../../storage/preferencesStore";
 
 export default function WizardEditPage() {

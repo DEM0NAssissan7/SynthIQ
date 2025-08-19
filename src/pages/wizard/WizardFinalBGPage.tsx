@@ -6,8 +6,8 @@ import { Button } from "react-bootstrap";
 import RemoteReadings from "../../lib/remote/readings";
 import { WizardStore } from "../../storage/wizardStore";
 import { PreferencesStore } from "../../storage/preferencesStore";
-import WizardManager from "../../lib/wizardManager";
-import { WizardPage } from "../../models/types/wizardState";
+import WizardManager from "../../managers/wizardManager";
+import { WizardPage } from "../../models/types/wizardPage";
 
 export default function WizardFinalBGPage() {
   const session = WizardStore.session.value;

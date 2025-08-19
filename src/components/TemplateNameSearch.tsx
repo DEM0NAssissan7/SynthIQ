@@ -1,22 +1,23 @@
 import { useMemo, useState, type BaseSyntheticEvent } from "react";
 import { Button, Form, ListGroup } from "react-bootstrap";
-import type Template from "../models/template";
 import { getFullPrettyDate } from "../lib/timing";
-import { WizardStore } from "../storage/wizardStore";
-import WizardManager from "../lib/wizardManager";
+import type { Template } from "../models/types/interfaces";
 
 export default function TemplateNameSearch({
   onInput,
+  onDelete,
+  templates,
 }: {
   onInput: (name: string) => void;
+  onDelete: (name: string) => void;
+  templates: Template[];
 }) {
   const [query, setQuery] = useState("");
-  const templates = WizardStore.templates.value;
 
   const filteredTemplates: Template[] = useMemo(() => {
     let result: Template[] = [];
     for (let n of templates) {
-      if (n.name === "Session") continue; // Reserved template name for "Skip"
+      if (n.name === "Session") continue; // Reserved template name for the Skip button
       if (n.name.toLowerCase().includes(query.trim().toLowerCase())) {
         result.push(n);
       }
@@ -36,13 +37,13 @@ export default function TemplateNameSearch({
   };
 
   function deleteTemplate(name: string) {
-    if (confirm("Are you SURE you want to delete this session?")) {
+    if (confirm("Are you SURE you want to delete this template?")) {
       if (
         confirm(
           "This action will be irreversable, and all associated data with the template WILL be permanently destroyed."
         )
       ) {
-        WizardManager.deleteTemplate(name);
+        onDelete(name);
         location.reload();
       }
     }

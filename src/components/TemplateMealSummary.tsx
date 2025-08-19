@@ -3,7 +3,7 @@ import { getInsulin, getCorrectionInsulin } from "../lib/metabolism";
 import { insulinDosingRecommendation } from "../lib/templateHelpers";
 import { round } from "../lib/util";
 import type Meal from "../models/events/meal";
-import type Template from "../models/template";
+import type MealTemplate from "../models/mealTemplate";
 import { Button } from "react-bootstrap";
 import Insulin from "../models/events/insulin";
 import React from "react";
@@ -23,7 +23,7 @@ function getFactorDesc(num: number, unit: string, type: string) {
   );
 }
 interface TemplateMealSummaryProps {
-  template: Template;
+  template: MealTemplate;
   meal: Meal;
   currentBG: number;
 }

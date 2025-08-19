@@ -1,11 +1,11 @@
 import Session from "../models/session";
 import Meal from "../models/events/meal";
-import { serializeWizardPage, WizardPage } from "../models/types/wizardState";
+import { serializeWizardPage, WizardPage } from "../models/types/wizardPage";
 import { type NavigateFunction } from "react-router";
-import RemoteTreatments from "./remote/treatments";
-import RemoteSessions from "./remote/sessions";
+import RemoteTreatments from "../lib/remote/treatments";
+import RemoteSessions from "../lib/remote/sessions";
 import { WizardStore } from "../storage/wizardStore";
-import Template from "../models/template";
+import MealTemplate from "../models/mealTemplate";
 
 export default class WizardManager {
   // Page Redirects
@@ -91,7 +91,7 @@ export default class WizardManager {
     }
     throw new Error(`Cannot find template named ${name}`);
   }
-  private static getTemplateByName(name: string): Template {
+  private static getTemplateByName(name: string): MealTemplate {
     const templates = WizardStore.templates.value;
     return templates[this.getTemplateIndexByName(name)];
   }
@@ -125,7 +125,7 @@ export default class WizardManager {
     try {
       this.selectTemplate(name);
     } catch (e) {
-      const template = new Template(name);
+      const template = new MealTemplate(name);
       WizardStore.templates.value.push(template);
       WizardStore.templates.write();
       this.selectTemplate(name);
@@ -147,7 +147,7 @@ export default class WizardManager {
   static resetTemplate() {
     this.addSessionToTemplate(WizardStore.session.value);
     this.replaceTemplateToArray();
-    WizardStore.template.value = new Template("");
+    WizardStore.template.value = new MealTemplate("");
   }
   static resetSession() {
     WizardStore.session.value = new Session();

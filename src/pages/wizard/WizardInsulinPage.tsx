@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Button, Form, InputGroup } from "react-bootstrap";
-import WizardManager from "../../lib/wizardManager";
+import WizardManager from "../../managers/wizardManager";
 import { round } from "../../lib/util";
 import { useNavigate } from "react-router";
 import BloodSugarInput from "../../components/BloodSugarInput";
@@ -8,7 +8,7 @@ import { getCorrectionInsulin, getInsulin } from "../../lib/metabolism";
 import Card from "../../components/Card";
 import TemplateSummary from "../../components/TemplateSummary";
 import { WizardStore } from "../../storage/wizardStore";
-import { WizardPage } from "../../models/types/wizardState";
+import { WizardPage } from "../../models/types/wizardPage";
 import { PreferencesStore } from "../../storage/preferencesStore";
 
 export default function WizardInsulinPage() {

@@ -5,9 +5,10 @@ import { PreferencesStore } from "../storage/preferencesStore";
 import type Insulin from "./events/insulin";
 import Session from "./session";
 import Subscribable from "./subscribable";
+import type { Template } from "./types/interfaces";
 import type { Deserializer, Serializer } from "./types/types";
 
-export default class Template extends Subscribable {
+export default class MealTemplate extends Subscribable implements Template {
   sessions: Session[] = [];
   timestamp: Date;
 
@@ -165,15 +166,15 @@ export default class Template extends Subscribable {
   }
 
   // Serialization
-  static serialize: Serializer<Template> = (template: Template) => {
+  static serialize: Serializer<MealTemplate> = (template: MealTemplate) => {
     return {
       name: template.name,
       sessions: template.sessions.map((s) => Session.serialize(s)),
       timestamp: template.timestamp.getTime(),
     };
   };
-  static deserialize: Deserializer<Template> = (o) => {
-    let template = new Template(o.name);
+  static deserialize: Deserializer<MealTemplate> = (o) => {
+    let template = new MealTemplate(o.name);
     o.sessions.forEach((s: string) =>
       template.addSession(Session.deserialize(s))
     );

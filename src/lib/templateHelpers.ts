@@ -1,6 +1,6 @@
 import type Meal from "../models/events/meal";
 import type Session from "../models/session";
-import type Template from "../models/template";
+import type MealTemplate from "../models/mealTemplate";
 import { CalibrationStore } from "../storage/calibrationStore";
 import { PreferencesStore } from "../storage/preferencesStore";
 import { getCorrectionInsulin, getInsulin } from "./metabolism";
@@ -140,7 +140,7 @@ export function insulinDosingRecommendation(sessions: Session[]) {
  * The current blood sugar is passed in
  */
 export function getInsulinDose(
-  template: Template,
+  template: MealTemplate,
   meal: Meal,
   currentSugar: number
 ) {
