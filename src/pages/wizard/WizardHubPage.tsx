@@ -98,7 +98,7 @@ export default function WizardHubPage() {
             Take Glucose
           </Button>
           <Button variant="primary" onClick={doActivity}>
-            Do Activity
+            Start Activity
           </Button>
           <Button
             variant={session.mealMarked ? "danger" : "primary"}
