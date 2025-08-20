@@ -81,7 +81,7 @@ export default class Activity extends MetaEvent {
     const activity = new Activity(o.name);
     activity.snapshot = Snapshot.deserialize(o.snapshot);
     if (o.glucoses) {
-      o.glucose.forEach((g: JSONObject) =>
+      o.glucoses.forEach((g: JSONObject) =>
         activity.addGlucose(Glucose.deserialize(g))
       );
       activity.glucoseEffect = o.glucoseEffect;
