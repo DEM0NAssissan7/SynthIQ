@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Navbar, Container, Nav } from "react-bootstrap";
 import { Link } from "react-router";
+import { selfID } from "../lib/remote/backend";
 
 function TopBar() {
   const [expanded, setExpanded] = useState(false);
@@ -37,7 +38,7 @@ function TopBar() {
               height="30"
               className="d-inline-block align-top me-2"
             />
-            SynthIQ
+            {selfID}
           </Navbar.Brand>
           <Navbar.Toggle
             aria-controls="basic-navbar-nav"
