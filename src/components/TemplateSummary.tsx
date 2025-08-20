@@ -66,15 +66,14 @@ export default function TemplateSummary({
       )}
       {session.activities.length > 0 && (
         <>
-          <br />
-          <br />
-          Activities:
+          <hr />
+          <h5>Activities</h5>
           <br />
           {session.activities.map((a, i) => {
             return (
               <Fragment key={i}>
-                <b>{a.name}</b>: <i>{getPrettyTime(a.timestamp)}</i>, {a.length}{" "}
-                mins | {a.initialBG}mg/dL {"->"} {a.finalBG}mg/dL
+                <b>{a.name}</b> [{getPrettyTime(a.timestamp)}]: {a.length} mins
+                | {a.initialBG}mg/dL {"->"} {a.finalBG}mg/dL
               </Fragment>
             );
           })}
