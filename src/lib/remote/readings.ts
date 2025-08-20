@@ -1,5 +1,5 @@
 import Unit from "../../models/unit";
-import { backendStore } from "../../storage/backendStore";
+import { BackendStore } from "../../storage/backendStore";
 import { getTimestampFromOffset } from "../timing";
 import { convertDimensions } from "../util";
 import Backend from "./backend";
@@ -11,7 +11,7 @@ class RemoteReadings {
       getTimestampFromOffset(
         timestamp,
         2 *
-          backendStore.get("minutesPerReading") *
+          BackendStore.minutesPerReading.value *
           convertDimensions(Unit.Time.Minute, Unit.Time.Hour)
       )
     ).then((a) => {
@@ -21,11 +21,14 @@ class RemoteReadings {
   static async getCurrentSugar() {
     return await Backend.get("entries.json").then((a) => a[0].sgv);
   }
-  static async getReadings(timestampA: Date, timestampB: Date) {
+  static async getReadings(
+    timestampA: Date,
+    timestampB: Date
+  ): Promise<{ sgv: number; date: string }[]> {
     let count =
       ((timestampB.getTime() - timestampA.getTime()) *
         convertDimensions(Unit.Time.Millis, Unit.Time.Minute)) /
-      backendStore.get("minutesPerReading");
+      BackendStore.minutesPerReading.value;
     return await Backend.get(
       `entries/sgv.json?find[date][$gte]=${timestampA.getTime()}&find[date][$lte]=${timestampB.getTime()}&count=${count}`
     );

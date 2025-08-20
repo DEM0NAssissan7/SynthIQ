@@ -1,5 +1,5 @@
 import Session from "../../models/session";
-import { backendStore } from "../../storage/backendStore";
+import { BackendStore } from "../../storage/backendStore";
 import Backend, { selfID } from "./backend";
 
 const metaSessionStoreEventType = "Meta Event Storage";
@@ -11,7 +11,7 @@ class RemoteSessions {
       {
         uuid: session.uuid,
         eventType: metaSessionStoreEventType,
-        sessionString: Session.stringify(session),
+        sessionString: Session.serialize(session),
       },
       session.timestamp
     );
@@ -20,16 +20,16 @@ class RemoteSessions {
      */
   }
   static ignoreUUID(uuid: number) {
-    let ignored = backendStore.get("ignoredUUIDs");
-    ignored.push(uuid);
-    backendStore.set("ignoredUUIDs", ignored);
+    BackendStore.ignoredUUIDs.value = [
+      ...BackendStore.ignoredUUIDs.value,
+      uuid,
+    ];
   }
   static clearIgnoredUUIDs() {
-    backendStore.set("ignoredUUIDs", []);
+    BackendStore.ignoredUUIDs.value = [];
   }
   static uuidIsIgnored(uuid: number) {
-    let ignored = backendStore.get("ignoredUUIDs");
-    for (let u of ignored) if (uuid === u) return true;
+    for (let u of BackendStore.ignoredUUIDs.value) if (uuid === u) return true;
     return false;
   }
   static async getAllSessions(allowIgnored: boolean = false) {
@@ -49,7 +49,7 @@ class RemoteSessions {
       ) {
         if (this.uuidIsIgnored(t.uuid) && !allowIgnored) return;
         try {
-          sessions.push(Session.parse(t.sessionString));
+          sessions.push(Session.deserialize(t.sessionString));
         } catch (e) {
           console.error(e);
         }

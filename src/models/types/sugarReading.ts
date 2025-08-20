@@ -1,13 +1,33 @@
-export type SugarReading = {
-  sugar: number;
-  timestamp: Date;
-};
+import type { Deserializer, Serializer } from "./types";
 
-export function getReadingFromNightscout(o: any): SugarReading {
-  return {
-    sugar: o.sgv,
-    timestamp: new Date(o.date),
+export default class SugarReading {
+  constructor(
+    public sugar: number,
+    public timestamp: Date,
+    public isCalibration: boolean = false
+  ) {}
+
+  static serialize: Serializer<SugarReading> = (r: SugarReading) => {
+    return {
+      sugar: r.sugar,
+      timestamp: r.timestamp.getTime(),
+      isCalibration: r.isCalibration,
+    };
   };
+  static deserialize: Deserializer<SugarReading> = (o) => {
+    return new SugarReading(
+      o.sugar,
+      new Date(o.timestamp),
+      o.isCalibration || false
+    );
+  };
+}
+
+export function getReadingFromNightscout(o: {
+  sgv: number;
+  date: string;
+}): SugarReading {
+  return new SugarReading(o.sgv, new Date(o.date), false);
 }
 export function createNightscoutReading(r: SugarReading) {
   return {

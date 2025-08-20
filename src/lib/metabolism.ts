@@ -1,187 +1,37 @@
-import type Session from "../models/session";
 import Insulin from "../models/events/insulin";
-import { profile } from "../storage/metaProfileStore";
-import { getTimestampFromOffset } from "./timing";
-import basalStore from "../storage/basalStore";
+import type Session from "../models/session";
+import { CalibrationStore } from "../storage/calibrationStore";
+import { PreferencesStore } from "../storage/preferencesStore";
+import { timestampIsBetween } from "./timing";
 
 // Insulin
 export function getInsulin(carbs: number, protein: number) {
   return (
-    (carbs * profile.carbs.effect + protein * profile.protein.effect) /
-    profile.insulin.effect
+    (carbs * CalibrationStore.carbsEffect.value +
+      protein * CalibrationStore.proteinEffect.value) /
+    CalibrationStore.insulinEffect.value
   );
 }
 export function getCorrectionInsulin(glucose: number) {
-  return Math.max((glucose - profile.target) / profile.insulin.effect, 0);
+  return Math.max(
+    (glucose - PreferencesStore.targetBG.value) /
+      CalibrationStore.insulinEffect.value,
+    0
+  );
 }
 export function getSessionMealInsulin(session: Session) {
+  if (!session.initialGlucose)
+    throw new Error(`Cannot get session meal insulin: no initial glucose`);
   return session.insulin - getCorrectionInsulin(session.initialGlucose);
-}
-
-function getPeakGlucose(
-  f: (t: number) => number,
-  until: number,
-  interval: number,
-  minThreshold: number,
-  maxThreshold: number
-): number | null {
-  let funcMax = -Infinity;
-  let y;
-  for (let t = 0; t < until; t += interval) {
-    // We sample 5 minute bits of the simulation over the course of 14 hours
-    y = f(t);
-
-    // Ignore if we go below minThreshold or above maxThreshold
-    // This is an optimization to discard unwanted data
-    if (y < minThreshold || y > maxThreshold) {
-      return null;
-    }
-
-    // If we have a smaller maximum
-    if (y > funcMax) {
-      funcMax = y;
-    }
-  }
-  return funcMax;
-}
-
-/** This function figures out the optimal meal timing by using the
- * metabolic profile values to simluate the curves.
- * Then, using the insulin curve, it will test timings (on a 1 minute interval)
- * until it achieves a curve above a minimum blood sugar (as set by the user)
- * and with the lowest maximum.
- */
-const acceptableMax = 93;
-const timeTestInterval = 5 / 60;
-export function getOptimalInsulinTiming(
-  session: Session,
-  unitsInsulin: number,
-  from: number,
-  until: number
-): Date {
-  /** We test ALL points on the graph to see if we have a point that falls
-   * below the low threshold while also keeping the maximum as low as possible */
-  let minPeak = Infinity;
-  let time: Date = new Date();
-  const minThreshold = profile.minThreshold;
-  const mealTimestamp = session.latestMealTimestamp;
-  for (let n = from; n <= until; n += timeTestInterval) {
-    // All insulin timings [within one minute] (from -> until)
-
-    // Create a timestamp h hours away from the meal start (when you start eating)
-    const testTime = getTimestampFromOffset(mealTimestamp, n);
-
-    // Insulin
-    session.testInsulins = [new Insulin(testTime, unitsInsulin)]; // We intentionally push directly to the insulins array to prevent notifying subscribers (and causing potential lag)
-
-    const peak = getPeakGlucose(
-      (t: number) => session.deltaBG(t),
-      14,
-      5 / 60,
-      minThreshold,
-      minPeak
-    );
-    if (peak === null) continue;
-    if (peak < minPeak) {
-      minPeak = peak;
-      time = testTime;
-      if (minPeak <= acceptableMax) break; // If something peaks at acceptableMax, we consider it optimal and just skip any further testing
-    }
-  }
-  return time;
-}
-
-/* This algorithm directly bulids upon the first algorithm, but with some very notable changes
-
-We test insulin dosing on a cascading basis. In other worse, we basically cherry pick the insulins
-based on how well glycemic control is. We do it as follows.
-
-Let's say, for some reason, the user wants 2 separate doses for their insulin.
-Let's also assume the meal needs 5 units. We calculate as follows:
-
-We start with the configuration 5 - 0 (first dose - second dose ) and calculate its
-glycemic control (peak sugar)
-
-Then, we move 4.75 - 0.25 and do the same. If it's a better configuration, we assign the insulins[] to
-that configuration
-
-Then, we go to 4.50 - 0.5 and do it again.
-
-The key here is that we only reassign IF the configuration is better. Otherwise, we discard it and move on,
-even if it has predicted glycemic control.
-
-So perhaps the configuration of 2 - 3 might have the same control as 3 - 2, but we
-ignore 2 - 3 and stick to 3 - 2 because the first dose is larger. It is a cascading algorithm that prefers
-more insulin earlier on. We only switch if it's _better_
-
-This only works for two injections. Optimizing for anything more is extremely expensive
-and mostly pointless (except for insulin pumps, but this is not supported)
-*/
-export function getOptimalDualSplit(
-  session: Session,
-  unitsInsulin: number,
-  from: number,
-  until: number,
-  stepSize: number = 0.5
-): Insulin[] {
-  let minPeak = Infinity;
-  let optimalInsulins: Insulin[] = [
-    new Insulin(session.latestMealTimestamp, unitsInsulin),
-  ];
-
-  const minThreshold = profile.minThreshold;
-  const mealTimestamp = session.latestMealTimestamp;
-  let dose1: number,
-    dose2: number,
-    n1: number,
-    n2: number,
-    time1: Date,
-    time2: Date;
-  // We do n2 first in the for loop chain because it's the lesser significant one
-  // We also change the dosing first to try and get a solution quickly
-  const testFirstShot = (): boolean => {
-    // We then do n1 because it's a larger dose, and movements in its value cause larger changes in glucodynamics
-    for (n1 = from; n1 <= until; n1 += timeTestInterval) {
-      time1 = getTimestampFromOffset(mealTimestamp, n1);
-
-      const insulins = [new Insulin(time1, dose1)];
-      if (dose2 && time2) insulins.push(new Insulin(time2, dose2));
-
-      session.testInsulins = insulins;
-
-      const peak = getPeakGlucose(
-        (t: number) => session.deltaBG(t),
-        7,
-        5 / 60,
-        minThreshold,
-        minPeak
-      );
-      if (peak === null) continue;
-      if (peak < minPeak) {
-        minPeak = peak;
-        optimalInsulins = insulins;
-        if (minPeak <= acceptableMax) return true; // If something peaks at acceptableMax, we consider it optimal and just skip any further testing to save time
-      }
-    }
-    return false;
-  };
-  for (n2 = from; n2 <= until; n2 += timeTestInterval) {
-    for (dose1 = unitsInsulin; dose1 > 0; dose1 -= stepSize) {
-      dose2 = unitsInsulin - dose1;
-      if (dose2) {
-        // We only test n2 if we have a second dose at all
-        time2 = getTimestampFromOffset(mealTimestamp, n2);
-      }
-      if (testFirstShot()) return optimalInsulins;
-    }
-  }
-
-  return optimalInsulins;
 }
 
 // Glucose
 export function getGlucoseCorrectionCaps(sugar: number) {
-  return Math.max((profile.target - sugar) / profile.glucose.effect, 0);
+  return Math.max(
+    (PreferencesStore.targetBG.value - sugar) /
+      CalibrationStore.glucoseEffect.value,
+    0
+  );
 }
 export function getIntelligentGlucoseCorrection(
   velocityHours: number,
@@ -204,6 +54,94 @@ export function getIntelligentGlucoseCorrection(
  * velocity: (mg/dL) / hr
  */
 export function getBasalCorrection(velocity: number): number {
-  const basalVelocityEffect = basalStore.get("basalEffect"); // [(mg/dL) per hour] / unit
+  const basalVelocityEffect = CalibrationStore.basalEffect.value; // [(mg/dL) per hour] / unit
   return velocity / basalVelocityEffect;
+}
+
+// Multi Bolus
+export function getOptimalMealInsulins(session: Session): Insulin[] {
+  /**
+   * The rationale here is we basically create little windows of time
+   * Each bolus shot creates a new window
+   * A window contains the following info:
+   *
+   * InitialBG
+   * Insulin amount taken
+   * Glucose amount taken
+   * FinalBG
+   *
+   * The algorithm is pretty simple. We adjust for the change in BG (accounting for glucose rise).
+   * And it implicitly subtracts whatever correction insulin was taken because it attempts
+   * to correct for it.
+   *
+   * For the first insulin, we subtract the insulin taken to correct for the current BG
+   * because this function only wants to return the optimal MEAL insulin, not cumUlative.
+   */
+
+  const snapshots = session.snapshots;
+  const insulins = session.insulins;
+  const glucoses = session.glucoses;
+
+  if (!session.initialGlucose)
+    throw new Error(`Cannot determine insulin amount: no initial BG`);
+
+  type TreatmentWindow = {
+    initialBG: number;
+    insulin: number;
+    glucose: number;
+    finalBG: number;
+  };
+
+  // Treatment windows creation
+  let windows: TreatmentWindow[] = [];
+  for (let i = 0; i < snapshots.length; i++) {
+    const snapshot = snapshots[i];
+    const insulin = insulins[i];
+    if (!snapshot.finalBG || !snapshot.initialBG)
+      throw new Error(
+        `Cannot reliably dictate insulin dosing: no final or inital BG`
+      );
+    const window: TreatmentWindow = {
+      initialBG: snapshot.initialBG.sugar,
+      insulin: insulin.value,
+      finalBG: snapshot.finalBG.sugar,
+      glucose: 0,
+    };
+    // We account for glucose taken within the time frame and subtract it from the final sugar to see what it would be without any adjustment
+    for (let glucose of glucoses) {
+      if (
+        timestampIsBetween(
+          glucose.timestamp,
+          snapshot.initialBG.timestamp,
+          snapshot.finalBG.timestamp
+        )
+      ) {
+        // If the glucose was taken during this window
+        window.glucose += glucose.value;
+      }
+    }
+    windows.push(window);
+  }
+  /**
+   * Now that we have a list of the theoretical finalBGs, we can adjust each on to try and get a zero-change scenario
+   */
+  for (let window of windows) {
+    const glucoseRise = window.glucose * session.glucoseEffect;
+    const theoreticalFinalBG = window.finalBG - glucoseRise; // Avoid blaming glucose for a rise in BG
+    const deltaBG = theoreticalFinalBG - window.initialBG; // Try to keep things as flat as possible
+
+    const correction = deltaBG / session.insulinEffect;
+    window.insulin += correction;
+  }
+
+  let resultInsulins: Insulin[] = [];
+  for (let i = 0; i < insulins.length; i++) {
+    const _insulin = insulins[i];
+    const window = windows[i];
+    const insulin = Insulin.deserialize(Insulin.serialize(_insulin));
+    insulin.value = window.insulin;
+    resultInsulins.push(insulin);
+  }
+
+  return resultInsulins;
 }

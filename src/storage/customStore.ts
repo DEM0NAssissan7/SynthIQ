@@ -1,43 +1,28 @@
 /* This is where we store custom meals, foods, etc. */
-import StorageNode from "../lib/storageNode";
-import Food, { foods } from "../models/food";
+import Serialization from "../lib/serialization";
+import StorageNode from "./storageNode";
+import Food, { foods as globalFoods } from "../models/food";
 
-export const customStore = new StorageNode("custom");
+export namespace CustomStore {
+  const node = new StorageNode("custom");
 
-// Custom Foods
-customStore.add(
-  "foods",
-  [],
-  (s: string) => {
-    const foodArray = JSON.parse(s);
-    return foodArray.map((a: any) => Food.parse(a)); // Assuming Meal can parse food items
-  },
-  (foods: Food[]) => {
-    const foodArray = foods.map((a: Food) => Food.stringify(a)); // Assuming Meal can stringify food items
-    return JSON.stringify(foodArray);
+  export const foods = node.add<Food[]>(
+    "foods",
+    [],
+    Serialization.getArraySerializer(Food.serialize),
+    Serialization.getArrayDeserializer(Food.deserialize)
+  );
+  // Push custom foods to global
+  globalFoods.push(...foods.value);
+  export function addFood(food: Food) {
+    foods.value = [...foods.value, food];
+
+    globalFoods.push(food);
   }
-);
-let customFoods = customStore.get("foods") as Food[];
-customFoods.forEach((f: any) => {
-  foods.push(f);
-});
-function syncCustomFoods() {
-  customStore.write("foods");
-  // NightscoutManager.storeCustomFoods();
-}
-export function addCustomFood(food: Food) {
-  customFoods.push(food);
-  foods.push(food);
-  syncCustomFoods();
-}
-export function removeCustomFood(food: Food) {
-  customFoods.splice(customFoods.indexOf(food), 1);
-  foods.splice(foods.indexOf(food), 1);
-  syncCustomFoods();
-}
-export function setCustomFoods(foods: Food[], sync: boolean = false) {
-  customStore.set("foods", foods);
-  customFoods = customStore.get("foods");
-  sync;
-  // if (sync) NightscoutManager.storeCustomFoods();
+  export function removeFood(food: Food) {
+    const newFoods = foods.value.filter((f: Food) => f !== food);
+    foods.value = newFoods;
+
+    globalFoods.filter((f: Food) => f !== food);
+  }
 }

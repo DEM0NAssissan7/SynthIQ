@@ -1,23 +1,11 @@
 import type Meal from "../models/events/meal";
-import type MetabolismProfile from "../models/metabolism/metabolismProfile";
 import type Session from "../models/session";
-import type Template from "../models/template";
-import { profile } from "../storage/metaProfileStore";
-import preferencesStore from "../storage/preferencesStore";
+import type MealTemplate from "../models/mealTemplate";
+import { CalibrationStore } from "../storage/calibrationStore";
+import { PreferencesStore } from "../storage/preferencesStore";
 import { getCorrectionInsulin, getInsulin } from "./metabolism";
 import { round } from "./util";
 
-// Basic Insulin Dosing Optimization
-function getCorrectMealDosing(session: Session) {
-  const optimalMealInsulin = session.mealRise / profile.insulin.effect;
-  return optimalMealInsulin;
-}
-export function getCorrectDosing(session: Session) {
-  const optimalInsulin =
-    getCorrectMealDosing(session) +
-    getCorrectionInsulin(session.initialGlucose); // Account for BG correction
-  return optimalInsulin;
-}
 export function insulinRuleEngine(session: Session) {
   /**
    * This is a rule engine to determine if timing was right, too late, or too early
@@ -55,12 +43,14 @@ export function insulinRuleEngine(session: Session) {
   let timing = OPTIMAL;
 
   // Some nice stuff to define
-  const lowBG = preferencesStore.get("lowBG");
+  const lowBG = PreferencesStore.lowBG.value;
 
   const takenInsulin = session.mealInsulin;
   const optimalInsulin = session.optimalMealInsulin;
   const insulinMaxThreshold =
-    optimalInsulin + (profile.target - lowBG) / profile.insulin.effect;
+    optimalInsulin +
+    (PreferencesStore.targetBG.value - lowBG) /
+      CalibrationStore.insulinEffect.value;
   // If insulin excess would have dropped you below the low threshold, it's too much
 
   // Rule engine magic
@@ -70,7 +60,9 @@ export function insulinRuleEngine(session: Session) {
 
   // Timing
   const glucose = session.glucose;
-  const glucoseThreshold = (profile.target - lowBG) / profile.glucose.effect; // Set the threshold at whatever is required to bounce from 65mg/dL
+  const glucoseThreshold =
+    (PreferencesStore.targetBG.value - lowBG) /
+    CalibrationStore.glucoseEffect.value; // Set the threshold at whatever is required to bounce from 65mg/dL
   const glucoseExcess: boolean = glucose > glucoseThreshold;
   /** It's normal for you to have to correct down to a certain amount
    * We wanna give enough error where our user doesn't dip down below lowBG. If he had to take more than what's
@@ -86,22 +78,14 @@ export function insulinRuleEngine(session: Session) {
     timing,
   };
 }
-export function getProfileError(session: Session, profile: MetabolismProfile) {
-  const calculatedRise =
-    session.carbs * profile.carbs.effect +
-    session.protein * profile.protein.effect;
-  const actualMealRise = getCorrectMealDosing(session);
-  const profileError = calculatedRise - actualMealRise;
-  return profileError;
-}
 
 // Misc helper functions
 export function sessionsWeightedAverage(
   f: (s: any) => number,
   sessions: Session[]
 ) {
-  const sessionHalfLife = preferencesStore.get("sessionHalfLife");
-  const maxSessionLife = preferencesStore.get("maxSessionLife");
+  const sessionHalfLife = PreferencesStore.sessionHalfLife.value;
+  const maxSessionLife = PreferencesStore.maxSessionLife.value;
   let totalWeight = 0;
   let weightedSum = 0;
   for (let i = sessions.length - 1; i >= 0; i--) {
@@ -139,8 +123,8 @@ export function insulinDosingRecommendation(sessions: Session[]) {
     amountSuggestion,
     timingSuggestion,
     amountAdjustment:
-      -amountSuggestion * preferencesStore.get("insulinStepSize"),
-    timingAdjustment: -timingSuggestion * preferencesStore.get("timeStepSize"),
+      -amountSuggestion * PreferencesStore.insulinStepSize.value,
+    timingAdjustment: -timingSuggestion * PreferencesStore.timeStepSize.value,
   };
 }
 
@@ -156,7 +140,7 @@ export function insulinDosingRecommendation(sessions: Session[]) {
  * The current blood sugar is passed in
  */
 export function getInsulinDose(
-  template: Template,
+  template: MealTemplate,
   meal: Meal,
   currentSugar: number
 ) {

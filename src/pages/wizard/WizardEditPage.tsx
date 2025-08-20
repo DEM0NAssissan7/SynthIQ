@@ -1,35 +1,42 @@
 import { useNavigate } from "react-router";
 import AddedFoodsDisplay from "../../components/AddedFoodsDisplay";
 import Card from "../../components/Card";
-import SessionGraph from "../../components/SessionGraph";
 import FoodSearchDisplay from "../../components/FoodSearchDisplay";
 import GlucoseManager from "../../components/GlucoseManager";
 import InsulinManager from "../../components/InsulinManager";
 import MealAdditionalNutrients from "../../components/MealAdditionalNutrientsCard";
-import WizardManager from "../../lib/wizardManager";
-import { WizardState } from "../../models/types/wizardState";
-import { useWizardSession } from "../../state/useSession";
 import { Button } from "react-bootstrap";
-import SessionSummary from "../../components/SessionSummary";
 import { useMemo, useState } from "react";
 import { Dropdown } from "react-bootstrap";
 import BloodSugarInput from "../../components/BloodSugarInput";
+import TemplateSummary from "../../components/TemplateSummary";
+import { WizardStore } from "../../storage/wizardStore";
+import WizardManager from "../../managers/wizardManager";
+import { WizardPage } from "../../models/types/wizardPage";
+import { PreferencesStore } from "../../storage/preferencesStore";
 
 export default function WizardEditPage() {
-  const session = useWizardSession();
+  const [session] = WizardStore.session.useState();
   const [selectedMealIndex, setSelectedMealIndex] = useState(0);
   const meal = useMemo(
     () => session.meals[selectedMealIndex],
     [selectedMealIndex]
   );
+  const template = WizardStore.template.value;
 
   const navigate = useNavigate();
   function finishEdit() {
-    WizardManager.moveToPage(WizardState.Summary, navigate);
+    WizardManager.moveToPage(WizardPage.Hub, navigate);
+  }
+  function setGlucose(_: number) {
+    // session.initialGlucose = a;
   }
   return (
     <>
       <h1>Edit Session Events</h1>
+      <Card>
+        <TemplateSummary template={template} session={session} />
+      </Card>
       <Card>
         <Dropdown
           onSelect={(eventKey) =>
@@ -37,7 +44,7 @@ export default function WizardEditPage() {
           }
         >
           <Dropdown.Toggle variant="secondary" id="meal-dropdown">
-            Meal {selectedMealIndex + 1}
+            {`Meal ${selectedMealIndex + 1}`}
           </Dropdown.Toggle>
           <Dropdown.Menu>
             {session.meals.map((_, i: number) => (
@@ -62,8 +69,12 @@ export default function WizardEditPage() {
 
       <Card>
         <BloodSugarInput
-          initialGlucose={session.initialGlucose}
-          setInitialGlucose={(g) => (session.initialGlucose = g)}
+          initialGlucose={
+            session.initialGlucose
+              ? session.initialGlucose
+              : PreferencesStore.targetBG.value
+          }
+          setInitialGlucose={setGlucose}
           pullFromNightscout={false}
           showAutoButton={false}
           label="Initial Blood Sugar"
@@ -76,14 +87,6 @@ export default function WizardEditPage() {
 
       <Card>
         <GlucoseManager session={session} />
-      </Card>
-
-      <Card>
-        <SessionSummary session={session} />
-      </Card>
-
-      <Card>
-        <SessionGraph session={session} from={-1} />
       </Card>
 
       <div style={{ display: "flex", justifyContent: "flex-end" }}>

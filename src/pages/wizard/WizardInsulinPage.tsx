@@ -1,133 +1,96 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Button, Form, InputGroup } from "react-bootstrap";
-import WizardManager from "../../lib/wizardManager";
+import WizardManager from "../../managers/wizardManager";
 import { round } from "../../lib/util";
 import { useNavigate } from "react-router";
-import { WizardState } from "../../models/types/wizardState";
-import useInsulinPrediction from "../../state/useInsulinPrediction";
-import useVersion from "../../state/useVersion";
-import SessionPredictedSugarGraphCard from "../../components/SessionPredictedSugarGraphCard";
-import { getMinuteDiff, getPrettyTime } from "../../lib/timing";
-import { useWizardSession } from "../../state/useSession";
-import { useWizardMeal } from "../../state/useMeal";
-import SessionSummary from "../../components/SessionSummary";
 import BloodSugarInput from "../../components/BloodSugarInput";
-import { getCorrectionInsulin } from "../../lib/metabolism";
+import { getCorrectionInsulin, getInsulin } from "../../lib/metabolism";
 import Card from "../../components/Card";
+import TemplateSummary from "../../components/TemplateSummary";
+import { WizardStore } from "../../storage/wizardStore";
+import { WizardPage } from "../../models/types/wizardPage";
+import { PreferencesStore } from "../../storage/preferencesStore";
 
 export default function WizardInsulinPage() {
   const navigate = useNavigate();
-  const session = useWizardSession();
-  const meal = WizardManager.getMealMarked()
+  const [session] = WizardStore.session.useState();
+  const meal = session.mealMarked
     ? session.latestMeal
-    : useWizardMeal();
+    : WizardStore.meal.useState()[0];
+  const [template] = WizardStore.template.useState();
 
-  const { insulin: suggestedInsulin, insulinTimestamp } = useInsulinPrediction(
-    session,
-    meal.carbs,
-    meal.protein,
-    session.initialGlucose,
-    false
-  );
+  const suggestedInsulin = getInsulin(meal.carbs, meal.protein);
 
   // Inputted Insulin
   const [insulinTaken, setInsulinTaken] = useState(0);
-  const [currentGlucose, setCurrentGlucose] = useState(session.initialGlucose);
+  const [currentGlucose, setCurrentGlucose] = useState<number | null>(null);
   const markInsulin = () => {
+    if (!currentGlucose) {
+      alert(`You must input your current blood sugar`);
+      return;
+    }
     if (!isNaN(insulinTaken)) {
       if (
         confirm(`Confirm that you have taken ${insulinTaken} units of insulin`)
       ) {
-        session.clearTestInsulins();
-        WizardManager.markInsulin(insulinTaken);
-        if (!WizardManager.getInitialGlucoseMarked())
-          WizardManager.setInitialGlucose(currentGlucose);
-        WizardManager.moveToPage(
-          WizardManager.getMealMarked()
-            ? WizardState.Summary
-            : WizardState.MealConfirm,
-          navigate
-        );
+        WizardManager.markInsulin(insulinTaken, currentGlucose);
+        WizardManager.setInitialGlucose(currentGlucose);
+        if (session.started) {
+          WizardManager.moveToPage(
+            session.mealMarked ? WizardPage.Hub : WizardPage.Meal,
+            navigate
+          );
+        } else {
+          navigate("/hub");
+        }
       }
     } else {
       alert("Please enter a valid number");
     }
   };
 
-  //
-  function cancelSession() {
-    WizardManager.cancelSession(navigate);
-  }
-
   const correctionInsulin = useMemo(() => {
-    return round(getCorrectionInsulin(currentGlucose), 1);
+    return currentGlucose ? round(getCorrectionInsulin(currentGlucose), 1) : 0;
   }, [currentGlucose]);
 
-  const displayedInsulin = useMemo(() => {
+  const displayedInsulin = (() => {
     if (session.insulin !== 0 && correctionInsulin > 0)
       return correctionInsulin;
-    if (session.insulin === 0) return suggestedInsulin;
+    if (session.insulin === 0) {
+      const insulins = template.vectorizeInsulin(meal.carbs, meal.protein);
+      let insulin: number = suggestedInsulin;
+      if (insulins) {
+        insulin = 0;
+        insulins.forEach((i) => (insulin += i.value));
+      }
+      return insulin + correctionInsulin;
+    }
     return Math.max(suggestedInsulin - session.insulin, 0);
-  }, [session, correctionInsulin, suggestedInsulin]);
-
-  // Misc
-  function backToSummary() {
-    WizardManager.moveToPage(WizardState.Summary, navigate);
-  }
+  })();
 
   // A variable that changes once per minute
-  const version = useVersion(1);
   function goBack() {
-    if (!WizardManager.getMealMarked())
-      WizardManager.moveToPage(WizardState.Meal, navigate);
-    else
-      throw new Error(
-        "Something went horribly wrong in the router. This should not be happening"
-      );
-  }
-
-  // Session editing
-  function editSession() {
-    WizardManager.moveToPage(WizardState.Edit, navigate);
-  }
-
-  // We show the user what we predict if they take insulin now
-  useEffect(() => {
-    session.clearTestInsulins();
-    session.createTestInsulin(
-      new Date(),
-      insulinTaken ? insulinTaken : displayedInsulin
+    WizardManager.moveToPage(
+      session.mealMarked ? WizardPage.Hub : WizardPage.Meal,
+      navigate
     );
-  }, [version, insulinTaken, displayedInsulin]);
-
-  // Timing Info (for user)
-  const optimalInsulinTiming = useMemo(() => {
-    return getMinuteDiff(insulinTimestamp, new Date());
-  }, [version, insulinTimestamp]);
+  }
 
   return (
     <div>
       <h1>Insulin Dosing</h1>
-      {!WizardManager.getInsulinMarked() && (
-        <p>
-          Take however much insulin you wish. However, our algorithm think you
-          should take <b>{round(displayedInsulin, 2)}</b> units
-          {WizardManager.getMealMarked() && optimalInsulinTiming > 0 && (
-            <>
-              {" "}
-              in <b>{optimalInsulinTiming} minutes</b>
-              {optimalInsulinTiming >= 30 && (
-                <> ({getPrettyTime(insulinTimestamp)})</>
-              )}
-            </>
-          )}
-          .
-        </p>
-      )}
-      <hr />
-      <SessionSummary session={session} />
-      <hr />
-      <SessionPredictedSugarGraphCard session={session} />
+      <Card>
+        <TemplateSummary
+          template={template}
+          session={session}
+          meal={meal}
+          currentBG={
+            session.initialGlucose
+              ? undefined
+              : currentGlucose || PreferencesStore.targetBG.value
+          }
+        />
+      </Card>
 
       <Card>
         <BloodSugarInput
@@ -151,27 +114,9 @@ export default function WizardInsulinPage() {
         </InputGroup>
       </Card>
       <div className="d-flex justify-content-between">
-        {!WizardManager.getMealMarked() ? (
-          <Button variant="secondary" onClick={goBack}>
-            Go Back
-          </Button>
-        ) : WizardManager.getInsulinMarked() ? (
-          <Button variant="secondary" onClick={backToSummary}>
-            Return To Summary
-          </Button>
-        ) : (
-          <Button variant="secondary" onClick={editSession}>
-            Edit Session
-          </Button>
-        )}
-        {(WizardManager.getMealMarked() || WizardManager.getInsulinMarked()) &&
-          !(
-            WizardManager.getMealMarked() && WizardManager.getInsulinMarked()
-          ) && (
-            <Button variant="danger" onClick={cancelSession}>
-              Cancel Session
-            </Button>
-          )}
+        <Button variant="secondary" onClick={goBack}>
+          Go Back
+        </Button>
         <Button variant="primary" onClick={markInsulin}>
           Mark Insulin
         </Button>

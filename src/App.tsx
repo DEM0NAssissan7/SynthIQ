@@ -1,33 +1,32 @@
 import { Routes, Route, Navigate, useNavigate } from "react-router";
 import TopBar from "./components/TopBar";
-import WizardManager from "./lib/wizardManager";
 import HubPage from "./pages/HubPage";
-import ProfilerPage from "./pages/ProfilerPage";
 import SettingsPage from "./pages/SettingsPage";
 import SetupPage from "./pages/SetupPage";
-import WizardInsulinPage from "./pages/wizard/WizardInsulinPage";
 import WizardIntroPage from "./pages/wizard/WizardIntroPage";
-import WizardMealConfirmPage from "./pages/wizard/WizardMealConfirmPage";
-import WizardMealPage from "./pages/wizard/WizardMealPage";
 import WizardRouterPage from "./pages/wizard/WizardRouterPage";
-import WizardSummaryPage from "./pages/wizard/WizardSummaryPage";
-import PlaygroundPage from "./pages/PlaygroundPage";
-import WizardEditPage from "./pages/wizard/WizardEditPage";
 import { useEffect } from "react";
 import CustomFoodsPage from "./pages/CustomFoodsPage";
 import DextrosePage from "./pages/DextrosePage";
 import StatisticsPage from "./pages/StatisticsPage";
-import TemplateHubPage from "./pages/template/TemplateHubPage";
-import TemplateMealPage from "./pages/template/TemplateMealPage";
-import TemplateSelectionPage from "./pages/template/TemplateSelectionPage";
-import TemplateInsulinPage from "./pages/template/TemplateInsulinPage";
-import TemplateFinalBGPage from "./pages/template/TemplateFinalBGPage";
-import TemplateEditPage from "./pages/template/TemplateEditPage";
+import WizardHubPage from "./pages/wizard/WizardHubPage";
+import WizardMealPage from "./pages/wizard/WizardMealPage";
+import WizardSelectionPage from "./pages/wizard/WizardSelectionPage";
+import WizardFinalBGPage from "./pages/wizard/WizardFinalBGPage";
+import WizardEditPage from "./pages/wizard/WizardEditPage";
 import RescuePage from "./pages/RescuePage";
 import { smartMonitor } from "./lib/healthMonitor";
 import Backend from "./lib/remote/backend";
 import RemoteStorage from "./lib/remote/storage";
 import BasalPage from "./pages/BasalPage";
+import { BackendStore } from "./storage/backendStore";
+import { WizardStore } from "./storage/wizardStore";
+import WizardInsulinPage from "./pages/wizard/WizardInsulinPage";
+import ActivityRouterPage from "./pages/activity/ActivityRouterPage";
+import ActivitySelectPage from "./pages/activity/ActivitySelectPage";
+import ActivityStartPage from "./pages/activity/ActivityStartPage";
+import ActivityEndPage from "./pages/activity/ActivityEndPage";
+import { ActivityStore } from "./storage/activityStore";
 
 function App() {
   const navigate = useNavigate();
@@ -41,6 +40,11 @@ function App() {
     // Execute health monitor
     smartMonitor(navigate);
   }, []);
+
+  console.log(WizardStore.session.value);
+  console.log(WizardStore.template.value);
+  console.log(ActivityStore.activity.value);
+  console.log(ActivityStore.template.value);
   return (
     <div>
       <TopBar />
@@ -49,8 +53,10 @@ function App() {
           <Route
             path="/"
             element={
-              Backend.urlIsValid() || Backend.getSkipped() ? (
-                WizardManager.isActive() ? (
+              Backend.urlIsValid() || BackendStore.skipSetup.value ? (
+                ActivityStore.activity.value.started ? (
+                  <Navigate to="/activity" replace />
+                ) : WizardStore.session.value.started ? (
                   <Navigate to="/wizard" replace />
                 ) : (
                   <Navigate to="/hub" replace />
@@ -61,10 +67,8 @@ function App() {
             }
           />
           <Route path="/hub" element={<HubPage />} />
-          <Route path="/profiler" element={<ProfilerPage />} />
           <Route path="/setup" element={<SetupPage />} />
           <Route path="/settings" element={<SettingsPage />} />
-          <Route path="/playground" element={<PlaygroundPage />} />
           <Route path="/customfoods" element={<CustomFoodsPage />} />
           <Route path="/dextrose" element={<DextrosePage />} />
           <Route path="/statistics" element={<StatisticsPage />} />
@@ -74,24 +78,18 @@ function App() {
           {/* Wizard Routes */}
           <Route path="/wizard" element={<WizardRouterPage />} />
           <Route path="/wizard/intro" element={<WizardIntroPage />} />
+          <Route path="/wizard/select" element={<WizardSelectionPage />} />
+          <Route path="/wizard/hub" element={<WizardHubPage />} />
           <Route path="/wizard/meal" element={<WizardMealPage />} />
-          <Route
-            path="/wizard/mealconfirm"
-            element={<WizardMealConfirmPage />}
-          />
           <Route path="/wizard/insulin" element={<WizardInsulinPage />} />
-          <Route path="/wizard/summary" element={<WizardSummaryPage />} />
           <Route path="/wizard/edit" element={<WizardEditPage />} />
+          <Route path="/wizard/finalbg" element={<WizardFinalBGPage />} />
 
-          {/* Template Routes */}
-          <Route path="/template" element={<WizardRouterPage />} />
-          {/* We just reuse wizardrouter because it deals with it properly */}
-          <Route path="/template/select" element={<TemplateSelectionPage />} />
-          <Route path="/template/hub" element={<TemplateHubPage />} />
-          <Route path="/template/meal" element={<TemplateMealPage />} />
-          <Route path="/template/insulin" element={<TemplateInsulinPage />} />
-          <Route path="/template/edit" element={<TemplateEditPage />} />
-          <Route path="/template/finalbg" element={<TemplateFinalBGPage />} />
+          {/* Activity Routes */}
+          <Route path="/activity" element={<ActivityRouterPage />} />
+          <Route path="/activity/select" element={<ActivitySelectPage />} />
+          <Route path="/activity/start" element={<ActivityStartPage />} />
+          <Route path="/activity/end" element={<ActivityEndPage />} />
         </Routes>
       </div>
     </div>

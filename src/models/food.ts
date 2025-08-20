@@ -1,8 +1,7 @@
 import * as importedFoods from "../assets/foods.json";
 import { genUUID, type UUID } from "../lib/util";
 import Unit from "../models/unit";
-import { defaultGI } from "./metabolism/carbsProfile";
-import type MetabolismProfile from "./metabolism/metabolismProfile";
+import type { Deserializer, Serializer } from "./types/types";
 
 export default class Food {
   name: string;
@@ -10,7 +9,6 @@ export default class Food {
   proteinRate: number;
   fatRate: number;
   unit: Unit.Food;
-  GI: number; // Glycemic Index (carbs only)
   key: UUID; // This only exists to uniquely identify the food
 
   amount: number = 0;
@@ -19,20 +17,15 @@ export default class Food {
     carbsRate: number,
     proteinRate: number,
     unit: Unit.Food = Unit.Food.HundredGrams,
-    GI: number = defaultGI,
     fatRate?: number
   ) {
     this.name = name;
     this.carbsRate = carbsRate;
     this.proteinRate = proteinRate;
     this.unit = unit;
-    this.GI = GI;
     this.fatRate = fatRate || 0;
 
     this.key = genUUID();
-  }
-  carbsDeltaBG(t: number, profile: MetabolismProfile): number {
-    return profile.carbs.deltaBG(t, this.carbs, this.GI);
   }
   get carbs(): number {
     return (this.carbsRate / this.unit) * this.amount;
@@ -66,37 +59,34 @@ export default class Food {
       food.carbs,
       food.protein,
       unit,
-      food.GI || defaultGI,
       food.fat || 0
     );
     newFood.amount = food.amount || 0;
     return newFood;
   }
 
-  static stringify(food: Food): string {
+  static serialize: Serializer<Food> = (food: Food) => {
     // TODO
-    return JSON.stringify({
+    return {
       name: food.name,
       carbs: food.carbsRate,
       protein: food.proteinRate,
       fat: food.fatRate,
       units: food.unit,
-      GI: food.GI,
       amount: food.amount,
-    });
-  }
-  static parse(string: string): Food {
-    let food = JSON.parse(string);
+    };
+  };
+  static deserialize: Deserializer<Food> = (o) => {
     let newFood: Food;
     try {
-      newFood = getFoodByName(food.name);
+      newFood = getFoodByName(o.name);
     } catch (e: any) {
       // console.warn(`${e} - using hardcoded info`);
-      newFood = Food.createFromImport(food);
+      newFood = Food.createFromImport(o);
     }
-    newFood.amount = food.amount || 0;
+    newFood.amount = o.amount || 0;
     return newFood;
-  }
+  };
 }
 
 export const foods: Food[] = [];
@@ -119,7 +109,6 @@ export function getFoodByName(name: string): Food {
         food.carbsRate,
         food.proteinRate,
         food.unit,
-        food.GI,
         food.fatRate
       );
   throw new Error(`Foods: could not find food with name ${name}`);

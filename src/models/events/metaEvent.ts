@@ -1,20 +1,11 @@
-export default class MetaEvent {
+import Subscribable from "../subscribable";
+
+export default class MetaEvent extends Subscribable {
   _timestamp: Date;
-  subscriptions: (() => void)[] = [];
 
   constructor(timestamp: Date) {
+    super();
     this._timestamp = timestamp;
-  }
-
-  // Subscriptions
-  subscribe(callback: () => void) {
-    this.subscriptions.push(callback);
-  }
-  unsubscribe(callback: () => void) {
-    this.subscriptions = this.subscriptions.filter((sub) => sub !== callback);
-  }
-  notify() {
-    this.subscriptions.forEach((f) => f());
   }
 
   set timestamp(t: Date) {

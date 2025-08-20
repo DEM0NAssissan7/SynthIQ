@@ -8,11 +8,11 @@ export default function useInsulin(insulin: Insulin, session: Session) {
   const rerender = () => setVersion((v) => v + 1);
   let offset = getMinuteDiff(insulin.timestamp, session.firstMealTimestamp);
   return {
-    units: insulin.units,
+    units: insulin.value,
     timestamp: insulin.timestamp,
     offset: offset,
     setUnits: (units: number) => {
-      insulin.units = units;
+      insulin.value = units;
       rerender();
     },
     setTimestamp: (timestamp: Date) => {

@@ -1,11 +1,8 @@
 import { Container, Row, Col, Card, Button } from "react-bootstrap";
-import WizardManager from "../lib/wizardManager";
 import { Link } from "react-router";
 import { useEffect, useState } from "react";
-import { wizardStorage } from "../storage/wizardStore";
-import { backendStore } from "../storage/backendStore";
-import SessionGraph from "../components/SessionGraph";
 import Backend from "../lib/remote/backend";
+import { WizardStore } from "../storage/wizardStore";
 
 enum NightscoutAuthLevel {
   Invalid,
@@ -14,11 +11,10 @@ enum NightscoutAuthLevel {
 }
 
 function HubPage() {
-  const session = wizardStorage.get("session");
-
   const [nightscoutAuthLevel, setNightscoutAuthLevel] = useState(
     NightscoutAuthLevel.Invalid
   );
+  const [session] = WizardStore.session.useState();
   useEffect(() => {
     Backend.verifyAuth()
       .then((a) => {
@@ -33,7 +29,7 @@ function HubPage() {
         console.error(e);
         setNightscoutAuthLevel(NightscoutAuthLevel.Invalid);
       });
-  }, [backendStore]);
+  }, []);
 
   return (
     <Container fluid className="text-center py-4 bg-light min-vh-100">
@@ -46,24 +42,14 @@ function HubPage() {
           <Col xs={12} sm={6} md={4} lg={3}>
             <Card className="h-100 shadow-sm">
               <Card.Body>
-                {WizardManager.isActive() ? (
-                  WizardManager.isComplete() ? (
-                    <>
-                      <Card.Title>Realtime Meal Prediction</Card.Title>
-                      <SessionGraph session={session} from={-1} width="100%" />
-                      <Button variant="primary" as={Link as any} to="/wizard">
-                        View Summary
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <Card.Title>Active Meal</Card.Title>
-                      <Card.Text>You have an active session</Card.Text>
-                      <Button variant="primary" as={Link as any} to="/wizard">
-                        Continue
-                      </Button>
-                    </>
-                  )
+                {session.started ? (
+                  <>
+                    <Card.Title>Active Session</Card.Title>
+                    <Card.Text>You have an active session</Card.Text>
+                    <Button variant="primary" as={Link as any} to="/wizard">
+                      View
+                    </Button>
+                  </>
                 ) : (
                   <>
                     <Card.Title>Start A Session</Card.Title>

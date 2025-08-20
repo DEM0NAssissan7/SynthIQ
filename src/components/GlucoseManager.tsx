@@ -1,7 +1,7 @@
 import { Button, Form, ListGroup } from "react-bootstrap";
 import type Session from "../models/session";
-import type Glucose from "../models/events/glucose";
 import AddedGlucose from "./AddedGlucose";
+import type Glucose from "../models/events/glucose";
 
 interface GlucoseManagerProps {
   session: Session;
@@ -9,7 +9,7 @@ interface GlucoseManagerProps {
 
 export default function GlucoseManager({ session }: GlucoseManagerProps) {
   function addGlucose() {
-    session.createGlucose(new Date(), 0);
+    session.createGlucose(0, new Date());
   }
   return (
     <ListGroup>

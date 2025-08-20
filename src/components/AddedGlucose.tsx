@@ -27,7 +27,7 @@ export default function AddedGlucose({ glucose, session }: AddedGlucoseProps) {
   return (
     <>
       <div className="d-flex justify-content-between align-items-center">
-        <span className="fw-bold">{round(glucose._caps, 2)}u</span>
+        <span className="fw-bold">{round(glucose.value, 2)}u</span>
         <span className="text-muted">
           Taken {getHoursMinutes(Math.abs(offset))}{" "}
           {offset > 0 ? "after" : "before"} eating

@@ -8,11 +8,11 @@ export default function useGlucose(glucose: Glucose, session: Session) {
   const rerender = () => setVersion((v) => v + 1);
   let offset = getMinuteDiff(glucose.timestamp, session.firstMealTimestamp);
   return {
-    caps: glucose.caps,
+    caps: glucose.value,
     timestamp: glucose.timestamp,
     offset: offset,
     setCaps: (caps: number) => {
-      glucose.caps = caps;
+      glucose.value = caps;
       rerender();
     },
     setTimestamp: (timestamp: Date) => {

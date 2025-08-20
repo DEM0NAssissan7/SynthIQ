@@ -5,6 +5,7 @@ export const insulinEventType = "Meal Bolus";
 export const basalEventType = "Basal Insulin";
 export const mealEventType = "Meal";
 export const glucoseEventType = "Carb Correction";
+export const activityEventType = "Exercise";
 
 class RemoteTreatments {
   static async getTreatments(timestampA: Date, timestampB: Date) {
@@ -67,6 +68,17 @@ class RemoteTreatments {
       {
         carbs: caps,
         eventType: glucoseEventType,
+      },
+      timestamp
+    );
+  }
+  static markActivity(name: string, timestamp: Date, minutes: number): void {
+    Backend.post(
+      "treatments",
+      {
+        notes: name,
+        duration: minutes,
+        eventType: activityEventType,
       },
       timestamp
     );

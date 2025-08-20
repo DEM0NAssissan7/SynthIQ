@@ -1,25 +1,31 @@
-import { useMemo } from "react";
+import { Fragment, useMemo } from "react";
 import { getMinuteDiff, getPrettyTime } from "../lib/timing";
 import { round } from "../lib/util";
 import type Meal from "../models/events/meal";
 import type Session from "../models/session";
-import type Template from "../models/template";
+import type MealTemplate from "../models/mealTemplate";
 import TemplateMealSummary from "./TemplateMealSummary";
+import { PreferencesStore } from "../storage/preferencesStore";
 
 interface TemplateSummaryProps {
-  template: Template;
+  template: MealTemplate;
+  session: Session;
   meal?: Meal;
   currentBG?: number;
-  session: Session;
 }
 export default function TemplateSummary({
   template,
+  session,
   meal,
   currentBG,
-  session,
 }: TemplateSummaryProps) {
   const bloodSugar = useMemo(
-    () => (currentBG ? currentBG : session.initialGlucose),
+    () =>
+      currentBG
+        ? currentBG
+        : session.initialGlucose
+        ? session.initialGlucose
+        : PreferencesStore.targetBG.value,
     [currentBG, session]
   );
 
@@ -56,6 +62,21 @@ export default function TemplateSummary({
           <br />
           <b>{session.glucose} caps/grams</b> dextrose; last dose{" "}
           <b>{getMinutesAgo(session.latestGlucoseTimestamp)} minutes ago</b>
+        </>
+      )}
+      {session.activities.length > 0 && (
+        <>
+          <hr />
+          <h5>Activities</h5>
+          <br />
+          {session.activities.map((a, i) => {
+            return (
+              <Fragment key={i}>
+                <b>{a.name}</b> [{getPrettyTime(a.timestamp)}]: {a.length} mins
+                | {a.initialBG}mg/dL {"->"} {a.finalBG}mg/dL
+              </Fragment>
+            );
+          })}
         </>
       )}
       {meal && (

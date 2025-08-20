@@ -1,30 +1,24 @@
-import StorageNode from "../lib/storageNode";
+import Serialization from "../lib/serialization";
+import StorageNode from "./storageNode";
 import RequestQueue from "../models/requestQueue";
 
-export const backendStore = new StorageNode("nightscout");
-backendStore.add("url", null);
-backendStore.add("profileID", 0);
-backendStore.add("skipSetup", false);
+export namespace BackendStore {
+  const node = new StorageNode("nightscout");
+  export const url = node.add<string | null>("url", null);
+  export const queue = node.add<RequestQueue[]>(
+    "queue",
+    [],
+    Serialization.getArraySerializer(RequestQueue.serialize),
+    Serialization.getArrayDeserializer(RequestQueue.deserialize)
+  );
 
-// CGM
-backendStore.add("minutesPerReading", 5);
-backendStore.add("cgmDelay", 5);
+  export const profileID = node.add<number>("profileID", 0);
+  export const skipSetup = node.add<boolean>("skipSetup", false);
 
-// Meals
-backendStore.add("ignoredUUIDs", []);
+  // CGM
+  export const minutesPerReading = node.add<number>("minutesPerReading", 5);
+  export const cgmDelay = node.add<number>("cgmDelay", 5);
 
-// Queue
-backendStore.add(
-  "queue",
-  [],
-  (s: string) => {
-    const stringArray = JSON.parse(s);
-    return stringArray.map((a: any) => RequestQueue.parse(a));
-  },
-  (requests: RequestQueue[]) => {
-    const stringArray = requests.map((a: RequestQueue) =>
-      RequestQueue.stringify(a)
-    );
-    return JSON.stringify(stringArray);
-  }
-);
+  // Meals
+  export const ignoredUUIDs = node.add<number[]>("ignoredUUIDs", []);
+}

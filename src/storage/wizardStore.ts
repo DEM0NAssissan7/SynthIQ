@@ -1,31 +1,69 @@
-import StorageNode from "../lib/storageNode";
+import StorageNode from "./storageNode";
 import Session from "../models/session";
 import Meal from "../models/events/meal";
 import {
-  getStateFromName,
-  getStateName,
-  WizardState,
-} from "../models/types/wizardState";
+  deserializeWizardPage,
+  serializeWizardPage,
+  WizardPage,
+} from "../models/types/wizardPage";
+import MealTemplate from "../models/mealTemplate";
+import Serialization from "../lib/serialization";
 
-// Persistent Storage
-export const wizardStorage = new StorageNode("wizard");
-wizardStorage.add("state", WizardState.Intro, getStateFromName, getStateName);
-wizardStorage.add("mealMarked", false);
-wizardStorage.add("insulinMarked", false);
-wizardStorage.add("initialGlucoseMarked", false);
+export namespace WizardStore {
+  const node = new StorageNode("wizard");
 
-// Session Storage
-wizardStorage.add("session", new Session(), Session.parse, Session.stringify);
-wizardStorage.get("session").subscribe(() => {
-  wizardStorage.write("session");
-});
+  // Templates
+  export const templates = node.add<MealTemplate[]>(
+    "templates",
+    [],
+    Serialization.getArraySerializer(MealTemplate.serialize),
+    Serialization.getArrayDeserializer(MealTemplate.deserialize)
+  );
+  export const template = node.add<MealTemplate>(
+    "currentTemplate",
+    new MealTemplate(""),
+    MealTemplate.serialize,
+    MealTemplate.deserialize
+  );
 
-// Meal Persistence
-const mealStorageWriteHandler = () => wizardStorage.write("meal");
-export function setWizardMeal(meal: Meal) {
-  wizardStorage.get("meal").unsubscribe(mealStorageWriteHandler);
-  meal.subscribe(mealStorageWriteHandler);
-  wizardStorage.set("meal", meal);
+  // Page
+  export const page = node.add<WizardPage>(
+    "page",
+    WizardPage.Select,
+    serializeWizardPage,
+    deserializeWizardPage
+  );
+
+  // Session
+  export const session = node.add<Session>(
+    "session",
+    new Session(),
+    Session.serialize,
+    Session.deserialize
+  );
+  {
+    const callback = () => session.write();
+    session.subscribe((value: Session) => {
+      value.unsubscribe(callback); // Unsubscribe if we already subscribed
+      value.subscribe(callback);
+    });
+    session.notify(); // Notify to push the new subscriber handler
+  }
+
+  export const meal = node.add<Meal>(
+    "meal",
+    new Meal(new Date()),
+    Meal.serialize,
+    Meal.deserialize
+  );
+  {
+    const callback = () => {
+      meal.write();
+    };
+    meal.subscribe((value: Meal) => {
+      value.unsubscribe(callback);
+      value.subscribe(callback);
+    });
+    meal.notify();
+  }
 }
-wizardStorage.add("meal", new Meal(new Date()), Meal.parse, Meal.stringify);
-setWizardMeal(wizardStorage.get("meal") as Meal);

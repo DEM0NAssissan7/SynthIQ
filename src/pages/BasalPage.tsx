@@ -2,9 +2,7 @@ import { Button, Form, InputGroup } from "react-bootstrap";
 import Card from "../components/Card";
 import {
   dosingChangeComplete,
-  getBasals,
   getFastingVelocity,
-  getLastBasalTimestamp,
   getRecommendedBasal,
   markBasal,
 } from "../lib/basal";
@@ -13,15 +11,18 @@ import { round } from "../lib/util";
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { getHourDiff, getPrettyTime } from "../lib/timing";
-import healthMonitorStore from "../storage/healthMonitorStore";
+import { HealthMonitorStore } from "../storage/healthMonitorStore";
+import { BasalStore } from "../storage/basalStore";
+import { getLatestBasalTimestamp } from "../lib/healthMonitor";
+import type Insulin from "../models/events/insulin";
 
 export default function BasalPage() {
   const fastingVelocity = getFastingVelocity();
   const basalCorrection = round(getBasalCorrection(fastingVelocity), 0);
-  const shotsPerDay = healthMonitorStore.get("basalShotsPerDay");
+  const shotsPerDay = HealthMonitorStore.basalShotsPerDay.value;
   const basalCorrectionPerDay = round(basalCorrection / shotsPerDay, 1);
-  const basals = getBasals();
-  const lastBasalTimestamp = getLastBasalTimestamp();
+  const basals = BasalStore.basalDoses.value;
+  const lastBasalTimestamp = getLatestBasalTimestamp();
 
   const suggestedBasal = getRecommendedBasal();
   const changeIsComplete = dosingChangeComplete();
@@ -37,7 +38,7 @@ export default function BasalPage() {
     }
   }
 
-  const firstShotHour = healthMonitorStore.get("basalShotTime"); // 8 => 8:00 AM, 16 => 4:00 PM
+  const firstShotHour = HealthMonitorStore.basalShotTime.value; // 8 => 8:00 AM, 16 => 4:00 PM
   const interval = 24 / shotsPerDay;
   function getTimes() {
     let strings: string[] = [];
@@ -69,10 +70,10 @@ export default function BasalPage() {
         <hr />
         Previous doses (newest first):
         <br />
-        {basals.map((a: number, i: number) => {
+        {basals.map((a: Insulin, _: number) => {
           return (
             <>
-              <b>{a}u</b> {i === 0 && `(${getPrettyTime(lastBasalTimestamp)})`}
+              <b>{a.value}u</b> {`(${getPrettyTime(a.timestamp)})`}
               <br />
             </>
           );

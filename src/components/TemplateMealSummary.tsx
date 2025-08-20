@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { getInsulin, getCorrectionInsulin } from "../lib/metabolism";
 import { insulinDosingRecommendation } from "../lib/templateHelpers";
 import { round } from "../lib/util";
 import type Meal from "../models/events/meal";
-import type Template from "../models/template";
+import type MealTemplate from "../models/mealTemplate";
 import { Button } from "react-bootstrap";
+import Insulin from "../models/events/insulin";
+import React from "react";
 
 function getFactorDesc(num: number, unit: string, type: string) {
   if (round(num, 1) === 0) return "";
@@ -21,7 +23,7 @@ function getFactorDesc(num: number, unit: string, type: string) {
   );
 }
 interface TemplateMealSummaryProps {
-  template: Template;
+  template: MealTemplate;
   meal: Meal;
   currentBG: number;
 }
@@ -30,41 +32,44 @@ export default function TemplateMealSummary({
   meal,
   currentBG,
 }: TemplateMealSummaryProps) {
-  function adjustments() {
-    return insulinDosingRecommendation(template.sessions);
-  }
-
-  function getSession() {
-    return template.getClosestSession(meal.carbs, meal.protein);
-  }
-  function getInsulinAdjustment() {
-    const session = getSession();
-    if (!session) return 0;
-    return session.insulinErrorCorrection;
-  }
-  function getInsulinOffset() {
-    const session = getSession();
-    if (!session) return 0;
-    return template.getMealInsulinOffset(
-      session.carbs,
-      session.protein,
-      meal.carbs,
-      meal.protein
-    );
-  }
-  function getVectorizedInsulin() {
+  const adjustments = insulinDosingRecommendation(template.sessions);
+  const session = template.getClosestSession(meal.carbs, meal.protein);
+  const insulinCorrection = useMemo(
+    () => getCorrectionInsulin(currentBG),
+    [currentBG]
+  );
+  const insulinAdjustment = session ? session.insulinErrorCorrection : 0;
+  const insulinOffset = session
+    ? template.getMealInsulinOffset(
+        session.carbs,
+        session.protein,
+        meal.carbs,
+        meal.protein
+      )
+    : 0;
+  const profileInsulin = getInsulin(meal.carbs, meal.protein);
+  const insulins = (() => {
     const vectorizedInsulin = template.vectorizeInsulin(
       meal.carbs,
       meal.protein
     );
-    if (!vectorizedInsulin) return getInsulin(meal.carbs, meal.protein);
+    // Fall back to profile
+    if (!vectorizedInsulin || template.isFirstTime)
+      return [new Insulin(profileInsulin, new Date())];
     return vectorizedInsulin;
-  }
-  function getFinalAmount() {
-    return round(getVectorizedInsulin() + getCorrectionInsulin(currentBG), 1);
-  }
-  function getFinalTiming() {
-    return template.insulinTiming + adjustments().timingAdjustment;
+  })();
+
+  const isSingleBolus = insulins.length < 2;
+
+  const finalTiming = round(
+    template.insulinTiming + adjustments.timingAdjustment,
+    0
+  );
+  function getTiming(index: number) {
+    if (!session) return 0;
+    if (insulins.length < 2) return finalTiming;
+    const insulin = insulins[index];
+    return round(session.getN(insulin.timestamp) * 60, 0);
   }
 
   const [showExtra, setShowExtra] = useState(false);
@@ -80,18 +85,29 @@ export default function TemplateMealSummary({
       <b>{round(meal.protein, 0)}g</b> protein
       <br />
       <br />
-      Take <b>{getFinalAmount()}u</b> insulin{" "}
-      {!template.isFirstTime && (
-        <>
-          <b>{Math.abs(round(getFinalTiming(), 0))} mins</b>{" "}
-          {getFinalTiming() > 0 ? "after" : "before"} you start eating
-        </>
-      )}
+      {insulins.map((insulin: Insulin, i: number) => (
+        <React.Fragment key={i}>
+          {isSingleBolus ? `Take ` : `Shot ${i + 1}: `}
+          <b>
+            {round(insulin.value + (i === 0 ? insulinCorrection : 0), 1)}u
+          </b>{" "}
+          insulin{" "}
+          {!template.isFirstTime && (
+            <>
+              <b>{Math.abs(getTiming(i))} mins</b>{" "}
+              {getTiming(i) > 0 ? "after" : "before"} you start eating
+              <br />
+              <br />
+            </>
+          )}
+        </React.Fragment>
+      ))}
       <hr />
-      {getFactorDesc(getCorrectionInsulin(currentBG), "u", "correction")}
-      {getFactorDesc(getInsulinOffset(), "u", "offset")}
-      {getFactorDesc(getInsulinAdjustment(), " u", "adjustment")}
-      {getFactorDesc(adjustments().timingAdjustment, " min", "adjustment")}
+      {getFactorDesc(insulinCorrection, "u", "correction")}
+      {getFactorDesc(insulinOffset, "u", "offset")}
+      {getFactorDesc(insulinAdjustment, " u", "adjustment")}
+      {isSingleBolus &&
+        getFactorDesc(adjustments.timingAdjustment, " min", "adjustment")}
       <br />
       <Button
         onClick={toggleShowExtra}
@@ -106,15 +122,7 @@ export default function TemplateMealSummary({
         <>
           <hr />
           <b>Profile:</b> This meal requires{" "}
-          <b>
-            {round(
-              getInsulin(meal.carbs, meal.protein) +
-                getCorrectionInsulin(currentBG),
-              1
-            )}
-            u
-          </b>{" "}
-          insulin
+          <b>{round(profileInsulin + insulinCorrection, 1)}u</b> insulin
           {!template.isFirstTime && (
             <>
               <br />

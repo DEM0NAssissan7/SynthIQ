@@ -1,27 +1,35 @@
-import StorageNode from "../lib/storageNode";
+import Serialization from "../lib/serialization";
+import StorageNode from "./storageNode";
+import Insulin from "../models/events/insulin";
 
-const basalStore = new StorageNode("basal");
-export default basalStore;
+export namespace BasalStore {
+  const node = new StorageNode("basal");
 
-basalStore.add("basalDoses", []);
-basalStore.add(
-  "lastBasalTimestamp",
-  new Date(""),
-  (a: string) => new Date(a),
-  (d: Date) => d.toString()
-);
-
-basalStore.add("fastingVelocitiesCache", []);
-basalStore.add("fastingVelocitiesCacheLastUpdated", new Date(""));
-
-// Fasting state qualifiers
-basalStore.add("minTimeSinceMeal", 5.5); // Hours
-basalStore.add("minTimeSinceBolus", 7); // Hours
-basalStore.add("minTimeSinceDextrose", 30); // Minutes
-
-basalStore.add("basalEffect", 1.5); // Rate effect (mg/dL) per hour of 1 unit of basal insulin
-basalStore.add("basalEffectDays", 3); // Days basal stays in system
-
-// Changes logic
-basalStore.add("lastRecommendation", []);
-basalStore.add("shotsSinceLastChange", 0);
+  export const basalDoses = node.add<Insulin[]>(
+    "doses",
+    [],
+    Serialization.getArraySerializer(Insulin.serialize),
+    Serialization.getArrayDeserializer(Insulin.deserialize)
+  );
+  export const fastingVelocitiesCache = node.add<number[]>(
+    "fastingVelocitiesCache",
+    []
+  );
+  export const fastingVelocitiesCacheLastUpdated = node.add<Date>(
+    "fastingVelocitiesCacheLastUpdated",
+    new Date("")
+  );
+  export const minTimeSinceMeal = node.add<number>("minTimeSinceMeal", 5.5);
+  export const minTimeSinceBolus = node.add<number>("minTimeSinceBolus", 7);
+  export const minTimeSinceDextrose = node.add<number>(
+    "minTimeSinceDextrose",
+    30
+  );
+  export const basalEffect = node.add<number>("basalEffect", 1.5);
+  export const basalEffectDays = node.add<number>("basalEffectDays", 3);
+  export const lastRecommendation = node.add<any[]>("lastRecommendation", []);
+  export const shotsSinceLastChange = node.add<number>(
+    "shotsSinceLastChange",
+    0
+  );
+}

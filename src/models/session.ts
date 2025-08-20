@@ -1,78 +1,56 @@
 import { getHourDiff, getTimestampFromOffset } from "../lib/timing";
-import { convertDimensions, genUUID, MathUtil, type UUID } from "../lib/util";
-import { backendStore } from "../storage/backendStore";
+import { convertDimensions, genUUID, type UUID } from "../lib/util";
 import Glucose from "./events/glucose";
 import Insulin from "./events/insulin";
-import MathSeries from "./mathSeries";
 import Meal from "./events/meal";
-import ReadingSeries from "./readingSeries";
-import Series, { Color } from "./series";
 import type MetaEvent from "./events/metaEvent";
-import type MetabolismProfile from "./metabolism/metabolismProfile";
-import { profile } from "../storage/metaProfileStore";
 import Unit from "./unit";
-import preferencesStore from "../storage/preferencesStore";
 import RemoteReadings from "../lib/remote/readings";
+import Snapshot from "./snapshot";
+import Subscribable from "./subscribable";
+import type { Deserializer, JSONObject, Serializer } from "./types/types";
+import { CalibrationStore } from "../storage/calibrationStore";
+import { PreferencesStore } from "../storage/preferencesStore";
+import Activity from "./events/activity";
 
-export default class Session {
-  subscriptions: (() => void)[] = [];
+export default class Session extends Subscribable {
   uuid: UUID;
 
-  _initialGlucose: number = profile.target;
-  _endTimestamp: Date | null = null; // The end timestamp of the session
-  finalBG: number | null = null;
+  snapshots: Snapshot[] = [];
+
   _isGarbage: boolean = false;
   notes: string = "";
+  version: number = 1;
 
   // Save user calibrations upon creation
-  insulinEffect: number = profile.insulin.effect;
-  glucoseEffect: number = profile.glucose.effect;
+  insulinEffect: number = CalibrationStore.insulinEffect.value;
+  glucoseEffect: number = CalibrationStore.glucoseEffect.value;
 
   meals: Meal[] = [];
   insulins: Insulin[] = [];
   glucoses: Glucose[] = [];
+  activities: Activity[] = [];
 
-  // This is used for the prediction graph so the user can see how the meal will look
-  // This is not stored in the database
-  testMeals: Meal[] = [];
-  testInsulins: Insulin[] = [];
-  testGlucoses: Glucose[] = [];
-
-  constructor(getInitialGlucose: boolean = true) {
+  constructor(createSnapshot = true) {
     // This timestamp marks when eating _begins_
+    super();
     this.uuid = genUUID();
-    if (getInitialGlucose) this.pullInitialGlucose();
-  }
-
-  // Subscriptions
-  subscribe(callback: () => void) {
-    this.subscriptions.push(callback);
-  }
-  unsubscribe(callback: () => void) {
-    this.subscriptions = this.subscriptions.filter((sub) => sub !== callback);
-  }
-  notify() {
-    this.subscriptions.forEach((f) => f());
-  }
-
-  // Event management
-  addEvent(e: MetaEvent) {
-    e.subscribe(() => this.notify());
-  }
-  removeEvent(e: MetaEvent) {
-    e.unsubscribe(() => this.notify());
+    if (createSnapshot) this.addSnapshot(); // Create the initial snapshot
   }
 
   // Meals
   addMeal(meal: Meal): void {
     this.meals.push(meal);
-    this.addEvent(meal);
+    this.addChildSubscribable(meal);
     this.notify();
   }
   removeMeal(meal: Meal) {
     this.meals = this.meals.filter((m) => m !== meal);
-    this.removeEvent(meal);
+    this.removeChildSubscribable(meal);
     this.notify();
+  }
+  get mealMarked(): boolean {
+    return this.meals.length !== 0;
   }
   get carbs(): number {
     let carbs = 0;
@@ -95,8 +73,6 @@ export default class Session {
     return calories;
   }
   get latestMealTimestamp(): Date {
-    if (this.testMeals.length !== 0)
-      return this.testMeals[this.testMeals.length - 1].timestamp;
     if (this.meals.length !== 0)
       return this.meals[this.meals.length - 1].timestamp;
     return this.timestamp;
@@ -107,7 +83,6 @@ export default class Session {
     return this.meals[this.meals.length - 1];
   }
   get firstMealTimestamp(): Date {
-    if (this.testMeals.length !== 0) return this.testMeals[0].timestamp;
     if (this.meals.length !== 0) return this.meals[0].timestamp;
     return this.timestamp;
   }
@@ -116,6 +91,52 @@ export default class Session {
       throw new Error("No meal events found in session");
     return this.meals[0];
   }
+
+  // Snapshot abstractions
+  addSnapshot(_snapshot?: Snapshot) {
+    let snapshot: Snapshot = new Snapshot();
+    if (_snapshot) snapshot = _snapshot;
+    this.snapshots.push(snapshot);
+    this.addChildSubscribable(snapshot);
+    return snapshot;
+  }
+  get firstSnapshot() {
+    if (this.snapshots.length === 0) throw new Error(`No snapshots exist`);
+    return this.snapshots[0];
+  }
+  get lastSnapshot() {
+    const snapshot = this.snapshots[Math.max(this.insulins.length - 1, 0)];
+    if (!snapshot) throw new Error(`Latest snapshot is invalid`);
+    return snapshot;
+  }
+  get snapshot() {
+    // This is a meta snapshot that is a symbolic summation of all the snapshots
+    let snapshot = new Snapshot();
+    this.snapshots.forEach((s) => snapshot.absorb(s));
+    return snapshot;
+  }
+  get finalBG(): number | null {
+    return this.snapshot.finalBG ? this.snapshot.finalBG.sugar : null;
+  }
+  set finalBG(sugar: number) {
+    this.lastSnapshot.finalBG = sugar;
+  }
+  get endTimestamp() {
+    return this.snapshot.finalBG ? this.snapshot.finalBG.timestamp : null;
+  }
+  get initialGlucose(): number | null {
+    return this.snapshot.initialBG ? this.snapshot.initialBG.sugar : null;
+  }
+  set initialGlucose(sugar: number) {
+    this.firstSnapshot.initialBG = sugar;
+  }
+  get peakGlucose() {
+    return this.snapshot.peakBG ? this.snapshot.peakBG.sugar : null;
+  }
+  get minGlucose() {
+    return this.snapshot.minBG ? this.snapshot.minBG.sugar : null;
+  }
+
   // Profile-based stuff
   get mealRise(): number {
     const finalBG = this.finalBG;
@@ -124,11 +145,15 @@ export default class Session {
         `Cannot get insulin dosing: there is no final blood glucose`
       );
     const initialGlucose = this.initialGlucose;
+    if (!initialGlucose)
+      throw new Error(
+        `Cannot get insulin dosing: there is no initial blood glucose`
+      );
 
     const totalDeltaBG = finalBG - initialGlucose;
 
     const glucose = this.glucose;
-    const glucoseDeltaBG = glucose * profile.glucose.effect;
+    const glucoseDeltaBG = glucose * CalibrationStore.glucoseEffect.value;
 
     const insulin = this.insulin;
     const insulinDeltaBG = insulin * this.insulinEffect;
@@ -156,8 +181,8 @@ export default class Session {
     if (!finalBG)
       throw new Error(`Cannot get optimal insulin: no final blood sugar`);
 
-    const target = profile.target;
-    const glucoseRise = this.glucose * profile.glucose.effect;
+    const target = PreferencesStore.targetBG.value;
+    const glucoseRise = this.glucose * CalibrationStore.glucoseEffect.value;
 
     const BGError = finalBG - target; // The amount that the final blood sugar deviated from the target
     // We wanna bring BG back to target, but we also negate
@@ -173,26 +198,40 @@ export default class Session {
   }
 
   // Insulins
-  createInsulin(timestamp: Date, units: number): Insulin {
-    const insulin = new Insulin(timestamp, units);
+  createInsulin(units: number, timestamp: Date, BG?: number): Insulin {
+    // Mark snapshot
+    if (this.insulins.length !== 0 && BG) {
+      this.lastSnapshot.finalBG = BG;
+      const snapshot = this.addSnapshot();
+      snapshot.initialBG = BG;
+    }
+
+    const insulin = new Insulin(units, timestamp);
     this.insulins.push(insulin);
-    this.addEvent(insulin);
+    this.addChildSubscribable(insulin);
     this.notify();
     return insulin;
   }
   removeInsulin(insulin: Insulin) {
     this.insulins = this.insulins.filter((i) => i !== insulin);
-    this.removeEvent(insulin);
+    this.removeChildSubscribable(insulin);
     this.notify();
+  }
+  get insulinMarked(): boolean {
+    return this.insulins.length !== 0;
   }
   get insulin(): number {
     let insulin = 0;
-    this.insulins.forEach((a: Insulin) => (insulin += a.units));
+    this.insulins.forEach((a: Insulin) => (insulin += a.value));
     return insulin;
   }
   get mealInsulin(): number {
+    const initialGlucose = this.initialGlucose;
+    if (!initialGlucose)
+      throw new Error(`Cannot get meal insulin: no initial glucose`);
     return (
-      this.insulin - (this.initialGlucose - profile.target) / this.insulinEffect
+      this.insulin -
+      (initialGlucose - PreferencesStore.targetBG.value) / this.insulinEffect
     );
   }
   get firstInsulinTimestamp(): Date {
@@ -205,21 +244,21 @@ export default class Session {
   }
 
   // Glucoses
-  createGlucose(timestamp: Date, caps: number): Glucose {
-    const glucose = new Glucose(timestamp, caps);
+  createGlucose(grams: number, timestamp: Date): Glucose {
+    const glucose = new Glucose(grams, timestamp);
     this.glucoses.push(glucose);
-    this.addEvent(glucose);
+    this.addChildSubscribable(glucose);
     this.notify();
     return glucose;
   }
   removeGlucose(glucose: Glucose) {
     this.glucoses = this.glucoses.filter((g) => g !== glucose);
-    this.removeEvent(glucose);
+    this.removeChildSubscribable(glucose);
     this.notify();
   }
   get glucose(): number {
     let glucose = 0;
-    this.glucoses.forEach((a: Glucose) => (glucose += a._caps));
+    this.glucoses.forEach((a: Glucose) => (glucose += a.value));
     return glucose;
   }
   get latestGlucoseTimestamp(): Date {
@@ -227,50 +266,11 @@ export default class Session {
     return this.glucoses[this.glucoses.length - 1].timestamp;
   }
 
-  // Test Meals
-  addTestMeal(meal: Meal): void {
-    this.testMeals.push(meal);
-    this.addEvent(meal);
+  // Activity
+  addActivity(activity: Activity) {
+    this.activities.push(activity);
+    this.addChildSubscribable(activity);
     this.notify();
-  }
-  clearTestMeals(): void {
-    this.testMeals.forEach((e) => this.removeEvent(e));
-    this.testMeals = [];
-    this.notify();
-  }
-
-  // Test Insulins
-  createTestInsulin(timestamp: Date, units: number): Insulin {
-    const insulin = new Insulin(timestamp, units);
-    this.testInsulins.push(insulin);
-    this.addEvent(insulin);
-    this.notify();
-    return insulin;
-  }
-  clearTestInsulins(): void {
-    this.testInsulins.forEach((e) => this.removeEvent(e));
-    this.testInsulins = [];
-    this.notify();
-  }
-
-  // Test Glucoses
-  createTestGlucose(timestamp: Date, caps: number): void {
-    const glucose = new Glucose(timestamp, caps);
-    this.testGlucoses.push(glucose);
-    this.addEvent(glucose);
-    this.notify();
-  }
-  clearTestGlucoses(): void {
-    this.testGlucoses.forEach((e) => this.removeEvent(e));
-    this.testGlucoses = [];
-    this.notify();
-  }
-
-  // General Tests
-  clearTests(): void {
-    this.clearTestMeals();
-    this.clearTestInsulins();
-    this.clearTestGlucoses();
   }
 
   // Timing
@@ -287,10 +287,6 @@ export default class Session {
     this.insulins.forEach((a: MetaEvent) => callback(a));
     this.glucoses.forEach((a: MetaEvent) => callback(a));
 
-    // Tests
-    this.testMeals.forEach((a: MetaEvent) => callback(a));
-    this.testInsulins.forEach((a: MetaEvent) => callback(a));
-    this.testGlucoses.forEach((a: MetaEvent) => callback(a));
     if (!timestamp) throw new Error("No beginning timestamp found in session");
     return timestamp;
   }
@@ -304,25 +300,6 @@ export default class Session {
   }
   get started() {
     return this.meals.length + this.insulins.length !== 0;
-  }
-  get endTimestamp(): Date | null {
-    return this._endTimestamp;
-  }
-  set endTimestamp(value: Date | null) {
-    if (value) {
-      const maxSessionLength = preferencesStore.get("maxSessionLength");
-      if (this.getN(value) > maxSessionLength)
-        this._endTimestamp = getTimestampFromOffset(
-          this.timestamp,
-          maxSessionLength
-        );
-      else this._endTimestamp = value;
-    }
-    // Set final BG once we get an end timestamp
-    if (value) {
-      this.pullFinalBG();
-    }
-    this.notify();
   }
   set isGarbage(value: boolean) {
     this._isGarbage = value;
@@ -338,72 +315,6 @@ export default class Session {
     return this.getN(this.endTimestamp);
   }
 
-  deltaBG(t: number, _profile_?: MetabolismProfile): number {
-    const _profile = _profile_ ? _profile_ : profile;
-    let retval = this._initialGlucose;
-
-    // Meals
-    this.meals.forEach(
-      (a) => (retval += a.deltaBG(t - this.getN(a.timestamp), _profile))
-    );
-    this.testMeals.forEach(
-      (a) => (retval += a.deltaBG(t - this.getN(a.timestamp), _profile))
-    );
-
-    // Insulin
-    this.insulins.forEach(
-      (a) => (retval += a.deltaBG(t - this.getN(a.timestamp), _profile))
-    );
-    this.testInsulins.forEach(
-      (a) => (retval += a.deltaBG(t - this.getN(a.timestamp), _profile))
-    );
-
-    // Glucose
-    this.glucoses.forEach(
-      (a) => (retval += a.deltaBG(t - this.getN(a.timestamp), _profile))
-    );
-    this.testGlucoses.forEach(
-      (a) => (retval += a.deltaBG(t - this.getN(a.timestamp), _profile))
-    );
-
-    return retval;
-  }
-
-  // Graphing
-  getSeriesList(from: number, until: number): Series[] {
-    return [
-      this.getReadingSeries(from, until),
-      this.getPredictionSeries(from, until),
-    ];
-  }
-  getReadingSeries(from: number, until: number): ReadingSeries {
-    let readingSeries = new ReadingSeries(Color.Black, this.timestamp);
-    const A = getTimestampFromOffset(this.timestamp, from);
-    const B = getTimestampFromOffset(this.timestamp, until);
-    readingSeries.populate(A, B);
-    return readingSeries;
-  }
-  getPredictionSeries(from: number, until: number): MathSeries {
-    let predictionSeries = new MathSeries(Color.Blue, [(t) => this.deltaBG(t)]);
-    predictionSeries.populate(
-      from,
-      until,
-      backendStore.get("minutesPerReading") / 60
-    );
-    return predictionSeries;
-  }
-
-  // Optimizer
-  get tValues(): number[] {
-    const minutesPerReading = backendStore.get("minutesPerReading");
-    const numReadings =
-      (this.length * convertDimensions(Unit.Time.Hour, Unit.Time.Minute)) /
-      minutesPerReading;
-    let retval = [];
-    for (let i = 0; i < numReadings; i++)
-      retval.push((minutesPerReading * i) / 60);
-    return retval;
-  }
   getObservedReadings() {
     if (!this.endTimestamp)
       throw new Error(
@@ -411,35 +322,8 @@ export default class Session {
       );
     return RemoteReadings.getReadings(this.timestamp, this.endTimestamp);
   }
-  async pullFinalBG() {
-    const hoursBefore = preferencesStore.get("endingHours");
-    const rawReadings = await this.getLastReadings(hoursBefore);
-    if (rawReadings && !this.finalBG) {
-      const readings: number[] = rawReadings.map((r: any) => r.sgv);
-
-      const finalBG = MathUtil.median(readings);
-      if (!this.finalBG) this.finalBG = finalBG;
-      return finalBG;
-    }
-    return null;
-  }
 
   // Initial glucose
-  async pullInitialGlucose() {
-    return RemoteReadings.getSugarAt(this.timestamp).then((a: any) => {
-      if (a) {
-        this.initialGlucose = a.sgv;
-        return a;
-      }
-    });
-  }
-  get initialGlucose() {
-    return this._initialGlucose;
-  }
-  set initialGlucose(glucose: number) {
-    this._initialGlucose = glucose;
-    this.notify();
-  }
 
   // Glucose statistics stuff
   async getLastReadings(hours: number) {
@@ -451,45 +335,51 @@ export default class Session {
   }
 
   // Serialization
-  static stringify(session: Session): string {
-    return JSON.stringify({
+  static serialize: Serializer<Session> = (session: Session) => {
+    return {
       uuid: session.uuid,
-      initialGlucose: session.initialGlucose,
-      meals: session.meals.map((a) => Meal.stringify(a)),
-      testMeals: session.testMeals.map((a) => Meal.stringify(a)),
-      insulins: session.insulins.map((a) => Insulin.stringify(a)),
-      glucoses: session.glucoses.map((a) => Glucose.stringify(a)),
-      endTimestamp: session.endTimestamp || null,
-      finalBG: session.finalBG,
+      snapshots: session.snapshots.map((s) => Snapshot.serialize(s)),
+      meals: session.meals.map((a) => Meal.serialize(a)),
+      insulins: session.insulins.map((a) => Insulin.serialize(a)),
+      glucoses: session.glucoses.map((a) => Glucose.serialize(a)),
+      activities: session.activities.map((a) => Activity.serialize(a)),
       isGarbage: session.isGarbage,
       notes: session.notes,
       insulinEffect: session.insulinEffect,
       glucoseEffect: session.glucoseEffect,
-    });
-  }
-  static parse(str: string): Session {
-    let o = JSON.parse(str);
+      version: session.version,
+    };
+  };
+  static deserialize: Deserializer<Session> = (o) => {
     let session = new Session(false);
     session.uuid = o.uuid;
-    session.initialGlucose = o.initialGlucose;
-    session._endTimestamp = o.endTimestamp ? new Date(o.endTimestamp) : null;
-    session.finalBG = o.finalBG || null;
     session.isGarbage = o.isGarbage || false;
     session.notes = o.notes || "";
-    session.insulinEffect = o.insulinEffect || profile.insulin.effect;
-    session.glucoseEffect = o.glucoseEffect || profile.glucose.effect;
+    session.insulinEffect =
+      o.insulinEffect || CalibrationStore.insulinEffect.value;
+    session.glucoseEffect =
+      o.glucoseEffect || CalibrationStore.glucoseEffect.value;
 
-    o.meals.map((a: string) => session.addMeal(Meal.parse(a)));
-    o.testMeals.map((a: string) => session.addTestMeal(Meal.parse(a)));
+    o.meals.map((a: string) => session.addMeal(Meal.deserialize(a)));
     o.insulins.map((a: string) => {
-      const insulin = Insulin.parse(a);
-      session.createInsulin(insulin.timestamp, insulin.units);
+      const insulin = Insulin.deserialize(a);
+      session.createInsulin(insulin.value, insulin.timestamp); // Create insulin without modifying snapshots
     });
     o.glucoses.map((a: string) => {
-      const glucose = Glucose.parse(a);
-      session.createGlucose(glucose.timestamp, glucose.caps);
+      const glucose = Glucose.deserialize(a);
+      session.createGlucose(glucose.value, glucose.timestamp);
     });
 
+    const snapshots: Snapshot[] = o.snapshots.map((a: JSONObject) =>
+      Snapshot.deserialize(a)
+    );
+    snapshots.forEach((s) => session.addSnapshot(s));
+
+    const activities: Activity[] = o.activities
+      ? o.activities.map((a: JSONObject) => Activity.deserialize(a))
+      : [];
+    activities.forEach((a) => session.addActivity(a));
+
     return session;
-  }
+  };
 }

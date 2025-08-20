@@ -2,8 +2,8 @@ import { Button, Form } from "react-bootstrap";
 import { type BaseSyntheticEvent } from "react";
 import { getHoursMinutes, round } from "../lib/util";
 import type Insulin from "../models/events/insulin";
-import useInsulin from "../state/useInsulin";
 import type Session from "../models/session";
+import useInsulin from "../state/useInsulin";
 
 interface AddedInsulinProps {
   insulin: Insulin;
@@ -27,7 +27,7 @@ export default function AddedInsulin({ insulin, session }: AddedInsulinProps) {
   return (
     <>
       <div className="d-flex justify-content-between align-items-center">
-        <span className="fw-bold">{round(insulin.units, 2)}u</span>
+        <span className="fw-bold">{round(insulin.value, 2)}u</span>
         <span className="text-muted">
           Taken {getHoursMinutes(Math.abs(offset))}{" "}
           {offset > 0 ? "after" : "before"} eating
