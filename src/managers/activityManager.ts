@@ -7,6 +7,7 @@ import {
 } from "../models/types/activityPage";
 import Activity from "../models/events/activity";
 import WizardManager from "./wizardManager";
+import Glucose from "../models/events/glucose";
 
 export namespace ActivityManager {
   // Navigation
@@ -33,12 +34,15 @@ export namespace ActivityManager {
     selectTemplate(name);
   }
   export function selectTemplate(name: string) {
+    const template = getTemplate(name);
+    ActivityStore.template.value = template;
+    ActivityStore.activity.value = new Activity(template.name);
+  }
+  export function getTemplate(name: string): ActivityTemplate {
     const templates = ActivityStore.templates.value;
     for (let template of templates) {
       if (template.name === name) {
-        ActivityStore.template.value = template;
-        ActivityStore.activity.value = new Activity(template.name);
-        return;
+        return template;
       }
     }
     throw new Error(`Cannot select template '${name}': does not exist`);
@@ -63,6 +67,17 @@ export namespace ActivityManager {
       }
     }
     ActivityStore.templates.write();
+  }
+
+  // Subevents
+  export function markGlucose(grams: number) {
+    const glucose = new Glucose(grams, new Date());
+    const activity = ActivityStore.activity.value;
+
+    if (activity.started) {
+      activity.addGlucose(glucose);
+      ActivityStore.activity.write();
+    }
   }
 
   // Housekeeping

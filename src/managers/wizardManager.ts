@@ -77,11 +77,9 @@ export default class WizardManager {
   static markGlucose(grams: number) {
     // We really don't want to mark glucose if we haven't taken insulin. The glucose would never be taken because of a meal. Meals raise glucose.
     const session: Session = WizardStore.session.value;
-    const timestamp = new Date();
     if (session.started) {
-      session.createGlucose(grams, timestamp);
+      session.createGlucose(grams, new Date());
     }
-    RemoteTreatments.markGlucose(grams, timestamp);
   }
 
   // Activity

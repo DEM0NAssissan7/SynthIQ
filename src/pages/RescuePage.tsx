@@ -20,6 +20,8 @@ import TemplateSummary from "../components/TemplateSummary";
 import { HealthMonitorStore } from "../storage/healthMonitorStore";
 import { WizardStore } from "../storage/wizardStore";
 import { PreferencesStore } from "../storage/preferencesStore";
+import { ActivityManager } from "../managers/activityManager";
+import RemoteTreatments from "../lib/remote/treatments";
 
 export default function RescuePage() {
   const [session] = WizardStore.session.useState();
@@ -56,6 +58,8 @@ export default function RescuePage() {
     if (confirm(`Confirm that you have taken ${gramsTaken} grams of glucose`)) {
       WizardManager.markGlucose(gramsTaken);
       markGlucose(gramsTaken);
+      ActivityManager.markGlucose(gramsTaken);
+      RemoteTreatments.markGlucose(gramsTaken, new Date());
       goBack();
     }
   }

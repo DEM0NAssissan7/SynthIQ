@@ -1,10 +1,14 @@
 import { getMinuteDiff } from "../../lib/timing";
+import { CalibrationStore } from "../../storage/calibrationStore";
 import Snapshot from "../snapshot";
-import type { Deserializer, Serializer } from "../types/types";
+import type { Deserializer, JSONObject, Serializer } from "../types/types";
+import Glucose from "./glucose";
 import MetaEvent from "./metaEvent";
 
 export default class Activity extends MetaEvent {
   snapshot: Snapshot = new Snapshot();
+  glucoses: Glucose[] = [];
+  glucoseEffect: number = CalibrationStore.glucoseEffect.value;
   constructor(public name: string) {
     super(new Date());
   }
@@ -58,15 +62,30 @@ export default class Activity extends MetaEvent {
     return finalBG - initialBG;
   }
 
+  // Subevents
+  addGlucose(glucose: Glucose) {
+    this.addChildSubscribable(glucose);
+    this.glucoses.push(glucose);
+    this.notify();
+  }
+
   static serialize: Serializer<Activity> = (a) => {
     return {
       snapshot: Snapshot.serialize(a.snapshot),
       name: a.name,
+      glucoses: a.glucoses.map((g) => Glucose.serialize(g)),
+      glucoseEffect: a.glucoseEffect,
     };
   };
   static deserialize: Deserializer<Activity> = (o) => {
-    const a = new Activity(o.name);
-    a.snapshot = Snapshot.deserialize(o.snapshot);
-    return a;
+    const activity = new Activity(o.name);
+    activity.snapshot = Snapshot.deserialize(o.snapshot);
+    if (o.glucoses) {
+      o.glucose.forEach((g: JSONObject) =>
+        activity.addGlucose(Glucose.deserialize(g))
+      );
+      activity.glucoseEffect = o.glucoseEffect;
+    }
+    return activity;
   };
 }
