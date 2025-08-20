@@ -5,6 +5,7 @@ import { Button } from "react-bootstrap";
 import { ActivityStore } from "../../storage/activityStore";
 import { ActivityManager } from "../../managers/activityManager";
 import { ActivityPage } from "../../models/types/activityPage";
+import { WizardStore } from "../../storage/wizardStore";
 
 export default function ActivitySelectPage() {
   const navigate = useNavigate();
@@ -29,6 +30,9 @@ export default function ActivitySelectPage() {
       advance(name);
     }
   }
+  function backToHub() {
+    navigate("/wizard/hub");
+  }
 
   return (
     <div className="wizard-page">
@@ -41,10 +45,19 @@ export default function ActivitySelectPage() {
           templates={ActivityStore.templates.value}
         />
       </Card>
-      <div className="pt-3 d-flex justify-content-end">
-        <Button variant="primary" onClick={addTemplate}>
-          Create New Template
-        </Button>
+      <div className="pt-3 d-flex justify-content-end gap-2">
+        <div className="d-flex justify-content-between w-100">
+          {WizardStore.session.value.started && (
+            <Button variant="secondary" onClick={backToHub}>
+              Back To Hub
+            </Button>
+          )}
+          <div className="ms-auto">
+            <Button variant="primary" onClick={addTemplate}>
+              Create New Template
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   );
