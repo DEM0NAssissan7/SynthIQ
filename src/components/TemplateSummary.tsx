@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { Fragment, useMemo } from "react";
 import { getMinuteDiff, getPrettyTime } from "../lib/timing";
 import { round } from "../lib/util";
 import type Meal from "../models/events/meal";
@@ -70,12 +70,12 @@ export default function TemplateSummary({
           <br />
           Activities:
           <br />
-          {session.activities.map((a) => {
+          {session.activities.map((a, i) => {
             return (
-              <>
+              <Fragment key={i}>
                 <b>{a.name}</b>: <i>{getPrettyTime(a.timestamp)}</i>, {a.length}{" "}
                 mins | {a.initialBG}mg/dL {"->"} {a.finalBG}mg/dL
-              </>
+              </Fragment>
             );
           })}
         </>
