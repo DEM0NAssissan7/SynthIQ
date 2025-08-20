@@ -35,6 +35,7 @@ class Backend {
   private static postRequest(api: string, payload: any, timestamp: Date) {
     payload.enteredBy = selfID;
     payload.created_at = timestamp;
+    payload.eventTime = timestamp;
     return fetch(this.getApiPath(api), {
       headers: {
         accept: "*/*",
