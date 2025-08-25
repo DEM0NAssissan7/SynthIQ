@@ -53,8 +53,8 @@ export async function populateReadingCache() {
 export function getBGVelocity() {
   const readings = HealthMonitorStore.readingsCache.value;
   const velocities = getBGVelocities(readings);
-  // We give the median of all the velocities to rule out insane jumps
-  return MathUtil.median(velocities);
+  // We give the median of all the velocities to smooth out jumps
+  return MathUtil.mean(velocities);
 }
 /**
  * Gives a time (in minutes) that the user will end up at or below critical blood sugar

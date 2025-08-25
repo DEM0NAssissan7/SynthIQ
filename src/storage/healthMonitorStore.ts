@@ -18,7 +18,7 @@ export namespace HealthMonitorStore {
     Glucose.serialize,
     Glucose.deserialize
   );
-  export const readingsCacheSize = node.add("readingsCacheSize", 5);
+  export const readingsCacheSize = node.add("readingsCacheSize", 6);
   export const currentBG = node.add("currentBG", 83);
   export const timeBetweenShots = node.add("timeBetweenShots", 15);
   export const dropTime = node.add("dropTime", 20);
