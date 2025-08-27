@@ -134,8 +134,7 @@ export function markBasal(units: number) {
   const now = new Date();
   const doses: Insulin[] = BasalStore.basalDoses.value;
   const newBasalDoses = [new Insulin(units, now), ...doses];
-  newBasalDoses.slice(0, days * shotsPerDay);
-  BasalStore.basalDoses.value = newBasalDoses;
+  BasalStore.basalDoses.value = newBasalDoses.slice(0, days * shotsPerDay);
 
   // Mark in nightscout
   RemoteTreatments.markBasal(units, now);
