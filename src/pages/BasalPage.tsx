@@ -3,6 +3,7 @@ import Card from "../components/Card";
 import {
   dosingChangeComplete,
   getFastingVelocity,
+  getLastShot,
   getRecommendedBasal,
   markBasal,
 } from "../lib/basal";
@@ -25,6 +26,7 @@ export default function BasalPage() {
   const lastBasalTimestamp = getLatestBasalTimestamp();
 
   const suggestedBasal = getRecommendedBasal();
+  const lastShot = getLastShot();
   const changeIsComplete = dosingChangeComplete();
   const [basalDose, setBasalDose] = useState(0);
 
@@ -89,7 +91,7 @@ export default function BasalPage() {
           {round(fastingVelocity, 0)}mg/dL per hour
         </b>
         <br />
-        {Math.abs(basalCorrection) > 0.5 && (
+        {Math.abs(basalCorrection) > 1 && changeIsComplete && (
           <>
             Consider adjusting dosage to <b>{suggestedBasal}u per shot</b>{" "}
             <i>
@@ -111,7 +113,7 @@ export default function BasalPage() {
             <i className="bi bi-eyedropper"></i>
           </InputGroup.Text>
           <Form.Control
-            placeholder={`${suggestedBasal.toString()}`}
+            placeholder={`${lastShot.toString()}`}
             aria-label="URL"
             aria-describedby="basic-addon1"
             onChange={(e: any) => {
