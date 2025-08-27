@@ -15,6 +15,7 @@ import { CalibrationStore } from "../storage/calibrationStore";
 import { BackendStore } from "../storage/backendStore";
 import { HealthMonitorStore } from "../storage/healthMonitorStore";
 import StorageBackends from "../registries/storageBackends";
+import { BasalStore } from "../storage/basalStore";
 
 interface Setting {
   title: string;
@@ -219,6 +220,32 @@ export default function SettingsPage() {
           title="Basal Insulin Effect (per unit)"
           iconClass="bi bi-eyedropper"
           unit="mg/dL per hr"
+        />
+        <NumberSetting
+          keyInterface={BasalStore.basalEffectDays}
+          title="Basal Insulin Effective Days"
+          iconClass="bi bi-clock"
+          unit="days"
+        />
+      </Card>
+      <Card>
+        <NumberSetting
+          keyInterface={BasalStore.minTimeSinceMeal}
+          title="Meal Effective Time"
+          iconClass="bi bi-clock"
+          unit="hours"
+        />
+        <NumberSetting
+          keyInterface={BasalStore.minTimeSinceBolus}
+          title="Bolus Effective Time"
+          iconClass="bi bi-clock"
+          unit="hours"
+        />
+        <NumberSetting
+          keyInterface={BasalStore.minTimeSinceDextrose}
+          title="Dextrose Effective Time"
+          iconClass="bi bi-clock"
+          unit="minutes"
         />
       </Card>
     </>
