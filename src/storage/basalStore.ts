@@ -19,11 +19,11 @@ export namespace BasalStore {
     "fastingVelocitiesCacheLastUpdated",
     new Date("")
   );
-  export const minTimeSinceMeal = node.add<number>("minTimeSinceMeal", 5.5);
-  export const minTimeSinceBolus = node.add<number>("minTimeSinceBolus", 7);
+  export const minTimeSinceMeal = node.add<number>("minTimeSinceMeal", 6);
+  export const minTimeSinceBolus = node.add<number>("minTimeSinceBolus", 4.5);
   export const minTimeSinceDextrose = node.add<number>(
     "minTimeSinceDextrose",
-    30
+    20
   );
   export const basalEffect = node.add<number>("basalEffect", 1.5);
   export const basalEffectDays = node.add<number>("basalEffectDays", 3);
