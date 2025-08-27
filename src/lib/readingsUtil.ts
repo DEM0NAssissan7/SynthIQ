@@ -17,7 +17,7 @@ export function getBGVelocities(readings: SugarReading[]): number[] {
       lastReading.timestamp
     );
     const velocity = (currentReading.sugar - lastReading.sugar) / timeDiff;
-    velocities.push(velocity);
+    if (velocity !== null && !isNaN(velocity)) velocities.push(velocity);
   }
   return velocities;
 }
