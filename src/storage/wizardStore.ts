@@ -34,6 +34,9 @@ export namespace WizardStore {
     deserializeWizardPage
   );
 
+  // State tracking for insulin page
+  export const isBolus = node.add("isBolus", false);
+
   // Session
   export const session = node.add<Session>(
     "session",

@@ -57,9 +57,6 @@ export default class WizardManager {
     const timestamp = new Date();
 
     session.createInsulin(units, timestamp, BG);
-
-    // TODO: Use date selector
-    RemoteTreatments.markInsulin(units, timestamp);
   }
   static markInsulin(units: number, BG: number) {
     let session: Session = WizardStore.session.value;

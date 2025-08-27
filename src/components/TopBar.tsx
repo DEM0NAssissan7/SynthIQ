@@ -52,6 +52,9 @@ function TopBar() {
               <Nav.Link as={Link} to="/basal" onClick={handleClose}>
                 Basal Injection
               </Nav.Link>
+              <Nav.Link as={Link} to="/insulin" onClick={handleClose}>
+                Insulin Dosing
+              </Nav.Link>
               <Nav.Link as={Link} to="/rescue" onClick={handleClose}>
                 Rescue Glucose
               </Nav.Link>

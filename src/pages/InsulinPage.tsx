@@ -1,19 +1,22 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button, Form, InputGroup } from "react-bootstrap";
-import WizardManager from "../../managers/wizardManager";
-import { round } from "../../lib/util";
+import WizardManager from "../managers/wizardManager";
+import { round } from "../lib/util";
 import { useNavigate } from "react-router";
-import BloodSugarInput from "../../components/BloodSugarInput";
-import { getCorrectionInsulin, getInsulin } from "../../lib/metabolism";
-import Card from "../../components/Card";
-import TemplateSummary from "../../components/TemplateSummary";
-import { WizardStore } from "../../storage/wizardStore";
-import { WizardPage } from "../../models/types/wizardPage";
-import { PreferencesStore } from "../../storage/preferencesStore";
+import BloodSugarInput from "../components/BloodSugarInput";
+import { getCorrectionInsulin, getInsulin } from "../lib/metabolism";
+import Card from "../components/Card";
+import TemplateSummary from "../components/TemplateSummary";
+import { WizardStore } from "../storage/wizardStore";
+import { WizardPage } from "../models/types/wizardPage";
+import { PreferencesStore } from "../storage/preferencesStore";
+import RemoteTreatments from "../lib/remote/treatments";
 
-export default function WizardInsulinPage() {
+export default function InsulinPage() {
   const navigate = useNavigate();
   const [session] = WizardStore.session.useState();
+  const [isBolus, setIsBolus] = WizardStore.isBolus.useState();
+
   const meal = session.mealMarked
     ? session.latestMeal
     : WizardStore.meal.useState()[0];
@@ -25,7 +28,7 @@ export default function WizardInsulinPage() {
   const [insulinTaken, setInsulinTaken] = useState(0);
   const [currentGlucose, setCurrentGlucose] = useState<number | null>(null);
   const markInsulin = () => {
-    if (!currentGlucose) {
+    if (!currentGlucose && isBolus) {
       alert(`You must input your current blood sugar`);
       return;
     }
@@ -33,8 +36,10 @@ export default function WizardInsulinPage() {
       if (
         confirm(`Confirm that you have taken ${insulinTaken} units of insulin`)
       ) {
-        WizardManager.markInsulin(insulinTaken, currentGlucose);
-        WizardManager.setInitialGlucose(currentGlucose);
+        if (currentGlucose && isBolus) {
+          WizardManager.markInsulin(insulinTaken, currentGlucose);
+          WizardManager.setInitialGlucose(currentGlucose);
+        }
         if (session.started) {
           WizardManager.moveToPage(
             session.mealMarked ? WizardPage.Hub : WizardPage.Meal,
@@ -43,6 +48,10 @@ export default function WizardInsulinPage() {
         } else {
           navigate("/hub");
         }
+
+        // TODO: Use date selector
+        RemoteTreatments.markInsulin(insulinTaken, new Date());
+        setIsBolus(false);
       }
     } else {
       alert("Please enter a valid number");
@@ -70,39 +79,48 @@ export default function WizardInsulinPage() {
 
   // A variable that changes once per minute
   function goBack() {
+    WizardStore.isBolus.value = false;
     WizardManager.moveToPage(
       session.mealMarked ? WizardPage.Hub : WizardPage.Meal,
       navigate
     );
   }
 
+  // Set usage state based on the current session state
+  useEffect(() => {
+    setIsBolus(session.started);
+  }, []);
+
   return (
     <div>
       <h1>Insulin Dosing</h1>
-      <Card>
-        <TemplateSummary
-          template={template}
-          session={session}
-          meal={meal}
-          currentBG={
-            session.initialGlucose
-              ? undefined
-              : currentGlucose || PreferencesStore.targetBG.value
-          }
-        />
-      </Card>
+      {isBolus && (
+        <Card>
+          <TemplateSummary
+            template={template}
+            session={session}
+            meal={meal}
+            currentBG={
+              session.initialGlucose
+                ? undefined
+                : currentGlucose || PreferencesStore.targetBG.value
+            }
+          />
+        </Card>
+      )}
 
       <Card>
         <BloodSugarInput
           initialGlucose={currentGlucose}
           setInitialGlucose={setCurrentGlucose}
+          pullFromNightscout={!isBolus}
         />
         <InputGroup className="mb-3">
           <InputGroup.Text id="basic-addon1">
             <i className="bi bi-capsule"></i>
           </InputGroup.Text>
           <Form.Control
-            placeholder={round(displayedInsulin, 2).toString()}
+            placeholder={round(displayedInsulin, 1).toString()}
             aria-describedby="basic-addon1"
             onChange={(e: any) => {
               const val = parseFloat(e.target.value);
@@ -114,12 +132,16 @@ export default function WizardInsulinPage() {
         </InputGroup>
       </Card>
       <div className="d-flex justify-content-between">
-        <Button variant="secondary" onClick={goBack}>
-          Go Back
-        </Button>
-        <Button variant="primary" onClick={markInsulin}>
-          Mark Insulin
-        </Button>
+        {isBolus && (
+          <Button variant="secondary" onClick={goBack}>
+            Go Back
+          </Button>
+        )}
+        <div className="ms-auto">
+          <Button variant="primary" onClick={markInsulin}>
+            Mark Insulin
+          </Button>
+        </div>
       </div>
     </div>
   );

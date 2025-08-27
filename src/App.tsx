@@ -21,12 +21,13 @@ import RemoteStorage from "./lib/remote/storage";
 import BasalPage from "./pages/BasalPage";
 import { BackendStore } from "./storage/backendStore";
 import { WizardStore } from "./storage/wizardStore";
-import WizardInsulinPage from "./pages/wizard/WizardInsulinPage";
 import ActivityRouterPage from "./pages/activity/ActivityRouterPage";
 import ActivitySelectPage from "./pages/activity/ActivitySelectPage";
 import ActivityStartPage from "./pages/activity/ActivityStartPage";
 import ActivityEndPage from "./pages/activity/ActivityEndPage";
 import { ActivityStore } from "./storage/activityStore";
+import InsulinPage from "./pages/InsulinPage";
+import WizardInsulinRouter from "./pages/wizard/WizardInsulinRouter";
 
 function App() {
   const navigate = useNavigate();
@@ -74,6 +75,7 @@ function App() {
           <Route path="/statistics" element={<StatisticsPage />} />
           <Route path="/rescue" element={<RescuePage />} />
           <Route path="/basal" element={<BasalPage />} />
+          <Route path="/insulin" element={<InsulinPage />} />
 
           {/* Wizard Routes */}
           <Route path="/wizard" element={<WizardRouterPage />} />
@@ -81,7 +83,7 @@ function App() {
           <Route path="/wizard/select" element={<WizardSelectionPage />} />
           <Route path="/wizard/hub" element={<WizardHubPage />} />
           <Route path="/wizard/meal" element={<WizardMealPage />} />
-          <Route path="/wizard/insulin" element={<WizardInsulinPage />} />
+          <Route path="/wizard/insulin" element={<WizardInsulinRouter />} />
           <Route path="/wizard/edit" element={<WizardEditPage />} />
           <Route path="/wizard/finalbg" element={<WizardFinalBGPage />} />
 
