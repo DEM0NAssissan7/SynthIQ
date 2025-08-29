@@ -72,3 +72,20 @@ export function getFullPrettyDate(timestamp: Date): string {
   const year = date.getFullYear();
   return `${month}-${day}-${year} (${getPrettyTime(timestamp)})`;
 }
+export function timeOfDayOffset(d1: Date, d2: Date): number {
+  // Get hours and minutes for both dates
+  const minutes1 = d1.getHours() * 60 + d1.getMinutes();
+  const minutes2 = d2.getHours() * 60 + d2.getMinutes();
+
+  // Compute absolute difference
+  let diffMinutes = Math.abs(minutes2 - minutes1);
+
+  // Handle wrap-around at midnight (e.g., 23:00 → 02:15)
+  if (diffMinutes > 720) {
+    // 12 hours in minutes
+    diffMinutes = 1440 - diffMinutes; // 24h - diff
+  }
+
+  // Convert to hours (with decimals)
+  return diffMinutes / 60;
+}

@@ -142,9 +142,14 @@ export function insulinDosingRecommendation(sessions: Session[]) {
 export function getInsulinDose(
   template: MealTemplate,
   meal: Meal,
-  currentSugar: number
+  currentSugar: number,
+  timeOfDay: Date
 ) {
-  const session = template.getClosestSession(meal.carbs, meal.protein);
+  const session = template.getClosestSession(
+    meal.carbs,
+    meal.protein,
+    timeOfDay
+  );
   if (!session) return getInsulin(meal.carbs, meal.protein);
   const base = session.insulin; // Previous dose for the _meal_ itself
   const mealOffset = template.getMealInsulinOffset(

@@ -17,6 +17,7 @@ export default function InsulinPage() {
   const [session] = WizardStore.session.useState();
   const [isBolus, setIsBolus] = WizardStore.isBolus.useState();
 
+  const now = new Date();
   const meal = session.mealMarked
     ? session.latestMeal
     : WizardStore.meal.useState()[0];
@@ -50,7 +51,7 @@ export default function InsulinPage() {
         }
 
         // TODO: Use date selector
-        RemoteTreatments.markInsulin(insulinTaken, new Date());
+        RemoteTreatments.markInsulin(insulinTaken, now);
         setIsBolus(false);
       }
     } else {
@@ -66,7 +67,7 @@ export default function InsulinPage() {
     if (session.insulin !== 0 && correctionInsulin > 0)
       return correctionInsulin;
     if (session.insulin === 0) {
-      const insulins = template.vectorizeInsulin(meal.carbs, meal.protein);
+      const insulins = template.vectorizeInsulin(meal.carbs, meal.protein, now);
       let insulin: number = suggestedInsulin;
       if (insulins) {
         insulin = 0;

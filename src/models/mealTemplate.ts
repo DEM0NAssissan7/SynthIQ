@@ -1,5 +1,6 @@
 import { getOptimalMealInsulins } from "../lib/metabolism";
 import { sessionsWeightedAverage } from "../lib/templateHelpers";
+import { timeOfDayOffset } from "../lib/timing";
 import { CalibrationStore } from "../storage/calibrationStore";
 import { PreferencesStore } from "../storage/preferencesStore";
 import type Insulin from "./events/insulin";
@@ -110,7 +111,11 @@ export default class MealTemplate extends Subscribable implements Template {
       protein: alphaProtein,
     };
   }
-  getClosestSession(carbs: number, protein: number): Session | null {
+  getClosestSession(
+    carbs: number,
+    protein: number,
+    timeOfDay: Date
+  ): Session | null {
     if (this.isFirstTime) return null;
     let session: Session | null = null;
     let lowestScore = Infinity;
@@ -118,7 +123,10 @@ export default class MealTemplate extends Subscribable implements Template {
       const s: Session = this.sessions[i];
       if (s.isGarbage) continue;
 
-      const score = (carbs - s.carbs) ** 2 + (protein - s.protein) ** 2; // Squared ecludian distance
+      const score =
+        (carbs - s.carbs) ** 2 +
+        (protein - s.protein) ** 2 +
+        timeOfDayOffset(timeOfDay, s.timestamp) ** 2; // Squared ecludian distance of three dimensions (carbs, protein, time)
       if (score < lowestScore) {
         session = s;
         lowestScore = score;
@@ -128,8 +136,12 @@ export default class MealTemplate extends Subscribable implements Template {
   }
 
   // Dosing helpers
-  vectorizeInsulin(carbs: number, protein: number): Insulin[] | null {
-    const session = this.getClosestSession(carbs, protein);
+  vectorizeInsulin(
+    carbs: number,
+    protein: number,
+    timeOfDay: Date
+  ): Insulin[] | null {
+    const session = this.getClosestSession(carbs, protein, timeOfDay);
     if (!session) return null;
     const insulins = getOptimalMealInsulins(session);
     const carbsInsulinOffset = this.getMealInsulinOffset(

@@ -7,6 +7,7 @@ import type MealTemplate from "../models/mealTemplate";
 import { Button } from "react-bootstrap";
 import Insulin from "../models/events/insulin";
 import React from "react";
+import { getPrettyTime } from "../lib/timing";
 
 function getFactorDesc(num: number, unit: string, type: string) {
   if (round(num, 1) === 0) return "";
@@ -33,7 +34,8 @@ export default function TemplateMealSummary({
   currentBG,
 }: TemplateMealSummaryProps) {
   const adjustments = insulinDosingRecommendation(template.sessions);
-  const session = template.getClosestSession(meal.carbs, meal.protein);
+  const now = new Date();
+  const session = template.getClosestSession(meal.carbs, meal.protein, now);
   const insulinCorrection = useMemo(
     () => getCorrectionInsulin(currentBG),
     [currentBG]
@@ -51,7 +53,8 @@ export default function TemplateMealSummary({
   const insulins = (() => {
     const vectorizedInsulin = template.vectorizeInsulin(
       meal.carbs,
-      meal.protein
+      meal.protein,
+      now
     );
     // Fall back to profile
     if (!vectorizedInsulin || template.isFirstTime)
@@ -129,6 +132,7 @@ export default function TemplateMealSummary({
               <b>Previous session</b>: {round(template.previousInsulin, 1)}u
               insulin {round(template.insulinTiming, 0)} min{" "}
               {template.insulinTiming > 0 ? "after" : "before"} eating began
+              (began {getPrettyTime(session?.timestamp ?? new Date())})
             </>
           )}
           <br />
