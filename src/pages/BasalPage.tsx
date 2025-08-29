@@ -115,6 +115,7 @@ export default function BasalPage() {
           <Form.Control
             placeholder={`${lastShot.toString()}`}
             aria-label="URL"
+            type="number"
             aria-describedby="basic-addon1"
             onChange={(e: any) => {
               const val = parseFloat(e.target.value);
