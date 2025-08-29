@@ -88,7 +88,7 @@ export default function InsulinPage() {
 
   // Set usage state based on the current session state
   useEffect(() => {
-    setIsBolus(session.started);
+    if (!isBolus) setIsBolus(session.started);
   }, []);
 
   return (
