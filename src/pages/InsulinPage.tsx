@@ -66,6 +66,7 @@ export default function InsulinPage() {
   const displayedInsulin = (() => {
     if (session.insulin !== 0 && correctionInsulin > 0)
       return correctionInsulin;
+    if (!isBolus) return correctionInsulin;
     if (session.insulin === 0) {
       const insulins = template.vectorizeInsulin(meal.carbs, meal.protein, now);
       let insulin: number = suggestedInsulin;
