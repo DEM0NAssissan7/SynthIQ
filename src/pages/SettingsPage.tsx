@@ -37,6 +37,7 @@ function NumberSetting({ title, keyInterface, iconClass, unit }: Setting) {
           <i className={iconClass}></i>
         </InputGroup.Text>
         <Form.Control
+          type="number"
           placeholder={initialValue}
           value={displayValue}
           aria-describedby="basic-addon1"

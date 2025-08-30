@@ -122,6 +122,7 @@ export default function InsulinPage() {
             <i className="bi bi-capsule"></i>
           </InputGroup.Text>
           <Form.Control
+            type="number"
             placeholder={round(displayedInsulin, 1).toString()}
             aria-describedby="basic-addon1"
             onChange={(e: any) => {

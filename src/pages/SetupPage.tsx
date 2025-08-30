@@ -87,6 +87,7 @@ function SetupPage() {
           <i className="bi bi-globe"></i>
         </InputGroup.Text>
         <Form.Control
+          type="text"
           placeholder={url || "Enter your nightscout server URL"}
           aria-label="URL"
           aria-describedby="basic-addon1"
@@ -99,6 +100,7 @@ function SetupPage() {
           <i className="bi bi-key"></i>
         </InputGroup.Text>
         <Form.Control
+          type="text"
           placeholder={apiSecret || "Enter your API key"}
           aria-label="API Key"
           aria-describedby="basic-addon2"
