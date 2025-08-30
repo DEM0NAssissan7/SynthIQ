@@ -8,6 +8,7 @@ import { Button } from "react-bootstrap";
 import Insulin from "../models/events/insulin";
 import React from "react";
 import { getPrettyTime } from "../lib/timing";
+import { CalibrationStore } from "../storage/calibrationStore";
 
 function getFactorDesc(num: number, unit: string, type: string) {
   if (round(num, 1) === 0) return "";
@@ -62,6 +63,17 @@ export default function TemplateMealSummary({
     return vectorizedInsulin;
   })();
 
+  const scalingOffset = (() => {
+    if (!session) return 0;
+    let totalInsulin = 0;
+    insulins.forEach((insulin) => (totalInsulin += insulin.value));
+    return (
+      totalInsulin -
+      totalInsulin *
+        (CalibrationStore.insulinEffect.value / session.insulinEffect)
+    );
+  })();
+
   const isSingleBolus = insulins.length < 2;
 
   const finalTiming = round(
@@ -111,6 +123,7 @@ export default function TemplateMealSummary({
       {getFactorDesc(insulinAdjustment, " u", "adjustment")}
       {isSingleBolus &&
         getFactorDesc(adjustments.timingAdjustment, " min", "adjustment")}
+      {getFactorDesc(scalingOffset, " u", "ISF scale")}
       <br />
       <Button
         onClick={toggleShowExtra}
