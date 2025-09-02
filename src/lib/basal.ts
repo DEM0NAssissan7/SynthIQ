@@ -3,6 +3,7 @@ import SugarReading, {
   getReadingFromNightscout,
 } from "../models/types/sugarReading";
 import Unit from "../models/unit";
+import { BackendStore } from "../storage/backendStore";
 import { BasalStore } from "../storage/basalStore";
 import { HealthMonitorStore } from "../storage/healthMonitorStore";
 import { getBasalCorrection } from "./metabolism";
@@ -116,6 +117,17 @@ export function getFastingVelocity() {
   const fastingVelocities = BasalStore.fastingVelocitiesCache.value;
   const averageVelocities = MathUtil.mean(fastingVelocities);
   return averageVelocities;
+}
+
+/**
+ * Gives a number of hours that we have been fasting
+ */
+export function getFastingLength() {
+  const velocities = BasalStore.fastingVelocitiesCache.value;
+  const minutesPerReading = BackendStore.cgmDelay.value;
+  const minutes = velocities.length * minutesPerReading;
+  const hours = minutes / 60;
+  return hours;
 }
 
 export function markBasal(units: number) {

@@ -2,6 +2,7 @@ import { Button, Form, InputGroup } from "react-bootstrap";
 import Card from "../components/Card";
 import {
   dosingChangeComplete,
+  getFastingLength,
   getFastingVelocity,
   getLastShot,
   getRecommendedBasal,
@@ -24,6 +25,7 @@ export default function BasalPage() {
   const basalCorrectionPerDay = round(basalCorrection / shotsPerDay, 1);
   const basals = BasalStore.basalDoses.value;
   const lastBasalTimestamp = getLatestBasalTimestamp();
+  const fastingTime = getFastingLength();
 
   const suggestedBasal = getRecommendedBasal();
   const lastShot = getLastShot();
@@ -90,6 +92,8 @@ export default function BasalPage() {
           {fastingVelocity > 0 && "+"}
           {round(fastingVelocity, 0)}mg/dL per hour
         </b>
+        <br />
+        Collected <b>{fastingTime.toFixed(1)} hours</b> of fasting
         <br />
         {Math.abs(basalCorrection) > 1 && changeIsComplete && (
           <>
