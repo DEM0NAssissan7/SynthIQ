@@ -114,7 +114,7 @@ export async function populateFastingVelocitiesCache() {
 
 export function getFastingVelocity() {
   const fastingVelocities = BasalStore.fastingVelocitiesCache.value;
-  const averageVelocities = MathUtil.median(fastingVelocities);
+  const averageVelocities = MathUtil.mean(fastingVelocities);
   return averageVelocities;
 }
 
