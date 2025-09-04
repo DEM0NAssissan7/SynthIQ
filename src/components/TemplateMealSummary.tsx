@@ -37,6 +37,7 @@ export default function TemplateMealSummary({
   const adjustments = insulinDosingRecommendation(template.sessions);
   const now = new Date();
   const session = template.getClosestSession(meal.carbs, meal.protein, now);
+  console.log(session);
   const insulinCorrection = useMemo(
     () => getCorrectionInsulin(currentBG),
     [currentBG]
