@@ -96,7 +96,7 @@ export function getOptimalMealInsulins(session: Session): Insulin[] {
   let windows: TreatmentWindow[] = [];
   for (let i = 0; i < snapshots.length; i++) {
     const snapshot = snapshots[i];
-    const insulin = insulins[i];
+    const insulin = insulins[i] ?? insulins[i - 1];
     if (!snapshot.finalBG || !snapshot.initialBG)
       throw new Error(
         `Cannot reliably dictate insulin dosing: no final or inital BG`
