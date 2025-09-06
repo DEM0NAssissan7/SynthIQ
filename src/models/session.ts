@@ -136,6 +136,11 @@ export default class Session extends Subscribable {
   get minGlucose() {
     return this.snapshot.minBG ? this.snapshot.minBG.sugar : null;
   }
+  get deltaGlucose() {
+    const initialBG = this.initialGlucose ?? 0;
+    const finalBG = this.finalBG ?? 0;
+    return finalBG - initialBG;
+  }
 
   // Profile-based stuff
   get mealRise(): number {
@@ -191,10 +196,25 @@ export default class Session extends Subscribable {
     const errorCorrection = typicalFinalBG / this.insulinEffect;
     return errorCorrection;
   }
+  get correctionInsulin(): number {
+    const initialBG = this.initialGlucose ?? PreferencesStore.targetBG.value;
+    return Math.max(
+      (initialBG - PreferencesStore.targetBG.value) / this.insulinEffect,
+      0
+    );
+  }
+  get insulinAdjustment(): number {
+    const finalBG = this.finalBG;
+    if (!finalBG) return 0;
+    const theoreticalFinalBG =
+      finalBG - CalibrationStore.glucoseEffect.value * this.glucose;
+    return (
+      (theoreticalFinalBG - PreferencesStore.targetBG.value) /
+      this.insulinEffect
+    );
+  }
   get optimalMealInsulin(): number {
-    const errorCorrection = this.insulinErrorCorrection;
-    const optimalMealInsulin = this.mealInsulin + errorCorrection; // This is the amount of insulin
-    return optimalMealInsulin;
+    return this.insulin + this.insulinAdjustment - this.correctionInsulin;
   }
 
   // Insulins
