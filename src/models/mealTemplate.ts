@@ -3,7 +3,7 @@ import { sessionsWeightedAverage } from "../lib/templateHelpers";
 import { timeOfDayOffset } from "../lib/timing";
 import { CalibrationStore } from "../storage/calibrationStore";
 import { PreferencesStore } from "../storage/preferencesStore";
-import type Insulin from "./events/insulin";
+import Insulin from "./events/insulin";
 import Session from "./session";
 import Subscribable from "./subscribable";
 import type { Template } from "./types/interfaces";
@@ -143,7 +143,8 @@ export default class MealTemplate extends Subscribable implements Template {
   ): Insulin[] | null {
     const session = this.getClosestSession(carbs, protein, timeOfDay);
     if (!session) return null;
-    const insulins = getOptimalMealInsulins(session);
+
+    // Fill in the gaps
     const carbsInsulinOffset = this.getMealInsulinOffset(
       session.carbs,
       0,
@@ -156,6 +157,15 @@ export default class MealTemplate extends Subscribable implements Template {
       0,
       protein
     );
+
+    // Legacy
+    // return [
+    //   new Insulin(
+    //     session.optimalMealInsulin + carbsInsulinOffset + proteinInsulinOffset,
+    //     session.firstInsulinTimestamp
+    //   ),
+    // ];
+    const insulins = getOptimalMealInsulins(session);
     insulins[0].value += carbsInsulinOffset; // Add extra carbs offset to first shot, as they typically only act on first shot timeframe
 
     const proteinInsulinPerShot = proteinInsulinOffset / insulins.length;
