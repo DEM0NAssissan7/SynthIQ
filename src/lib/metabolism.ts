@@ -126,7 +126,7 @@ export function getOptimalMealInsulins(session: Session): Insulin[] {
    * Now that we have a list of the theoretical finalBGs, we can adjust each on to try and get a zero-change scenario
    */
   for (let window of windows) {
-    const glucoseRise = window.glucose * session.glucoseEffect;
+    const glucoseRise = window.glucose * CalibrationStore.glucoseEffect.value;
     const theoreticalFinalBG = window.finalBG - glucoseRise; // Avoid blaming glucose for a rise in BG
     const deltaBG = theoreticalFinalBG - window.initialBG; // Try to keep things as flat as possible
 
