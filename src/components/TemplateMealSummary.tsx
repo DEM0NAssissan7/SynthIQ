@@ -42,7 +42,7 @@ export default function TemplateMealSummary({
     () => getCorrectionInsulin(currentBG),
     [currentBG]
   );
-  const insulinAdjustment = session ? session.insulinErrorCorrection : 0;
+  const insulinAdjustment = session ? session.insulinAdjustment : 0;
   const insulinOffset = session
     ? template.getMealInsulinOffset(
         session.carbs,
