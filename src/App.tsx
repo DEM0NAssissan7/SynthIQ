@@ -28,6 +28,7 @@ import ActivityEndPage from "./pages/activity/ActivityEndPage";
 import { ActivityStore } from "./storage/activityStore";
 import InsulinPage from "./pages/InsulinPage";
 import WizardInsulinRouter from "./pages/wizard/WizardInsulinRouter";
+import HistoryPage from "./pages/HistoryPage";
 
 function App() {
   const navigate = useNavigate();
@@ -76,6 +77,7 @@ function App() {
           <Route path="/rescue" element={<RescuePage />} />
           <Route path="/basal" element={<BasalPage />} />
           <Route path="/insulin" element={<InsulinPage />} />
+          <Route path="/history" element={<HistoryPage />} />
 
           {/* Wizard Routes */}
           <Route path="/wizard" element={<WizardRouterPage />} />
