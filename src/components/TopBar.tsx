@@ -70,6 +70,9 @@ function TopBar() {
               <Nav.Link as={Link} to="/dextrose" onClick={handleClose}>
                 Dextrose
               </Nav.Link>
+              <Nav.Link as={Link} to="/history" onClick={handleClose}>
+                History
+              </Nav.Link>
               <Nav.Link as={Link} to="/setup" onClick={handleClose}>
                 Nightscout Setup
               </Nav.Link>
