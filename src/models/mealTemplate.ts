@@ -186,6 +186,7 @@ export default class MealTemplate extends Subscribable implements Template {
       );
     }
     if (nearSessions.length === 0) return null;
+    console.log(nearSessions);
 
     const medianOptimalInsulin = MathUtil.median(
       nearSessions.map((s) => s.optimalMealInsulin)
