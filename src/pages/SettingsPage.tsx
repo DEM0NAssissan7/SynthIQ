@@ -208,6 +208,12 @@ export default function SettingsPage() {
           iconClass="bi bi-arrow-down-short"
           unit="mg/dL"
         />
+        <NumberSetting
+          keyInterface={PreferencesStore.maxSessionLife}
+          title="Max Session Life"
+          iconClass="bi bi-clock"
+          unit="days"
+        />
       </Card>
       <Card>
         <NumberSetting
