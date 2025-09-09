@@ -14,6 +14,7 @@ import RemoteTreatments, {
   insulinEventType,
   glucoseEventType,
   basalEventType,
+  activityEventType,
 } from "./remote/treatments";
 import { getTimestampFromOffset, timestampIsBetween } from "./timing";
 import { convertDimensions, MathUtil, round } from "./util";
@@ -60,6 +61,9 @@ function getFastingVelocities(
         break;
       case glucoseEventType:
         hoursNonFasting = minTimeSinceDextrose;
+        break;
+      case activityEventType:
+        hoursNonFasting = a.duration ? a.duration / 60 : null;
         break;
     }
     if (hoursNonFasting !== null)
