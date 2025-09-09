@@ -102,10 +102,14 @@ export default class Snapshot extends Subscribable {
   }
 
   get minBG(): SugarReading | null {
-    return this.isValid ? this.valueSorted[0] : null;
+    return this.isValid
+      ? this.valueSorted[Math.round(this.valueSorted.length * 0.1)] // Get the bottom 10%
+      : null;
   }
   get peakBG(): SugarReading | null {
-    return this.isValid ? this.valueSorted[this.valueSorted.length - 1] : null;
+    return this.isValid
+      ? this.valueSorted[Math.floor(this.valueSorted.length * 0.9)] // Get the top 10%
+      : null;
   }
 
   // Serialization
