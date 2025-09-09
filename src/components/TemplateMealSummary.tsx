@@ -7,7 +7,7 @@ import type MealTemplate from "../models/mealTemplate";
 import { Button } from "react-bootstrap";
 import Insulin from "../models/events/insulin";
 import React from "react";
-import { getFullPrettyDate, getPrettyTime } from "../lib/timing";
+import { getFullPrettyDate } from "../lib/timing";
 import { CalibrationStore } from "../storage/calibrationStore";
 import { PreferencesStore } from "../storage/preferencesStore";
 
