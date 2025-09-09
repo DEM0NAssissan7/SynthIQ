@@ -65,6 +65,14 @@ export default function TemplateMealSummary({
     return vectorizedInsulin;
   })();
 
+  const overshootInsulinOffset = (() =>
+    Math.max(
+      (Math.min(currentBG - PreferencesStore.targetBG.value, 0) +
+        PreferencesStore.overshootOffset.value) /
+        CalibrationStore.insulinEffect.value,
+      0
+    ))();
+
   const scalingOffset = (() => {
     if (!session) return 0;
     let totalInsulin = 0;
@@ -109,9 +117,7 @@ export default function TemplateMealSummary({
             {round(
               insulin.value +
                 (i === 0 ? insulinCorrection : 0) +
-                PreferencesStore.overshootOffset.value /
-                  CalibrationStore.insulinEffect.value /
-                  insulins.length, // We add just a bit more insulin to overshoot our target and scale it by the number of insulins
+                overshootInsulinOffset / insulins.length, // We add just a bit more insulin to overshoot our target and scale it by the number of insulins
               1
             )}
             u
@@ -135,12 +141,7 @@ export default function TemplateMealSummary({
         getFactorDesc(adjustments.timingAdjustment, " min", "adjustment")}
       {PreferencesStore.scaleByISF.value &&
         getFactorDesc(scalingOffset, " u", "ISF scale")}
-      {getFactorDesc(
-        PreferencesStore.overshootOffset.value /
-          CalibrationStore.insulinEffect.value,
-        " u",
-        "overcompensation"
-      )}
+      {getFactorDesc(overshootInsulinOffset, " u", "overcompensation")}
       <br />
       <Button
         onClick={toggleShowExtra}
