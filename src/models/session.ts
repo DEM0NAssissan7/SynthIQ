@@ -326,7 +326,7 @@ export default class Session extends Subscribable {
     this.notify();
   }
   get isGarbage(): boolean {
-    return this._isGarbage;
+    return this._isGarbage || this.meals.length > 1;
   }
 
   get length(): number {
