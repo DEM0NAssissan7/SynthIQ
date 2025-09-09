@@ -1,6 +1,6 @@
 import Card from "../components/Card";
 import { getOptimalMealInsulins } from "../lib/metabolism";
-import { getPrettyTime } from "../lib/timing";
+import { getFullPrettyDate } from "../lib/timing";
 import type MealTemplate from "../models/mealTemplate";
 import type Session from "../models/session";
 import { CalibrationStore } from "../storage/calibrationStore";
@@ -15,6 +15,7 @@ export default function HistoryPage() {
           <table style={{ width: "100%", marginBottom: "1rem" }}>
             <thead>
               <tr>
+                <th>UUID</th>
                 <th>Time</th>
                 <th>Carbs (g)</th>
                 <th>Protein (g)</th>
@@ -38,11 +39,8 @@ export default function HistoryPage() {
               return (
                 <tbody>
                   <tr>
-                    <td>
-                      {`${getPrettyTime(session.timestamp)} (${
-                        session.timestamp.getMonth() + 1
-                      }-${session.timestamp.getDate()})`}
-                    </td>
+                    <td>{session.uuid}</td>
+                    <td>{`${getFullPrettyDate(session.timestamp)}`}</td>
                     <td>{session.carbs.toFixed()}</td>
                     <td>{session.protein.toFixed()}</td>
                     <td>{session.initialGlucose}</td>
