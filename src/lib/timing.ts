@@ -70,7 +70,7 @@ export function getFullPrettyDate(timestamp: Date): string {
   const day = date.getDate().toString().padStart(2, "0");
   const month = (date.getMonth() + 1).toString().padStart(2, "0");
   const year = date.getFullYear();
-  return `${month}-${day}-${year} (${getPrettyTime(timestamp)})`;
+  return `${month}/${day}/${year} (${getPrettyTime(timestamp)})`;
 }
 export function timeOfDayOffset(d1: Date, d2: Date): number {
   // Get hours and minutes for both dates
