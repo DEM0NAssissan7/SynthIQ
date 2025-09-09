@@ -106,7 +106,15 @@ export default function TemplateMealSummary({
         <React.Fragment key={i}>
           {isSingleBolus ? `Take ` : `Shot ${i + 1}: `}
           <b>
-            {round(insulin.value + (i === 0 ? insulinCorrection : 0), 1)}u
+            {round(
+              insulin.value +
+                (i === 0 ? insulinCorrection : 0) +
+                PreferencesStore.overshootOffset.value /
+                  CalibrationStore.insulinEffect.value /
+                  insulins.length, // We add just a bit more insulin to overshoot our target and scale it by the number of insulins
+              1
+            )}
+            u
           </b>{" "}
           insulin{" "}
           {!template.isFirstTime && (
