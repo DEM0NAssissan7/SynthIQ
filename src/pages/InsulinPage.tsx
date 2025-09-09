@@ -17,6 +17,14 @@ export default function InsulinPage() {
   const [session] = WizardStore.session.useState();
   const [isBolus, setIsBolus] = WizardStore.isBolus.useState();
 
+  const isFirstPostMealInjection = useMemo(
+    () =>
+      session.initialGlucose !== null &&
+      session.insulins.length === 0 &&
+      isBolus,
+    [isBolus, session]
+  );
+
   const now = new Date();
   const meal = session.mealMarked ? session.latestMeal : WizardStore.meal.value;
   const [template] = WizardStore.template.useState();
@@ -27,7 +35,7 @@ export default function InsulinPage() {
   const [insulinTaken, setInsulinTaken] = useState(0);
   const [currentGlucose, setCurrentGlucose] = useState<number | null>(null);
   const markInsulin = () => {
-    if (!currentGlucose && isBolus) {
+    if (!currentGlucose && isBolus && !isFirstPostMealInjection) {
       alert(`You must input your current blood sugar`);
       return;
     }
@@ -35,9 +43,13 @@ export default function InsulinPage() {
       if (
         confirm(`Confirm that you have taken ${insulinTaken} units of insulin`)
       ) {
-        if (currentGlucose && isBolus) {
-          WizardManager.markInsulin(insulinTaken, currentGlucose);
-          WizardManager.setInitialGlucose(currentGlucose);
+        if (isBolus && (currentGlucose || session.initialGlucose)) {
+          const BG =
+            currentGlucose ??
+            session.initialGlucose ??
+            PreferencesStore.targetBG.value;
+          WizardManager.markInsulin(insulinTaken, BG);
+          if (currentGlucose) WizardManager.setInitialGlucose(currentGlucose);
         }
         if (session.started) {
           WizardManager.moveToPage(
@@ -110,11 +122,13 @@ export default function InsulinPage() {
       )}
 
       <Card>
-        <BloodSugarInput
-          initialGlucose={currentGlucose}
-          setInitialGlucose={setCurrentGlucose}
-          pullFromNightscout={!isBolus}
-        />
+        {!isFirstPostMealInjection && (
+          <BloodSugarInput
+            initialGlucose={currentGlucose}
+            setInitialGlucose={setCurrentGlucose}
+            pullFromNightscout={!isBolus}
+          />
+        )}
         <InputGroup className="mb-3">
           <InputGroup.Text id="basic-addon1">
             <i className="bi bi-capsule"></i>
