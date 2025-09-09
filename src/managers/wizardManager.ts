@@ -138,7 +138,6 @@ export default class WizardManager {
       this.selectTemplate(name);
       return;
     }
-    throw new Error(`Cannot create template named ${name}: already exists`);
   }
   static deleteTemplate(name: string) {
     const templates = WizardStore.templates.value;
