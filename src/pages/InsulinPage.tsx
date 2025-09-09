@@ -18,9 +18,7 @@ export default function InsulinPage() {
   const [isBolus, setIsBolus] = WizardStore.isBolus.useState();
 
   const now = new Date();
-  const meal = session.mealMarked
-    ? session.latestMeal
-    : WizardStore.meal.useState()[0];
+  const meal = session.mealMarked ? session.latestMeal : WizardStore.meal.value;
   const [template] = WizardStore.template.useState();
 
   const suggestedInsulin = getInsulin(meal.carbs, meal.protein);
