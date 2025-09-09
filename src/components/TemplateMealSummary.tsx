@@ -125,7 +125,8 @@ export default function TemplateMealSummary({
       {getFactorDesc(insulinAdjustment, " u", "adjustment")}
       {isSingleBolus &&
         getFactorDesc(adjustments.timingAdjustment, " min", "adjustment")}
-      {getFactorDesc(scalingOffset, " u", "ISF scale")}
+      {PreferencesStore.scaleByISF.value &&
+        getFactorDesc(scalingOffset, " u", "ISF scale")}
       {getFactorDesc(
         PreferencesStore.overshootOffset.value /
           CalibrationStore.insulinEffect.value,
