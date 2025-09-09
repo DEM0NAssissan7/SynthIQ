@@ -141,7 +141,10 @@ export function getOptimalMealInsulins(session: Session): Insulin[] {
     const insulin = Insulin.deserialize(Insulin.serialize(_insulin));
     insulin.value =
       window.insulin *
-      (session.insulinEffect / CalibrationStore.insulinEffect.value); // Scale the window's insulin by the ratio between our current ISF and the ISF when the meal was eaten
+        (session.insulinEffect / CalibrationStore.insulinEffect.value) + // Scale the window's insulin by the ratio between our current ISF and the ISF when the meal was eaten
+      PreferencesStore.overshootOffset.value /
+        CalibrationStore.insulinEffect.value /
+        insulins.length; // We add just a bit more insulin to overshoot our target and scale it by the number of insulins
     resultInsulins.push(insulin);
   }
 

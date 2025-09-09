@@ -202,6 +202,12 @@ export default function SettingsPage() {
           iconClass="bi bi-clock"
           unit="min"
         />
+        <NumberSetting
+          keyInterface={PreferencesStore.overshootOffset}
+          title="Bolus Target Overcompensation Offset"
+          iconClass="bi bi-arrow-down-short"
+          unit="mg/dL"
+        />
       </Card>
       <Card>
         <NumberSetting

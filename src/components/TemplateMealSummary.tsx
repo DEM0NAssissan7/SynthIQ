@@ -9,6 +9,7 @@ import Insulin from "../models/events/insulin";
 import React from "react";
 import { getPrettyTime } from "../lib/timing";
 import { CalibrationStore } from "../storage/calibrationStore";
+import { PreferencesStore } from "../storage/preferencesStore";
 
 function getFactorDesc(num: number, unit: string, type: string) {
   if (round(num, 1) === 0) return "";
@@ -125,6 +126,12 @@ export default function TemplateMealSummary({
       {isSingleBolus &&
         getFactorDesc(adjustments.timingAdjustment, " min", "adjustment")}
       {getFactorDesc(scalingOffset, " u", "ISF scale")}
+      {getFactorDesc(
+        PreferencesStore.overshootOffset.value /
+          CalibrationStore.insulinEffect.value,
+        " u",
+        "overcompensation"
+      )}
       <br />
       <Button
         onClick={toggleShowExtra}
