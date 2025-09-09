@@ -62,15 +62,24 @@ export function insulinRuleEngine(session: Session) {
   const glucose = session.glucose;
   const glucoseThreshold =
     (PreferencesStore.targetBG.value - lowBG) /
-    CalibrationStore.glucoseEffect.value; // Set the threshold at whatever is required to bounce from 65mg/dL
+    CalibrationStore.glucoseEffect.value; // Set the threshold at whatever is required to bounce from low
   const glucoseExcess: boolean = glucose > glucoseThreshold;
   /** It's normal for you to have to correct down to a certain amount
    * We wanna give enough error where our user doesn't dip down below lowBG. If he had to take more than what's
    * required to bounce, we consider it too much
    */
 
-  if (glucoseExcess && session.insulins.length < 2) {
-    if (amount === OPTIMAL || amount === LOW) timing = LOW;
+  if (session.insulins.length < 2) {
+    if (glucoseExcess) {
+      if (amount === OPTIMAL || amount === LOW) timing = LOW;
+    }
+    if (session.initialGlucose && session.peakGlucose)
+      if (
+        timing !== LOW &&
+        session.peakGlucose - session.initialGlucose >
+          PreferencesStore.highBG.value - PreferencesStore.targetBG.value
+      )
+        timing = HIGH; // If our blood sugar would have gone to the high threshold, we consider it too late
   }
 
   return {
