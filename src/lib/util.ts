@@ -13,6 +13,9 @@ export function round(num: number, precision: number): number {
 export function floor(num: number, precision: number): number {
   return Math.floor(num * 10 ** precision) / 10 ** precision;
 }
+export function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
+}
 
 // Number Generation
 export type UUID = number;
@@ -87,5 +90,14 @@ export class MathUtil {
   }
   static percentError(accepted: number, observed: number) {
     return Math.abs((observed - accepted) / accepted) * 100;
+  }
+  static absoluteDeviations(x: number, data: number[]): number[] {
+    return data.map((x_i) => Math.abs(x_i - x));
+  }
+  static medianAbsoluteDeviation(data: number[]): number {
+    const median = this.median(data);
+    const deviations = this.absoluteDeviations(median, data);
+
+    return this.median(deviations) || 0;
   }
 }

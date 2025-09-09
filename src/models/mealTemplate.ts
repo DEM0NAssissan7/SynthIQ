@@ -1,6 +1,7 @@
 import { getOptimalMealInsulins } from "../lib/metabolism";
 import { sessionsWeightedAverage } from "../lib/templateHelpers";
 import { timeOfDayOffset } from "../lib/timing";
+import { clamp, MathUtil } from "../lib/util";
 import { CalibrationStore } from "../storage/calibrationStore";
 import { PreferencesStore } from "../storage/preferencesStore";
 import Insulin from "./events/insulin";
@@ -114,25 +115,98 @@ export default class MealTemplate extends Subscribable implements Template {
   getClosestSession(
     carbs: number,
     protein: number,
-    timeOfDay: Date
+    timestamp: Date
   ): Session | null {
     if (this.isFirstTime) return null;
-    let session: Session | null = null;
-    let lowestScore = Infinity;
-    for (let i = this.sessions.length - 1; i >= 0; i--) {
-      const s: Session = this.sessions[i];
-      if (s.isGarbage) continue;
 
-      const score =
-        (carbs - s.carbs) ** 2 +
-        (protein - s.protein) ** 2 +
-        timeOfDayOffset(timeOfDay, s.timestamp) ** 2; // Squared ecludian distance of three dimensions (carbs, protein, time)
-      if (score < lowestScore) {
-        session = s;
-        lowestScore = score;
+    let sessions = this.sessions.filter((s) => !s.isGarbage);
+    if (sessions.length === 0) sessions = this.sessions; // If all we have is garbage, we still use it anyways (better than nothing)
+
+    const getSafeScale = (absDistances: number[]) => {
+      if (absDistances.length === 0) return 1e-6;
+      const mean = MathUtil.mean(absDistances);
+      if (mean > 0) return mean;
+      const positives = absDistances.filter((x) => x > 0);
+      return positives.length ? Math.min(...positives) : 1e-6;
+    };
+
+    // Query-centered per-axis scales = mean absolute differences (safe-guarded)
+    const carbsScale = getSafeScale(
+      sessions.map((s) => Math.abs(carbs - s.carbs))
+    );
+    const proteinScale = getSafeScale(
+      sessions.map((s) => Math.abs(protein - s.protein))
+    );
+    const timeOfDayScale = getSafeScale(
+      sessions.map((s) => Math.abs(timeOfDayOffset(timestamp, s.timestamp)))
+    );
+    const dateScale = (() => {
+      const ages = sessions.map((s) => s.age); // days > 0
+      const m = MathUtil.median(ages);
+      if (m > 0) return Math.max(m, 1e-3); // small floor to avoid blowups
+      // (shouldn’t happen given s.age>0, but safe)
+      return Math.min(...ages) || 1e-3;
+    })();
+
+    let nearSessions: Session[] = [];
+    for (let i = sessions.length - 1; i >= 0; i--) {
+      const s: Session = sessions[i];
+
+      if (
+        Math.abs(carbs - s.carbs) <= carbsScale &&
+        Math.abs(protein - s.protein) <= proteinScale &&
+        timeOfDayOffset(timestamp, s.timestamp) <= timeOfDayScale
+      ) {
+        nearSessions.push(s);
       }
     }
-    return session;
+
+    const K = Math.min(
+      clamp(Math.floor(Math.sqrt(sessions.length)), 4, 9),
+      sessions.length
+    ); // Adaptive number of desired sessions
+    if (nearSessions.length < K) {
+      // Fallback to the closest 5 sessions if we can't find any nearby
+      let sessionDistances: [Session, number][] = [];
+      const keep = new Set(nearSessions.map((s) => s.uuid));
+      for (let s of sessions) {
+        if (keep.has(s.uuid)) continue; // Deduplication
+        sessionDistances.push([
+          s,
+          ((carbs - s.carbs) / carbsScale) ** 2 +
+            ((protein - s.protein) / proteinScale) ** 2 +
+            (timeOfDayOffset(timestamp, s.timestamp) / timeOfDayScale) ** 2 + // Squared ecludian distance
+            (1 / Math.sqrt(PreferencesStore.maxSessionLife.value)) *
+              (s.age / dateScale) ** 2,
+        ]);
+      }
+      sessionDistances.sort((a, b) => a[1] - b[1]);
+      nearSessions.push(
+        ...sessionDistances.slice(0, K - nearSessions.length).map((a) => a[0])
+      );
+    }
+    if (nearSessions.length === 0) return null;
+
+    const medianOptimalInsulin = MathUtil.median(
+      nearSessions.map((s) => s.optimalMealInsulin)
+    );
+    let closestSession: Session = nearSessions[0];
+    nearSessions.forEach((s) => {
+      const differenceToMedian = Math.abs(
+        s.optimalMealInsulin - medianOptimalInsulin
+      );
+      const closestDistanceToMedian = Math.abs(
+        closestSession.optimalMealInsulin - medianOptimalInsulin
+      );
+      if (
+        differenceToMedian < closestDistanceToMedian ||
+        (differenceToMedian === closestDistanceToMedian &&
+          s.age < closestSession.age) // Prefer younger sessions
+      ) {
+        closestSession = s;
+      }
+    });
+    return closestSession;
   }
 
   // Dosing helpers
@@ -189,9 +263,12 @@ export default class MealTemplate extends Subscribable implements Template {
 
   // Serialization
   static serialize: Serializer<MealTemplate> = (template: MealTemplate) => {
+    const sessions = template.sessions.filter(
+      (s) => s.age < PreferencesStore.maxSessionLife.value
+    ); // Get rid of old sessions upon serialization
     return {
       name: template.name,
-      sessions: template.sessions.map((s) => Session.serialize(s)),
+      sessions: sessions.map((s) => Session.serialize(s)),
       timestamp: template.timestamp.getTime(),
     };
   };
