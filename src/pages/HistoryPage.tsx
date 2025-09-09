@@ -3,7 +3,6 @@ import { getOptimalMealInsulins } from "../lib/metabolism";
 import { getFullPrettyDate } from "../lib/timing";
 import type MealTemplate from "../models/mealTemplate";
 import type Session from "../models/session";
-import { CalibrationStore } from "../storage/calibrationStore";
 import { WizardStore } from "../storage/wizardStore";
 
 export default function HistoryPage() {
@@ -19,14 +18,10 @@ export default function HistoryPage() {
                 <th>Time</th>
                 <th>Carbs (g)</th>
                 <th>Protein (g)</th>
-                <th>Initial BG (mg/dL)</th>
-                <th>Final BG (mg/dL)</th>
-                <th>Delta (mg/dL)</th>
-                <th>Insulin (u)</th>
+                <th>Insulin [correction] (u)</th>
+                <th>BG info [delta] (mg/dL)</th>
                 <th>Glucose (g)</th>
-                <th>Insulin Adjustment (u)</th>
                 <th>Optimal Meal Insulin (u)</th>
-                <th>ISF (pts/u)</th>
               </tr>
             </thead>
             {[...template.sessions].reverse().map((session: Session) => {
@@ -43,25 +38,21 @@ export default function HistoryPage() {
                     <td>{`${getFullPrettyDate(session.timestamp)}`}</td>
                     <td>{session.carbs.toFixed()}</td>
                     <td>{session.protein.toFixed()}</td>
-                    <td>{session.initialGlucose}</td>
                     <td>
-                      {session.finalBG} ( -
-                      {(
-                        session.glucose * CalibrationStore.glucoseEffect.value
-                      ).toFixed()}
-                      )
+                      {session.insulin}{" "}
+                      {session.correctionInsulin > 0 &&
+                        `[${session.correctionInsulin.toFixed(1)}
+                      ]`}
                     </td>
                     <td>
-                      {session.deltaGlucose > 0 ? "+" : ""}
-                      {session.deltaGlucose}
+                      {session.initialGlucose} {"->"} {session.finalBG}{" "}
+                      <b>
+                        [{session.deltaGlucose > 0 ? "+" : ""}
+                        {session.deltaGlucose}]
+                      </b>
                     </td>
-                    <td>{session.insulin}</td>
                     <td>{session.glucose}</td>
-                    <td>{`${
-                      session.insulinAdjustment > 0 ? "+" : ""
-                    }${session.insulinAdjustment.toFixed(1)}`}</td>
                     <td>{session.optimalMealInsulin.toFixed(1)}</td>
-                    <td>{session.insulinEffect}</td>
                   </tr>
                 </tbody>
               );
