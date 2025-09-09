@@ -7,7 +7,7 @@ import type MealTemplate from "../models/mealTemplate";
 import { Button } from "react-bootstrap";
 import Insulin from "../models/events/insulin";
 import React from "react";
-import { getPrettyTime } from "../lib/timing";
+import { getFullPrettyDate, getPrettyTime } from "../lib/timing";
 import { CalibrationStore } from "../storage/calibrationStore";
 import { PreferencesStore } from "../storage/preferencesStore";
 
@@ -157,20 +157,36 @@ export default function TemplateMealSummary({
           <hr />
           <b>Profile:</b> This meal requires{" "}
           <b>{round(profileInsulin + insulinCorrection, 1)}u</b> insulin
-          {!template.isFirstTime && (
+          {!template.isFirstTime && session && (
             <>
+              <hr />
+              <b>Base Session</b> <i>{getFullPrettyDate(session.timestamp)}</i>
               <br />
-              <b>Previous session</b>: {round(template.previousInsulin, 1)}u
-              insulin {round(template.insulinTiming, 0)} min{" "}
-              {template.insulinTiming > 0 ? "after" : "before"} eating began
-              (began {getPrettyTime(session?.timestamp ?? new Date())})
+              {round(session.carbs, 0)}g carbs, {round(session.protein, 0)}g
+              protein
+              <br />
+              <i>
+                {session.initialGlucose}mg/dL {"->"} {session.finalBG}mg/dL
+              </i>{" "}
+              <br />
+              <i>{session.glucose} grams/caps</i> glucose
+              <br />
+              {session.insulins.map(
+                (insulin) =>
+                  `${round(insulin.value, 1)}u ${round(
+                    Math.abs(session.getN(insulin.timestamp)) * 60,
+                    1
+                  )} min ${
+                    session.getN(insulin.timestamp) > 0 ? "after" : "before"
+                  } eating\n`
+              )}
             </>
           )}
-          <br />
-          <br />
+          <hr />
           <b>{round(meal.fat, 0)}g</b> fat (approx)
           <br />
           <b>{round(meal.calories, 0)} kcal</b> (approx)
+          <br />
         </>
       )}
     </>
