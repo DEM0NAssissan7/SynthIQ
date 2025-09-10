@@ -1,9 +1,6 @@
-import type Meal from "../models/events/meal";
 import type Session from "../models/session";
-import type MealTemplate from "../models/mealTemplate";
 import { CalibrationStore } from "../storage/calibrationStore";
 import { PreferencesStore } from "../storage/preferencesStore";
-import { getCorrectionInsulin, getInsulin } from "./metabolism";
 import { round } from "./util";
 
 export function insulinRuleEngine(session: Session) {
@@ -135,41 +132,4 @@ export function insulinDosingRecommendation(sessions: Session[]) {
       -amountSuggestion * PreferencesStore.insulinStepSize.value,
     timingAdjustment: -timingSuggestion * PreferencesStore.timeStepSize.value,
   };
-}
-
-/**
- * This function gives you the correct insulin dose based on:
- * 1. History
- * 2. Nutrients offsets
- * 3. Current blood sugar
- * 4. Suggested changes from rule engine
- *
- * The history (previous shot[s]) comes from the template.
- * The nutrient offsets come from meal
- * The current blood sugar is passed in
- */
-export function getInsulinDose(
-  template: MealTemplate,
-  meal: Meal,
-  currentSugar: number,
-  timeOfDay: Date
-) {
-  const session = template.getClosestSession(
-    meal.carbs,
-    meal.protein,
-    timeOfDay
-  );
-  if (!session) return getInsulin(meal.carbs, meal.protein);
-  const base = session.insulin; // Previous dose for the _meal_ itself
-  const mealOffset = template.getMealInsulinOffset(
-    session.carbs,
-    session.protein,
-    meal.carbs,
-    meal.protein
-  );
-  const correction = getCorrectionInsulin(currentSugar);
-  const adjustment = insulinDosingRecommendation(
-    template.sessions
-  ).amountAdjustment;
-  return base + mealOffset + correction + adjustment;
 }
