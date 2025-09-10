@@ -2,7 +2,7 @@ import {
   KeyDoesNotExistError,
   StorageBackendFailedError,
 } from "../models/types/errors";
-import type { StorageBackend } from "../models/types/interfaces";
+import type { StorageBackend } from "../models/types/interfaces/storageBackend";
 
 namespace StorageBackends {
   export const webLocal: StorageBackend = {
