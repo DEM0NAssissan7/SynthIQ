@@ -112,11 +112,11 @@ export default class MealTemplate extends Subscribable implements Template {
       protein: alphaProtein,
     };
   }
-  getClosestSession(
+  getClosestSessions(
     carbs: number,
     protein: number,
     timestamp: Date
-  ): Session | null {
+  ): Session[] | null {
     if (this.isFirstTime) return null;
 
     let sessions = this.sessions.filter((s) => !s.isGarbage);
@@ -124,13 +124,15 @@ export default class MealTemplate extends Subscribable implements Template {
 
     const getSafeScale = (absDistances: number[]) => {
       if (absDistances.length === 0) return 1e-6;
+      const median = MathUtil.median(absDistances);
+      if (median > 0) return median;
       const mean = MathUtil.mean(absDistances);
       if (mean > 0) return mean;
       const positives = absDistances.filter((x) => x > 0);
-      return positives.length ? Math.min(...positives) : 1e-6;
+      return positives.length ? Math.min(...positives) : 1e-3;
     };
 
-    // Query-centered per-axis scales = mean absolute differences (safe-guarded)
+    // Query-centered per-axis scales = median/mean absolute differences (safe-guarded)
     const carbsScale = getSafeScale(
       sessions.map((s) => Math.abs(carbs - s.carbs))
     );
@@ -140,74 +142,73 @@ export default class MealTemplate extends Subscribable implements Template {
     const timeOfDayScale = getSafeScale(
       sessions.map((s) => Math.abs(timeOfDayOffset(timestamp, s.timestamp)))
     );
-    const dateScale = (() => {
+    const ageScale = (() => {
       const ages = sessions.map((s) => s.age); // days > 0
       const m = MathUtil.median(ages);
       if (m > 0) return Math.max(m, 1e-3); // small floor to avoid blowups
       // (shouldn’t happen given s.age>0, but safe)
       return Math.min(...ages) || 1e-3;
     })();
-
-    let nearSessions: Session[] = [];
-    for (let i = sessions.length - 1; i >= 0; i--) {
-      const s: Session = sessions[i];
-
-      if (
-        Math.abs(carbs - s.carbs) <= carbsScale &&
-        Math.abs(protein - s.protein) <= proteinScale &&
-        timeOfDayOffset(timestamp, s.timestamp) <= timeOfDayScale
-      ) {
-        nearSessions.push(s);
-      }
-    }
+    const lambdaAge = 0.25; // To make age a less important axis
 
     const K = Math.min(
-      clamp(Math.floor(Math.sqrt(sessions.length)), 4, 9),
+      clamp(Math.floor(Math.sqrt(sessions.length)), 5, 9),
       sessions.length
     ); // Adaptive number of desired sessions
-    if (nearSessions.length < K) {
-      // Fallback to the closest 5 sessions if we can't find any nearby
-      let sessionDistances: [Session, number][] = [];
-      const keep = new Set(nearSessions.map((s) => s.uuid));
-      for (let s of sessions) {
-        if (keep.has(s.uuid)) continue; // Deduplication
-        sessionDistances.push([
-          s,
-          ((carbs - s.carbs) / carbsScale) ** 2 +
-            ((protein - s.protein) / proteinScale) ** 2 +
-            (timeOfDayOffset(timestamp, s.timestamp) / timeOfDayScale) ** 2 + // Squared ecludian distance
-            (1 / Math.sqrt(PreferencesStore.maxSessionLife.value)) *
-              (s.age / dateScale) ** 2,
-        ]);
-      }
-      sessionDistances.sort((a, b) => a[1] - b[1]);
-      nearSessions.push(
-        ...sessionDistances.slice(0, K - nearSessions.length).map((a) => a[0])
-      );
+    // Get the closest X sessions
+    let sessionDistances: [Session, number][] = [];
+    for (let s of sessions) {
+      sessionDistances.push([
+        s,
+        ((carbs - s.carbs) / carbsScale) ** 2 +
+          ((protein - s.protein) / proteinScale) ** 2 +
+          (timeOfDayOffset(timestamp, s.timestamp) / timeOfDayScale) ** 2 + // Squared ecludian distance
+          lambdaAge * (s.age / ageScale) ** 2,
+      ]);
     }
+    sessionDistances.sort((a, b) => a[1] - b[1]);
+
+    const nearSessions: Session[] = sessionDistances
+      .slice(0, K)
+      .map((a) => a[0]);
     if (nearSessions.length === 0) return null;
     console.log(nearSessions);
 
+    // Eliminate outliers
+    const kept: Session[] = [];
     const medianOptimalInsulin = MathUtil.median(
       nearSessions.map((s) => s.optimalMealInsulin)
     );
-    let closestSession: Session = nearSessions[0];
-    nearSessions.forEach((s) => {
-      const differenceToMedian = Math.abs(
-        s.optimalMealInsulin - medianOptimalInsulin
-      );
-      const closestDistanceToMedian = Math.abs(
-        closestSession.optimalMealInsulin - medianOptimalInsulin
-      );
-      if (
-        differenceToMedian < closestDistanceToMedian ||
-        (differenceToMedian === closestDistanceToMedian &&
-          s.age < closestSession.age) // Prefer younger sessions
-      ) {
-        closestSession = s;
+    const optimalInsulinMAD = getSafeScale(
+      nearSessions.map((s) =>
+        Math.abs(s.optimalMealInsulin - medianOptimalInsulin)
+      )
+    );
+    console.log(medianOptimalInsulin, optimalInsulinMAD);
+
+    const TAU = 1.5; // or 2.0 if you want looser
+    const cutoff = TAU * optimalInsulinMAD;
+    for (let i = 0; i < nearSessions.length; i++) {
+      const s = nearSessions[i];
+      // Get rid of outliers
+      if (Math.abs(s.optimalMealInsulin - medianOptimalInsulin) <= cutoff) {
+        kept.push(s);
+        continue;
       }
-    });
-    return closestSession;
+    }
+
+    let result = kept;
+    if (result.length === 0) result = nearSessions;
+    return result.sort((a, b) => a.age - b.age);
+  }
+  getClosestSession(
+    carbs: number,
+    protein: number,
+    timestamp: Date
+  ): Session | null {
+    const closestSessions = this.getClosestSessions(carbs, protein, timestamp);
+    if (!closestSessions) return null;
+    return closestSessions[0];
   }
 
   // Dosing helpers
