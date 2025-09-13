@@ -35,7 +35,6 @@ export default function TemplateMealSummary({
   meal,
   currentBG,
 }: TemplateMealSummaryProps) {
-  const adjustments = insulinDosingRecommendation(template.sessions);
   const now = new Date();
   const session = template.getClosestSession(meal.carbs, meal.protein, now);
   console.log(session);
@@ -43,6 +42,8 @@ export default function TemplateMealSummary({
     () => getCorrectionInsulin(currentBG),
     [currentBG]
   );
+  const adjustments = insulinDosingRecommendation(session ? [session] : []);
+
   const insulinAdjustment = session ? session.insulinAdjustment : 0;
   const insulinOffset = session
     ? template.getMealInsulinOffset(
@@ -87,7 +88,8 @@ export default function TemplateMealSummary({
   const isSingleBolus = insulins.length < 2;
 
   const finalTiming = round(
-    template.insulinTiming + adjustments.timingAdjustment,
+    (session ? session.getN(session.firstInsulinTimestamp) : 0) +
+      adjustments.timingAdjustment,
     0
   );
   function getTiming(index: number) {
