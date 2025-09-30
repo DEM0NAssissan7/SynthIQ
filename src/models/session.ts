@@ -12,6 +12,7 @@ import type { Deserializer, JSONObject, Serializer } from "./types/types";
 import { CalibrationStore } from "../storage/calibrationStore";
 import { PreferencesStore } from "../storage/preferencesStore";
 import Activity from "./events/activity";
+import type { InsulinVariant } from "./types/insulinVariant";
 
 export default class Session extends Subscribable {
   uuid: UUID;
@@ -218,7 +219,12 @@ export default class Session extends Subscribable {
   }
 
   // Insulins
-  createInsulin(units: number, timestamp: Date, BG?: number): Insulin {
+  createInsulin(
+    units: number,
+    timestamp: Date,
+    variant: InsulinVariant,
+    BG?: number
+  ): Insulin {
     // Mark snapshot
     if (this.insulins.length !== 0 && BG) {
       this.lastSnapshot.finalBG = BG;
@@ -226,7 +232,7 @@ export default class Session extends Subscribable {
       snapshot.initialBG = BG;
     }
 
-    const insulin = new Insulin(units, timestamp);
+    const insulin = new Insulin(units, timestamp, variant);
     this.insulins.push(insulin);
     this.addChildSubscribable(insulin);
     this.notify();
@@ -343,6 +349,34 @@ export default class Session extends Subscribable {
     return RemoteReadings.getReadings(this.timestamp, this.endTimestamp);
   }
 
+  // Score
+  get score(): number {
+    const targetBG = PreferencesStore.targetBG.value;
+    if (
+      !this.initialGlucose ||
+      !this.peakGlucose ||
+      !this.minGlucose ||
+      !this.finalBG
+    )
+      throw new Error(`Cannot get glucose score from incomplete session`);
+    let score = 0;
+    const theoreticalFinalBG =
+      this.finalBG - this.glucose * CalibrationStore.glucoseEffect.value;
+    if (this.initialGlucose > targetBG) {
+      score +=
+        Math.abs(this.peakGlucose - this.initialGlucose) +
+        Math.abs(targetBG - this.minGlucose);
+    } else {
+      score +=
+        Math.abs(this.initialGlucose - this.minGlucose) +
+        Math.abs(this.peakGlucose - targetBG);
+    }
+    score +=
+      Math.abs(theoreticalFinalBG - targetBG) +
+      Math.abs(this.snapshot.medianBG - targetBG);
+    return score;
+  }
+
   // Initial glucose
 
   // Glucose statistics stuff
@@ -383,7 +417,7 @@ export default class Session extends Subscribable {
     o.meals.map((a: string) => session.addMeal(Meal.deserialize(a)));
     o.insulins.map((a: string) => {
       const insulin = Insulin.deserialize(a);
-      session.createInsulin(insulin.value, insulin.timestamp); // Create insulin without modifying snapshots
+      session.createInsulin(insulin.value, insulin.timestamp, insulin.variant); // Create insulin without modifying snapshots
     });
     o.glucoses.map((a: string) => {
       const glucose = Glucose.deserialize(a);

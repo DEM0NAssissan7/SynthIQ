@@ -115,7 +115,8 @@ export default class MealTemplate extends Subscribable implements Template {
   getClosestSessions(
     carbs: number,
     protein: number,
-    timestamp: Date
+    timestamp: Date,
+    initialBG: number
   ): Session[] | null {
     if (this.isFirstTime) return null;
 
@@ -139,6 +140,13 @@ export default class MealTemplate extends Subscribable implements Template {
     const proteinScale = getSafeScale(
       sessions.map((s) => Math.abs(protein - s.protein))
     );
+    const initialBGScale = getSafeScale(
+      sessions.map((s) => {
+        return Math.abs(
+          s.initialGlucose !== null ? initialBG - s.initialGlucose : 0
+        );
+      })
+    );
     const timeOfDayScale = getSafeScale(
       sessions.map((s) => Math.abs(timeOfDayOffset(timestamp, s.timestamp)))
     );
@@ -158,12 +166,14 @@ export default class MealTemplate extends Subscribable implements Template {
     // Get the closest X sessions
     let sessionDistances: [Session, number][] = [];
     for (let s of sessions) {
+      if (!s.initialGlucose) continue;
       sessionDistances.push([
         s,
         ((carbs - s.carbs) / carbsScale) ** 2 +
           ((protein - s.protein) / proteinScale) ** 2 +
           (timeOfDayOffset(timestamp, s.timestamp) / timeOfDayScale) ** 2 + // Squared ecludian distance
-          lambdaAge * (s.age / ageScale) ** 2,
+          lambdaAge * (s.age / ageScale) ** 2 +
+          ((initialBG - s.initialGlucose) / initialBGScale) ** 2,
       ]);
     }
     sessionDistances.sort((a, b) => a[1] - b[1]);
@@ -204,20 +214,47 @@ export default class MealTemplate extends Subscribable implements Template {
   getClosestSession(
     carbs: number,
     protein: number,
-    timestamp: Date
+    timestamp: Date,
+    initialBG: number
   ): Session | null {
-    const closestSessions = this.getClosestSessions(carbs, protein, timestamp);
+    const closestSessions = this.getClosestSessions(
+      carbs,
+      protein,
+      timestamp,
+      initialBG
+    );
     if (!closestSessions) return null;
     return closestSessions[0];
+  }
+  getOptimalSession(
+    carbs: number,
+    protein: number,
+    timestamp: Date,
+    initialBG: number
+  ): Session | null {
+    const closestSessions = this.getClosestSessions(
+      carbs,
+      protein,
+      timestamp,
+      initialBG
+    );
+    if (!closestSessions) return null;
+    return closestSessions.sort((a, b) => a.score - b.score)[0];
   }
 
   // Dosing helpers
   vectorizeInsulin(
     carbs: number,
     protein: number,
-    timeOfDay: Date
+    timeOfDay: Date,
+    initialBG: number
   ): Insulin[] | null {
-    const session = this.getClosestSession(carbs, protein, timeOfDay);
+    const session = this.getClosestSession(
+      carbs,
+      protein,
+      timeOfDay,
+      initialBG
+    );
     if (!session) return null;
 
     // Fill in the gaps

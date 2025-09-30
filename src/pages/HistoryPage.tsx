@@ -25,14 +25,20 @@ export default function HistoryPage() {
               </tr>
             </thead>
             {[...template.sessions].reverse().map((session: Session) => {
-              if (session.meals.length < 1 || session.isGarbage) return <></>;
+              if (session.meals.length < 1) return <></>;
               console.log(
                 template.name,
                 session,
                 getOptimalMealInsulins(session)
               );
               return (
-                <tbody>
+                <tbody
+                  style={
+                    session.isGarbage
+                      ? { backgroundColor: "rgba(255, 0, 0, 0.2)" }
+                      : undefined
+                  }
+                >
                   <tr>
                     <td>{session.uuid}</td>
                     <td>{`${getFullPrettyDate(session.timestamp)}`}</td>
@@ -42,7 +48,7 @@ export default function HistoryPage() {
                       {session.insulin}{" "}
                       {session.correctionInsulin > 0 &&
                         `[${session.correctionInsulin.toFixed(1)}
-                      ]`}
+                    ]`}
                     </td>
                     <td>
                       {session.initialGlucose} {"->"} {session.finalBG}{" "}

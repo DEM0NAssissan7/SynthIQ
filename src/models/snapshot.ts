@@ -6,6 +6,7 @@
  */
 
 import RemoteReadings from "../lib/remote/readings";
+import { MathUtil } from "../lib/util";
 import Subscribable from "./subscribable";
 import SugarReading, { getReadingFromNightscout } from "./types/sugarReading";
 import type { Deserializer, Serializer } from "./types/types";
@@ -39,6 +40,9 @@ export default class Snapshot extends Subscribable {
   private get calibrations(): SugarReading[] {
     // We filter through raw readings because calibrations don't need to be smoothed
     return this.rawReadings.filter((r) => r.isCalibration);
+  }
+  private get numericalReadings() {
+    return this.readings.map((r) => r.sugar);
   }
   private get timeSorted() {
     if (this.timeSortedCache.length === 0) {
@@ -110,6 +114,13 @@ export default class Snapshot extends Subscribable {
     return this.isValid
       ? this.valueSorted[Math.floor(this.valueSorted.length * 0.9)] // Get the top 10%
       : null;
+  }
+
+  get averageBG(): number {
+    return MathUtil.mean(this.numericalReadings);
+  }
+  get medianBG(): number {
+    return MathUtil.median(this.numericalReadings);
   }
 
   // Serialization

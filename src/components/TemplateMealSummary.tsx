@@ -10,6 +10,7 @@ import React from "react";
 import { getFullPrettyDate } from "../lib/timing";
 import { CalibrationStore } from "../storage/calibrationStore";
 import { PreferencesStore } from "../storage/preferencesStore";
+import { InsulinVariantManager } from "../managers/insulinVariantManager";
 
 function getFactorDesc(num: number, unit: string, type: string) {
   if (round(num, 1) === 0) return "";
@@ -36,7 +37,13 @@ export default function TemplateMealSummary({
   currentBG,
 }: TemplateMealSummaryProps) {
   const now = new Date();
-  const session = template.getClosestSession(meal.carbs, meal.protein, now);
+  const time = meal.timestamp ?? now;
+  const session = template.getClosestSession(
+    meal.carbs,
+    meal.protein,
+    time,
+    currentBG
+  );
   console.log(session);
   const insulinCorrection = useMemo(
     () => getCorrectionInsulin(currentBG),
@@ -58,11 +65,18 @@ export default function TemplateMealSummary({
     const vectorizedInsulin = template.vectorizeInsulin(
       meal.carbs,
       meal.protein,
-      now
+      time,
+      currentBG
     );
     // Fall back to profile
     if (!vectorizedInsulin || template.isFirstTime)
-      return [new Insulin(profileInsulin, new Date())];
+      return [
+        new Insulin(
+          profileInsulin,
+          new Date(),
+          InsulinVariantManager.getDefault()
+        ),
+      ];
     return vectorizedInsulin;
   })();
 

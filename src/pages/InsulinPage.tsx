@@ -11,6 +11,7 @@ import { WizardStore } from "../storage/wizardStore";
 import { WizardPage } from "../models/types/wizardPage";
 import { PreferencesStore } from "../storage/preferencesStore";
 import RemoteTreatments from "../lib/remote/treatments";
+import { InsulinVariantManager } from "../managers/insulinVariantManager";
 
 export default function InsulinPage() {
   const navigate = useNavigate();
@@ -28,6 +29,7 @@ export default function InsulinPage() {
   const now = new Date();
   const meal = session.mealMarked ? session.latestMeal : WizardStore.meal.value;
   const [template] = WizardStore.template.useState();
+  const [variant, setVariant] = useState(InsulinVariantManager.getDefault());
 
   const suggestedInsulin = getInsulin(meal.carbs, meal.protein);
 
@@ -48,7 +50,7 @@ export default function InsulinPage() {
             currentGlucose ??
             session.initialGlucose ??
             PreferencesStore.targetBG.value;
-          WizardManager.markInsulin(insulinTaken, BG);
+          WizardManager.markInsulin(insulinTaken, BG, variant.name);
           if (currentGlucose) WizardManager.setInitialGlucose(currentGlucose);
         }
         if (session.started) {
@@ -78,7 +80,12 @@ export default function InsulinPage() {
       return correctionInsulin;
     if (!isBolus) return correctionInsulin;
     if (session.insulin === 0) {
-      const insulins = template.vectorizeInsulin(meal.carbs, meal.protein, now);
+      const insulins = template.vectorizeInsulin(
+        meal.carbs,
+        meal.protein,
+        now,
+        currentGlucose ? currentGlucose : PreferencesStore.targetBG.value
+      );
       let insulin: number = suggestedInsulin;
       if (insulins) {
         insulin = 0;
