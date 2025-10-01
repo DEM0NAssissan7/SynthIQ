@@ -32,9 +32,6 @@ export default function TemplateSummary({
   function getMinutesAgo(timestamp: Date) {
     return getMinuteDiff(new Date(), timestamp);
   }
-  function getHoursAgo(timestamp: Date) {
-    return round(getMinutesAgo(timestamp) / 60, 1);
-  }
 
   return (
     <>
@@ -97,7 +94,7 @@ export default function TemplateSummary({
         <>
           <hr />
           First meal eaten at {getPrettyTime(session.firstMealTimestamp)},{" "}
-          {getHoursAgo(session.firstMealTimestamp)} hours ago
+          {getFormattedTime(getMinutesAgo(session.firstMealTimestamp))} ago
           <br />
           <br />
           <b>{round(session.carbs, 0)}g</b> carbs
