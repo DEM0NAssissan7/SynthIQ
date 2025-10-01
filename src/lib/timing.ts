@@ -94,5 +94,5 @@ export function getFormattedTime(_minutes: number): string {
   const hours = Math.floor(_minutes / 60);
   const minutes = _minutes % 60;
   if (hours === 0) return `${minutes} min`;
-  return `${hours}:${minutes}`;
+  return `${hours}:${minutes.toString().padStart(2, "0")}`;
 }
