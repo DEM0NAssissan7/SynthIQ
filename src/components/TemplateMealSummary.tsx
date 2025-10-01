@@ -187,18 +187,22 @@ export default function TemplateMealSummary({
               <br />
               {session.peakGlucose}mg/dL {"-"} {session.minGlucose}mg/dL
               <br />
-              Score: <b>{session.score}</b>
+              Score: <b>{session.score.toFixed(0)}</b>
               <br />
               <i>{session.glucose} grams/caps</i> glucose
               <br />
-              {session.insulins.map(
-                (insulin) =>
-                  `${round(insulin.value, 1)}u ${getFormattedTime(
+              <br />
+              {session.insulins.map((insulin) => (
+                <>
+                  {round(insulin.value, 1)}u{" "}
+                  {getFormattedTime(
                     round(Math.abs(session.getN(insulin.timestamp)) * 60, 1)
-                  )} ${
-                    session.getN(insulin.timestamp) > 0 ? "after" : "before"
-                  } eating\n`
-              )}
+                  )}{" "}
+                  {session.getN(insulin.timestamp) > 0 ? "after" : "before"}{" "}
+                  eating
+                  <br />
+                </>
+              ))}
             </>
           )}
           <hr />
