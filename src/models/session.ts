@@ -362,7 +362,7 @@ export default class Session extends Subscribable {
     let score = 0;
     const theoreticalFinalBG =
       this.finalBG - this.glucose * CalibrationStore.glucoseEffect.value;
-    if (this.initialGlucose > targetBG) {
+    if (this.initialGlucose >= targetBG) {
       score +=
         Math.abs(this.peakGlucose - this.initialGlucose) +
         Math.abs(targetBG - this.minGlucose);
@@ -373,7 +373,7 @@ export default class Session extends Subscribable {
     }
     score +=
       Math.abs(theoreticalFinalBG - targetBG) +
-      Math.abs(this.snapshot.medianBG - targetBG);
+      Math.abs(this.snapshot.averageBG - targetBG);
     return score;
   }
 
