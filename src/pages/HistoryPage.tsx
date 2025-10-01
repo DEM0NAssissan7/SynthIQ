@@ -21,6 +21,7 @@ export default function HistoryPage() {
                 <th>Insulin [correction] (u)</th>
                 <th>BG info [delta] (mg/dL)</th>
                 <th>Glucose (g)</th>
+                <th>Score</th>
                 <th>Optimal Meal Insulin (u)</th>
               </tr>
             </thead>
@@ -60,6 +61,7 @@ export default function HistoryPage() {
                       </b>
                     </td>
                     <td>{session.glucose}</td>
+                    <td>{session.score.toFixed(0)}</td>
                     <td>{session.optimalMealInsulin.toFixed(1)}</td>
                   </tr>
                 </tbody>
