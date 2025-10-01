@@ -1,5 +1,4 @@
-import { BasalStore } from "../../storage/basalStore";
-import { CalibrationStore } from "../../storage/calibrationStore";
+import { InsulinVariantManager } from "../../managers/insulinVariantManager";
 import { InsulinVariant } from "../types/insulinVariant";
 import type { Deserializer, Serializer } from "../types/types";
 import MetaEvent from "./metaEvent";
@@ -33,11 +32,7 @@ export default class Insulin extends MetaEvent implements ScalarMetaEvent {
   static deserialize: Deserializer<Insulin> = (o) => {
     const variant: InsulinVariant = o.variant
       ? InsulinVariant.deserialize(o.variant)
-      : new InsulinVariant(
-          "Insulin",
-          BasalStore.minTimeSinceBolus.value,
-          CalibrationStore.insulinEffect.value
-        );
+      : InsulinVariantManager.getDefault();
     return new Insulin(o.value, new Date(o.timestamp), variant);
   };
 }
