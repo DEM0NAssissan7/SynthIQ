@@ -1,5 +1,5 @@
 import { Fragment, useMemo } from "react";
-import { getMinuteDiff, getPrettyTime } from "../lib/timing";
+import { getFormattedTime, getMinuteDiff, getPrettyTime } from "../lib/timing";
 import { round } from "../lib/util";
 import type Meal from "../models/events/meal";
 import type Session from "../models/session";
@@ -61,7 +61,10 @@ export default function TemplateSummary({
           <br />
           <br />
           <b>{session.glucose} caps/grams</b> dextrose; last dose{" "}
-          <b>{getMinutesAgo(session.latestGlucoseTimestamp)} minutes ago</b>
+          <b>
+            {getFormattedTime(getMinutesAgo(session.latestGlucoseTimestamp))}{" "}
+            ago
+          </b>
         </>
       )}
       {session.activities.length > 0 && (
@@ -72,8 +75,9 @@ export default function TemplateSummary({
           {session.activities.map((a, i) => {
             return (
               <Fragment key={i}>
-                <b>{a.name}</b> [{getPrettyTime(a.timestamp)}]: {a.length} mins
-                | {a.initialBG}mg/dL {"->"} {a.finalBG}mg/dL
+                <b>{a.name}</b> [{getPrettyTime(a.timestamp)}]:{" "}
+                {getFormattedTime(a.length)} | {a.initialBG}mg/dL {"->"}{" "}
+                {a.finalBG}mg/dL
               </Fragment>
             );
           })}

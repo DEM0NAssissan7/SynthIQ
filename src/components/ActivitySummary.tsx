@@ -1,4 +1,4 @@
-import { getMinuteDiff, getPrettyTime } from "../lib/timing";
+import { getFormattedTime, getMinuteDiff, getPrettyTime } from "../lib/timing";
 import type { ActivityTemplate } from "../models/activityTemplate";
 import type Activity from "../models/events/activity";
 
@@ -24,7 +24,7 @@ export default function ActivitySummary({
         <>
           This activity was started at{" "}
           <b>{getPrettyTime(activity.timestamp)}</b>,{" "}
-          <b>{getMinuteDiff(now, activity.timestamp)} min(s) ago</b>
+          <b>{getFormattedTime(getMinuteDiff(now, activity.timestamp))} ago</b>
         </>
       )}
     </>

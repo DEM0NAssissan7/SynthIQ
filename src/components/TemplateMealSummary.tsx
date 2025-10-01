@@ -7,7 +7,7 @@ import type MealTemplate from "../models/mealTemplate";
 import { Button } from "react-bootstrap";
 import Insulin from "../models/events/insulin";
 import React from "react";
-import { getFullPrettyDate } from "../lib/timing";
+import { getFormattedTime, getFullPrettyDate } from "../lib/timing";
 import { CalibrationStore } from "../storage/calibrationStore";
 import { PreferencesStore } from "../storage/preferencesStore";
 import { InsulinVariantManager } from "../managers/insulinVariantManager";
@@ -141,7 +141,7 @@ export default function TemplateMealSummary({
           insulin{" "}
           {!template.isFirstTime && (
             <>
-              <b>{Math.abs(getTiming(i))} mins</b>{" "}
+              <b>{getFormattedTime(Math.abs(getTiming(i)))}</b>{" "}
               {getTiming(i) > 0 ? "after" : "before"} you start eating
               <br />
               <br />
@@ -189,10 +189,9 @@ export default function TemplateMealSummary({
               <br />
               {session.insulins.map(
                 (insulin) =>
-                  `${round(insulin.value, 1)}u ${round(
-                    Math.abs(session.getN(insulin.timestamp)) * 60,
-                    1
-                  )} min ${
+                  `${round(insulin.value, 1)}u ${getFormattedTime(
+                    round(Math.abs(session.getN(insulin.timestamp)) * 60, 1)
+                  )} ${
                     session.getN(insulin.timestamp) > 0 ? "after" : "before"
                   } eating\n`
               )}
