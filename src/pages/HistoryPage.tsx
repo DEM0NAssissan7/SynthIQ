@@ -34,8 +34,10 @@ export default function HistoryPage() {
               return (
                 <tbody
                   style={
-                    session.isGarbage
-                      ? { backgroundColor: "rgba(255, 0, 0, 0.2)" }
+                    session.isInvalid
+                      ? session.isGarbage
+                        ? { backgroundColor: "rgba(255, 0, 0, 0.2)" }
+                        : { backgroundColor: "rgba(229, 255, 0, 0.2)" }
                       : undefined
                   }
                 >
