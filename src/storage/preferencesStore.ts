@@ -4,6 +4,8 @@ export namespace PreferencesStore {
   const node = new StorageNode("preferences");
 
   export const maxSessionLength = node.add("maxSessionLength", 8);
+  export const minSessionLength = node.add("minSessionLength", 3.5);
+  export const maxSessionGlucose = node.add("maxSessionGlucose", 9);
   export const endingHours = node.add("endingHours", 1);
   export const targetBG = node.add("targetBG", 83);
   export const lowBG = node.add("lowBG", 70);

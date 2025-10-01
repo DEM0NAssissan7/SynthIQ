@@ -332,7 +332,16 @@ export default class Session extends Subscribable {
     this.notify();
   }
   get isGarbage(): boolean {
-    return this._isGarbage || this.meals.length > 1;
+    return this._isGarbage;
+  }
+  get isInvalid(): boolean {
+    return (
+      this.isGarbage ||
+      this.meals.length !== 1 ||
+      this.insulins.length < 1 ||
+      this.length < PreferencesStore.minSessionLength.value ||
+      this.glucose > PreferencesStore.maxSessionGlucose.value
+    );
   }
 
   get length(): number {
