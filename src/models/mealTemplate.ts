@@ -34,7 +34,7 @@ export default class MealTemplate extends Subscribable implements Template {
     let session: Session | null = null;
     for (let i = this.sessions.length - 1; i >= 0; i--) {
       const _session = this.sessions[i];
-      if (session && _session.isGarbage) continue;
+      if (session && _session.isInvalid) continue;
       session = _session;
       break;
     }
@@ -91,7 +91,7 @@ export default class MealTemplate extends Subscribable implements Template {
     if (this.sessions.length >= 3) {
       for (let i = this.sessions.length - 1; i >= 0; i--) {
         const session = this.sessions[i];
-        if (session.isGarbage) continue;
+        if (session.isInvalid) continue;
         const age = session.age;
         if (age > maxSessionLife) break; // If the session exceeds the max age
         const weight = Math.pow(0.5, age / sessionHalfLife);
@@ -120,7 +120,7 @@ export default class MealTemplate extends Subscribable implements Template {
   ): Session[] | null {
     if (this.isFirstTime) return null;
 
-    let sessions = this.sessions.filter((s) => !s.isGarbage);
+    let sessions = this.sessions.filter((s) => !s.isInvalid);
     if (sessions.length === 0) sessions = this.sessions; // If all we have is garbage, we still use it anyways (better than nothing)
 
     const getSafeScale = (absDistances: number[]) => {

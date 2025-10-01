@@ -96,7 +96,7 @@ export function sessionsWeightedAverage(
   let weightedSum = 0;
   for (let i = sessions.length - 1; i >= 0; i--) {
     const session = sessions[i];
-    if (session.isGarbage) continue;
+    if (session.isInvalid) continue;
     const age = session.age;
     if (age > maxSessionLife) break;
     const weight = Math.pow(0.5, age / sessionHalfLife);
