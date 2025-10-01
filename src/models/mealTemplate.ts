@@ -249,7 +249,7 @@ export default class MealTemplate extends Subscribable implements Template {
     timeOfDay: Date,
     initialBG: number
   ): Insulin[] | null {
-    const session = this.getClosestSession(
+    const session = this.getOptimalSession(
       carbs,
       protein,
       timeOfDay,

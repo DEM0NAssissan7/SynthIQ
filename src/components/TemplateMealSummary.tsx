@@ -38,7 +38,7 @@ export default function TemplateMealSummary({
 }: TemplateMealSummaryProps) {
   const now = new Date();
   const time = meal.timestamp ?? now;
-  const session = template.getClosestSession(
+  const session = template.getOptimalSession(
     meal.carbs,
     meal.protein,
     time,
