@@ -20,6 +20,7 @@ export default class Session extends Subscribable {
   snapshots: Snapshot[] = [];
 
   _isGarbage: boolean = false;
+  completed: boolean = false;
   notes: string = "";
   version: number = 1;
 
@@ -121,6 +122,7 @@ export default class Session extends Subscribable {
   }
   set finalBG(sugar: number) {
     this.lastSnapshot.finalBG = sugar;
+    this.completed = true;
   }
   get endTimestamp() {
     return this.snapshot.finalBG ? this.snapshot.finalBG.timestamp : null;
@@ -338,8 +340,9 @@ export default class Session extends Subscribable {
     return (
       this.isGarbage ||
       this.meals.length !== 1 ||
-      this.insulins.length < 1 ||
-      this.length < PreferencesStore.minSessionLength.value ||
+      this.insulin <= 0 ||
+      (this.completed ? this.length : this.getN(new Date())) <
+        PreferencesStore.minSessionLength.value ||
       this.glucose > PreferencesStore.maxSessionGlucose.value
     );
   }
@@ -407,6 +410,7 @@ export default class Session extends Subscribable {
       glucoses: session.glucoses.map((a) => Glucose.serialize(a)),
       activities: session.activities.map((a) => Activity.serialize(a)),
       isGarbage: session.isGarbage,
+      completed: session.completed,
       notes: session.notes,
       insulinEffect: session.insulinEffect,
       glucoseEffect: session.glucoseEffect,
@@ -416,7 +420,8 @@ export default class Session extends Subscribable {
   static deserialize: Deserializer<Session> = (o) => {
     let session = new Session(false);
     session.uuid = o.uuid;
-    session.isGarbage = o.isGarbage || false;
+    session.isGarbage = o.isGarbage ?? false;
+    session.completed = o.completed ?? true;
     session.notes = o.notes || "";
     session.insulinEffect =
       o.insulinEffect || CalibrationStore.insulinEffect.value;
