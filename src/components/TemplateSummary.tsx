@@ -52,8 +52,10 @@ export default function TemplateSummary({
         <>
           <br />
           <b>{session.insulin}u</b> insulin; last dose{" "}
-          <b>{getHoursAgo(session.latestInsulinTimestamp)} hours ago</b> (
-          {getPrettyTime(session.latestInsulinTimestamp)})
+          <b>
+            {getFormattedTime(getHoursAgo(session.latestInsulinTimestamp))} ago
+          </b>{" "}
+          ({getPrettyTime(session.latestInsulinTimestamp)})
         </>
       )}
       {session.glucose > 0 && (
