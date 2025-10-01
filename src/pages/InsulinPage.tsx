@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Button, Form, InputGroup } from "react-bootstrap";
+import { Button, Form, InputGroup, ListGroup } from "react-bootstrap";
 import WizardManager from "../managers/wizardManager";
 import { round } from "../lib/util";
 import { useNavigate } from "react-router";
@@ -12,6 +12,7 @@ import { WizardPage } from "../models/types/wizardPage";
 import { PreferencesStore } from "../storage/preferencesStore";
 import RemoteTreatments from "../lib/remote/treatments";
 import { InsulinVariantManager } from "../managers/insulinVariantManager";
+import { InsulinVariantStore } from "../storage/insulinVariantStore";
 
 export default function InsulinPage() {
   const navigate = useNavigate();
@@ -136,6 +137,21 @@ export default function InsulinPage() {
             pullFromNightscout={!isBolus}
           />
         )}
+        <ListGroup>
+          <Form.Label>Variant</Form.Label>
+          <Form.Select
+            onChange={(e) => {
+              // You can handle insulin type selection here if needed
+              const v = InsulinVariantManager.getVariant(e.target.value);
+              if (v) setVariant(v);
+            }}
+            className="mb-2"
+          >
+            {InsulinVariantStore.variants.value.map((v) => (
+              <option value={v.name}>{v.name}</option>
+            ))}
+          </Form.Select>
+        </ListGroup>
         <InputGroup className="mb-3">
           <InputGroup.Text id="basic-addon1">
             <i className="bi bi-capsule"></i>
