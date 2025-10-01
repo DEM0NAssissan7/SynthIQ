@@ -36,7 +36,18 @@ export default function TemplateSummary({
   return (
     <>
       <h2 style={{ paddingTop: "12px" }}>{template.name}</h2>
-      {template.isFirstTime && "This is the first time using this template\n"}
+      {template.isFirstTime && (
+        <>
+          This is the first time using this template
+          <br />
+        </>
+      )}
+      {session.isInvalid && (
+        <>
+          Session is deemed invalid
+          <br />
+        </>
+      )}
       {session.started && (
         <>
           Starting blood sugar: {bloodSugar}mg/dL
