@@ -185,6 +185,10 @@ export default function TemplateMealSummary({
                 {session.initialGlucose}mg/dL {"->"} {session.finalBG}mg/dL
               </i>{" "}
               <br />
+              {session.peakGlucose}mg/dL {"-"} {session.minGlucose}mg/dL
+              <br />
+              Score: <b>{session.score}</b>
+              <br />
               <i>{session.glucose} grams/caps</i> glucose
               <br />
               {session.insulins.map(
