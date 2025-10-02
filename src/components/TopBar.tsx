@@ -19,8 +19,8 @@ const MENU_SECTIONS: MenuSection[] = [
   {
     label: "Customization",
     items: [
-      { label: "Custom Foods", to: "/customfoods" },
       { label: "Insulin Variants", to: "/insulinvariants" },
+      { label: "Custom Foods", to: "/customfoods" },
     ],
   },
   {
