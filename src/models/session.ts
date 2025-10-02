@@ -232,6 +232,7 @@ export default class Session extends Subscribable {
 
     // Treatment windows creation
     let windows: TreatmentWindow[] = [];
+    const variants = InsulinVariantStore.variants.value;
     for (let i = 0; i < snapshots.length; i++) {
       const snapshot = snapshots[i];
       const insulin = insulins[i] ?? insulins[i - 1];
@@ -240,18 +241,15 @@ export default class Session extends Subscribable {
           `Cannot reliably dictate insulin dosing: no final or inital BG`
         );
       // Find optimal variant
-      const variants = InsulinVariantStore.variants.value;
-      const oldVaraint = insulin.variant;
+      const oldVariant = insulin.variant;
       for (let v of variants) {
-        if (v.duration < snapshot.length) {
-          insulin.variant = v;
-          break;
-        }
+        if (snapshot.length < v.duration) break;
+        insulin.variant = v;
       }
       const window: TreatmentWindow = {
         initialBG: snapshot.initialBG.sugar,
-        insulin: insulin,
-        oldVariant: oldVaraint,
+        insulin: Insulin.deserialize(Insulin.serialize(insulin)),
+        oldVariant: oldVariant,
         finalBG: snapshot.finalBG.sugar,
         glucose: 0,
       };
@@ -283,15 +281,13 @@ export default class Session extends Subscribable {
     }
 
     let resultInsulins: Insulin[] = [];
-    for (let i = 0; i < insulins.length; i++) {
-      const _insulin = insulins[i];
+    for (let i = 0; i < windows.length; i++) {
       const window = windows[i];
-      const insulin = Insulin.deserialize(Insulin.serialize(_insulin));
+      const insulin = window.insulin;
       const ISFScale = window.oldVariant.effect / insulin.variant.effect; // Scale the window's insulin by the ratio between our current ISF and the ISF when the meal was eaten
       insulin.value = insulin.value * ISFScale;
       resultInsulins.push(insulin);
     }
-    console.log(resultInsulins);
 
     return resultInsulins;
   }
