@@ -13,7 +13,6 @@ const MENU_SECTIONS: MenuSection[] = [
       { label: "Rescue Glucose", to: "/rescue" },
       { label: "Basal Injection", to: "/basal" },
       { label: "Insulin Dosing", to: "/insulin" },
-      { label: "Dextrose", to: "/dextrose" },
       { label: "Activity", to: "/activity" },
     ],
   },
@@ -23,6 +22,10 @@ const MENU_SECTIONS: MenuSection[] = [
       { label: "Custom Foods", to: "/customfoods" },
       { label: "Insulin Variants", to: "/insulinvariants" },
     ],
+  },
+  {
+    label: "Utility",
+    items: [{ label: "Dextrose", to: "/dextrose" }],
   },
   {
     label: "Data",
