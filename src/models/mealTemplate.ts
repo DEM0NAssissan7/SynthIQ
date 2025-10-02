@@ -57,6 +57,14 @@ export default class MealTemplate extends Subscribable implements Template {
     return this.latestSession.fat;
   }
 
+  // Control info
+  get score(): number {
+    return MathUtil.median(this.sessions.map((s) => s.score));
+  }
+  get size(): number {
+    return this.sessions.length;
+  }
+
   // Dosing info
   /** This gies you the meal dose insulin taken last, not accounting for correction */
   get previousInsulin(): number {

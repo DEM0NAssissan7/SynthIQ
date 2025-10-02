@@ -1,3 +1,4 @@
+import { MathUtil } from "../lib/util";
 import Activity from "./events/activity";
 import type { Template } from "./types/interfaces";
 import type { Deserializer, Serializer } from "./types/types";
@@ -25,6 +26,12 @@ export class ActivityTemplate implements Template {
   get activity(): Activity {
     if (this.isFirstTime) return new Activity(this.name);
     return this.activities[this.activities.length - 1];
+  }
+  get score(): number {
+    return MathUtil.median(this.activities.map((a) => a.score));
+  }
+  get size(): number {
+    return this.activities.length;
   }
 
   static serialize: Serializer<ActivityTemplate> = (t: ActivityTemplate) => {

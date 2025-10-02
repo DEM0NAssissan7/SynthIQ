@@ -62,6 +62,21 @@ export default class Activity extends MetaEvent {
     return finalBG - initialBG;
   }
 
+  get glucose(): number {
+    let glucose = 0;
+    this.glucoses.forEach((g) => (glucose += g.value));
+    return glucose;
+  }
+  get score(): number {
+    const initialBG = this.initialBG;
+    const finalBG = this.finalBG;
+    if (!initialBG || !finalBG)
+      throw new Error(`Cannot find deltaBG: no initial or final glucose`);
+    const theoreticalFinalBG =
+      finalBG - this.glucose * CalibrationStore.glucoseEffect.value;
+    return theoreticalFinalBG - initialBG;
+  }
+
   // Subevents
   addGlucose(glucose: Glucose) {
     this.addChildSubscribable(glucose);
