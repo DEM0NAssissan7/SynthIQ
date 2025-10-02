@@ -29,6 +29,7 @@ import { ActivityStore } from "./storage/activityStore";
 import InsulinPage from "./pages/InsulinPage";
 import WizardInsulinRouter from "./pages/wizard/WizardInsulinRouter";
 import HistoryPage from "./pages/HistoryPage";
+import InsulinVariantsPage from "./pages/InsulinVariantsPage";
 
 function App() {
   const navigate = useNavigate();
@@ -77,6 +78,7 @@ function App() {
           <Route path="/rescue" element={<RescuePage />} />
           <Route path="/basal" element={<BasalPage />} />
           <Route path="/insulin" element={<InsulinPage />} />
+          <Route path="/insulinvariants" element={<InsulinVariantsPage />} />
           <Route path="/history" element={<HistoryPage />} />
 
           {/* Wizard Routes */}

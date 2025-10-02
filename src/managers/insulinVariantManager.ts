@@ -40,6 +40,22 @@ export namespace InsulinVariantManager {
     }
     return null;
   }
+  export function removeVariant(name: string) {
+    const variants = InsulinVariantStore.variants.value;
+    if (variants.length === 1)
+      throw new Error(`Can't remove the last insulin variant`);
+    const index = getVariantIndex(name);
+    if (index === null) return;
+    variants.splice(index, 1);
+    InsulinVariantStore.variants.value = variants;
+  }
+  export function updateVariant(v: InsulinVariant) {
+    const index = getVariantIndex(v.name);
+    if (index === null) return;
+    const variants = InsulinVariantStore.variants.value;
+    variants[index] = v;
+    InsulinVariantStore.variants.value = variants;
+  }
   export function setDefault(name: string) {
     const index = getVariantIndex(name);
     const variant = getVariant(name);
