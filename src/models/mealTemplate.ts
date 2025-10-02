@@ -168,7 +168,7 @@ export default class MealTemplate extends Subscribable implements Template {
     const lambdaAge = 0.25; // To make age a less important axis
 
     const K = Math.min(
-      clamp(Math.floor(Math.sqrt(sessions.length)), 5, 9),
+      clamp(Math.floor(Math.sqrt(sessions.length)), 3, 9),
       sessions.length
     ); // Adaptive number of desired sessions
     // Get the closest X sessions
