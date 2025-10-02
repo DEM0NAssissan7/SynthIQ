@@ -1,4 +1,8 @@
-import { getHourDiff, getTimestampFromOffset } from "../lib/timing";
+import {
+  getHourDiff,
+  getTimestampFromOffset,
+  timestampIsBetween,
+} from "../lib/timing";
 import { convertDimensions, genUUID, type UUID } from "../lib/util";
 import Glucose from "./events/glucose";
 import Insulin from "./events/insulin";
@@ -13,6 +17,7 @@ import { CalibrationStore } from "../storage/calibrationStore";
 import { PreferencesStore } from "../storage/preferencesStore";
 import Activity from "./events/activity";
 import type { InsulinVariant } from "./types/insulinVariant";
+import { InsulinVariantStore } from "../storage/insulinVariantStore";
 
 export default class Session extends Subscribable {
   uuid: UUID;
@@ -23,10 +28,6 @@ export default class Session extends Subscribable {
   completed: boolean = false;
   notes: string = "";
   version: number = 1;
-
-  // Save user calibrations upon creation
-  insulinEffect: number = CalibrationStore.insulinEffect.value;
-  glucoseEffect: number = CalibrationStore.glucoseEffect.value;
 
   meals: Meal[] = [];
   insulins: Insulin[] = [];
@@ -163,8 +164,10 @@ export default class Session extends Subscribable {
     const glucose = this.glucose;
     const glucoseDeltaBG = glucose * CalibrationStore.glucoseEffect.value;
 
-    const insulin = this.insulin;
-    const insulinDeltaBG = insulin * this.insulinEffect;
+    let insulinDeltaBG = 0;
+    this.insulins.forEach(
+      (i) => (insulinDeltaBG += i.value * i.variant.effect)
+    );
 
     /* 
   The following statement is roughly true:
@@ -184,40 +187,123 @@ export default class Session extends Subscribable {
     const mealDeltaBG = totalDeltaBG + insulinDeltaBG - glucoseDeltaBG;
     return mealDeltaBG;
   }
-  get insulinErrorCorrection(): number {
-    const finalBG = this.finalBG;
-    if (!finalBG)
-      throw new Error(`Cannot get optimal insulin: no final blood sugar`);
-
-    const target = PreferencesStore.targetBG.value;
-    const glucoseRise = this.glucose * CalibrationStore.glucoseEffect.value;
-
-    const BGError = finalBG - target; // The amount that the final blood sugar deviated from the target
-    // We wanna bring BG back to target, but we also negate
-    // typicalFinalBG describes the typical (i.e. without glucose) final BG if the user never took glucose. This is what we wanna correct for
-    const typicalFinalBG = BGError - glucoseRise;
-    const errorCorrection = typicalFinalBG / this.insulinEffect;
-    return errorCorrection;
-  }
   get correctionInsulin(): number {
+    if (this.insulins.length === 0) return 0;
     const initialBG = this.initialGlucose ?? PreferencesStore.targetBG.value;
+    const insulinEffect = this.insulins[0].variant.effect;
     return Math.max(
-      (initialBG - PreferencesStore.targetBG.value) / this.insulinEffect,
+      (initialBG - PreferencesStore.targetBG.value) / insulinEffect,
       0
     );
   }
-  get insulinAdjustment(): number {
-    const finalBG = this.finalBG;
-    if (!finalBG) return 0;
-    const theoreticalFinalBG =
-      finalBG - CalibrationStore.glucoseEffect.value * this.glucose;
-    return (
-      (theoreticalFinalBG - PreferencesStore.targetBG.value) /
-      this.insulinEffect
-    );
+  get optimalMealInsulins(): Insulin[] {
+    /**
+     * The rationale here is we basically create little windows of time
+     * Each bolus shot creates a new window
+     * A window contains the following info:
+     *
+     * InitialBG
+     * Insulin amount taken
+     * Glucose amount taken
+     * FinalBG
+     *
+     * The algorithm is pretty simple. We adjust for the change in BG (accounting for glucose rise).
+     * And it implicitly subtracts whatever correction insulin was taken because it attempts
+     * to correct for it.
+     *
+     * For the first insulin, we subtract the insulin taken to correct for the current BG
+     * because this function only wants to return the optimal MEAL insulin, not cumUlative.
+     */
+
+    const snapshots = this.snapshots;
+    const insulins = this.insulins;
+    const glucoses = this.glucoses;
+
+    if (!this.initialGlucose)
+      throw new Error(`Cannot determine insulin amount: no initial BG`);
+
+    type TreatmentWindow = {
+      initialBG: number;
+      insulin: Insulin;
+      oldVariant: InsulinVariant;
+      glucose: number;
+      finalBG: number;
+    };
+
+    // Treatment windows creation
+    let windows: TreatmentWindow[] = [];
+    for (let i = 0; i < snapshots.length; i++) {
+      const snapshot = snapshots[i];
+      const insulin = insulins[i] ?? insulins[i - 1];
+      if (!snapshot.finalBG || !snapshot.initialBG)
+        throw new Error(
+          `Cannot reliably dictate insulin dosing: no final or inital BG`
+        );
+      // Find optimal variant
+      const variants = InsulinVariantStore.variants.value;
+      const oldVaraint = insulin.variant;
+      for (let v of variants) {
+        if (v.duration < snapshot.length) {
+          insulin.variant = v;
+          break;
+        }
+      }
+      const window: TreatmentWindow = {
+        initialBG: snapshot.initialBG.sugar,
+        insulin: insulin,
+        oldVariant: oldVaraint,
+        finalBG: snapshot.finalBG.sugar,
+        glucose: 0,
+      };
+      // We account for glucose taken within the time frame and subtract it from the final sugar to see what it would be without any adjustment
+      for (let glucose of glucoses) {
+        if (
+          timestampIsBetween(
+            glucose.timestamp,
+            snapshot.initialBG.timestamp,
+            snapshot.finalBG.timestamp
+          )
+        ) {
+          // If the glucose was taken during this window
+          window.glucose += glucose.value;
+        }
+      }
+      windows.push(window);
+    }
+    /**
+     * Now that we have a list of the theoretical finalBGs, we can adjust each on to try and get a zero-change scenario
+     */
+    for (let window of windows) {
+      const glucoseRise = window.glucose * CalibrationStore.glucoseEffect.value;
+      const theoreticalFinalBG = window.finalBG - glucoseRise; // Avoid blaming glucose for a rise in BG
+      const deltaBG = theoreticalFinalBG - window.initialBG; // Try to keep things as flat as possible
+
+      const correction = deltaBG / window.insulin.variant.effect;
+      window.insulin.value += correction;
+    }
+
+    let resultInsulins: Insulin[] = [];
+    for (let i = 0; i < insulins.length; i++) {
+      const _insulin = insulins[i];
+      const window = windows[i];
+      const insulin = Insulin.deserialize(Insulin.serialize(_insulin));
+      const ISFScale = window.oldVariant.effect / insulin.variant.effect; // Scale the window's insulin by the ratio between our current ISF and the ISF when the meal was eaten
+      insulin.value = insulin.value * ISFScale;
+      resultInsulins.push(insulin);
+    }
+    console.log(resultInsulins);
+
+    return resultInsulins;
   }
+
   get optimalMealInsulin(): number {
-    return this.insulin + this.insulinAdjustment - this.correctionInsulin;
+    const optimalInsulins = this.optimalMealInsulins;
+    let insulin = 0;
+    optimalInsulins.forEach((i) => (insulin += i.value));
+    return insulin;
+  }
+  get insulinAdjustment(): number {
+    return this.optimalMealInsulin - this.mealInsulin;
   }
 
   // Insulins
@@ -254,13 +340,7 @@ export default class Session extends Subscribable {
     return insulin;
   }
   get mealInsulin(): number {
-    const initialGlucose = this.initialGlucose;
-    if (!initialGlucose)
-      throw new Error(`Cannot get meal insulin: no initial glucose`);
-    return (
-      this.insulin -
-      (initialGlucose - PreferencesStore.targetBG.value) / this.insulinEffect
-    );
+    return this.insulin - this.correctionInsulin;
   }
   get firstInsulinTimestamp(): Date {
     if (this.insulins.length === 0) return this.timestamp;
@@ -412,8 +492,6 @@ export default class Session extends Subscribable {
       isGarbage: session.isGarbage,
       completed: session.completed,
       notes: session.notes,
-      insulinEffect: session.insulinEffect,
-      glucoseEffect: session.glucoseEffect,
       version: session.version,
     };
   };
@@ -423,10 +501,6 @@ export default class Session extends Subscribable {
     session.isGarbage = o.isGarbage ?? false;
     session.completed = o.completed ?? true;
     session.notes = o.notes || "";
-    session.insulinEffect =
-      o.insulinEffect || CalibrationStore.insulinEffect.value;
-    session.glucoseEffect =
-      o.glucoseEffect || CalibrationStore.glucoseEffect.value;
 
     o.meals.map((a: string) => session.addMeal(Meal.deserialize(a)));
     o.insulins.map((a: string) => {

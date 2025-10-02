@@ -6,6 +6,7 @@ import useFood from "../state/useFood";
 import { round } from "../lib/util";
 import { getInsulin } from "../lib/metabolism";
 import type Meal from "../models/events/meal";
+import { InsulinVariantManager } from "../managers/insulinVariantManager";
 
 interface SearchFoodProps {
   food: Food;
@@ -17,7 +18,7 @@ export default function AddedFood({ food, meal }: SearchFoodProps) {
   let letter = prettyUnit[prettyUnit.length - 1];
   const { amount, setAmount, carbs, protein } = useFood(food, meal);
   const insulinRequirement = useMemo(
-    () => getInsulin(carbs, protein),
+    () => getInsulin(carbs, protein, InsulinVariantManager.getDefault()),
     [carbs, protein]
   );
 

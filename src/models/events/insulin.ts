@@ -31,7 +31,7 @@ export default class Insulin extends MetaEvent implements ScalarMetaEvent {
   };
   static deserialize: Deserializer<Insulin> = (o) => {
     const variant: InsulinVariant = o.variant
-      ? InsulinVariant.deserialize(o.variant)
+      ? InsulinVariantManager.deserialize(o.variant)
       : InsulinVariantManager.getDefault();
     return new Insulin(o.value, new Date(o.timestamp), variant);
   };

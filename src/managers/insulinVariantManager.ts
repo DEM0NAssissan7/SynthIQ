@@ -49,4 +49,10 @@ export namespace InsulinVariantManager {
     variants.splice(0, 0, variant);
     InsulinVariantStore.variants.value = variants;
   }
+  export function deserialize(o: any) {
+    const deserialized = InsulinVariant.deserialize(o);
+    const pulled = getVariant(deserialized.name);
+    if (!pulled) return deserialized;
+    return pulled;
+  }
 }

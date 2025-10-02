@@ -7,7 +7,7 @@ import BloodSugarInput from "../components/BloodSugarInput";
 import {
   getCorrectionInsulin,
   getInsulin,
-  getOvercompensationInsulin,
+  getOvercompensationInsulins,
 } from "../lib/metabolism";
 import Card from "../components/Card";
 import TemplateSummary from "../components/TemplateSummary";
@@ -37,7 +37,7 @@ export default function InsulinPage() {
   const [template] = WizardStore.template.useState();
   const [variant, setVariant] = useState(InsulinVariantManager.getDefault());
 
-  const suggestedInsulin = getInsulin(meal.carbs, meal.protein);
+  const suggestedInsulin = getInsulin(meal.carbs, meal.protein, variant);
 
   // Inputted Insulin
   const [insulinTaken, setInsulinTaken] = useState(0);
@@ -80,12 +80,13 @@ export default function InsulinPage() {
 
   const correctionInsulin = useMemo(() => {
     return currentGlucose
-      ? roundByHalf(getCorrectionInsulin(currentGlucose))
+      ? roundByHalf(getCorrectionInsulin(currentGlucose, variant))
       : 0;
   }, [currentGlucose]);
-  const overshootInsulinOffset = getOvercompensationInsulin(
-    currentGlucose ?? PreferencesStore.targetBG.value
-  );
+  const overshootInsulinOffset = getOvercompensationInsulins(
+    currentGlucose ?? PreferencesStore.targetBG.value,
+    [variant]
+  )[0];
 
   const displayedInsulin = (() => {
     if (session.insulin !== 0 && correctionInsulin > 0)

@@ -15,6 +15,7 @@ class RemoteReadings {
           convertDimensions(Unit.Time.Minute, Unit.Time.Hour)
       )
     ).then((a) => {
+      if (a.length === 0) return null;
       if (a) return a[a.length - 1];
     });
   }

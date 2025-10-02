@@ -1,7 +1,7 @@
-import { getOptimalMealInsulins } from "../lib/metabolism";
 import { sessionsWeightedAverage } from "../lib/templateHelpers";
 import { timeOfDayOffset } from "../lib/timing";
 import { clamp, MathUtil } from "../lib/util";
+import { InsulinVariantManager } from "../managers/insulinVariantManager";
 import { CalibrationStore } from "../storage/calibrationStore";
 import { PreferencesStore } from "../storage/preferencesStore";
 import Insulin from "./events/insulin";
@@ -286,7 +286,7 @@ export default class MealTemplate extends Subscribable implements Template {
     //     session.firstInsulinTimestamp
     //   ),
     // ];
-    const insulins = getOptimalMealInsulins(session);
+    const insulins = session.optimalMealInsulins;
     insulins[0].value += carbsInsulinOffset; // Add extra carbs offset to first shot, as they typically only act on first shot timeframe
 
     const proteinInsulinPerShot = proteinInsulinOffset / insulins.length;
@@ -304,7 +304,7 @@ export default class MealTemplate extends Subscribable implements Template {
     const additionalProtein = protein - baseProtein;
     const effect =
       additionalCarbs * alpha.carbs + additionalProtein * alpha.protein;
-    const neededInsulin = effect / CalibrationStore.insulinEffect.value;
+    const neededInsulin = effect / InsulinVariantManager.getDefault().effect;
     return neededInsulin;
   }
 
