@@ -44,7 +44,7 @@ export default function TemplateSummary({
       )}
       {session.isInvalid && (
         <>
-          Session is deemed invalid
+          Session is currently invalid
           <br />
         </>
       )}

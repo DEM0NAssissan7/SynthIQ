@@ -19,6 +19,14 @@ export function getCorrectionInsulin(glucose: number) {
     0
   );
 }
+export function getOvercompensationInsulin(glucose: number) {
+  return Math.max(
+    (Math.min(glucose - PreferencesStore.targetBG.value, 0) +
+      PreferencesStore.overshootOffset.value) /
+      CalibrationStore.insulinEffect.value,
+    0
+  );
+}
 export function getSessionMealInsulin(session: Session) {
   if (!session.initialGlucose)
     throw new Error(`Cannot get session meal insulin: no initial glucose`);

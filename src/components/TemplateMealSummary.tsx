@@ -1,7 +1,11 @@
 import { useMemo, useState } from "react";
-import { getInsulin, getCorrectionInsulin } from "../lib/metabolism";
+import {
+  getInsulin,
+  getCorrectionInsulin,
+  getOvercompensationInsulin,
+} from "../lib/metabolism";
 import { insulinDosingRecommendation } from "../lib/templateHelpers";
-import { round } from "../lib/util";
+import { round, roundByHalf } from "../lib/util";
 import type Meal from "../models/events/meal";
 import type MealTemplate from "../models/mealTemplate";
 import { Button } from "react-bootstrap";
@@ -60,7 +64,9 @@ export default function TemplateMealSummary({
         meal.protein
       )
     : 0;
-  const profileInsulin = getInsulin(meal.carbs, meal.protein);
+  const profileCarbInsulin = getInsulin(meal.carbs, 0);
+  const profileProteinInsulin = getInsulin(0, meal.protein);
+  const profileInsulin = profileCarbInsulin + profileProteinInsulin;
   const insulins = (() => {
     const vectorizedInsulin = template.vectorizeInsulin(
       meal.carbs,
@@ -80,13 +86,7 @@ export default function TemplateMealSummary({
     return vectorizedInsulin;
   })();
 
-  const overshootInsulinOffset = (() =>
-    Math.max(
-      (Math.min(currentBG - PreferencesStore.targetBG.value, 0) +
-        PreferencesStore.overshootOffset.value) /
-        CalibrationStore.insulinEffect.value,
-      0
-    ))();
+  const overshootInsulinOffset = getOvercompensationInsulin(currentBG);
 
   const scalingOffset = (() => {
     if (!session) return 0;
@@ -130,11 +130,10 @@ export default function TemplateMealSummary({
         <React.Fragment key={i}>
           {isSingleBolus ? `Take ` : `Shot ${i + 1}: `}
           <b>
-            {round(
+            {roundByHalf(
               insulin.value +
                 (i === 0 ? insulinCorrection : 0) +
-                overshootInsulinOffset / insulins.length, // We add just a bit more insulin to overshoot our target and scale it by the number of insulins
-              1
+                overshootInsulinOffset / insulins.length // We add just a bit more insulin to overshoot our target and scale it by the number of insulins
             )}
             u
           </b>{" "}
@@ -150,14 +149,21 @@ export default function TemplateMealSummary({
         </React.Fragment>
       ))}
       <hr />
+      {session && (
+        <>
+          <b>{session.insulin}u</b> base
+          <br />
+          <br />
+        </>
+      )}
       {getFactorDesc(insulinCorrection, "u", "correction")}
       {getFactorDesc(insulinOffset, "u", "offset")}
       {getFactorDesc(insulinAdjustment, " u", "adjustment")}
-      {isSingleBolus &&
-        getFactorDesc(adjustments.timingAdjustment, " min", "adjustment")}
       {PreferencesStore.scaleByISF.value &&
         getFactorDesc(scalingOffset, " u", "ISF scale")}
       {getFactorDesc(overshootInsulinOffset, " u", "overcompensation")}
+      {isSingleBolus &&
+        getFactorDesc(adjustments.timingAdjustment, " min", "adjustment")}
       <br />
       <Button
         onClick={toggleShowExtra}
@@ -172,7 +178,9 @@ export default function TemplateMealSummary({
         <>
           <hr />
           <b>Profile:</b> This meal requires{" "}
-          <b>{round(profileInsulin + insulinCorrection, 1)}u</b> insulin
+          <b>{round(profileInsulin + insulinCorrection, 1)}u</b> insulin (
+          {roundByHalf(profileCarbInsulin)}u carbs,{" "}
+          {roundByHalf(profileProteinInsulin)}u protein)
           {!template.isFirstTime && session && (
             <>
               <hr />
@@ -194,7 +202,7 @@ export default function TemplateMealSummary({
               <br />
               {session.insulins.map((insulin) => (
                 <>
-                  {round(insulin.value, 1)}u{" "}
+                  <b>{round(insulin.value, 1)}u</b>{" "}
                   {getFormattedTime(
                     round(Math.abs(session.getN(insulin.timestamp)) * 60, 1)
                   )}{" "}
