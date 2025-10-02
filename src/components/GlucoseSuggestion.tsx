@@ -12,20 +12,24 @@ export default function GlucoseSuggestion({
   const [timeBetweenShots] = HealthMonitorStore.timeBetweenShots.useState();
   const lastRescueMinutes = round(getLastRescueMinutes(), 0);
   const lastRescueCaps = getLastRescueCaps();
-  if (lastRescueMinutes < timeBetweenShots && lastRescueCaps > 0) {
-    return (
-      <>
-        It's been <b>{lastRescueMinutes}</b> minutes since your last glucose
-        shot. Consider waiting <b>{timeBetweenShots - lastRescueMinutes}</b>{" "}
-        minutes before taking more glucose
-      </>
-    );
-  } else {
-    return (
-      <>
-        Take <b>{round(intelligentCorrection, 1)} caps/grams</b> of glucose (
-        {round(baseCorrection, 0)} minimum).
-      </>
-    );
-  }
+  const displayRange =
+    baseCorrection === intelligentCorrection
+      ? `${baseCorrection}`
+      : `${Math.min(baseCorrection, intelligentCorrection)} - ${Math.max(
+          baseCorrection,
+          intelligentCorrection
+        )}`;
+  return (
+    <>
+      {lastRescueMinutes < timeBetweenShots && lastRescueCaps > 0 && (
+        <>
+          It's been <b>{lastRescueMinutes}</b> minutes since your last glucose
+          shot. Consider waiting <b>{timeBetweenShots - lastRescueMinutes}</b>{" "}
+          minutes before taking more glucose
+          <hr />
+        </>
+      )}
+      Take <b>{displayRange}</b> caps/grams glucose
+    </>
+  );
 }

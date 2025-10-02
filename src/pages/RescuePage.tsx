@@ -6,7 +6,7 @@ import {
   getGlucoseCorrectionCaps,
   getIntelligentGlucoseCorrection,
 } from "../lib/metabolism";
-import { round } from "../lib/util";
+import { roundByHalf } from "../lib/util";
 import WizardManager from "../managers/wizardManager";
 import Card from "../components/Card";
 import GlucoseSuggestion from "../components/GlucoseSuggestion";
@@ -35,7 +35,7 @@ export default function RescuePage() {
   const [gramsTaken, setCapsTaken] = useState(0);
 
   const correction = useMemo(() => {
-    return round(getGlucoseCorrectionCaps(currentBG), 1);
+    return roundByHalf(getGlucoseCorrectionCaps(currentBG));
   }, [currentBG]);
   const [intelligentCorrection, setIntelligentCorrection] = useState(0);
 
@@ -45,7 +45,13 @@ export default function RescuePage() {
       const actingMinutes = HealthMonitorStore.dropTime.value;
 
       setIntelligentCorrection(
-        getIntelligentGlucoseCorrection(velocityHours, currentBG, actingMinutes)
+        roundByHalf(
+          getIntelligentGlucoseCorrection(
+            velocityHours,
+            currentBG,
+            actingMinutes
+          )
+        )
       );
     });
   }, [currentBG]);
@@ -92,7 +98,7 @@ export default function RescuePage() {
           </InputGroup.Text>
           <Form.Control
             type="number"
-            placeholder={round(intelligentCorrection, 1).toString()}
+            placeholder={intelligentCorrection.toString()}
             aria-describedby="basic-addon1"
             onChange={(e: any) => {
               const val = parseFloat(e.target.value);

@@ -32,9 +32,10 @@ export default function HealthMonitorMessage() {
       return (
         <>
           {" "}
-          Your blood sugar was <b>{currentBG} mg/dL</b>, {targetBG - currentBG}{" "}
-          mg/dL below the target. Your blood sugar is falling at a rate of{" "}
-          <b>{round(fallRate, 0)} pts/hr</b>.
+          Your blood sugar is falling at a rate of{" "}
+          <b>{round(fallRate, 0)} pts/hr</b>. Your blood sugar was{" "}
+          <b>{currentBG} mg/dL</b>, {targetBG - currentBG} mg/dL below the
+          target.
         </>
       );
     case HealthMonitorStatus.High:

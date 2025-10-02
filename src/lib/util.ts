@@ -32,6 +32,11 @@ export function getHoursMinutes(_min: number) {
   return `${hours}:${min}`;
 }
 
+// Helpers
+export function roundByHalf(x: number) {
+  return Math.round(x * 2) / 2;
+}
+
 // Statistics
 export class MathUtil {
   static sum(data: number[]): number {
