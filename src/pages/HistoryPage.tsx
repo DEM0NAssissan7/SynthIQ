@@ -1,5 +1,4 @@
 import Card from "../components/Card";
-import { getOptimalMealInsulins } from "../lib/metabolism";
 import { getFullPrettyDate } from "../lib/timing";
 import type MealTemplate from "../models/mealTemplate";
 import type Session from "../models/session";
@@ -27,11 +26,7 @@ export default function HistoryPage() {
             </thead>
             {[...template.sessions].reverse().map((session: Session) => {
               if (session.meals.length < 1) return <></>;
-              console.log(
-                template.name,
-                session,
-                getOptimalMealInsulins(session)
-              );
+              console.log(template.name, session, session.optimalMealInsulins);
               return (
                 <tbody
                   style={

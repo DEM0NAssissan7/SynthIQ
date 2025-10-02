@@ -177,12 +177,6 @@ export default function SettingsPage() {
           unit="mg/dL"
         />
         <NumberSetting
-          keyInterface={CalibrationStore.insulinEffect}
-          title="Insulin Effect (per unit)"
-          iconClass="bi bi-eyedropper"
-          unit="mg/dL"
-        />
-        <NumberSetting
           keyInterface={CalibrationStore.carbsEffect}
           title="Carbs Effect (per gram)"
           iconClass="bi bi-cake2"

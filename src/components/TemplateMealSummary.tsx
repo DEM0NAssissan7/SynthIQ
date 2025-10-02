@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import {
   getInsulin,
   getCorrectionInsulin,
-  getOvercompensationInsulin,
+  getOvercompensationInsulins,
 } from "../lib/metabolism";
 import { insulinDosingRecommendation } from "../lib/templateHelpers";
 import { round, roundByHalf } from "../lib/util";
@@ -12,8 +12,6 @@ import { Button } from "react-bootstrap";
 import Insulin from "../models/events/insulin";
 import React from "react";
 import { getFormattedTime, getFullPrettyDate } from "../lib/timing";
-import { CalibrationStore } from "../storage/calibrationStore";
-import { PreferencesStore } from "../storage/preferencesStore";
 import { InsulinVariantManager } from "../managers/insulinVariantManager";
 
 function getFactorDesc(num: number, unit: string, type: string) {
@@ -48,9 +46,10 @@ export default function TemplateMealSummary({
     time,
     currentBG
   );
+  const defaultVariant = InsulinVariantManager.getDefault();
   console.log(session);
   const insulinCorrection = useMemo(
-    () => getCorrectionInsulin(currentBG),
+    () => getCorrectionInsulin(currentBG, defaultVariant),
     [currentBG]
   );
   const adjustments = insulinDosingRecommendation(session ? [session] : []);
@@ -64,8 +63,8 @@ export default function TemplateMealSummary({
         meal.protein
       )
     : 0;
-  const profileCarbInsulin = getInsulin(meal.carbs, 0);
-  const profileProteinInsulin = getInsulin(0, meal.protein);
+  const profileCarbInsulin = getInsulin(meal.carbs, 0, defaultVariant);
+  const profileProteinInsulin = getInsulin(0, meal.protein, defaultVariant);
   const profileInsulin = profileCarbInsulin + profileProteinInsulin;
   const insulins = (() => {
     const vectorizedInsulin = template.vectorizeInsulin(
@@ -86,17 +85,16 @@ export default function TemplateMealSummary({
     return vectorizedInsulin;
   })();
 
-  const overshootInsulinOffset = getOvercompensationInsulin(currentBG);
-
-  const scalingOffset = (() => {
-    if (!session) return 0;
-    let totalInsulin = 0;
-    insulins.forEach((insulin) => (totalInsulin += insulin.value));
-    return (
-      totalInsulin -
-      totalInsulin *
-        (CalibrationStore.insulinEffect.value / session.insulinEffect)
-    );
+  const overcompensationInsulins = getOvercompensationInsulins(
+    currentBG,
+    insulins.map((i) => i.variant)
+  );
+  const overshootInsulinOffset: number = (() => {
+    let total = 0;
+    for (let insulin of overcompensationInsulins) {
+      total += insulin;
+    }
+    return total;
   })();
 
   const isSingleBolus = insulins.length < 2;
@@ -159,8 +157,6 @@ export default function TemplateMealSummary({
       {getFactorDesc(insulinCorrection, "u", "correction")}
       {getFactorDesc(insulinOffset, "u", "offset")}
       {getFactorDesc(insulinAdjustment, " u", "adjustment")}
-      {PreferencesStore.scaleByISF.value &&
-        getFactorDesc(scalingOffset, " u", "ISF scale")}
       {getFactorDesc(overshootInsulinOffset, " u", "overcompensation")}
       {isSingleBolus &&
         getFactorDesc(adjustments.timingAdjustment, " min", "adjustment")}

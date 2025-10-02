@@ -6,10 +6,11 @@
  */
 
 import RemoteReadings from "../lib/remote/readings";
-import { MathUtil } from "../lib/util";
+import { convertDimensions, MathUtil } from "../lib/util";
 import Subscribable from "./subscribable";
 import SugarReading, { getReadingFromNightscout } from "./types/sugarReading";
 import type { Deserializer, Serializer } from "./types/types";
+import Unit from "./unit";
 
 export default class Snapshot extends Subscribable {
   private rawReadings: SugarReading[] = [];
@@ -121,6 +122,17 @@ export default class Snapshot extends Subscribable {
   }
   get medianBG(): number {
     return MathUtil.median(this.numericalReadings);
+  }
+
+  get length(): number {
+    // Returns the length of the snapshot in hours
+    const initialBG = this.initialBG;
+    const finalBG = this.finalBG;
+    if (!initialBG || !finalBG) return 0;
+    return (
+      (finalBG.timestamp.getTime() - initialBG.timestamp.getTime()) *
+      convertDimensions(Unit.Time.Millis, Unit.Time.Hour)
+    );
   }
 
   // Serialization

@@ -95,10 +95,10 @@ class StorageEntry {
   }
 
   // Storage Abstraction (through handlers and try/catch)
-  read(): void {
+  async read() {
     let val: JSONValue;
     try {
-      val = this.getFromStorage();
+      val = await this.getFromStorage();
     } catch {
       console.warn(
         `StorageEntry: did not find an entry in storage for ${this.getStorageKey()}. Creating new entry...`
@@ -117,9 +117,9 @@ class StorageEntry {
       );
     }
   }
-  write() {
+  async write() {
     try {
-      this.writeToStorage(this.export());
+      await this.writeToStorage(this.export());
       this.notify();
     } catch (e) {
       console.error(e);
@@ -138,12 +138,12 @@ class StorageEntry {
   }
 
   // Storage API
-  private writeToStorage(value: JSONValue) {
-    storageBackend.setItem(this.getStorageKey(), JSON.stringify(value));
+  private async writeToStorage(value: JSONValue) {
+    await storageBackend.setItem(this.getStorageKey(), JSON.stringify(value));
   }
-  private getFromStorage(): JSONValue {
+  private async getFromStorage(): Promise<JSONValue> {
     let retval: any;
-    retval = storageBackend.getItem(this.getStorageKey());
+    retval = await storageBackend.getItem(this.getStorageKey());
     if (retval === null)
       throw new Error(
         `StorageEntry[${this.getStorageKey()}]: Failed to retrieve key`

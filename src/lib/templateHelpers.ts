@@ -1,3 +1,4 @@
+import { InsulinVariantManager } from "../managers/insulinVariantManager";
 import type Session from "../models/session";
 import { CalibrationStore } from "../storage/calibrationStore";
 import { PreferencesStore } from "../storage/preferencesStore";
@@ -47,7 +48,7 @@ export function insulinRuleEngine(session: Session) {
   const insulinMaxThreshold =
     optimalInsulin +
     (PreferencesStore.targetBG.value - lowBG) /
-      CalibrationStore.insulinEffect.value;
+      InsulinVariantManager.getDefault().effect;
   // If insulin excess would have dropped you below the low threshold, it's too much
 
   // Rule engine magic
