@@ -33,13 +33,14 @@ export default function BasalPage() {
   const [basalDose, setBasalDose] = useState(0);
 
   const navigate = useNavigate();
-  function markBasalInjection() {
-    if (
-      confirm(`Confirm that you have injected ${basalDose}u of basal insulin`)
-    ) {
-      markBasal(basalDose);
+  function markBasalInjection(dose: number) {
+    if (confirm(`Confirm that you have injected ${dose}u of basal insulin`)) {
+      markBasal(dose);
       navigate("/");
     }
+  }
+  function onMark() {
+    markBasalInjection(basalDose);
   }
 
   const firstShotHour = HealthMonitorStore.basalShotTime.value; // 8 => 8:00 AM, 16 => 4:00 PM
@@ -129,9 +130,18 @@ export default function BasalPage() {
           />
           <InputGroup.Text id="basic-addon1">u</InputGroup.Text>
         </InputGroup>
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          <Button
+            variant="outline-primary"
+            style={{ minWidth: "120px" }}
+            onClick={() => markBasalInjection(lastShot)}
+          >
+            {lastShot}u
+          </Button>
+        </div>
       </Card>
       <div style={{ display: "flex", justifyContent: "flex-end" }}>
-        <Button variant="primary" onClick={markBasalInjection}>
+        <Button variant="primary" onClick={onMark}>
           Mark Basal
         </Button>
       </div>
