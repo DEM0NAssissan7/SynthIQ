@@ -43,12 +43,13 @@ class RemoteTreatments {
       timestamp
     );
   }
-  static markInsulin(units: number, timestamp: Date): void {
+  static markInsulin(units: number, timestamp: Date, variant: string): void {
     Backend.post(
       "treatments",
       {
         insulin: units,
         eventType: insulinEventType,
+        notes: variant,
       },
       timestamp
     );

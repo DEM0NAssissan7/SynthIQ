@@ -67,7 +67,7 @@ export default function InsulinPage() {
         }
 
         // TODO: Use date selector
-        RemoteTreatments.markInsulin(insulin, now);
+        RemoteTreatments.markInsulin(insulin, now, variant.name);
         setIsBolus(false);
       }
     } else {
