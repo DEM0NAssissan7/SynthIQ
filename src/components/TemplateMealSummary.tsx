@@ -151,7 +151,7 @@ export default function TemplateMealSummary({
       <hr />
       {session && (
         <>
-          <b>{session.insulin}u</b> base
+          <b>{session.mealInsulin.toFixed(1)}u</b> base
           <br />
           <br />
         </>
