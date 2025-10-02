@@ -135,7 +135,7 @@ export default function TemplateMealSummary({
             )}
             u
           </b>{" "}
-          insulin{" "}
+          of {insulin.variant.name}{" "}
           {!template.isFirstTime && (
             <>
               <b>{getFormattedTime(Math.abs(getTiming(i)))}</b>{" "}
