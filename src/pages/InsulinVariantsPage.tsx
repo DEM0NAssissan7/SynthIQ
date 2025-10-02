@@ -130,7 +130,7 @@ export default function CustomFoodsPage() {
                       value={v.duration ?? ""}
                       aria-label="Duration"
                       className="form-control-sm w-auto border-0 border-bottom rounded-0 shadow-none px-1 text-center"
-                      style={{ maxWidth: "30px" }}
+                      style={{ maxWidth: "40px" }}
                       onChange={(e) => {
                         const val =
                           e.target.value === ""
@@ -154,7 +154,7 @@ export default function CustomFoodsPage() {
                       step="any"
                       value={v.effect ?? ""}
                       aria-label="Effect"
-                      style={{ maxWidth: "30px" }}
+                      style={{ maxWidth: "40px" }}
                       className="form-control-sm w-auto border-0 border-bottom rounded-0 shadow-none px-1 text-center"
                       onChange={(e) => {
                         const val =
@@ -170,14 +170,16 @@ export default function CustomFoodsPage() {
                     <span className="text-muted">mg/dL per U</span>
                   </label>
                   <div className="w-100 d-flex justify-content-end mt-2">
-                    <Button
-                      size="sm"
-                      variant="outline-dark"
-                      onClick={() => setDefault(v)}
-                      className="me-2"
-                    >
-                      Set Default
-                    </Button>
+                    {i !== 0 && (
+                      <Button
+                        size="sm"
+                        variant="outline-dark"
+                        onClick={() => setDefault(v)}
+                        className="me-2"
+                      >
+                        Set Default
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       variant="outline-danger"
