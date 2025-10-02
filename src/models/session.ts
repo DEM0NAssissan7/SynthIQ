@@ -243,8 +243,8 @@ export default class Session extends Subscribable {
       // Find optimal variant
       const oldVariant = insulin.variant;
       for (let v of variants) {
-        if (snapshot.length < v.duration) break;
         insulin.variant = v;
+        if (v.duration > snapshot.length) break;
       }
       const window: TreatmentWindow = {
         initialBG: snapshot.initialBG.sugar,
