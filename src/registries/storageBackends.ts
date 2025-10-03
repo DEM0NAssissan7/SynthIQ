@@ -7,7 +7,7 @@ import type { StorageBackend } from "../models/types/interfaces/storageBackend";
 namespace StorageBackends {
   export const webLocal: StorageBackend = {
     name: "localStorage",
-    getItem: async (key: string) => {
+    getItem: (key: string) => {
       if (typeof window !== "undefined" && window.localStorage) {
         const retval = localStorage.getItem(key);
         if (retval === null) throw new KeyDoesNotExistError();
@@ -16,7 +16,7 @@ namespace StorageBackends {
         throw new StorageBackendFailedError();
       }
     },
-    setItem: async (key: string, value: string) => {
+    setItem: (key: string, value: string) => {
       if (typeof window !== "undefined" && window.localStorage) {
         localStorage.setItem(key, value);
       } else {
