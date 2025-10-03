@@ -18,6 +18,7 @@ import RemoteTreatments from "../lib/remote/treatments";
 import { InsulinVariantManager } from "../managers/insulinVariantManager";
 import { InsulinVariantStore } from "../storage/insulinVariantStore";
 import { NumberOptionSelector } from "../components/NumberOptionSelector";
+import Insulin from "../models/events/insulin";
 
 export default function InsulinPage() {
   const navigate = useNavigate();
@@ -83,29 +84,33 @@ export default function InsulinPage() {
       ? roundByHalf(getCorrectionInsulin(currentGlucose, variant))
       : 0;
   }, [currentGlucose, variant]);
+  const vectorizedInsulins = template.vectorizeInsulin(
+    meal.carbs,
+    meal.protein,
+    session.timestamp,
+    currentGlucose ? currentGlucose : PreferencesStore.targetBG.value
+  ) ?? [
+    new Insulin(
+      suggestedInsulin + correctionInsulin,
+      now,
+      InsulinVariantManager.getDefault()
+    ),
+  ];
+  const shotIndex = session.insulins.length;
   const overshootInsulinOffset = getOvercompensationInsulins(
-    currentGlucose ?? PreferencesStore.targetBG.value,
-    [variant]
-  )[0];
+    currentGlucose && currentGlucose > 0
+      ? currentGlucose
+      : PreferencesStore.targetBG.value,
+    vectorizedInsulins.map((i) => i.variant)
+  )[shotIndex];
 
   const displayedInsulin = (() => {
-    if (session.insulin !== 0 && correctionInsulin > 0)
-      return correctionInsulin;
     if (!isBolus) return correctionInsulin;
-    const insulins = template.vectorizeInsulin(
-      meal.carbs,
-      meal.protein,
-      now,
-      currentGlucose ? currentGlucose : PreferencesStore.targetBG.value
-    );
     let insulin: number = suggestedInsulin;
-    if (insulins) {
-      insulin = 0;
-      insulins.forEach((i) => (insulin += i.value));
+    if (vectorizedInsulins) {
+      insulin = vectorizedInsulins[shotIndex]?.value ?? -overshootInsulinOffset;
     }
-    return (
-      insulin + correctionInsulin + overshootInsulinOffset - session.insulin
-    );
+    return insulin + correctionInsulin + overshootInsulinOffset;
   })();
 
   // A variable that changes once per minute
@@ -169,7 +174,9 @@ export default function InsulinPage() {
           </InputGroup.Text>
           <Form.Control
             type="number"
-            placeholder={roundByHalf(displayedInsulin).toString()}
+            placeholder={`${roundByHalf(displayedInsulin)} [${roundByHalf(
+              correctionInsulin
+            )}]`}
             aria-describedby="basic-addon1"
             onChange={(e: any) => {
               const val = parseFloat(e.target.value);
