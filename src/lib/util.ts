@@ -33,8 +33,8 @@ export function getHoursMinutes(_min: number) {
 }
 
 // Helpers
-export function roundByHalf(x: number) {
-  return Math.round(x * 2) / 2;
+export function roundByHalf(x: number, ceilUp: boolean = true) {
+  return Math.floor(x * 2 + (ceilUp ? 1 : 0)) / 2;
 }
 
 // Statistics

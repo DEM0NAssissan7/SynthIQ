@@ -36,7 +36,7 @@ export default function RescuePage() {
   const [gramsTaken, setCapsTaken] = useState(0);
 
   const correction = useMemo(() => {
-    return roundByHalf(getGlucoseCorrectionCaps(currentBG));
+    return roundByHalf(getGlucoseCorrectionCaps(currentBG), true);
   }, [currentBG]);
   const [intelligentCorrection, setIntelligentCorrection] = useState(0);
 
@@ -51,7 +51,8 @@ export default function RescuePage() {
             velocityHours,
             currentBG,
             actingMinutes
-          )
+          ),
+          true
         )
       );
     });
