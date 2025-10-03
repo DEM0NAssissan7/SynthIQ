@@ -82,7 +82,7 @@ export default function InsulinPage() {
     return currentGlucose
       ? roundByHalf(getCorrectionInsulin(currentGlucose, variant))
       : 0;
-  }, [currentGlucose]);
+  }, [currentGlucose, variant]);
   const overshootInsulinOffset = getOvercompensationInsulins(
     currentGlucose ?? PreferencesStore.targetBG.value,
     [variant]
