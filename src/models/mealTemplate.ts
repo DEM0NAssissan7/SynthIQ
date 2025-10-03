@@ -264,33 +264,19 @@ export default class MealTemplate extends Subscribable implements Template {
       initialBG
     );
     if (!session) return null;
+    if (session.insulins.length === 0) return null;
 
-    // Fill in the gaps
-    const carbsInsulinOffset = this.getMealInsulinOffset(
-      session.carbs,
-      0,
-      carbs,
-      0
-    );
-    const proteinInsulinOffset = this.getMealInsulinOffset(
-      0,
-      session.protein,
-      0,
-      protein
-    );
-
-    // Legacy
-    // return [
-    //   new Insulin(
-    //     session.optimalMealInsulin + carbsInsulinOffset + proteinInsulinOffset,
-    //     session.firstInsulinTimestamp
-    //   ),
-    // ];
     const insulins = session.optimalMealInsulins;
-    insulins[0].value += carbsInsulinOffset; // Add extra carbs offset to first shot, as they typically only act on first shot timeframe
+    const extraCarbsRise =
+      (carbs - session.carbs) * CalibrationStore.carbsEffect.value;
+    insulins[0].value += extraCarbsRise / insulins[0].variant.effect; // Add extra carbs offset to first shot, as they typically only act on first shot timeframe
 
-    const proteinInsulinPerShot = proteinInsulinOffset / insulins.length;
-    insulins.forEach((i) => (i.value += proteinInsulinPerShot)); // Distribute protein offset between all shots
+    const extraProteinRisePerShot =
+      ((protein - session.protein) / insulins.length) *
+      CalibrationStore.proteinEffect.value;
+    insulins.forEach(
+      (i) => (i.value += extraProteinRisePerShot / i.variant.effect)
+    ); // Distribute protein between all shots
     return insulins;
   }
   getMealInsulinOffset(
