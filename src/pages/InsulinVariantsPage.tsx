@@ -127,7 +127,7 @@ export default function CustomFoodsPage() {
                       type="number"
                       inputMode="decimal"
                       step="any"
-                      value={v.duration ?? ""}
+                      value={v.duration || ""}
                       aria-label="Duration"
                       className="form-control-sm w-auto border-0 border-bottom rounded-0 shadow-none px-1 text-center"
                       style={{ maxWidth: "40px" }}
@@ -152,7 +152,7 @@ export default function CustomFoodsPage() {
                       type="number"
                       inputMode="decimal"
                       step="any"
-                      value={v.effect ?? ""}
+                      value={v.effect || ""}
                       aria-label="Effect"
                       style={{ maxWidth: "40px" }}
                       className="form-control-sm w-auto border-0 border-bottom rounded-0 shadow-none px-1 text-center"
