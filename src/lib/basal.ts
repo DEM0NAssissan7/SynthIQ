@@ -1,3 +1,4 @@
+import { InsulinVariantManager } from "../managers/insulinVariantManager";
 import Insulin from "../models/events/insulin";
 import { InsulinVariant } from "../models/types/insulinVariant";
 import SugarReading, {
@@ -58,7 +59,10 @@ function getFastingVelocities(
         hoursNonFasting = minTimeSinceMeal;
         break;
       case insulinEventType:
-        hoursNonFasting = minTimeSinceBolus;
+        const variant =
+          InsulinVariantManager.getVariant(a.notes) ??
+          InsulinVariantManager.getDefault();
+        hoursNonFasting = variant.duration;
         break;
       case glucoseEventType:
         hoursNonFasting = minTimeSinceDextrose;
