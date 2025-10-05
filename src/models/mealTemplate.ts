@@ -136,8 +136,15 @@ export default class MealTemplate extends Subscribable implements Template {
     ); // Adaptive number of desired sessions based on number of valid sessions
 
     // Discard expired sessions unless we don't have enough to fulfill K
-    const freshSessions = sessions.filter((s) => !s.expired);
-    if (freshSessions.length >= K) sessions = freshSessions;
+    const expiredSessions = sessions
+      .filter((s) => s.expired)
+      .slice()
+      .sort((a, b) => a.age - b.age); // Sort by age to pull the newest ones first
+    sessions = sessions.filter((s) => !s.expired); // Filter out expired sessions
+    if (sessions.length < K) {
+      // Salvage the latest expired sessions
+      sessions.push(...expiredSessions.slice(0, K - sessions.length));
+    }
 
     const getSafeScale = (absDistances: number[]) => {
       if (absDistances.length === 0) return 1e-6;
