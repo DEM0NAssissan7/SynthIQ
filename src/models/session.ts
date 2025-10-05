@@ -431,6 +431,9 @@ export default class Session extends Subscribable {
       throw new Error(`Cannot give length - there is no end timestamp!`);
     return this.getN(this.endTimestamp);
   }
+  get expired(): boolean {
+    return this.age > PreferencesStore.usableSessionLife.value;
+  }
 
   getObservedReadings() {
     if (!this.endTimestamp)

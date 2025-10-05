@@ -129,6 +129,16 @@ export default class MealTemplate extends Subscribable implements Template {
     let sessions = this.sessions.filter((s) => !s.isInvalid);
     if (sessions.length === 0) sessions = this.sessions; // If all we have is garbage, we still use it anyways (better than nothing)
 
+    // K is the number of neighbors to select
+    const K = Math.min(
+      clamp(Math.floor(Math.sqrt(this.sessions.length)), 3, 9),
+      this.sessions.length
+    ); // Adaptive number of desired sessions based on number of valid sessions
+
+    // Discard expired sessions unless we don't have enough to fulfill K
+    const freshSessions = sessions.filter((s) => !s.expired);
+    if (freshSessions.length >= K) sessions = freshSessions;
+
     const getSafeScale = (absDistances: number[]) => {
       if (absDistances.length === 0) return 1e-6;
       const median = MathUtil.median(absDistances);
@@ -156,19 +166,7 @@ export default class MealTemplate extends Subscribable implements Template {
     const timeOfDayScale = getSafeScale(
       sessions.map((s) => Math.abs(timeOfDayOffset(timestamp, s.timestamp)))
     );
-    const ageScale = (() => {
-      const ages = sessions.map((s) => s.age); // days > 0
-      const m = MathUtil.median(ages);
-      if (m > 0) return Math.max(m, 1e-3); // small floor to avoid blowups
-      // (shouldn’t happen given s.age>0, but safe)
-      return Math.min(...ages) || 1e-3;
-    })();
-    const lambdaAge = 0.25; // To make age a less important axis
 
-    const K = Math.min(
-      clamp(Math.floor(Math.sqrt(sessions.length)), 3, 9),
-      sessions.length
-    ); // Adaptive number of desired sessions
     // Get the closest X sessions
     let sessionDistances: [Session, number][] = [];
     for (let s of sessions) {
@@ -178,7 +176,6 @@ export default class MealTemplate extends Subscribable implements Template {
         ((carbs - s.carbs) / carbsScale) ** 2 +
           ((protein - s.protein) / proteinScale) ** 2 +
           (timeOfDayOffset(timestamp, s.timestamp) / timeOfDayScale) ** 2 + // Squared ecludian distance
-          lambdaAge * (s.age / ageScale) ** 2 +
           ((initialBG - s.initialGlucose) / initialBGScale) ** 2,
       ]);
     }
