@@ -204,7 +204,13 @@ export default function SettingsPage() {
         />
         <NumberSetting
           keyInterface={PreferencesStore.maxSessionLife}
-          title="Max Session Life"
+          title="Max Session Storage Life"
+          iconClass="bi bi-clock"
+          unit="days"
+        />
+        <NumberSetting
+          keyInterface={PreferencesStore.usableSessionLife}
+          title="Usable Session Life"
           iconClass="bi bi-clock"
           unit="days"
         />
