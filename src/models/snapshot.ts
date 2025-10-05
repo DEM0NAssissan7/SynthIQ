@@ -31,7 +31,7 @@ export default class Snapshot extends Subscribable {
   absorb(snapshot: Snapshot) {
     snapshot.rawReadings.forEach((r) => this.addReading(r));
   }
-  private get readings(): SugarReading[] {
+  get readings(): SugarReading[] {
     // This is for when we implement smoothing
     if (this.readingsCache.length === 0) {
       this.readingsCache = this.rawReadings;

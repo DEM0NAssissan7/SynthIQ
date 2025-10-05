@@ -3,7 +3,7 @@ import {
   getTimestampFromOffset,
   timestampIsBetween,
 } from "../lib/timing";
-import { convertDimensions, genUUID, type UUID } from "../lib/util";
+import { convertDimensions, genUUID, MathUtil, type UUID } from "../lib/util";
 import Glucose from "./events/glucose";
 import Insulin from "./events/insulin";
 import Meal from "./events/meal";
@@ -446,6 +446,7 @@ export default class Session extends Subscribable {
   // Score
   get score(): number {
     const targetBG = PreferencesStore.targetBG.value;
+    const lowThreshold = PreferencesStore.lowBG.value;
     if (
       !this.initialGlucose ||
       !this.peakGlucose ||
@@ -454,20 +455,35 @@ export default class Session extends Subscribable {
     )
       throw new Error(`Cannot get glucose score from incomplete session`);
     let score = 0;
-    const theoreticalFinalBG =
-      this.finalBG - this.glucose * CalibrationStore.glucoseEffect.value;
+    const wentLow = this.minGlucose < lowThreshold;
+
+    const adjustedDelta = (delta: number, tol = 3) =>
+      Math.abs(delta <= tol ? 0 : delta - tol);
+
     if (this.initialGlucose >= targetBG) {
-      score +=
-        Math.abs(this.peakGlucose - this.initialGlucose) +
-        Math.abs(targetBG - this.minGlucose);
+      score += adjustedDelta(this.peakGlucose - this.initialGlucose);
+      if (wentLow) {
+        score += adjustedDelta(targetBG - this.minGlucose);
+      }
     } else {
-      score +=
-        Math.abs(this.initialGlucose - this.minGlucose) +
-        Math.abs(this.peakGlucose - targetBG);
+      score += adjustedDelta(this.peakGlucose - targetBG);
+      if (wentLow) {
+        score += adjustedDelta(this.initialGlucose - this.minGlucose);
+      }
     }
-    score +=
-      Math.abs(theoreticalFinalBG - targetBG) +
-      Math.abs(this.snapshot.averageBG - targetBG);
+    if (
+      (this.finalBG < targetBG && this.finalBG < lowThreshold) ||
+      this.finalBG > targetBG
+    )
+      score += Math.abs(this.finalBG - targetBG);
+
+    score += this.glucose * CalibrationStore.glucoseEffect.value; // Add the effect glucose had
+
+    // Add IAD (integrated absolute deviation)
+    score += MathUtil.mean(
+      this.snapshot.readings.map((r) => adjustedDelta(r.sugar - targetBG))
+    );
+
     return score;
   }
 
