@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import {
-  getInsulin,
   getCorrectionInsulin,
   getOvercompensationInsulins,
 } from "../lib/metabolism";
@@ -56,15 +55,18 @@ export default function TemplateMealSummary({
 
   const insulinAdjustment = session ? session.insulinAdjustment : 0;
   const insulinOffset = session
-    ? template.getMealInsulinOffset(
-        session.carbs,
-        session.protein,
-        meal.carbs,
-        meal.protein
-      )
+    ? template.getMealInsulinOffset(session, meal.carbs, meal.protein)
     : 0;
-  const profileCarbInsulin = getInsulin(meal.carbs, 0, defaultVariant);
-  const profileProteinInsulin = getInsulin(0, meal.protein, defaultVariant);
+  const profileCarbInsulin = template.getProfileInsulin(
+    meal.carbs,
+    0,
+    defaultVariant
+  );
+  const profileProteinInsulin = template.getProfileInsulin(
+    0,
+    meal.protein,
+    defaultVariant
+  );
   const profileInsulin = profileCarbInsulin + profileProteinInsulin;
   const insulins = (() => {
     const vectorizedInsulin = template.vectorizeInsulin(

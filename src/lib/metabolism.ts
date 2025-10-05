@@ -3,17 +3,6 @@ import { CalibrationStore } from "../storage/calibrationStore";
 import { PreferencesStore } from "../storage/preferencesStore";
 
 // Insulin
-export function getInsulin(
-  carbs: number,
-  protein: number,
-  variant: InsulinVariant
-) {
-  return (
-    (carbs * CalibrationStore.carbsEffect.value +
-      protein * CalibrationStore.proteinEffect.value) /
-    variant.effect
-  );
-}
 export function getCorrectionInsulin(glucose: number, variant: InsulinVariant) {
   return Math.max(
     (glucose - PreferencesStore.targetBG.value) / variant.effect,

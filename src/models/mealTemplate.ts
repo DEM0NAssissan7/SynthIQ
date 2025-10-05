@@ -90,10 +90,9 @@ export default class MealTemplate extends Subscribable implements Template {
     let alphaCarbs = CalibrationStore.carbsEffect.value;
     let alphaProtein = CalibrationStore.proteinEffect.value;
 
-    const baseLearningRate = 0.0003;
+    const baseLearningRate = 0.001;
 
     const sessionHalfLife = PreferencesStore.sessionHalfLife.value;
-    const maxSessionLife = PreferencesStore.maxSessionLife.value;
 
     // Don't allow less than 3 sessions before making any conclusions
     if (this.sessions.length >= 3) {
@@ -101,7 +100,6 @@ export default class MealTemplate extends Subscribable implements Template {
         const session = this.sessions[i];
         if (session.isInvalid) continue;
         const age = session.age;
-        if (age > maxSessionLife) break; // If the session exceeds the max age
         const weight = Math.pow(0.5, age / sessionHalfLife);
         const eta = baseLearningRate * weight;
 
@@ -267,31 +265,40 @@ export default class MealTemplate extends Subscribable implements Template {
     if (session.insulins.length === 0) return null;
 
     const insulins = session.optimalMealInsulins;
-    const extraCarbsRise =
-      (carbs - session.carbs) * CalibrationStore.carbsEffect.value;
-    insulins[0].value += extraCarbsRise / insulins[0].variant.effect; // Add extra carbs offset to first shot, as they typically only act on first shot timeframe
+    const offsets = this.getInsulinOffsets(session, carbs, protein);
+    for (let i = 0; i < insulins.length; i++) {
+      insulins[i].value += offsets[i].value;
+    }
+    return insulins;
+  }
+  getProfileInsulin(
+    carbs: number,
+    protein: number,
+    variant = InsulinVariantManager.getDefault()
+  ) {
+    const alpha = this.alpha;
+    const carbsRise = carbs * alpha.carbs;
+    const proteinRise = protein * alpha.protein;
+    return (carbsRise + proteinRise) / variant.effect;
+  }
+  getInsulinOffsets(session: Session, carbs: number, protein: number) {
+    const insulins = session.optimalMealInsulins;
+    const alpha = this.alpha;
+    const extraCarbsRise = (carbs - session.carbs) * alpha.carbs;
+    insulins[0].value = extraCarbsRise / insulins[0].variant.effect; // Add extra carbs offset to first shot, as they typically only act on first shot timeframe
 
     const extraProteinRisePerShot =
-      ((protein - session.protein) / insulins.length) *
-      CalibrationStore.proteinEffect.value;
+      ((protein - session.protein) / insulins.length) * alpha.carbs;
     insulins.forEach(
-      (i) => (i.value += extraProteinRisePerShot / i.variant.effect)
+      (i) => (i.value = extraProteinRisePerShot / i.variant.effect)
     ); // Distribute protein between all shots
     return insulins;
   }
-  getMealInsulinOffset(
-    baseCarbs: number,
-    baseProtein: number,
-    carbs: number,
-    protein: number
-  ) {
-    const alpha = this.alpha;
-    const additionalCarbs = carbs - baseCarbs;
-    const additionalProtein = protein - baseProtein;
-    const effect =
-      additionalCarbs * alpha.carbs + additionalProtein * alpha.protein;
-    const neededInsulin = effect / InsulinVariantManager.getDefault().effect;
-    return neededInsulin;
+  getMealInsulinOffset(session: Session, carbs: number, protein: number) {
+    let insulin = 0;
+    const offsets = this.getInsulinOffsets(session, carbs, protein);
+    offsets.forEach((offset) => (insulin += offset.value));
+    return insulin;
   }
 
   // Serialization

@@ -6,7 +6,6 @@ import { useNavigate } from "react-router";
 import BloodSugarInput from "../components/BloodSugarInput";
 import {
   getCorrectionInsulin,
-  getInsulin,
   getOvercompensationInsulins,
 } from "../lib/metabolism";
 import Card from "../components/Card";
@@ -38,7 +37,11 @@ export default function InsulinPage() {
   const [template] = WizardStore.template.useState();
   const [variant, setVariant] = useState(InsulinVariantManager.getDefault());
 
-  const suggestedInsulin = getInsulin(meal.carbs, meal.protein, variant);
+  const suggestedInsulin = template.getProfileInsulin(
+    meal.carbs,
+    meal.protein,
+    variant
+  );
 
   // Inputted Insulin
   const [insulinTaken, setInsulinTaken] = useState(0);
