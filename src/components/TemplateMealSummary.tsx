@@ -102,7 +102,7 @@ export default function TemplateMealSummary({
   const isSingleBolus = insulins.length < 2;
 
   const finalTiming = round(
-    (session ? session.getN(session.firstInsulinTimestamp) : 0) +
+    (session ? session.getRelativeN(session.firstInsulinTimestamp) * 60 : 0) +
       adjustments.timingAdjustment,
     0
   );
@@ -110,7 +110,7 @@ export default function TemplateMealSummary({
     if (!session) return 0;
     if (insulins.length < 2) return finalTiming;
     const insulin = insulins[index];
-    return round(session.getN(insulin.timestamp) * 60, 0);
+    return round(session.getRelativeN(insulin.timestamp) * 60, 0);
   }
 
   const [showExtra, setShowExtra] = useState(false);
@@ -137,7 +137,7 @@ export default function TemplateMealSummary({
             )}
             u
           </b>{" "}
-          of {insulin.variant.name}{" "}
+          of <i>{insulin.variant.name}</i>{" "}
           {!template.isFirstTime && (
             <>
               <b>{getFormattedTime(Math.abs(getTiming(i)))}</b>{" "}
@@ -202,9 +202,14 @@ export default function TemplateMealSummary({
                 <>
                   <b>{round(insulin.value, 1)}u</b>{" "}
                   {getFormattedTime(
-                    round(Math.abs(session.getN(insulin.timestamp)) * 60, 1)
+                    round(
+                      Math.abs(session.getRelativeN(insulin.timestamp)) * 60,
+                      1
+                    )
                   )}{" "}
-                  {session.getN(insulin.timestamp) > 0 ? "after" : "before"}{" "}
+                  {session.getRelativeN(insulin.timestamp) > 0
+                    ? "after"
+                    : "before"}{" "}
                   eating
                   <br />
                 </>

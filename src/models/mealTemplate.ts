@@ -75,7 +75,7 @@ export default class MealTemplate extends Subscribable implements Template {
     if (this.isFirstTime) return 0;
     return (
       sessionsWeightedAverage(
-        (s: Session) => s.getN(s.firstInsulinTimestamp),
+        (s: Session) => s.getRelativeN(s.firstInsulinTimestamp),
         this.sessions
       ) * 60
     );

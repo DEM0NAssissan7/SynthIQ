@@ -381,6 +381,9 @@ export default class Session extends Subscribable {
   getN(timestamp: Date) {
     return getHourDiff(timestamp, this.timestamp);
   }
+  getRelativeN(timestamp: Date) {
+    return getHourDiff(timestamp, this.firstMealTimestamp);
+  }
   get timestamp() {
     let timestamp = new Date();
     const callback = (e: MetaEvent) => {
