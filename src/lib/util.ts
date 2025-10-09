@@ -34,6 +34,7 @@ export function getHoursMinutes(_min: number) {
 
 // Helpers
 export function roundByHalf(x: number, ceilUp: boolean = true) {
+  if (x === 0) return 0;
   return Math.floor(x * 2 + (ceilUp ? 1 : 0)) / 2;
 }
 
