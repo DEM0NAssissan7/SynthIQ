@@ -11,6 +11,7 @@ import TemplateSummary from "../../components/TemplateSummary";
 import { WizardStore } from "../../storage/wizardStore";
 import { WizardPage } from "../../models/types/wizardPage";
 import { PreferencesStore } from "../../storage/preferencesStore";
+import { useNow } from "../../state/useNow";
 
 export default function WizardMealPage() {
   const [template] = WizardStore.template.useState();
@@ -44,10 +45,11 @@ export default function WizardMealPage() {
   }
 
   // Upon Startup
+  const now = useNow();
   useEffect(() => {
     // We intentionally assign the timestamp directly so that we do not trigger notify()
-    meal._timestamp = new Date();
-  }, [meal]);
+    meal._timestamp = now;
+  }, [meal, now]);
 
   return (
     <>

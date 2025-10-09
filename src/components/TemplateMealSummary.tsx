@@ -12,6 +12,7 @@ import Insulin from "../models/events/insulin";
 import React from "react";
 import { getFormattedTime, getFullPrettyDate } from "../lib/timing";
 import { InsulinVariantManager } from "../managers/insulinVariantManager";
+import { useNow } from "../state/useNow";
 
 function getFactorDesc(num: number, unit: string, type: string) {
   if (round(num, 1) === 0) return "";
@@ -37,7 +38,7 @@ export default function TemplateMealSummary({
   meal,
   currentBG,
 }: TemplateMealSummaryProps) {
-  const now = new Date();
+  const now = useNow();
   const time = meal.timestamp ?? now;
   const session = template.getOptimalSession(
     meal.carbs,
@@ -78,11 +79,7 @@ export default function TemplateMealSummary({
     // Fall back to profile
     if (!vectorizedInsulin || template.isFirstTime)
       return [
-        new Insulin(
-          profileInsulin,
-          new Date(),
-          InsulinVariantManager.getDefault()
-        ),
+        new Insulin(profileInsulin, now, InsulinVariantManager.getDefault()),
       ];
     return vectorizedInsulin;
   })();

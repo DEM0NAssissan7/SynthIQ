@@ -17,6 +17,7 @@ import { HealthMonitorStore } from "../storage/healthMonitorStore";
 import { BasalStore } from "../storage/basalStore";
 import { getLatestBasalTimestamp } from "../lib/healthMonitor";
 import type Insulin from "../models/events/insulin";
+import { useNow } from "../state/useNow";
 
 export default function BasalPage() {
   const fastingVelocity = getFastingVelocity();
@@ -55,8 +56,9 @@ export default function BasalPage() {
     return strings;
   }
 
+  const now = useNow();
   function getHoursSince(timestamp: Date) {
-    return round(getHourDiff(new Date(), timestamp), 0);
+    return round(getHourDiff(now, timestamp), 0);
   }
 
   return (

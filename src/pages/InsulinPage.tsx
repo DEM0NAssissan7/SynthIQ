@@ -18,6 +18,7 @@ import { InsulinVariantManager } from "../managers/insulinVariantManager";
 import { InsulinVariantStore } from "../storage/insulinVariantStore";
 import { NumberOptionSelector } from "../components/NumberOptionSelector";
 import Insulin from "../models/events/insulin";
+import { useNow } from "../state/useNow";
 
 export default function InsulinPage() {
   const navigate = useNavigate();
@@ -32,7 +33,7 @@ export default function InsulinPage() {
     [isBolus, session]
   );
 
-  const now = new Date();
+  const now = useNow();
   const meal = session.mealMarked ? session.latestMeal : WizardStore.meal.value;
   const [template] = WizardStore.template.useState();
   const [variant, setVariant] = useState(InsulinVariantManager.getDefault());

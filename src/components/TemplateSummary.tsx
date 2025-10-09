@@ -6,6 +6,7 @@ import type Session from "../models/session";
 import type MealTemplate from "../models/mealTemplate";
 import TemplateMealSummary from "./TemplateMealSummary";
 import { PreferencesStore } from "../storage/preferencesStore";
+import { useNow } from "../state/useNow";
 
 interface TemplateSummaryProps {
   template: MealTemplate;
@@ -19,6 +20,7 @@ export default function TemplateSummary({
   meal,
   currentBG,
 }: TemplateSummaryProps) {
+  const now = useNow();
   const bloodSugar = useMemo(
     () =>
       currentBG
@@ -30,7 +32,7 @@ export default function TemplateSummary({
   );
 
   function getMinutesAgo(timestamp: Date) {
-    return getMinuteDiff(new Date(), timestamp);
+    return getMinuteDiff(now, timestamp);
   }
 
   return (
@@ -104,7 +106,7 @@ export default function TemplateSummary({
       {session.meals.length > 0 && (
         <>
           <hr />
-          First meal eaten at {getPrettyTime(session.firstMealTimestamp)},{" "}
+          Meal eaten at {getPrettyTime(session.firstMealTimestamp)},{" "}
           {getFormattedTime(getMinutesAgo(session.firstMealTimestamp))} ago
           <br />
           <br />
