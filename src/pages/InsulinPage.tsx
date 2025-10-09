@@ -83,37 +83,31 @@ export default function InsulinPage() {
   }
 
   const correctionInsulin = useMemo(() => {
-    return currentGlucose
-      ? roundByHalf(getCorrectionInsulin(currentGlucose, variant))
-      : 0;
+    return currentGlucose ? getCorrectionInsulin(currentGlucose, variant) : 0;
   }, [currentGlucose, variant]);
   const vectorizedInsulins = template.vectorizeInsulin(
     meal.carbs,
     meal.protein,
     session.timestamp,
     currentGlucose ? currentGlucose : PreferencesStore.targetBG.value
-  ) ?? [
-    new Insulin(
-      suggestedInsulin + correctionInsulin,
-      now,
-      InsulinVariantManager.getDefault()
-    ),
-  ];
+  ) ?? [new Insulin(suggestedInsulin, now, InsulinVariantManager.getDefault())];
   const shotIndex = session.insulins.length;
-  const overshootInsulinOffset = getOvercompensationInsulins(
-    currentGlucose && currentGlucose > 0
-      ? currentGlucose
-      : PreferencesStore.targetBG.value,
-    vectorizedInsulins.map((i) => i.variant)
-  )[shotIndex];
+  const overshootInsulinOffset =
+    shotIndex < vectorizedInsulins.length
+      ? getOvercompensationInsulins(
+          currentGlucose && currentGlucose > 0
+            ? currentGlucose
+            : PreferencesStore.targetBG.value,
+          vectorizedInsulins.map((i) => i.variant)
+        )[shotIndex]
+      : 0;
 
+  const extraInsulin = correctionInsulin + overshootInsulinOffset;
   const displayedInsulin = (() => {
     if (!isBolus) return correctionInsulin;
-    let insulin: number = suggestedInsulin;
-    if (vectorizedInsulins) {
-      insulin = vectorizedInsulins[shotIndex]?.value ?? -overshootInsulinOffset;
-    }
-    return insulin + correctionInsulin + overshootInsulinOffset;
+    let insulin: number =
+      vectorizedInsulins[shotIndex]?.value ?? -overshootInsulinOffset;
+    return insulin + extraInsulin;
   })();
 
   // A variable that changes once per minute
@@ -124,6 +118,9 @@ export default function InsulinPage() {
       navigate
     );
   }
+
+  const correctionIsDisplayed =
+    roundByHalf(displayedInsulin) === roundByHalf(correctionInsulin);
 
   // Set usage state based on the current session state
   useEffect(() => {
@@ -177,9 +174,13 @@ export default function InsulinPage() {
           </InputGroup.Text>
           <Form.Control
             type="number"
-            placeholder={`${roundByHalf(displayedInsulin)} [${roundByHalf(
-              correctionInsulin
-            )}]`}
+            placeholder={
+              correctionIsDisplayed
+                ? roundByHalf(correctionInsulin).toFixed(1)
+                : `${roundByHalf(displayedInsulin)} ${
+                    extraInsulin ? `[${extraInsulin.toFixed(1)}]` : ``
+                  }`
+            }
             aria-describedby="basic-addon1"
             onChange={(e: any) => {
               const val = parseFloat(e.target.value);
