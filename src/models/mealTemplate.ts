@@ -292,7 +292,7 @@ export default class MealTemplate extends Subscribable implements Template {
     insulins[0].value = extraCarbsRise / insulins[0].variant.effect; // Add extra carbs offset to first shot, as they typically only act on first shot timeframe
 
     const extraProteinRisePerShot =
-      ((protein - session.protein) / insulins.length) * alpha.carbs;
+      ((protein - session.protein) / insulins.length) * alpha.protein;
     insulins.forEach(
       (i) => (i.value = extraProteinRisePerShot / i.variant.effect)
     ); // Distribute protein between all shots
