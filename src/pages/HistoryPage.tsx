@@ -1,8 +1,10 @@
+import { ToggleButton } from "react-bootstrap";
 import Card from "../components/Card";
 import { getFullPrettyDate } from "../lib/timing";
 import type MealTemplate from "../models/mealTemplate";
 import type Session from "../models/session";
 import { WizardStore } from "../storage/wizardStore";
+import { useState } from "react";
 
 export default function HistoryPage() {
   return (
@@ -26,6 +28,7 @@ export default function HistoryPage() {
             </thead>
             {[...template.sessions].reverse().map((session: Session) => {
               if (session.meals.length < 1) return <></>;
+              const [, setRerenderFlag] = useState(false);
               console.log(template.name, session, session.optimalMealInsulins);
               return (
                 <tbody
@@ -58,6 +61,29 @@ export default function HistoryPage() {
                     <td>{session.glucose}</td>
                     <td>{session.score.toFixed(0)}</td>
                     <td>{session.optimalMealInsulin.toFixed(1)}</td>
+                    <td>
+                      <ToggleButton
+                        id={`toggle-check-${session.uuid}`}
+                        type="checkbox"
+                        variant="outline-danger"
+                        checked={session.isGarbage}
+                        value="1"
+                        size="sm"
+                        style={{
+                          padding: "2px 6px",
+                          fontSize: "0.75rem",
+                          lineHeight: "1",
+                        }}
+                        onChange={(e) => {
+                          session.isGarbage = e.currentTarget.checked;
+                          WizardStore.templates.write();
+                          // Trigger rerender
+                          setRerenderFlag((f) => !f);
+                        }}
+                      >
+                        Garbage
+                      </ToggleButton>
+                    </td>
                   </tr>
                 </tbody>
               );
