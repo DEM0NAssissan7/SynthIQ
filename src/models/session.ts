@@ -22,7 +22,7 @@ import { InsulinVariantStore } from "../storage/insulinVariantStore";
 type TreatmentWindow = {
   initialBG: number;
   insulin: Insulin;
-  oldVariant: InsulinVariant;
+  optimalVariant: InsulinVariant;
   glucose: number;
   finalBG: number;
 };
@@ -239,15 +239,15 @@ export default class Session extends Subscribable {
       if (!snapshot.finalBG || !snapshot.initialBG)
         throw new Error(`Cannot get windows: no final or inital BG`);
       // Find optimal variant
-      const oldVariant = insulin.variant;
+      let optimalVariant = insulin.variant;
       for (let v of variants) {
-        insulin.variant = v;
+        optimalVariant = v;
         if (v.duration > snapshot.length) break;
       }
       const window: TreatmentWindow = {
         initialBG: snapshot.initialBG.sugar,
         insulin: Insulin.deserialize(Insulin.serialize(insulin)),
-        oldVariant: oldVariant,
+        optimalVariant: optimalVariant,
         finalBG: snapshot.finalBG.sugar,
         glucose: 0,
       };
@@ -286,7 +286,8 @@ export default class Session extends Subscribable {
     for (let i = 0; i < windows.length; i++) {
       const window = windows[i];
       const insulin = window.insulin;
-      const ISFScale = window.oldVariant.effect / insulin.variant.effect; // Scale the window's insulin by the ratio between our current ISF and the ISF when the meal was eaten
+      const ISFScale = insulin.variant.effect / window.optimalVariant.effect; // Scale the window's insulin by the ratio between our current ISF and the ISF when the meal was eaten
+      insulin.variant = window.optimalVariant;
       insulin.value = insulin.value * ISFScale;
       resultInsulins.push(insulin);
     }
