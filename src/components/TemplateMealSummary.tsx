@@ -174,8 +174,8 @@ export default function TemplateMealSummary({
           <hr />
           <b>Profile:</b> This meal requires{" "}
           <b>{round(profileInsulin + insulinCorrection, 1)}u</b> insulin (
-          {roundByHalf(profileCarbInsulin)}u carbs,{" "}
-          {roundByHalf(profileProteinInsulin)}u protein)
+          {profileCarbInsulin.toFixed(1)}u carbs,{" "}
+          {profileProteinInsulin.toFixed(1)}u protein)
           {!template.isFirstTime && session && (
             <>
               <hr />
