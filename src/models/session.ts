@@ -25,6 +25,7 @@ type TreatmentWindow = {
   optimalVariant: InsulinVariant;
   glucose: number;
   finalBG: number;
+  length: number;
 };
 
 export default class Session extends Subscribable {
@@ -247,6 +248,7 @@ export default class Session extends Subscribable {
         insulin: Insulin.deserialize(Insulin.serialize(insulin)),
         optimalVariant: optimalVariant,
         finalBG: snapshot.finalBG.sugar,
+        length: snapshot.length,
         glucose: 0,
       };
       // We account for glucose taken within the time frame and subtract it from the final sugar to see what it would be without any adjustment
@@ -262,6 +264,28 @@ export default class Session extends Subscribable {
           window.glucose += glucose.value;
         }
       }
+
+      // If we have a dose close (enough) to the last window's, we combine them together
+      if (windows.length > 0) {
+        const lastWindow = windows[windows.length - 1];
+        // If our insulin was within an hour of the first one
+        if (
+          getHourDiff(window.insulin.timestamp, lastWindow.insulin.timestamp) <
+            1 &&
+          window.insulin.variant.name === lastWindow.insulin.variant.name // the same kind of insulin
+        ) {
+          lastWindow.insulin.value += window.insulin.value;
+          lastWindow.finalBG = window.finalBG;
+          lastWindow.glucose += window.glucose;
+          lastWindow.length += window.length;
+          lastWindow.optimalVariant = InsulinVariantManager.getOptimalVariant(
+            lastWindow.length,
+            lastWindow.insulin.variant
+          );
+          continue;
+        }
+      }
+
       windows.push(window);
     }
     return windows;
