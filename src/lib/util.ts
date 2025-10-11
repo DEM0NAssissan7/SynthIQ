@@ -7,7 +7,7 @@ export function convertDimensions(source: number, destination: number): number {
 export function random(min: number, max: number): number {
   return Math.random() * (max - min) + min;
 }
-export function round(num: number, precision: number): number {
+export function round(num: number, precision: number = 0): number {
   return Math.round(num * 10 ** precision) / 10 ** precision;
 }
 export function floor(num: number, precision: number): number {
