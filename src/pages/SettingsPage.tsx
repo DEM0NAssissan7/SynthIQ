@@ -147,6 +147,12 @@ export default function SettingsPage() {
           iconClass="bi bi-exclamation-octagon"
           unit="mg/dL"
         />
+        <NumberSetting
+          keyInterface={HealthMonitorStore.dropTime}
+          title="Rescue Predicted Drop Time"
+          iconClass="bi bi-clock"
+          unit="min"
+        />
       </Card>
       <Card>
         <ButtonGroup>
