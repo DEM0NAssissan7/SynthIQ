@@ -19,6 +19,14 @@ import Activity from "./events/activity";
 import type { InsulinVariant } from "./types/insulinVariant";
 import { InsulinVariantStore } from "../storage/insulinVariantStore";
 
+type TreatmentWindow = {
+  initialBG: number;
+  insulin: Insulin;
+  oldVariant: InsulinVariant;
+  glucose: number;
+  finalBG: number;
+};
+
 export default class Session extends Subscribable {
   uuid: UUID;
 
@@ -196,7 +204,7 @@ export default class Session extends Subscribable {
       0
     );
   }
-  get optimalMealInsulins(): Insulin[] {
+  get windows(): TreatmentWindow[] {
     /**
      * The rationale here is we basically create little windows of time
      * Each bolus shot creates a new window
@@ -220,15 +228,7 @@ export default class Session extends Subscribable {
     const glucoses = this.glucoses;
 
     if (!this.initialGlucose)
-      throw new Error(`Cannot determine insulin amount: no initial BG`);
-
-    type TreatmentWindow = {
-      initialBG: number;
-      insulin: Insulin;
-      oldVariant: InsulinVariant;
-      glucose: number;
-      finalBG: number;
-    };
+      throw new Error(`Cannot get windows: no initial BG`);
 
     // Treatment windows creation
     let windows: TreatmentWindow[] = [];
@@ -237,9 +237,7 @@ export default class Session extends Subscribable {
       const snapshot = snapshots[i];
       const insulin = insulins[i] ?? insulins[i - 1];
       if (!snapshot.finalBG || !snapshot.initialBG)
-        throw new Error(
-          `Cannot reliably dictate insulin dosing: no final or inital BG`
-        );
+        throw new Error(`Cannot get windows: no final or inital BG`);
       // Find optimal variant
       const oldVariant = insulin.variant;
       for (let v of variants) {
@@ -268,9 +266,13 @@ export default class Session extends Subscribable {
       }
       windows.push(window);
     }
+    return windows;
+  }
+  get optimalMealInsulins(): Insulin[] {
     /**
      * Now that we have a list of the theoretical finalBGs, we can adjust each on to try and get a zero-change scenario
      */
+    const windows = this.windows;
     for (let window of windows) {
       const glucoseRise = window.glucose * CalibrationStore.glucoseEffect.value;
       const theoreticalFinalBG = window.finalBG - glucoseRise; // Avoid blaming glucose for a rise in BG
