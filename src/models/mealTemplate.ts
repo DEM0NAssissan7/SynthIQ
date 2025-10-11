@@ -64,6 +64,9 @@ export default class MealTemplate extends Subscribable implements Template {
   get size(): number {
     return this.sessions.length;
   }
+  get validSessions(): Session[] {
+    return this.sessions.filter((s) => !s.isInvalid);
+  }
 
   // Dosing info
   /** This gies you the meal dose insulin taken last, not accounting for correction */
@@ -94,10 +97,11 @@ export default class MealTemplate extends Subscribable implements Template {
 
     const sessionHalfLife = PreferencesStore.sessionHalfLife.value;
 
-    // Don't allow less than 3 sessions before making any conclusions
-    if (this.sessions.length >= 3) {
-      for (let i = this.sessions.length - 1; i >= 0; i--) {
-        const session = this.sessions[i];
+    // Don't allow less than 3 valid sessions before making any conclusions
+    const validSessions = this.validSessions;
+    if (validSessions.length >= 3) {
+      for (let i = validSessions.length - 1; i >= 0; i--) {
+        const session = validSessions[i];
         if (session.isInvalid) continue;
         const age = session.age;
         const weight = Math.pow(0.5, age / sessionHalfLife);
