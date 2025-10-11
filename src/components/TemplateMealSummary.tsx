@@ -195,19 +195,24 @@ export default function TemplateMealSummary({
               <i>{session.glucose} grams/caps</i> glucose
               <br />
               <br />
-              {session.insulins.map((insulin) => (
+              {session.windows.map((window) => (
                 <>
-                  <b>{round(insulin.value, 1)}u</b>{" "}
+                  <b>{round(window.insulin.value, 1)}u</b>{" "}
+                  {window.insulin.variant.name}{" "}
                   {getFormattedTime(
                     round(
-                      Math.abs(session.getRelativeN(insulin.timestamp)) * 60,
+                      Math.abs(session.getRelativeN(window.insulin.timestamp)) *
+                        60,
                       1
                     )
                   )}{" "}
-                  {session.getRelativeN(insulin.timestamp) > 0
+                  {session.getRelativeN(window.insulin.timestamp) > 0
                     ? "after"
                     : "before"}{" "}
-                  eating
+                  eating{" "}
+                  {`[${getFormattedTime(round(window.length * 60))}, ${
+                    window.initialBG
+                  }mg/dL -> ${window.finalBG}mg/dL]`}
                   <br />
                 </>
               ))}
