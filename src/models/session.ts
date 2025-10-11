@@ -296,18 +296,18 @@ export default class Session extends Subscribable {
      */
     const windows = this.windows;
     for (let window of windows) {
+      const insulin = window.insulin;
       const glucoseRise = window.glucose * CalibrationStore.glucoseEffect.value;
       const theoreticalFinalBG = window.finalBG - glucoseRise; // Avoid blaming glucose for a rise in BG
       const deltaBG = theoreticalFinalBG - window.initialBG; // Try to keep things as flat as possible
 
-      const correction = deltaBG / window.insulin.variant.effect;
-      window.insulin.value += correction;
+      const correction = deltaBG / insulin.variant.effect;
+      insulin.value += correction;
     }
 
     let resultInsulins: Insulin[] = [];
-    for (let i = 0; i < windows.length; i++) {
-      const window = windows[i];
-      const insulin = window.insulin;
+    for (let window of windows) {
+      const insulin = Insulin.deserialize(Insulin.serialize(window.insulin));
       const ISFScale = insulin.variant.effect / window.optimalVariant.effect; // Scale the window's insulin by the ratio between our current ISF and the ISF when the meal was eaten
       insulin.variant = window.optimalVariant;
       insulin.value = insulin.value * ISFScale;
