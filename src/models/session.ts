@@ -17,7 +17,7 @@ import { CalibrationStore } from "../storage/calibrationStore";
 import { PreferencesStore } from "../storage/preferencesStore";
 import Activity from "./events/activity";
 import type { InsulinVariant } from "./types/insulinVariant";
-import { InsulinVariantStore } from "../storage/insulinVariantStore";
+import { InsulinVariantManager } from "../managers/insulinVariantManager";
 
 type TreatmentWindow = {
   initialBG: number;
@@ -232,18 +232,16 @@ export default class Session extends Subscribable {
 
     // Treatment windows creation
     let windows: TreatmentWindow[] = [];
-    const variants = InsulinVariantStore.variants.value;
     for (let i = 0; i < snapshots.length; i++) {
       const snapshot = snapshots[i];
       const insulin = insulins[i] ?? insulins[i - 1];
       if (!snapshot.finalBG || !snapshot.initialBG)
         throw new Error(`Cannot get windows: no final or inital BG`);
       // Find optimal variant
-      let optimalVariant = insulin.variant;
-      for (let v of variants) {
-        optimalVariant = v;
-        if (v.duration > snapshot.length) break;
-      }
+      let optimalVariant = InsulinVariantManager.getOptimalVariant(
+        snapshot.length,
+        insulin.variant
+      );
       const window: TreatmentWindow = {
         initialBG: snapshot.initialBG.sugar,
         insulin: Insulin.deserialize(Insulin.serialize(insulin)),

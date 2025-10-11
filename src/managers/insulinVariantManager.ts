@@ -32,6 +32,18 @@ export namespace InsulinVariantManager {
     }
     return null;
   }
+  export function getOptimalVariant(
+    hours: number,
+    originalVariant?: InsulinVariant
+  ): InsulinVariant {
+    let optimalVariant = originalVariant ?? getDefault();
+    const variants = InsulinVariantStore.variants.value;
+    for (let v of variants) {
+      optimalVariant = v;
+      if (v.duration > hours) break;
+    }
+    return optimalVariant;
+  }
   function getVariantIndex(name: string): number | null {
     const variants = InsulinVariantStore.variants.value;
     for (let i = 0; i < variants.length; i++) {
