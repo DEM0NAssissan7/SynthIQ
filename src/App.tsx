@@ -30,9 +30,11 @@ import InsulinPage from "./pages/InsulinPage";
 import WizardInsulinRouter from "./pages/wizard/WizardInsulinRouter";
 import HistoryPage from "./pages/HistoryPage";
 import InsulinVariantsPage from "./pages/InsulinVariantsPage";
+import { useNow } from "./state/useNow";
 
 function App() {
   const navigate = useNavigate();
+  const now = useNow(60);
   useEffect(() => {
     // Attempt to fulfill requests upon page load
     Backend.fulfillRequests();
@@ -42,7 +44,7 @@ function App() {
 
     // Execute health monitor
     smartMonitor(navigate);
-  }, []);
+  }, [now]);
 
   console.log(WizardStore.session.value);
   console.log(WizardStore.template.value);
