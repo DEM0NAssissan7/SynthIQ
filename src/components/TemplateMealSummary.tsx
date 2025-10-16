@@ -197,7 +197,7 @@ export default function TemplateMealSummary({
               <br />
               {session.windows.map((window) => (
                 <>
-                  <b>{round(window.insulin.value, 1)}u</b>{" "}
+                  <b>{window.insulin.value.toFixed(1)}u</b>{" "}
                   {window.insulin.variant.name}{" "}
                   {getFormattedTime(
                     round(
