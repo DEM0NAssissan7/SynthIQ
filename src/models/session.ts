@@ -291,28 +291,34 @@ export default class Session extends Subscribable {
     return windows;
   }
   get optimalMealInsulins(): Insulin[] {
-    /**
-     * Now that we have a list of the theoretical finalBGs, we can adjust each on to try and get a zero-change scenario
-     */
     const windows = this.windows;
+    let resultInsulins: Insulin[] = [];
     for (let window of windows) {
-      const insulin = window.insulin;
+      /**
+       * Now that we have a list of the theoretical finalBGs, we can adjust each on to try and get a zero-change scenario
+       */
+      const insulin = Insulin.deserialize(Insulin.serialize(window.insulin));
       const glucoseRise = window.glucose * CalibrationStore.glucoseEffect.value;
       const theoreticalFinalBG = window.finalBG - glucoseRise; // Avoid blaming glucose for a rise in BG
       const deltaBG = theoreticalFinalBG - window.initialBG; // Try to keep things as flat as possible
 
       const correction = deltaBG / insulin.variant.effect;
       insulin.value += correction;
+      resultInsulins.push(insulin);
+
+      /**
+       * And we can also conclude things about the timing as well
+       * We can conclude things based on the curve
+       */
     }
 
-    let resultInsulins: Insulin[] = [];
-    for (let window of windows) {
-      const insulin = Insulin.deserialize(Insulin.serialize(window.insulin));
-      const ISFScale = insulin.variant.effect / window.optimalVariant.effect; // Scale the window's insulin by the ratio between our current ISF and the ISF when the meal was eaten
-      insulin.variant = window.optimalVariant;
-      insulin.value = insulin.value * ISFScale;
-      resultInsulins.push(insulin);
-    }
+    // for (let window of windows) {
+    //   continue;
+    //   const ISFScale = insulin.variant.effect / window.optimalVariant.effect; // Scale the window's insulin by the ratio between our current ISF and the ISF when the meal was eaten
+    //   insulin.variant = window.optimalVariant;
+    //   insulin.value = insulin.value * ISFScale;
+    //   resultInsulins.push(insulin);
+    // }
 
     return resultInsulins;
   }
