@@ -1,6 +1,7 @@
 import type { InsulinVariant } from "../models/types/insulinVariant";
 import { CalibrationStore } from "../storage/calibrationStore";
 import { PreferencesStore } from "../storage/preferencesStore";
+import { WizardStore } from "../storage/wizardStore";
 
 // Insulin
 export function getCorrectionInsulin(glucose: number, variant: InsulinVariant) {
@@ -58,4 +59,36 @@ export function getIntelligentGlucoseCorrection(
 export function getBasalCorrection(velocity: number): number {
   const basalVelocityEffect = CalibrationStore.basalEffect.value; // [(mg/dL) per hour] / unit
   return velocity / basalVelocityEffect;
+}
+
+export function getApproximatedProfile() {
+  const templates = WizardStore.templates.value;
+
+  // The alpha is basically a gradient descent from the general profile
+  let alphaCarbs = CalibrationStore.carbsEffect.value;
+  let alphaProtein = CalibrationStore.proteinEffect.value;
+
+  const baseLearningRate = 0.0001;
+
+  // Don't allow less than 3 valid sessions before making any conclusions
+  for (let template of templates) {
+    const validSessions = template.validSessions;
+    for (let i = validSessions.length - 1; i >= 0; i--) {
+      const session = validSessions[i];
+      const eta = baseLearningRate;
+
+      const predictedMealRise =
+        alphaCarbs * session.carbs + alphaProtein * session.protein;
+      const actualMealRise = session.mealRise;
+      const error = predictedMealRise - actualMealRise;
+
+      alphaCarbs -= eta * error * session.carbs;
+      alphaProtein -= eta * error * session.protein;
+    }
+  }
+
+  return {
+    carbsEffect: alphaCarbs,
+    proteinEffect: alphaProtein,
+  };
 }

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import useImportedSessionsState from "../state/useImportedSessionsState";
 import Card from "../components/Card";
 import { MathUtil } from "../lib/util";
+import { getApproximatedProfile } from "../lib/metabolism";
 
 interface DataStatisticsProps {
   title: string;
@@ -73,6 +74,8 @@ export default function StatisticsPage() {
     return retval;
   }, [readings]);
 
+  const approximatedProfile = getApproximatedProfile();
+
   return (
     <>
       <h1>Statistics</h1>
@@ -86,6 +89,13 @@ export default function StatisticsPage() {
       <DataStatistics title="Insulin (u)" data={insulin} />
       <DataStatistics title="Glucose (caps)" data={glucose} />
       <DataStatistics title="Blood Sugar (mg/dL)" data={allReadings} />
+      <h3>Learned Info</h3>
+      <p>Information Derived From Data</p>
+      Carbs Effect (mg/dL rise per gram):{" "}
+      {approximatedProfile.carbsEffect.toFixed(2)}
+      <br />
+      Protein Effect (mg/dL rise per gram):{" "}
+      {approximatedProfile.proteinEffect.toFixed(2)}
     </>
   );
 }

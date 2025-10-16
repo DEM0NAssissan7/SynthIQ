@@ -93,7 +93,7 @@ export default class MealTemplate extends Subscribable implements Template {
     let alphaCarbs = CalibrationStore.carbsEffect.value;
     let alphaProtein = CalibrationStore.proteinEffect.value;
 
-    const baseLearningRate = 0.001;
+    const baseLearningRate = 0.0006;
 
     const sessionHalfLife = PreferencesStore.sessionHalfLife.value;
 
@@ -195,7 +195,6 @@ export default class MealTemplate extends Subscribable implements Template {
       .slice(0, K)
       .map((a) => a[0]);
     if (nearSessions.length === 0) return null;
-    console.log(nearSessions);
 
     // Eliminate outliers
     const kept: Session[] = [];
@@ -207,7 +206,6 @@ export default class MealTemplate extends Subscribable implements Template {
         Math.abs(s.optimalMealInsulin - medianOptimalInsulin)
       )
     );
-    console.log(medianOptimalInsulin, optimalInsulinMAD);
 
     const TAU = 1.5; // or 2.0 if you want looser
     const cutoff = TAU * optimalInsulinMAD;
