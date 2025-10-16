@@ -102,7 +102,6 @@ export default class MealTemplate extends Subscribable implements Template {
     if (validSessions.length >= 3) {
       for (let i = validSessions.length - 1; i >= 0; i--) {
         const session = validSessions[i];
-        if (session.isInvalid) continue;
         const age = session.age;
         const weight = Math.pow(0.5, age / sessionHalfLife);
         const eta = baseLearningRate * weight;
