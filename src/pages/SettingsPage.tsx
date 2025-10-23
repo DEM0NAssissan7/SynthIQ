@@ -147,6 +147,12 @@ export default function SettingsPage() {
           iconClass="bi bi-exclamation-octagon"
           unit="mg/dL"
         />
+        <NumberSetting
+          keyInterface={HealthMonitorStore.dropTime}
+          title="Rescue Predicted Drop Time"
+          iconClass="bi bi-clock"
+          unit="min"
+        />
       </Card>
       <Card>
         <ButtonGroup>
@@ -177,12 +183,6 @@ export default function SettingsPage() {
           unit="mg/dL"
         />
         <NumberSetting
-          keyInterface={CalibrationStore.insulinEffect}
-          title="Insulin Effect (per unit)"
-          iconClass="bi bi-eyedropper"
-          unit="mg/dL"
-        />
-        <NumberSetting
           keyInterface={CalibrationStore.carbsEffect}
           title="Carbs Effect (per gram)"
           iconClass="bi bi-cake2"
@@ -210,7 +210,13 @@ export default function SettingsPage() {
         />
         <NumberSetting
           keyInterface={PreferencesStore.maxSessionLife}
-          title="Max Session Life"
+          title="Max Session Storage Life"
+          iconClass="bi bi-clock"
+          unit="days"
+        />
+        <NumberSetting
+          keyInterface={PreferencesStore.usableSessionLife}
+          title="Usable Session Life"
           iconClass="bi bi-clock"
           unit="days"
         />

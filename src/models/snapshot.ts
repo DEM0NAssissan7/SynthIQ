@@ -6,9 +6,11 @@
  */
 
 import RemoteReadings from "../lib/remote/readings";
+import { convertDimensions, MathUtil } from "../lib/util";
 import Subscribable from "./subscribable";
 import SugarReading, { getReadingFromNightscout } from "./types/sugarReading";
 import type { Deserializer, Serializer } from "./types/types";
+import Unit from "./unit";
 
 export default class Snapshot extends Subscribable {
   private rawReadings: SugarReading[] = [];
@@ -29,7 +31,7 @@ export default class Snapshot extends Subscribable {
   absorb(snapshot: Snapshot) {
     snapshot.rawReadings.forEach((r) => this.addReading(r));
   }
-  private get readings(): SugarReading[] {
+  get readings(): SugarReading[] {
     // This is for when we implement smoothing
     if (this.readingsCache.length === 0) {
       this.readingsCache = this.rawReadings;
@@ -39,6 +41,9 @@ export default class Snapshot extends Subscribable {
   private get calibrations(): SugarReading[] {
     // We filter through raw readings because calibrations don't need to be smoothed
     return this.rawReadings.filter((r) => r.isCalibration);
+  }
+  private get numericalReadings() {
+    return this.readings.map((r) => r.sugar);
   }
   private get timeSorted() {
     if (this.timeSortedCache.length === 0) {
@@ -110,6 +115,24 @@ export default class Snapshot extends Subscribable {
     return this.isValid
       ? this.valueSorted[Math.floor(this.valueSorted.length * 0.9)] // Get the top 10%
       : null;
+  }
+
+  get averageBG(): number {
+    return MathUtil.mean(this.numericalReadings);
+  }
+  get medianBG(): number {
+    return MathUtil.median(this.numericalReadings);
+  }
+
+  get length(): number {
+    // Returns the length of the snapshot in hours
+    const initialBG = this.initialBG;
+    const finalBG = this.finalBG;
+    if (!initialBG || !finalBG) return 0;
+    return (
+      (finalBG.timestamp.getTime() - initialBG.timestamp.getTime()) *
+      convertDimensions(Unit.Time.Millis, Unit.Time.Hour)
+    );
   }
 
   // Serialization

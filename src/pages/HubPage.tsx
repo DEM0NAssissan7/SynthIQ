@@ -35,7 +35,6 @@ function HubPage() {
     <Container fluid className="text-center py-4 bg-light min-vh-100">
       <header className="mb-5">
         <h1>Welcome to the Hub</h1>
-        <p>Your central place for all things diabetes</p>
       </header>
       <main>
         <Row className="g-4 justify-content-center">

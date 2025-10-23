@@ -4,6 +4,8 @@ export namespace PreferencesStore {
   const node = new StorageNode("preferences");
 
   export const maxSessionLength = node.add("maxSessionLength", 8);
+  export const minSessionLength = node.add("minSessionLength", 3.5);
+  export const maxSessionGlucose = node.add("maxSessionGlucose", 9);
   export const endingHours = node.add("endingHours", 1);
   export const targetBG = node.add("targetBG", 83);
   export const lowBG = node.add("lowBG", 70);
@@ -13,6 +15,6 @@ export namespace PreferencesStore {
   export const timeStepSize = node.add("timeStepSize", 5);
   export const sessionHalfLife = node.add("sessionHalfLife", 3);
   export const maxSessionLife = node.add("maxSessionLife", 30);
+  export const usableSessionLife = node.add("usableSessionLife", 7);
   export const overshootOffset = node.add("overshootOffset", 10);
-  export const scaleByISF = node.add("scaleByISF", false);
 }

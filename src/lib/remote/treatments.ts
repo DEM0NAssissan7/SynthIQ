@@ -12,6 +12,7 @@ class RemoteTreatments {
     return await Backend.get(
       `treatments.json?find[created_at][$gte]=${timestampA.toString()}&find[created_at][$lte]=${timestampB.toString()}`
     ).then((a: any[]) => {
+      if (typeof a !== "object") return [];
       return a.map((b: any) => {
         b.timestamp = new Date(b.created_at);
         return b;
@@ -42,12 +43,13 @@ class RemoteTreatments {
       timestamp
     );
   }
-  static markInsulin(units: number, timestamp: Date): void {
+  static markInsulin(units: number, timestamp: Date, variant: string): void {
     Backend.post(
       "treatments",
       {
         insulin: units,
         eventType: insulinEventType,
+        notes: variant,
       },
       timestamp
     );

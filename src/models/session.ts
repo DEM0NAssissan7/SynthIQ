@@ -1,5 +1,9 @@
-import { getHourDiff, getTimestampFromOffset } from "../lib/timing";
-import { convertDimensions, genUUID, type UUID } from "../lib/util";
+import {
+  getHourDiff,
+  getTimestampFromOffset,
+  timestampIsBetween,
+} from "../lib/timing";
+import { convertDimensions, genUUID, MathUtil, type UUID } from "../lib/util";
 import Glucose from "./events/glucose";
 import Insulin from "./events/insulin";
 import Meal from "./events/meal";
@@ -12,6 +16,17 @@ import type { Deserializer, JSONObject, Serializer } from "./types/types";
 import { CalibrationStore } from "../storage/calibrationStore";
 import { PreferencesStore } from "../storage/preferencesStore";
 import Activity from "./events/activity";
+import type { InsulinVariant } from "./types/insulinVariant";
+import { InsulinVariantManager } from "../managers/insulinVariantManager";
+
+type TreatmentWindow = {
+  initialBG: number;
+  insulin: Insulin;
+  optimalVariant: InsulinVariant;
+  glucose: number;
+  finalBG: number;
+  length: number;
+};
 
 export default class Session extends Subscribable {
   uuid: UUID;
@@ -19,12 +34,9 @@ export default class Session extends Subscribable {
   snapshots: Snapshot[] = [];
 
   _isGarbage: boolean = false;
+  completed: boolean = false;
   notes: string = "";
   version: number = 1;
-
-  // Save user calibrations upon creation
-  insulinEffect: number = CalibrationStore.insulinEffect.value;
-  glucoseEffect: number = CalibrationStore.glucoseEffect.value;
 
   meals: Meal[] = [];
   insulins: Insulin[] = [];
@@ -120,6 +132,7 @@ export default class Session extends Subscribable {
   }
   set finalBG(sugar: number) {
     this.lastSnapshot.finalBG = sugar;
+    this.completed = true;
   }
   get endTimestamp() {
     return this.snapshot.finalBG ? this.snapshot.finalBG.timestamp : null;
@@ -160,8 +173,10 @@ export default class Session extends Subscribable {
     const glucose = this.glucose;
     const glucoseDeltaBG = glucose * CalibrationStore.glucoseEffect.value;
 
-    const insulin = this.insulin;
-    const insulinDeltaBG = insulin * this.insulinEffect;
+    let insulinDeltaBG = 0;
+    this.insulins.forEach(
+      (i) => (insulinDeltaBG += i.value * i.variant.effect)
+    );
 
     /* 
   The following statement is roughly true:
@@ -181,44 +196,150 @@ export default class Session extends Subscribable {
     const mealDeltaBG = totalDeltaBG + insulinDeltaBG - glucoseDeltaBG;
     return mealDeltaBG;
   }
-  get insulinErrorCorrection(): number {
-    const finalBG = this.finalBG;
-    if (!finalBG)
-      throw new Error(`Cannot get optimal insulin: no final blood sugar`);
-
-    const target = PreferencesStore.targetBG.value;
-    const glucoseRise = this.glucose * CalibrationStore.glucoseEffect.value;
-
-    const BGError = finalBG - target; // The amount that the final blood sugar deviated from the target
-    // We wanna bring BG back to target, but we also negate
-    // typicalFinalBG describes the typical (i.e. without glucose) final BG if the user never took glucose. This is what we wanna correct for
-    const typicalFinalBG = BGError - glucoseRise;
-    const errorCorrection = typicalFinalBG / this.insulinEffect;
-    return errorCorrection;
-  }
   get correctionInsulin(): number {
+    if (this.insulins.length === 0) return 0;
     const initialBG = this.initialGlucose ?? PreferencesStore.targetBG.value;
+    const insulinEffect = this.insulins[0].variant.effect;
     return Math.max(
-      (initialBG - PreferencesStore.targetBG.value) / this.insulinEffect,
+      (initialBG - PreferencesStore.targetBG.value) / insulinEffect,
       0
     );
   }
-  get insulinAdjustment(): number {
-    const finalBG = this.finalBG;
-    if (!finalBG) return 0;
-    const theoreticalFinalBG =
-      finalBG - CalibrationStore.glucoseEffect.value * this.glucose;
-    return (
-      (theoreticalFinalBG - PreferencesStore.targetBG.value) /
-      this.insulinEffect
-    );
+  get windows(): TreatmentWindow[] {
+    /**
+     * The rationale here is we basically create little windows of time
+     * Each bolus shot creates a new window
+     * A window contains the following info:
+     *
+     * InitialBG
+     * Insulin amount taken
+     * Glucose amount taken
+     * FinalBG
+     *
+     * The algorithm is pretty simple. We adjust for the change in BG (accounting for glucose rise).
+     * And it implicitly subtracts whatever correction insulin was taken because it attempts
+     * to correct for it.
+     *
+     * For the first insulin, we subtract the insulin taken to correct for the current BG
+     * because this function only wants to return the optimal MEAL insulin, not cumUlative.
+     */
+
+    const snapshots = this.snapshots;
+    const insulins = this.insulins;
+    const glucoses = this.glucoses;
+
+    if (!this.initialGlucose)
+      throw new Error(`Cannot get windows: no initial BG`);
+
+    // Treatment windows creation
+    let windows: TreatmentWindow[] = [];
+    for (let i = 0; i < snapshots.length; i++) {
+      const snapshot = snapshots[i];
+      const insulin = insulins[i] ?? insulins[i - 1];
+      if (!snapshot.finalBG || !snapshot.initialBG)
+        throw new Error(`Cannot get windows: no final or inital BG`);
+      // Find optimal variant
+      let optimalVariant = InsulinVariantManager.getOptimalVariant(
+        snapshot.length,
+        insulin.variant
+      );
+      const window: TreatmentWindow = {
+        initialBG: snapshot.initialBG.sugar,
+        insulin: Insulin.deserialize(Insulin.serialize(insulin)),
+        optimalVariant: optimalVariant,
+        finalBG: snapshot.finalBG.sugar,
+        length: snapshot.length,
+        glucose: 0,
+      };
+      // We account for glucose taken within the time frame and subtract it from the final sugar to see what it would be without any adjustment
+      for (let glucose of glucoses) {
+        if (
+          timestampIsBetween(
+            glucose.timestamp,
+            snapshot.initialBG.timestamp,
+            snapshot.finalBG.timestamp
+          )
+        ) {
+          // If the glucose was taken during this window
+          window.glucose += glucose.value;
+        }
+      }
+
+      // If we have a dose close (enough) to the last window's, we combine them together
+      if (windows.length > 0) {
+        const lastWindow = windows[windows.length - 1];
+        // If our insulin was within an hour of the first one
+        if (
+          getHourDiff(window.insulin.timestamp, lastWindow.insulin.timestamp) <
+            1 &&
+          window.insulin.variant.name === lastWindow.insulin.variant.name // the same kind of insulin
+        ) {
+          lastWindow.insulin.value += window.insulin.value;
+          lastWindow.finalBG = window.finalBG;
+          lastWindow.glucose += window.glucose;
+          lastWindow.length += window.length;
+          lastWindow.optimalVariant = InsulinVariantManager.getOptimalVariant(
+            lastWindow.length,
+            lastWindow.insulin.variant
+          );
+          continue;
+        }
+      }
+
+      windows.push(window);
+    }
+    return windows;
   }
+  get optimalMealInsulins(): Insulin[] {
+    const windows = this.windows;
+    let resultInsulins: Insulin[] = [];
+    for (let window of windows) {
+      /**
+       * Now that we have a list of the theoretical finalBGs, we can adjust each on to try and get a zero-change scenario
+       */
+      const insulin = Insulin.deserialize(Insulin.serialize(window.insulin));
+      const glucoseRise = window.glucose * CalibrationStore.glucoseEffect.value;
+      const theoreticalFinalBG = window.finalBG - glucoseRise; // Avoid blaming glucose for a rise in BG
+      const deltaBG = theoreticalFinalBG - window.initialBG; // Try to keep things as flat as possible
+
+      const correction = deltaBG / insulin.variant.effect;
+      insulin.value += correction;
+      resultInsulins.push(insulin);
+
+      /**
+       * And we can also conclude things about the timing as well
+       * We can conclude things based on the curve
+       */
+    }
+
+    // for (let window of windows) {
+    //   continue;
+    //   const ISFScale = insulin.variant.effect / window.optimalVariant.effect; // Scale the window's insulin by the ratio between our current ISF and the ISF when the meal was eaten
+    //   insulin.variant = window.optimalVariant;
+    //   insulin.value = insulin.value * ISFScale;
+    //   resultInsulins.push(insulin);
+    // }
+
+    return resultInsulins;
+  }
+
   get optimalMealInsulin(): number {
-    return this.insulin + this.insulinAdjustment - this.correctionInsulin;
+    const optimalInsulins = this.optimalMealInsulins;
+    let insulin = 0;
+    optimalInsulins.forEach((i) => (insulin += i.value));
+    return insulin;
+  }
+  get insulinAdjustment(): number {
+    return this.optimalMealInsulin - this.mealInsulin;
   }
 
   // Insulins
-  createInsulin(units: number, timestamp: Date, BG?: number): Insulin {
+  createInsulin(
+    units: number,
+    timestamp: Date,
+    variant: InsulinVariant,
+    BG?: number
+  ): Insulin {
     // Mark snapshot
     if (this.insulins.length !== 0 && BG) {
       this.lastSnapshot.finalBG = BG;
@@ -226,7 +347,7 @@ export default class Session extends Subscribable {
       snapshot.initialBG = BG;
     }
 
-    const insulin = new Insulin(units, timestamp);
+    const insulin = new Insulin(units, timestamp, variant);
     this.insulins.push(insulin);
     this.addChildSubscribable(insulin);
     this.notify();
@@ -246,13 +367,7 @@ export default class Session extends Subscribable {
     return insulin;
   }
   get mealInsulin(): number {
-    const initialGlucose = this.initialGlucose;
-    if (!initialGlucose)
-      throw new Error(`Cannot get meal insulin: no initial glucose`);
-    return (
-      this.insulin -
-      (initialGlucose - PreferencesStore.targetBG.value) / this.insulinEffect
-    );
+    return this.insulin - this.correctionInsulin;
   }
   get firstInsulinTimestamp(): Date {
     if (this.insulins.length === 0) return this.timestamp;
@@ -297,6 +412,9 @@ export default class Session extends Subscribable {
   getN(timestamp: Date) {
     return getHourDiff(timestamp, this.timestamp);
   }
+  getRelativeN(timestamp: Date) {
+    return getHourDiff(timestamp, this.firstMealTimestamp);
+  }
   get timestamp() {
     let timestamp = new Date();
     const callback = (e: MetaEvent) => {
@@ -326,13 +444,26 @@ export default class Session extends Subscribable {
     this.notify();
   }
   get isGarbage(): boolean {
-    return this._isGarbage || this.meals.length > 1;
+    return this._isGarbage;
+  }
+  get isInvalid(): boolean {
+    return (
+      this.isGarbage ||
+      this.meals.length !== 1 ||
+      this.insulin <= 0 ||
+      (this.completed ? this.length : this.getN(new Date())) <
+        PreferencesStore.minSessionLength.value ||
+      this.glucose > PreferencesStore.maxSessionGlucose.value
+    );
   }
 
   get length(): number {
     if (!this.endTimestamp)
       throw new Error(`Cannot give length - there is no end timestamp!`);
     return this.getN(this.endTimestamp);
+  }
+  get expired(): boolean {
+    return this.age > PreferencesStore.usableSessionLife.value;
   }
 
   getObservedReadings() {
@@ -341,6 +472,50 @@ export default class Session extends Subscribable {
         `Cannot give total readings - there is no end timestamp!`
       );
     return RemoteReadings.getReadings(this.timestamp, this.endTimestamp);
+  }
+
+  // Score
+  get score(): number {
+    const targetBG = PreferencesStore.targetBG.value;
+    const lowThreshold = PreferencesStore.lowBG.value;
+    if (
+      !this.initialGlucose ||
+      !this.peakGlucose ||
+      !this.minGlucose ||
+      !this.finalBG
+    )
+      throw new Error(`Cannot get glucose score from incomplete session`);
+    let score = 0;
+    const wentLow = this.minGlucose < lowThreshold;
+
+    const adjustedDelta = (delta: number, tol = 3) =>
+      Math.abs(delta <= tol ? 0 : delta - tol);
+
+    if (this.initialGlucose >= targetBG) {
+      score += adjustedDelta(this.peakGlucose - this.initialGlucose);
+      if (wentLow) {
+        score += adjustedDelta(targetBG - this.minGlucose);
+      }
+    } else {
+      score += adjustedDelta(this.peakGlucose - targetBG);
+      if (wentLow) {
+        score += adjustedDelta(this.initialGlucose - this.minGlucose);
+      }
+    }
+    if (
+      (this.finalBG < targetBG && this.finalBG < lowThreshold) ||
+      this.finalBG > targetBG
+    )
+      score += Math.abs(this.finalBG - targetBG);
+
+    score += this.glucose * CalibrationStore.glucoseEffect.value; // Add the effect glucose had
+
+    // Add IAD (integrated absolute deviation)
+    score += MathUtil.mean(
+      this.snapshot.readings.map((r) => adjustedDelta(r.sugar - targetBG))
+    );
+
+    return score;
   }
 
   // Initial glucose
@@ -364,26 +539,22 @@ export default class Session extends Subscribable {
       glucoses: session.glucoses.map((a) => Glucose.serialize(a)),
       activities: session.activities.map((a) => Activity.serialize(a)),
       isGarbage: session.isGarbage,
+      completed: session.completed,
       notes: session.notes,
-      insulinEffect: session.insulinEffect,
-      glucoseEffect: session.glucoseEffect,
       version: session.version,
     };
   };
   static deserialize: Deserializer<Session> = (o) => {
     let session = new Session(false);
     session.uuid = o.uuid;
-    session.isGarbage = o.isGarbage || false;
+    session.isGarbage = o.isGarbage ?? false;
+    session.completed = o.completed ?? true;
     session.notes = o.notes || "";
-    session.insulinEffect =
-      o.insulinEffect || CalibrationStore.insulinEffect.value;
-    session.glucoseEffect =
-      o.glucoseEffect || CalibrationStore.glucoseEffect.value;
 
     o.meals.map((a: string) => session.addMeal(Meal.deserialize(a)));
     o.insulins.map((a: string) => {
       const insulin = Insulin.deserialize(a);
-      session.createInsulin(insulin.value, insulin.timestamp); // Create insulin without modifying snapshots
+      session.createInsulin(insulin.value, insulin.timestamp, insulin.variant); // Create insulin without modifying snapshots
     });
     o.glucoses.map((a: string) => {
       const glucose = Glucose.deserialize(a);

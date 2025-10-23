@@ -89,3 +89,10 @@ export function timeOfDayOffset(d1: Date, d2: Date): number {
   // Convert to hours (with decimals)
   return diffMinutes / 60;
 }
+
+export function getFormattedTime(_minutes: number): string {
+  const hours = Math.floor(_minutes / 60);
+  const minutes = _minutes % 60;
+  if (hours === 0) return `${minutes} min`;
+  return `${hours}:${minutes.toString().padStart(2, "0")}`;
+}

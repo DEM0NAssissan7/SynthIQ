@@ -29,9 +29,12 @@ import { ActivityStore } from "./storage/activityStore";
 import InsulinPage from "./pages/InsulinPage";
 import WizardInsulinRouter from "./pages/wizard/WizardInsulinRouter";
 import HistoryPage from "./pages/HistoryPage";
+import InsulinVariantsPage from "./pages/InsulinVariantsPage";
+import { useNow } from "./state/useNow";
 
 function App() {
   const navigate = useNavigate();
+  const now = useNow(60);
   useEffect(() => {
     // Attempt to fulfill requests upon page load
     Backend.fulfillRequests();
@@ -41,7 +44,7 @@ function App() {
 
     // Execute health monitor
     smartMonitor(navigate);
-  }, []);
+  }, [now]);
 
   console.log(WizardStore.session.value);
   console.log(WizardStore.template.value);
@@ -77,6 +80,7 @@ function App() {
           <Route path="/rescue" element={<RescuePage />} />
           <Route path="/basal" element={<BasalPage />} />
           <Route path="/insulin" element={<InsulinPage />} />
+          <Route path="/insulinvariants" element={<InsulinVariantsPage />} />
           <Route path="/history" element={<HistoryPage />} />
 
           {/* Wizard Routes */}

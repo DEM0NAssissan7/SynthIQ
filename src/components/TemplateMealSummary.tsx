@@ -1,15 +1,18 @@
 import { useMemo, useState } from "react";
-import { getInsulin, getCorrectionInsulin } from "../lib/metabolism";
+import {
+  getCorrectionInsulin,
+  getOvercompensationInsulins,
+} from "../lib/metabolism";
 import { insulinDosingRecommendation } from "../lib/templateHelpers";
-import { round } from "../lib/util";
+import { round, roundByHalf } from "../lib/util";
 import type Meal from "../models/events/meal";
 import type MealTemplate from "../models/mealTemplate";
 import { Button } from "react-bootstrap";
 import Insulin from "../models/events/insulin";
 import React from "react";
-import { getFullPrettyDate } from "../lib/timing";
-import { CalibrationStore } from "../storage/calibrationStore";
-import { PreferencesStore } from "../storage/preferencesStore";
+import { getFormattedTime, getFullPrettyDate } from "../lib/timing";
+import { InsulinVariantManager } from "../managers/insulinVariantManager";
+import { useNow } from "../state/useNow";
 
 function getFactorDesc(num: number, unit: string, type: string) {
   if (round(num, 1) === 0) return "";
@@ -35,60 +38,68 @@ export default function TemplateMealSummary({
   meal,
   currentBG,
 }: TemplateMealSummaryProps) {
-  const now = new Date();
-  const session = template.getClosestSession(meal.carbs, meal.protein, now);
+  const now = useNow();
+  const time = meal.timestamp ?? now;
+  const session = template.getOptimalSession(
+    meal.carbs,
+    meal.protein,
+    time,
+    currentBG
+  );
+  const defaultVariant = InsulinVariantManager.getDefault();
   console.log(session);
   const insulinCorrection = useMemo(
-    () => getCorrectionInsulin(currentBG),
+    () => getCorrectionInsulin(currentBG, defaultVariant),
     [currentBG]
   );
   const adjustments = insulinDosingRecommendation(session ? [session] : []);
 
   const insulinAdjustment = session ? session.insulinAdjustment : 0;
   const insulinOffset = session
-    ? template.getMealInsulinOffset(
-        session.carbs,
-        session.protein,
-        meal.carbs,
-        meal.protein
-      )
+    ? template.getMealInsulinOffset(session, meal.carbs, meal.protein)
     : 0;
-  const profileInsulin = getInsulin(meal.carbs, meal.protein);
+  const profileCarbInsulin = template.getProfileInsulin(
+    meal.carbs,
+    0,
+    defaultVariant
+  );
+  const profileProteinInsulin = template.getProfileInsulin(
+    0,
+    meal.protein,
+    defaultVariant
+  );
+  const profileInsulin = profileCarbInsulin + profileProteinInsulin;
   const insulins = (() => {
     const vectorizedInsulin = template.vectorizeInsulin(
       meal.carbs,
       meal.protein,
-      now
+      time,
+      currentBG
     );
     // Fall back to profile
     if (!vectorizedInsulin || template.isFirstTime)
-      return [new Insulin(profileInsulin, new Date())];
+      return [
+        new Insulin(profileInsulin, now, InsulinVariantManager.getDefault()),
+      ];
     return vectorizedInsulin;
   })();
 
-  const overshootInsulinOffset = (() =>
-    Math.max(
-      (Math.min(currentBG - PreferencesStore.targetBG.value, 0) +
-        PreferencesStore.overshootOffset.value) /
-        CalibrationStore.insulinEffect.value,
-      0
-    ))();
-
-  const scalingOffset = (() => {
-    if (!session) return 0;
-    let totalInsulin = 0;
-    insulins.forEach((insulin) => (totalInsulin += insulin.value));
-    return (
-      totalInsulin -
-      totalInsulin *
-        (CalibrationStore.insulinEffect.value / session.insulinEffect)
-    );
+  const overcompensationInsulins = getOvercompensationInsulins(
+    currentBG,
+    insulins.map((i) => i.variant)
+  );
+  const overshootInsulinOffset: number = (() => {
+    let total = 0;
+    for (let insulin of overcompensationInsulins) {
+      total += insulin;
+    }
+    return total;
   })();
 
   const isSingleBolus = insulins.length < 2;
 
   const finalTiming = round(
-    (session ? session.getN(session.firstInsulinTimestamp) : 0) +
+    (session ? session.getRelativeN(session.firstInsulinTimestamp) * 60 : 0) +
       adjustments.timingAdjustment,
     0
   );
@@ -96,7 +107,7 @@ export default function TemplateMealSummary({
     if (!session) return 0;
     if (insulins.length < 2) return finalTiming;
     const insulin = insulins[index];
-    return round(session.getN(insulin.timestamp) * 60, 0);
+    return round(session.getRelativeN(insulin.timestamp) * 60, 0);
   }
 
   const [showExtra, setShowExtra] = useState(false);
@@ -116,18 +127,17 @@ export default function TemplateMealSummary({
         <React.Fragment key={i}>
           {isSingleBolus ? `Take ` : `Shot ${i + 1}: `}
           <b>
-            {round(
+            {roundByHalf(
               insulin.value +
                 (i === 0 ? insulinCorrection : 0) +
-                overshootInsulinOffset / insulins.length, // We add just a bit more insulin to overshoot our target and scale it by the number of insulins
-              1
+                overshootInsulinOffset / insulins.length // We add just a bit more insulin to overshoot our target and scale it by the number of insulins
             )}
             u
           </b>{" "}
-          insulin{" "}
+          of <i>{insulin.variant.name}</i>{" "}
           {!template.isFirstTime && (
             <>
-              <b>{Math.abs(getTiming(i))} mins</b>{" "}
+              <b>{getFormattedTime(Math.abs(getTiming(i)))}</b>{" "}
               {getTiming(i) > 0 ? "after" : "before"} you start eating
               <br />
               <br />
@@ -136,14 +146,19 @@ export default function TemplateMealSummary({
         </React.Fragment>
       ))}
       <hr />
+      {session && (
+        <>
+          <b>{session.mealInsulin.toFixed(1)}u</b> base
+          <br />
+          <br />
+        </>
+      )}
       {getFactorDesc(insulinCorrection, "u", "correction")}
       {getFactorDesc(insulinOffset, "u", "offset")}
       {getFactorDesc(insulinAdjustment, " u", "adjustment")}
+      {getFactorDesc(overshootInsulinOffset, " u", "overcompensation")}
       {isSingleBolus &&
         getFactorDesc(adjustments.timingAdjustment, " min", "adjustment")}
-      {PreferencesStore.scaleByISF.value &&
-        getFactorDesc(scalingOffset, " u", "ISF scale")}
-      {getFactorDesc(overshootInsulinOffset, " u", "overcompensation")}
       <br />
       <Button
         onClick={toggleShowExtra}
@@ -158,7 +173,9 @@ export default function TemplateMealSummary({
         <>
           <hr />
           <b>Profile:</b> This meal requires{" "}
-          <b>{round(profileInsulin + insulinCorrection, 1)}u</b> insulin
+          <b>{round(profileInsulin + insulinCorrection, 1)}u</b> insulin (
+          {profileCarbInsulin.toFixed(1)}u carbs,{" "}
+          {profileProteinInsulin.toFixed(1)}u protein)
           {!template.isFirstTime && session && (
             <>
               <hr />
@@ -171,17 +188,34 @@ export default function TemplateMealSummary({
                 {session.initialGlucose}mg/dL {"->"} {session.finalBG}mg/dL
               </i>{" "}
               <br />
+              {session.peakGlucose}mg/dL {"-"} {session.minGlucose}mg/dL
+              <br />
+              Score: <b>{session.score.toFixed(0)}</b>
+              <br />
               <i>{session.glucose} grams/caps</i> glucose
               <br />
-              {session.insulins.map(
-                (insulin) =>
-                  `${round(insulin.value, 1)}u ${round(
-                    Math.abs(session.getN(insulin.timestamp)) * 60,
-                    1
-                  )} min ${
-                    session.getN(insulin.timestamp) > 0 ? "after" : "before"
-                  } eating\n`
-              )}
+              <br />
+              {session.windows.map((window) => (
+                <>
+                  <b>{window.insulin.value.toFixed(1)}u</b>{" "}
+                  {window.insulin.variant.name}{" "}
+                  {getFormattedTime(
+                    round(
+                      Math.abs(session.getRelativeN(window.insulin.timestamp)) *
+                        60,
+                      1
+                    )
+                  )}{" "}
+                  {session.getRelativeN(window.insulin.timestamp) > 0
+                    ? "after"
+                    : "before"}{" "}
+                  eating{" "}
+                  {`[${getFormattedTime(round(window.length * 60))}, ${
+                    window.initialBG
+                  }mg/dL -> ${window.finalBG}mg/dL]`}
+                  <br />
+                </>
+              ))}
             </>
           )}
           <hr />

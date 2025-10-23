@@ -1,10 +1,9 @@
 import { Button, Form } from "react-bootstrap";
 import { getFoodUnitPrettyName } from "../models/unit";
-import { useMemo, type BaseSyntheticEvent } from "react";
+import { type BaseSyntheticEvent } from "react";
 import type Food from "../models/food";
 import useFood from "../state/useFood";
 import { round } from "../lib/util";
-import { getInsulin } from "../lib/metabolism";
 import type Meal from "../models/events/meal";
 
 interface SearchFoodProps {
@@ -16,10 +15,6 @@ export default function AddedFood({ food, meal }: SearchFoodProps) {
   let prettyUnit = getFoodUnitPrettyName(food.unit);
   let letter = prettyUnit[prettyUnit.length - 1];
   const { amount, setAmount, carbs, protein } = useFood(food, meal);
-  const insulinRequirement = useMemo(
-    () => getInsulin(carbs, protein),
-    [carbs, protein]
-  );
 
   // Just to prevent reload when pressing enter
   const handleFormSubmit = (e: BaseSyntheticEvent) => {
@@ -38,8 +33,6 @@ export default function AddedFood({ food, meal }: SearchFoodProps) {
           {round(carbs, 2)}g carbs
           <br />
           {round(protein, 2)}g protein
-          <br />
-          {round(insulinRequirement, 2)}u insulin
         </span>
       </div>
       <Form onSubmit={handleFormSubmit}>

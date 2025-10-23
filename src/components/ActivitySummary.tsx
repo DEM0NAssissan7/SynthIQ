@@ -1,6 +1,7 @@
-import { getMinuteDiff, getPrettyTime } from "../lib/timing";
+import { getFormattedTime, getMinuteDiff, getPrettyTime } from "../lib/timing";
 import type { ActivityTemplate } from "../models/activityTemplate";
 import type Activity from "../models/events/activity";
+import { useNow } from "../state/useNow";
 
 interface ActivitySummaryProps {
   activity: Activity;
@@ -10,7 +11,7 @@ export default function ActivitySummary({
   activity,
   template,
 }: ActivitySummaryProps) {
-  const now = new Date();
+  const now = useNow();
   return (
     <>
       <h2 style={{ paddingTop: "12px" }}>{template.name}</h2>
@@ -24,7 +25,7 @@ export default function ActivitySummary({
         <>
           This activity was started at{" "}
           <b>{getPrettyTime(activity.timestamp)}</b>,{" "}
-          <b>{getMinuteDiff(now, activity.timestamp)} min(s) ago</b>
+          <b>{getFormattedTime(getMinuteDiff(now, activity.timestamp))} ago</b>
         </>
       )}
     </>

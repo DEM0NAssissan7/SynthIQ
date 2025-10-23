@@ -1,7 +1,7 @@
-import { getOptimalMealInsulins } from "../lib/metabolism";
 import { sessionsWeightedAverage } from "../lib/templateHelpers";
 import { timeOfDayOffset } from "../lib/timing";
 import { clamp, MathUtil } from "../lib/util";
+import { InsulinVariantManager } from "../managers/insulinVariantManager";
 import { CalibrationStore } from "../storage/calibrationStore";
 import { PreferencesStore } from "../storage/preferencesStore";
 import Insulin from "./events/insulin";
@@ -34,7 +34,7 @@ export default class MealTemplate extends Subscribable implements Template {
     let session: Session | null = null;
     for (let i = this.sessions.length - 1; i >= 0; i--) {
       const _session = this.sessions[i];
-      if (session && _session.isGarbage) continue;
+      if (session && _session.isInvalid) continue;
       session = _session;
       break;
     }
@@ -57,6 +57,17 @@ export default class MealTemplate extends Subscribable implements Template {
     return this.latestSession.fat;
   }
 
+  // Control info
+  get score(): number {
+    return MathUtil.median(this.sessions.map((s) => s.score));
+  }
+  get size(): number {
+    return this.sessions.length;
+  }
+  get validSessions(): Session[] {
+    return this.sessions.filter((s) => !s.isInvalid);
+  }
+
   // Dosing info
   /** This gies you the meal dose insulin taken last, not accounting for correction */
   get previousInsulin(): number {
@@ -67,7 +78,7 @@ export default class MealTemplate extends Subscribable implements Template {
     if (this.isFirstTime) return 0;
     return (
       sessionsWeightedAverage(
-        (s: Session) => s.getN(s.firstInsulinTimestamp),
+        (s: Session) => s.getRelativeN(s.firstInsulinTimestamp),
         this.sessions
       ) * 60
     );
@@ -82,18 +93,16 @@ export default class MealTemplate extends Subscribable implements Template {
     let alphaCarbs = CalibrationStore.carbsEffect.value;
     let alphaProtein = CalibrationStore.proteinEffect.value;
 
-    const baseLearningRate = 0.0003;
+    const baseLearningRate = 0.0006;
 
     const sessionHalfLife = PreferencesStore.sessionHalfLife.value;
-    const maxSessionLife = PreferencesStore.maxSessionLife.value;
 
-    // Don't allow less than 3 sessions before making any conclusions
-    if (this.sessions.length >= 3) {
-      for (let i = this.sessions.length - 1; i >= 0; i--) {
-        const session = this.sessions[i];
-        if (session.isGarbage) continue;
+    // Don't allow less than 3 valid sessions before making any conclusions
+    const validSessions = this.validSessions;
+    if (validSessions.length >= 3) {
+      for (let i = validSessions.length - 1; i >= 0; i--) {
+        const session = validSessions[i];
         const age = session.age;
-        if (age > maxSessionLife) break; // If the session exceeds the max age
         const weight = Math.pow(0.5, age / sessionHalfLife);
         const eta = baseLearningRate * weight;
 
@@ -115,12 +124,30 @@ export default class MealTemplate extends Subscribable implements Template {
   getClosestSessions(
     carbs: number,
     protein: number,
-    timestamp: Date
+    timestamp: Date,
+    initialBG: number
   ): Session[] | null {
     if (this.isFirstTime) return null;
 
-    let sessions = this.sessions.filter((s) => !s.isGarbage);
+    let sessions = this.sessions.filter((s) => !s.isInvalid);
     if (sessions.length === 0) sessions = this.sessions; // If all we have is garbage, we still use it anyways (better than nothing)
+
+    // K is the number of neighbors to select
+    const K = Math.min(
+      clamp(Math.floor(Math.sqrt(this.sessions.length)), 3, 9),
+      this.sessions.length
+    ); // Adaptive number of desired sessions based on number of valid sessions
+
+    // Discard expired sessions unless we don't have enough to fulfill K
+    const expiredSessions = sessions
+      .filter((s) => s.expired)
+      .slice()
+      .sort((a, b) => a.age - b.age); // Sort by age to pull the newest ones first
+    sessions = sessions.filter((s) => !s.expired); // Filter out expired sessions
+    if (sessions.length < K) {
+      // Salvage the latest expired sessions
+      sessions.push(...expiredSessions.slice(0, K - sessions.length));
+    }
 
     const getSafeScale = (absDistances: number[]) => {
       if (absDistances.length === 0) return 1e-6;
@@ -139,31 +166,27 @@ export default class MealTemplate extends Subscribable implements Template {
     const proteinScale = getSafeScale(
       sessions.map((s) => Math.abs(protein - s.protein))
     );
+    const initialBGScale = getSafeScale(
+      sessions.map((s) => {
+        return Math.abs(
+          s.initialGlucose !== null ? initialBG - s.initialGlucose : 0
+        );
+      })
+    );
     const timeOfDayScale = getSafeScale(
       sessions.map((s) => Math.abs(timeOfDayOffset(timestamp, s.timestamp)))
     );
-    const ageScale = (() => {
-      const ages = sessions.map((s) => s.age); // days > 0
-      const m = MathUtil.median(ages);
-      if (m > 0) return Math.max(m, 1e-3); // small floor to avoid blowups
-      // (shouldn’t happen given s.age>0, but safe)
-      return Math.min(...ages) || 1e-3;
-    })();
-    const lambdaAge = 0.25; // To make age a less important axis
 
-    const K = Math.min(
-      clamp(Math.floor(Math.sqrt(sessions.length)), 5, 9),
-      sessions.length
-    ); // Adaptive number of desired sessions
     // Get the closest X sessions
     let sessionDistances: [Session, number][] = [];
     for (let s of sessions) {
+      if (!s.initialGlucose) continue;
       sessionDistances.push([
         s,
         ((carbs - s.carbs) / carbsScale) ** 2 +
           ((protein - s.protein) / proteinScale) ** 2 +
           (timeOfDayOffset(timestamp, s.timestamp) / timeOfDayScale) ** 2 + // Squared ecludian distance
-          lambdaAge * (s.age / ageScale) ** 2,
+          ((initialBG - s.initialGlucose) / initialBGScale) ** 2,
       ]);
     }
     sessionDistances.sort((a, b) => a[1] - b[1]);
@@ -172,7 +195,6 @@ export default class MealTemplate extends Subscribable implements Template {
       .slice(0, K)
       .map((a) => a[0]);
     if (nearSessions.length === 0) return null;
-    console.log(nearSessions);
 
     // Eliminate outliers
     const kept: Session[] = [];
@@ -184,7 +206,6 @@ export default class MealTemplate extends Subscribable implements Template {
         Math.abs(s.optimalMealInsulin - medianOptimalInsulin)
       )
     );
-    console.log(medianOptimalInsulin, optimalInsulinMAD);
 
     const TAU = 1.5; // or 2.0 if you want looser
     const cutoff = TAU * optimalInsulinMAD;
@@ -204,63 +225,85 @@ export default class MealTemplate extends Subscribable implements Template {
   getClosestSession(
     carbs: number,
     protein: number,
-    timestamp: Date
+    timestamp: Date,
+    initialBG: number
   ): Session | null {
-    const closestSessions = this.getClosestSessions(carbs, protein, timestamp);
+    const closestSessions = this.getClosestSessions(
+      carbs,
+      protein,
+      timestamp,
+      initialBG
+    );
     if (!closestSessions) return null;
     return closestSessions[0];
+  }
+  getOptimalSession(
+    carbs: number,
+    protein: number,
+    timestamp: Date,
+    initialBG: number
+  ): Session | null {
+    const closestSessions = this.getClosestSessions(
+      carbs,
+      protein,
+      timestamp,
+      initialBG
+    );
+    if (!closestSessions) return null;
+    return closestSessions.sort((a, b) => a.score - b.score)[0];
   }
 
   // Dosing helpers
   vectorizeInsulin(
     carbs: number,
     protein: number,
-    timeOfDay: Date
+    timeOfDay: Date,
+    initialBG: number
   ): Insulin[] | null {
-    const session = this.getClosestSession(carbs, protein, timeOfDay);
-    if (!session) return null;
-
-    // Fill in the gaps
-    const carbsInsulinOffset = this.getMealInsulinOffset(
-      session.carbs,
-      0,
+    const session = this.getOptimalSession(
       carbs,
-      0
+      protein,
+      timeOfDay,
+      initialBG
     );
-    const proteinInsulinOffset = this.getMealInsulinOffset(
-      0,
-      session.protein,
-      0,
-      protein
-    );
+    if (!session) return null;
+    if (session.insulins.length === 0) return null;
 
-    // Legacy
-    // return [
-    //   new Insulin(
-    //     session.optimalMealInsulin + carbsInsulinOffset + proteinInsulinOffset,
-    //     session.firstInsulinTimestamp
-    //   ),
-    // ];
-    const insulins = getOptimalMealInsulins(session);
-    insulins[0].value += carbsInsulinOffset; // Add extra carbs offset to first shot, as they typically only act on first shot timeframe
-
-    const proteinInsulinPerShot = proteinInsulinOffset / insulins.length;
-    insulins.forEach((i) => (i.value += proteinInsulinPerShot)); // Distribute protein offset between all shots
+    const insulins = session.optimalMealInsulins;
+    const offsets = this.getInsulinOffsets(session, carbs, protein);
+    for (let i = 0; i < insulins.length; i++) {
+      insulins[i].value += offsets[i].value;
+    }
     return insulins;
   }
-  getMealInsulinOffset(
-    baseCarbs: number,
-    baseProtein: number,
+  getProfileInsulin(
     carbs: number,
-    protein: number
+    protein: number,
+    variant = InsulinVariantManager.getDefault()
   ) {
     const alpha = this.alpha;
-    const additionalCarbs = carbs - baseCarbs;
-    const additionalProtein = protein - baseProtein;
-    const effect =
-      additionalCarbs * alpha.carbs + additionalProtein * alpha.protein;
-    const neededInsulin = effect / CalibrationStore.insulinEffect.value;
-    return neededInsulin;
+    const carbsRise = carbs * alpha.carbs;
+    const proteinRise = protein * alpha.protein;
+    return (carbsRise + proteinRise) / variant.effect;
+  }
+  getInsulinOffsets(session: Session, carbs: number, protein: number) {
+    const insulins = session.optimalMealInsulins;
+    const alpha = this.alpha;
+    const extraCarbsRise = (carbs - session.carbs) * alpha.carbs;
+    insulins[0].value = extraCarbsRise / insulins[0].variant.effect; // Add extra carbs offset to first shot, as they typically only act on first shot timeframe
+
+    const extraProteinRisePerShot =
+      ((protein - session.protein) / insulins.length) * alpha.protein;
+    insulins.forEach(
+      (i) => (i.value = extraProteinRisePerShot / i.variant.effect)
+    ); // Distribute protein between all shots
+    return insulins;
+  }
+  getMealInsulinOffset(session: Session, carbs: number, protein: number) {
+    let insulin = 0;
+    const offsets = this.getInsulinOffsets(session, carbs, protein);
+    offsets.forEach((offset) => (insulin += offset.value));
+    return insulin;
   }
 
   // Serialization

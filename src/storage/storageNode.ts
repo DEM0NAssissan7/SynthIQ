@@ -95,7 +95,7 @@ class StorageEntry {
   }
 
   // Storage Abstraction (through handlers and try/catch)
-  read(): void {
+  read() {
     let val: JSONValue;
     try {
       val = this.getFromStorage();

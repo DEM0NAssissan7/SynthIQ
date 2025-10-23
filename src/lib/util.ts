@@ -7,7 +7,7 @@ export function convertDimensions(source: number, destination: number): number {
 export function random(min: number, max: number): number {
   return Math.random() * (max - min) + min;
 }
-export function round(num: number, precision: number): number {
+export function round(num: number, precision: number = 0): number {
   return Math.round(num * 10 ** precision) / 10 ** precision;
 }
 export function floor(num: number, precision: number): number {
@@ -30,6 +30,12 @@ export function getHoursMinutes(_min: number) {
   let min: any = minutes - hours * 60;
   if (min < 10) min = "0" + min; // Make the minute look prettier
   return `${hours}:${min}`;
+}
+
+// Helpers
+export function roundByHalf(x: number, ceilUp: boolean = true) {
+  if (x === 0) return 0;
+  return Math.floor(x * 2 + (ceilUp ? 1 : 0)) / 2;
 }
 
 // Statistics

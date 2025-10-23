@@ -7,6 +7,7 @@ import RemoteSessions from "../lib/remote/sessions";
 import { WizardStore } from "../storage/wizardStore";
 import MealTemplate from "../models/mealTemplate";
 import type Activity from "../models/events/activity";
+import { InsulinVariantManager } from "./insulinVariantManager";
 
 export default class WizardManager {
   // Page Redirects
@@ -52,13 +53,16 @@ export default class WizardManager {
   }
 
   // Insulin
-  private static insulin(units: number, BG: number) {
+  private static insulin(units: number, BG: number, variantName: string) {
     const session: Session = WizardStore.session.value;
     const timestamp = new Date();
 
-    session.createInsulin(units, timestamp, BG);
+    const variant =
+      InsulinVariantManager.getVariant(variantName) ??
+      InsulinVariantManager.getDefault();
+    session.createInsulin(units, timestamp, variant, BG);
   }
-  static markInsulin(units: number, BG: number) {
+  static markInsulin(units: number, BG: number, variantName: string) {
     let session: Session = WizardStore.session.value;
     if (session.insulinMarked) {
       if (
@@ -68,7 +72,7 @@ export default class WizardManager {
       )
         return;
     }
-    this.insulin(units, BG);
+    this.insulin(units, BG, variantName);
   }
   // Glucose
   static markGlucose(grams: number) {
@@ -121,7 +125,7 @@ export default class WizardManager {
     WizardStore.template.value = template;
     if (!template.isFirstTime) {
       WizardStore.meal.value = Meal.deserialize(
-        Meal.serialize(template.latestSession.latestMeal)
+        Meal.serialize(template.latestSession.firstMeal)
       );
     } else {
       WizardStore.meal.value = new Meal(new Date());

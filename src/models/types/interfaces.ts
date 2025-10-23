@@ -32,5 +32,7 @@ export interface HealthMonitorService {
 export interface Template {
   name: string;
   timestamp: Date;
+  score: number;
+  size: number;
   isFirstTime: boolean;
 }

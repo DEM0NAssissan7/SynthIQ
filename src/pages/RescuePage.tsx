@@ -6,7 +6,7 @@ import {
   getGlucoseCorrectionCaps,
   getIntelligentGlucoseCorrection,
 } from "../lib/metabolism";
-import { round } from "../lib/util";
+import { roundByHalf } from "../lib/util";
 import WizardManager from "../managers/wizardManager";
 import Card from "../components/Card";
 import GlucoseSuggestion from "../components/GlucoseSuggestion";
@@ -22,6 +22,7 @@ import { WizardStore } from "../storage/wizardStore";
 import { PreferencesStore } from "../storage/preferencesStore";
 import { ActivityManager } from "../managers/activityManager";
 import RemoteTreatments from "../lib/remote/treatments";
+import { NumberOptionSelector } from "../components/NumberOptionSelector";
 
 export default function RescuePage() {
   const [session] = WizardStore.session.useState();
@@ -35,7 +36,7 @@ export default function RescuePage() {
   const [gramsTaken, setCapsTaken] = useState(0);
 
   const correction = useMemo(() => {
-    return round(getGlucoseCorrectionCaps(currentBG), 1);
+    return roundByHalf(getGlucoseCorrectionCaps(currentBG), true);
   }, [currentBG]);
   const [intelligentCorrection, setIntelligentCorrection] = useState(0);
 
@@ -45,7 +46,14 @@ export default function RescuePage() {
       const actingMinutes = HealthMonitorStore.dropTime.value;
 
       setIntelligentCorrection(
-        getIntelligentGlucoseCorrection(velocityHours, currentBG, actingMinutes)
+        roundByHalf(
+          getIntelligentGlucoseCorrection(
+            velocityHours,
+            currentBG,
+            actingMinutes
+          ),
+          true
+        )
       );
     });
   }, [currentBG]);
@@ -54,14 +62,17 @@ export default function RescuePage() {
   function goBack() {
     navigate("/");
   }
-  function confirmGlucose() {
-    if (confirm(`Confirm that you have taken ${gramsTaken} grams of glucose`)) {
-      WizardManager.markGlucose(gramsTaken);
-      markGlucose(gramsTaken);
-      ActivityManager.markGlucose(gramsTaken);
-      RemoteTreatments.markGlucose(gramsTaken, new Date());
+  function markGlucoseTaken(grams: number) {
+    if (confirm(`Confirm that you have taken ${grams} grams of glucose`)) {
+      WizardManager.markGlucose(grams);
+      markGlucose(grams);
+      ActivityManager.markGlucose(grams);
+      RemoteTreatments.markGlucose(grams, new Date());
       goBack();
     }
+  }
+  function onMark() {
+    markGlucoseTaken(gramsTaken);
   }
 
   return (
@@ -92,7 +103,7 @@ export default function RescuePage() {
           </InputGroup.Text>
           <Form.Control
             type="number"
-            placeholder={round(intelligentCorrection, 1).toString()}
+            placeholder={intelligentCorrection.toString()}
             aria-describedby="basic-addon1"
             onChange={(e: any) => {
               const val = parseFloat(e.target.value);
@@ -102,6 +113,17 @@ export default function RescuePage() {
           />
           <InputGroup.Text id="basic-addon1">caps</InputGroup.Text>
         </InputGroup>
+        <div className="d-flex justify-content-center flex-wrap">
+          <NumberOptionSelector
+            value={intelligentCorrection}
+            rangeFromOrigin={2}
+            increment={0.5}
+            labelSuffix="g"
+            onSelect={(val) => {
+              markGlucoseTaken(val);
+            }}
+          />
+        </div>
       </Card>
       <div style={{ display: "flex", justifyContent: "space-between" }}>
         {session.started && (
@@ -110,7 +132,7 @@ export default function RescuePage() {
           </Button>
         )}
         <div style={{ marginLeft: "auto" }}>
-          <Button variant="primary" onClick={confirmGlucose}>
+          <Button variant="primary" onClick={onMark}>
             Mark Glucose
           </Button>
         </div>

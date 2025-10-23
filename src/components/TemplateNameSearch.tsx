@@ -72,9 +72,16 @@ export default function TemplateNameSearch({
         {filteredTemplates.map((template: Template, i: number) => (
           <ListGroup.Item key={i} className="d-flex flex-column gap-3 p-3">
             <div className="d-flex justify-content-between align-items-center">
-              <span className="fw-bold">{template.name}</span>
+              <span className="fw-bold">
+                {template.name}
+
+                <br />
+                <span className="text-muted">{template.size} sessions</span>
+              </span>
               <span className="text-muted">
                 {getFullPrettyDate(template.timestamp)}
+                <br />
+                Score: {template.score.toFixed(0)}{" "}
               </span>
             </div>
             <Form onSubmit={handleFormSubmit}>

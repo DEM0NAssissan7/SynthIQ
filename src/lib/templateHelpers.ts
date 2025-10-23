@@ -1,3 +1,4 @@
+import { InsulinVariantManager } from "../managers/insulinVariantManager";
 import type Session from "../models/session";
 import { CalibrationStore } from "../storage/calibrationStore";
 import { PreferencesStore } from "../storage/preferencesStore";
@@ -47,7 +48,7 @@ export function insulinRuleEngine(session: Session) {
   const insulinMaxThreshold =
     optimalInsulin +
     (PreferencesStore.targetBG.value - lowBG) /
-      CalibrationStore.insulinEffect.value;
+      InsulinVariantManager.getDefault().effect;
   // If insulin excess would have dropped you below the low threshold, it's too much
 
   // Rule engine magic
@@ -96,7 +97,7 @@ export function sessionsWeightedAverage(
   let weightedSum = 0;
   for (let i = sessions.length - 1; i >= 0; i--) {
     const session = sessions[i];
-    if (session.isGarbage) continue;
+    if (session.isInvalid) continue;
     const age = session.age;
     if (age > maxSessionLife) break;
     const weight = Math.pow(0.5, age / sessionHalfLife);

@@ -1,28 +1,31 @@
-import Insulin from "../models/events/insulin";
-import type Session from "../models/session";
+import type { InsulinVariant } from "../models/types/insulinVariant";
 import { CalibrationStore } from "../storage/calibrationStore";
 import { PreferencesStore } from "../storage/preferencesStore";
-import { timestampIsBetween } from "./timing";
+import { WizardStore } from "../storage/wizardStore";
 
 // Insulin
-export function getInsulin(carbs: number, protein: number) {
-  return (
-    (carbs * CalibrationStore.carbsEffect.value +
-      protein * CalibrationStore.proteinEffect.value) /
-    CalibrationStore.insulinEffect.value
-  );
-}
-export function getCorrectionInsulin(glucose: number) {
+export function getCorrectionInsulin(glucose: number, variant: InsulinVariant) {
   return Math.max(
-    (glucose - PreferencesStore.targetBG.value) /
-      CalibrationStore.insulinEffect.value,
+    (glucose - PreferencesStore.targetBG.value) / variant.effect,
     0
   );
 }
-export function getSessionMealInsulin(session: Session) {
-  if (!session.initialGlucose)
-    throw new Error(`Cannot get session meal insulin: no initial glucose`);
-  return session.insulin - getCorrectionInsulin(session.initialGlucose);
+export function getOvercompensationInsulins(
+  glucose: number,
+  variants: InsulinVariant[]
+): number[] {
+  let insulins: number[] = [];
+  const BGOffsetPerShot =
+    Math.max(
+      Math.min(glucose - PreferencesStore.targetBG.value, 0) +
+        PreferencesStore.overshootOffset.value,
+      0
+    ) / variants.length;
+  for (const v of variants) {
+    const insulin = BGOffsetPerShot / v.effect;
+    insulins.push(insulin);
+  }
+  return insulins;
 }
 
 // Glucose
@@ -58,93 +61,34 @@ export function getBasalCorrection(velocity: number): number {
   return velocity / basalVelocityEffect;
 }
 
-// Multi Bolus
-export function getOptimalMealInsulins(session: Session): Insulin[] {
-  /**
-   * The rationale here is we basically create little windows of time
-   * Each bolus shot creates a new window
-   * A window contains the following info:
-   *
-   * InitialBG
-   * Insulin amount taken
-   * Glucose amount taken
-   * FinalBG
-   *
-   * The algorithm is pretty simple. We adjust for the change in BG (accounting for glucose rise).
-   * And it implicitly subtracts whatever correction insulin was taken because it attempts
-   * to correct for it.
-   *
-   * For the first insulin, we subtract the insulin taken to correct for the current BG
-   * because this function only wants to return the optimal MEAL insulin, not cumUlative.
-   */
+export function getApproximatedProfile() {
+  const templates = WizardStore.templates.value;
 
-  const snapshots = session.snapshots;
-  const insulins = session.insulins;
-  const glucoses = session.glucoses;
+  // The alpha is basically a gradient descent from the general profile
+  let alphaCarbs = CalibrationStore.carbsEffect.value;
+  let alphaProtein = CalibrationStore.proteinEffect.value;
 
-  if (!session.initialGlucose)
-    throw new Error(`Cannot determine insulin amount: no initial BG`);
+  const baseLearningRate = 0.0001;
 
-  type TreatmentWindow = {
-    initialBG: number;
-    insulin: number;
-    glucose: number;
-    finalBG: number;
-  };
+  // Don't allow less than 3 valid sessions before making any conclusions
+  for (let template of templates) {
+    const validSessions = template.validSessions;
+    for (let i = validSessions.length - 1; i >= 0; i--) {
+      const session = validSessions[i];
+      const eta = baseLearningRate;
 
-  // Treatment windows creation
-  let windows: TreatmentWindow[] = [];
-  for (let i = 0; i < snapshots.length; i++) {
-    const snapshot = snapshots[i];
-    const insulin = insulins[i] ?? insulins[i - 1];
-    if (!snapshot.finalBG || !snapshot.initialBG)
-      throw new Error(
-        `Cannot reliably dictate insulin dosing: no final or inital BG`
-      );
-    const window: TreatmentWindow = {
-      initialBG: snapshot.initialBG.sugar,
-      insulin: insulin.value,
-      finalBG: snapshot.finalBG.sugar,
-      glucose: 0,
-    };
-    // We account for glucose taken within the time frame and subtract it from the final sugar to see what it would be without any adjustment
-    for (let glucose of glucoses) {
-      if (
-        timestampIsBetween(
-          glucose.timestamp,
-          snapshot.initialBG.timestamp,
-          snapshot.finalBG.timestamp
-        )
-      ) {
-        // If the glucose was taken during this window
-        window.glucose += glucose.value;
-      }
+      const predictedMealRise =
+        alphaCarbs * session.carbs + alphaProtein * session.protein;
+      const actualMealRise = session.mealRise;
+      const error = predictedMealRise - actualMealRise;
+
+      alphaCarbs -= eta * error * session.carbs;
+      alphaProtein -= eta * error * session.protein;
     }
-    windows.push(window);
-  }
-  /**
-   * Now that we have a list of the theoretical finalBGs, we can adjust each on to try and get a zero-change scenario
-   */
-  for (let window of windows) {
-    const glucoseRise = window.glucose * CalibrationStore.glucoseEffect.value;
-    const theoreticalFinalBG = window.finalBG - glucoseRise; // Avoid blaming glucose for a rise in BG
-    const deltaBG = theoreticalFinalBG - window.initialBG; // Try to keep things as flat as possible
-
-    const correction = deltaBG / session.insulinEffect;
-    window.insulin += correction;
   }
 
-  let resultInsulins: Insulin[] = [];
-  for (let i = 0; i < insulins.length; i++) {
-    const _insulin = insulins[i];
-    const window = windows[i];
-    const insulin = Insulin.deserialize(Insulin.serialize(_insulin));
-    const ISFScale =
-      session.insulinEffect / CalibrationStore.insulinEffect.value; // Scale the window's insulin by the ratio between our current ISF and the ISF when the meal was eaten
-    insulin.value =
-      window.insulin * (PreferencesStore.scaleByISF.value ? ISFScale : 1);
-    resultInsulins.push(insulin);
-  }
-
-  return resultInsulins;
+  return {
+    carbsEffect: alphaCarbs,
+    proteinEffect: alphaProtein,
+  };
 }

@@ -1,11 +1,12 @@
 import { Fragment, useMemo } from "react";
-import { getMinuteDiff, getPrettyTime } from "../lib/timing";
+import { getFormattedTime, getMinuteDiff, getPrettyTime } from "../lib/timing";
 import { round } from "../lib/util";
 import type Meal from "../models/events/meal";
 import type Session from "../models/session";
 import type MealTemplate from "../models/mealTemplate";
 import TemplateMealSummary from "./TemplateMealSummary";
 import { PreferencesStore } from "../storage/preferencesStore";
+import { useNow } from "../state/useNow";
 
 interface TemplateSummaryProps {
   template: MealTemplate;
@@ -19,6 +20,7 @@ export default function TemplateSummary({
   meal,
   currentBG,
 }: TemplateSummaryProps) {
+  const now = useNow();
   const bloodSugar = useMemo(
     () =>
       currentBG
@@ -30,16 +32,24 @@ export default function TemplateSummary({
   );
 
   function getMinutesAgo(timestamp: Date) {
-    return getMinuteDiff(new Date(), timestamp);
-  }
-  function getHoursAgo(timestamp: Date) {
-    return round(getMinutesAgo(timestamp) / 60, 1);
+    return getMinuteDiff(now, timestamp);
   }
 
   return (
     <>
       <h2 style={{ paddingTop: "12px" }}>{template.name}</h2>
-      {template.isFirstTime && "This is the first time using this template\n"}
+      {template.isFirstTime && (
+        <>
+          This is the first time using this template
+          <br />
+        </>
+      )}
+      {session.isInvalid && (
+        <>
+          Session is currently invalid
+          <br />
+        </>
+      )}
       {session.started && (
         <>
           Starting blood sugar: {bloodSugar}mg/dL
@@ -52,8 +62,11 @@ export default function TemplateSummary({
         <>
           <br />
           <b>{session.insulin}u</b> insulin; last dose{" "}
-          <b>{getHoursAgo(session.latestInsulinTimestamp)} hours ago</b> (
-          {getPrettyTime(session.latestInsulinTimestamp)})
+          <b>
+            {getFormattedTime(getMinutesAgo(session.latestInsulinTimestamp))}{" "}
+            ago
+          </b>{" "}
+          ({getPrettyTime(session.latestInsulinTimestamp)})
         </>
       )}
       {session.glucose > 0 && (
@@ -61,7 +74,10 @@ export default function TemplateSummary({
           <br />
           <br />
           <b>{session.glucose} caps/grams</b> dextrose; last dose{" "}
-          <b>{getMinutesAgo(session.latestGlucoseTimestamp)} minutes ago</b>
+          <b>
+            {getFormattedTime(getMinutesAgo(session.latestGlucoseTimestamp))}{" "}
+            ago
+          </b>
         </>
       )}
       {session.activities.length > 0 && (
@@ -72,8 +88,9 @@ export default function TemplateSummary({
           {session.activities.map((a, i) => {
             return (
               <Fragment key={i}>
-                <b>{a.name}</b> [{getPrettyTime(a.timestamp)}]: {a.length} mins
-                | {a.initialBG}mg/dL {"->"} {a.finalBG}mg/dL
+                <b>{a.name}</b> [{getPrettyTime(a.timestamp)}]:{" "}
+                {getFormattedTime(a.length)} | {a.initialBG}mg/dL {"->"}{" "}
+                {a.finalBG}mg/dL
               </Fragment>
             );
           })}
@@ -89,8 +106,8 @@ export default function TemplateSummary({
       {session.meals.length > 0 && (
         <>
           <hr />
-          First meal eaten at {getPrettyTime(session.firstMealTimestamp)},{" "}
-          {getHoursAgo(session.firstMealTimestamp)} hours ago
+          Meal eaten at {getPrettyTime(session.firstMealTimestamp)},{" "}
+          {getFormattedTime(getMinutesAgo(session.firstMealTimestamp))} ago
           <br />
           <br />
           <b>{round(session.carbs, 0)}g</b> carbs
