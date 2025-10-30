@@ -20,7 +20,6 @@ export namespace BasalStore {
     new Date("")
   );
   export const minTimeSinceMeal = node.add<number>("minTimeSinceMeal", 6);
-  export const minTimeSinceBolus = node.add<number>("minTimeSinceBolus", 4.5);
   export const minTimeSinceDextrose = node.add<number>(
     "minTimeSinceDextrose",
     20

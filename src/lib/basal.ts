@@ -23,7 +23,6 @@ import { convertDimensions, MathUtil, round } from "./util";
 
 export async function isFasting(timestamp: Date) {
   const minTimeSinceMeal = BasalStore.minTimeSinceMeal.value;
-  const minTimeSinceBolus = BasalStore.minTimeSinceBolus.value;
   const minTimeSinceDextrose = BasalStore.minTimeSinceDextrose.value / 60; // Minutes -> Hours
 
   async function isPresent(eventType: string, minTime: number) {
@@ -36,7 +35,7 @@ export async function isFasting(timestamp: Date) {
     return treatments.length !== 0;
   }
   if (await isPresent(mealEventType, minTimeSinceMeal)) return false;
-  if (await isPresent(insulinEventType, minTimeSinceBolus)) return false;
+  if (await isPresent(insulinEventType, 7)) return false;
   if (await isPresent(glucoseEventType, minTimeSinceDextrose)) return false;
   return true;
 }
@@ -46,14 +45,12 @@ function getFastingVelocities(
   readings: SugarReading[]
 ): number[] {
   const minTimeSinceMeal = BasalStore.minTimeSinceMeal.value;
-  const minTimeSinceBolus = BasalStore.minTimeSinceBolus.value;
   const minTimeSinceDextrose = BasalStore.minTimeSinceDextrose.value / 60; // Minutes -> Hours
 
   let nonFasting: [Date, Date][] = []; // A set of date pairs to describe when we are not fasting
   treatments.forEach((a: any) => {
     let hoursNonFasting: number | null = null;
-    if (a.insulin && a.eventType !== basalEventType)
-      hoursNonFasting = minTimeSinceBolus;
+    if (a.insulin && a.eventType !== basalEventType) hoursNonFasting = 7;
     switch (a.eventType) {
       case mealEventType:
         hoursNonFasting = minTimeSinceMeal;

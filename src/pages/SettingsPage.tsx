@@ -255,12 +255,6 @@ export default function SettingsPage() {
           unit="hours"
         />
         <NumberSetting
-          keyInterface={BasalStore.minTimeSinceBolus}
-          title="Bolus Effective Time"
-          iconClass="bi bi-clock"
-          unit="hours"
-        />
-        <NumberSetting
           keyInterface={BasalStore.minTimeSinceDextrose}
           title="Dextrose Effective Time"
           iconClass="bi bi-clock"
