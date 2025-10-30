@@ -40,15 +40,15 @@ function App() {
   useEffect(() => {
     // Attempt to fulfill requests upon page load
     Backend.fulfillRequests();
-
-    // Synchronize master/slave state (if set)
-    RemoteStorage.sync();
   }, [now]);
 
   const redirectNow = useNow(
     20 * convertDimensions(Unit.Time.Minute, Unit.Time.Second)
   );
   useEffect(() => {
+    // Synchronize master/slave state (if set)
+    RemoteStorage.sync();
+
     // Execute health monitor navigator
     smartMonitor(navigate);
   }, [redirectNow]);
