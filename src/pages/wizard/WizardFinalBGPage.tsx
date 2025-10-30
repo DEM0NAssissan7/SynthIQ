@@ -4,14 +4,11 @@ import Card from "../../components/Card";
 import { useNavigate } from "react-router";
 import { Button } from "react-bootstrap";
 import RemoteReadings from "../../lib/remote/readings";
-import { WizardStore } from "../../storage/wizardStore";
 import { PreferencesStore } from "../../storage/preferencesStore";
 import WizardManager from "../../managers/wizardManager";
 import { WizardPage } from "../../models/types/wizardPage";
 
 export default function WizardFinalBGPage() {
-  const session = WizardStore.session.value;
-
   const [bloodSugar, setBloodSugar] = useState(PreferencesStore.targetBG.value);
   useEffect(() => {
     RemoteReadings.getCurrentSugar().then((a) => {
@@ -29,7 +26,7 @@ export default function WizardFinalBGPage() {
       return;
     }
     if (confirm("Are you sure you want to end your session?")) {
-      session.finalBG = bloodSugar;
+      WizardManager.endSession(bloodSugar);
       WizardManager.startNew(navigate);
     }
   }

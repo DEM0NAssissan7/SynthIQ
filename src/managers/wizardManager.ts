@@ -154,6 +154,11 @@ export default class WizardManager {
   }
 
   // Reset
+  static endSession(finalBG: number) {
+    const session = WizardStore.session.value;
+    session.finalBG = finalBG;
+    session.snapshots.forEach((s) => s.pullReadings()); // Pull readings for all snapshots
+  }
   static resetTemplate() {
     this.addSessionToTemplate(WizardStore.session.value);
     this.replaceTemplateToArray();
