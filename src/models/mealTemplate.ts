@@ -59,7 +59,7 @@ export default class MealTemplate extends Subscribable implements Template {
 
   // Control info
   get score(): number {
-    return MathUtil.median(this.sessions.map((s) => s.score));
+    return MathUtil.median(this.validSessions.map((s) => s.score));
   }
   get size(): number {
     return this.sessions.length;
