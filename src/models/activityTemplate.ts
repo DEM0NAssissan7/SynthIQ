@@ -30,6 +30,9 @@ export class ActivityTemplate implements Template {
   get score(): number {
     return MathUtil.median(this.activities.map((a) => a.score));
   }
+  get length(): number {
+    return MathUtil.median(this.activities.map((a) => a.length));
+  }
   get size(): number {
     return this.activities.length;
   }
