@@ -137,14 +137,48 @@ export default class Snapshot extends Subscribable {
 
   // Serialization
   static serialize: Serializer<Snapshot> = (s: Snapshot) => {
+    let baseTime = 0;
+    let timeJump = 0;
+    const firstReading = s.rawReadings[0];
+    if (firstReading) {
+      baseTime = firstReading.timestamp.getTime();
+
+      // Get median jump
+      let jumps: number[] = [];
+      s.rawReadings.sort(
+        (a, b) => a.timestamp.getTime() - b.timestamp.getTime()
+      );
+      for (let i = 0; i < s.rawReadings.length - 1; i++) {
+        const reading = s.rawReadings[i];
+        const nextReading = s.rawReadings[i + 1];
+        jumps.push(
+          nextReading.timestamp.getTime() - reading.timestamp.getTime()
+        );
+      }
+      console.log(jumps);
+      timeJump = Math.round(MathUtil.mean(jumps));
+    }
     return {
-      rawReadings: s.rawReadings.map((r) => SugarReading.serialize(r)),
+      rawReadings: s.rawReadings.map((r, i) => {
+        r.timestamp = new Date(r.timestamp.getTime() - baseTime - timeJump * i); // Offset by basetime
+        return SugarReading.serialize(r);
+      }),
+      baseTime: baseTime,
+      timeJump: timeJump,
     };
   };
   static deserialize: Deserializer<Snapshot> = (o) => {
     let snapshot = new Snapshot();
-    const readings: SugarReading[] = o.rawReadings.map((s: string) =>
-      SugarReading.deserialize(s)
+    let baseTime = o.baseTime ?? 0;
+    let timeJump = o.timeJump ?? 0;
+    const readings: SugarReading[] = o.rawReadings.map(
+      (s: string, i: number) => {
+        const reading = SugarReading.deserialize(s);
+        reading.timestamp = new Date(
+          reading.timestamp.getTime() + baseTime + timeJump * i
+        ); // Bring forward by basetime
+        return reading;
+      }
     );
     readings.forEach((r) => snapshot.addReading(r, false));
     return snapshot;
