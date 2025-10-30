@@ -1,7 +1,9 @@
 import { getMinuteDiff } from "../../lib/timing";
+import { convertDimensions } from "../../lib/util";
 import { CalibrationStore } from "../../storage/calibrationStore";
 import Snapshot from "../snapshot";
 import type { Deserializer, JSONObject, Serializer } from "../types/types";
+import Unit from "../unit";
 import Glucose from "./glucose";
 import MetaEvent from "./metaEvent";
 
@@ -67,6 +69,9 @@ export default class Activity extends MetaEvent {
     this.glucoses.forEach((g) => (glucose += g.value));
     return glucose;
   }
+  /**
+   * This value is the rate that BG drops while doing the activity, measured in mg/dL per hour
+   */
   get score(): number {
     const initialBG = this.initialBG;
     const finalBG = this.finalBG;
@@ -74,7 +79,10 @@ export default class Activity extends MetaEvent {
       throw new Error(`Cannot find deltaBG: no initial or final glucose`);
     const theoreticalFinalBG =
       finalBG - this.glucose * CalibrationStore.glucoseEffect.value;
-    return theoreticalFinalBG - initialBG;
+    return (
+      (theoreticalFinalBG - initialBG) /
+      (this.length * convertDimensions(Unit.Time.Minute, Unit.Time.Hour))
+    );
   }
 
   // Subevents
