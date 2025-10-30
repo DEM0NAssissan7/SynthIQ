@@ -31,6 +31,8 @@ import WizardInsulinRouter from "./pages/wizard/WizardInsulinRouter";
 import HistoryPage from "./pages/HistoryPage";
 import InsulinVariantsPage from "./pages/InsulinVariantsPage";
 import { useNow } from "./state/useNow";
+import { convertDimensions } from "./lib/util";
+import Unit from "./models/unit";
 
 function App() {
   const navigate = useNavigate();
@@ -41,10 +43,15 @@ function App() {
 
     // Synchronize master/slave state (if set)
     RemoteStorage.sync();
-
-    // Execute health monitor
-    smartMonitor(navigate);
   }, [now]);
+
+  const redirectNow = useNow(
+    20 * convertDimensions(Unit.Time.Minute, Unit.Time.Second)
+  );
+  useEffect(() => {
+    // Execute health monitor navigator
+    smartMonitor(navigate);
+  }, [redirectNow]);
 
   console.log(WizardStore.session.value);
   console.log(WizardStore.template.value);
