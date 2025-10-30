@@ -24,7 +24,8 @@ export const NumberOptionSelector: React.FC<NumberOptionSelectorProps> = ({
 
   const options: number[] = [];
   for (let i = -rangeFromOrigin; i <= rangeFromOrigin; i++) {
-    options.push(baseValue + i * increment);
+    const n = baseValue + i * increment;
+    if (!Number.isNaN(n)) options.push(n);
   }
 
   return (
