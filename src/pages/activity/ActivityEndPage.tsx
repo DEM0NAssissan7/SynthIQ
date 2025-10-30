@@ -33,6 +33,9 @@ export default function ActivityEndPage() {
       ActivityManager.end(navigate, currentBG);
     }
   }
+  function takeGlucose() {
+    navigate("/rescue");
+  }
   return (
     <>
       <Card>
@@ -47,6 +50,9 @@ export default function ActivityEndPage() {
       <div className="d-flex justify-content-between align-items-center mt-3">
         <Button variant="danger" onClick={cancel}>
           Cancel Activity
+        </Button>
+        <Button variant="primary" onClick={takeGlucose}>
+          Take Glucose
         </Button>
         <Button variant="primary" onClick={end}>
           End Activity
