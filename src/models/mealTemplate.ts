@@ -131,8 +131,7 @@ export default class MealTemplate extends Subscribable implements Template {
   ): Session[] | null {
     if (this.isFirstTime) return null;
 
-    let sessions = this.sessions.filter((s) => !s.isInvalid);
-    if (sessions.length === 0) sessions = this.sessions; // If all we have is garbage, we still use it anyways (better than nothing)
+    let sessions = this.validSessions;
 
     // K is the number of neighbors to select
     const K = Math.min(
