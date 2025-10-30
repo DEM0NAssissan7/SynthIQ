@@ -8,18 +8,18 @@ export default class SugarReading {
   ) {}
 
   static serialize: Serializer<SugarReading> = (r: SugarReading) => {
-    return {
-      sugar: r.sugar,
-      timestamp: r.timestamp.getTime(),
-      isCalibration: r.isCalibration,
-    };
+    return [r.sugar, r.timestamp.getTime(), r.isCalibration];
   };
   static deserialize: Deserializer<SugarReading> = (o) => {
-    return new SugarReading(
-      o.sugar,
-      new Date(o.timestamp),
-      o.isCalibration || false
-    );
+    if (o.sugar) {
+      // Backwards compatibility with old serializations
+      return new SugarReading(
+        o.sugar,
+        new Date(o.timestamp),
+        o.isCalibration || false
+      );
+    }
+    return new SugarReading(o[0], new Date(o[1]), o[2]);
   };
 }
 
