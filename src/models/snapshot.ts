@@ -12,6 +12,9 @@ import SugarReading, { getReadingFromNightscout } from "./types/sugarReading";
 import type { Deserializer, Serializer } from "./types/types";
 import Unit from "./unit";
 
+const precisionMS = 10 * 1000;
+const reducePrecision = (x: number, precision: number = precisionMS) =>
+  Math.round(x / precision) * precision;
 export default class Snapshot extends Subscribable {
   private rawReadings: SugarReading[] = [];
 
@@ -139,29 +142,37 @@ export default class Snapshot extends Subscribable {
   static serialize: Serializer<Snapshot> = (s: Snapshot) => {
     let baseTime = 0;
     let timeJump = 0;
-    const firstReading = s.rawReadings[0];
+    const readings = s.rawReadings
+      .slice()
+      .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+    const firstReading = readings[0];
     if (firstReading) {
       baseTime = firstReading.timestamp.getTime();
 
       // Get median jump
       let jumps: number[] = [];
-      s.rawReadings.sort(
-        (a, b) => a.timestamp.getTime() - b.timestamp.getTime()
-      );
-      for (let i = 0; i < s.rawReadings.length - 1; i++) {
-        const reading = s.rawReadings[i];
-        const nextReading = s.rawReadings[i + 1];
+      for (let i = 0; i < readings.length - 1; i++) {
+        const reading = readings[i];
+        const nextReading = readings[i + 1];
         jumps.push(
-          nextReading.timestamp.getTime() - reading.timestamp.getTime()
+          reducePrecision(nextReading.timestamp.getTime()) -
+            reducePrecision(reading.timestamp.getTime())
         );
       }
       console.log(jumps);
       timeJump = Math.round(MathUtil.mean(jumps));
     }
     return {
-      rawReadings: s.rawReadings.map((r, i) => {
-        r.timestamp = new Date(r.timestamp.getTime() - baseTime - timeJump * i); // Offset by basetime
-        return SugarReading.serialize(r);
+      rawReadings: readings.map((r, i) => {
+        // Create a *new* Date for the serialized value; do not touch r.timestamp
+        const offsetMs =
+          reducePrecision(r.timestamp.getTime()) - baseTime - timeJump * i;
+        const clone = new SugarReading(
+          r.sugar,
+          new Date(offsetMs),
+          r.isCalibration
+        );
+        return SugarReading.serialize(clone);
       }),
       baseTime: baseTime,
       timeJump: timeJump,
