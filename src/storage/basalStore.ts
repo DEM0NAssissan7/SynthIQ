@@ -1,6 +1,7 @@
 import Serialization from "../lib/serialization";
 import StorageNode from "./storageNode";
 import Insulin from "../models/events/insulin";
+import Glucose from "../models/events/glucose";
 
 export namespace BasalStore {
   const node = new StorageNode("basal");
@@ -18,6 +19,12 @@ export namespace BasalStore {
   export const fastingVelocitiesCacheLastUpdated = node.add<Date>(
     "fastingVelocitiesCacheLastUpdated",
     new Date("")
+  );
+  export const fastingGlucosesCache = node.add<Glucose[]>(
+    "fastingGlucosesCache",
+    [],
+    Serialization.getArraySerializer(Glucose.serialize),
+    Serialization.getArrayDeserializer(Glucose.deserialize)
   );
   export const minTimeSinceMeal = node.add<number>("minTimeSinceMeal", 6);
   export const minTimeSinceDextrose = node.add<number>(

@@ -24,7 +24,7 @@ import { getHourDiff, getMinuteDiff } from "./timing";
 import { MathUtil, round } from "./util";
 import RemoteReadings from "./remote/readings";
 import { getBGVelocities } from "./readingsUtil";
-import { isFasting, populateFastingVelocitiesCache } from "./basal";
+import { isFastingState, populateFastingVelocitiesCache } from "./basal";
 import Glucose from "../models/events/glucose";
 import { HealthMonitorStore } from "../storage/healthMonitorStore";
 import { PreferencesStore } from "../storage/preferencesStore";
@@ -161,7 +161,7 @@ export async function updateHealthMonitorStatus() {
       }
     }
 
-    const fasting = await isFasting(new Date());
+    const fasting = await isFastingState(new Date());
     if (currentBG > PreferencesStore.highBG.value && fasting) {
       healthMonitorStatus = HealthMonitorStatus.High;
       return healthMonitorStatus;

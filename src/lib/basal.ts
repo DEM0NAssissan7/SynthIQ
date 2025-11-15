@@ -1,4 +1,5 @@
 import { InsulinVariantManager } from "../managers/insulinVariantManager";
+import Glucose from "../models/events/glucose";
 import Insulin from "../models/events/insulin";
 import { InsulinVariant } from "../models/types/insulinVariant";
 import SugarReading, {
@@ -7,6 +8,7 @@ import SugarReading, {
 import Unit from "../models/unit";
 import { BackendStore } from "../storage/backendStore";
 import { BasalStore } from "../storage/basalStore";
+import { CalibrationStore } from "../storage/calibrationStore";
 import { HealthMonitorStore } from "../storage/healthMonitorStore";
 import { getBasalCorrection } from "./metabolism";
 import { getBGVelocities } from "./readingsUtil";
@@ -21,7 +23,7 @@ import RemoteTreatments, {
 import { getTimestampFromOffset, timestampIsBetween } from "./timing";
 import { convertDimensions, MathUtil, round } from "./util";
 
-export async function isFasting(timestamp: Date) {
+export async function isFastingState(timestamp: Date) {
   const minTimeSinceMeal = BasalStore.minTimeSinceMeal.value;
   const minTimeSinceDextrose = BasalStore.minTimeSinceDextrose.value / 60; // Minutes -> Hours
 
@@ -40,12 +42,12 @@ export async function isFasting(timestamp: Date) {
   return true;
 }
 
-function getFastingVelocities(
+function getNonFastingWindows(
   treatments: any[],
-  readings: SugarReading[]
-): number[] {
+  ignoreGlucose: boolean = false
+): [Date, Date][] {
   const minTimeSinceMeal = BasalStore.minTimeSinceMeal.value;
-  const minTimeSinceDextrose = BasalStore.minTimeSinceDextrose.value / 60; // Minutes -> Hours
+  const minTimeSinceDextrose = BasalStore.minTimeSinceDextrose.value / 60;
 
   let nonFasting: [Date, Date][] = []; // A set of date pairs to describe when we are not fasting
   treatments.forEach((a: any) => {
@@ -62,7 +64,7 @@ function getFastingVelocities(
         hoursNonFasting = variant.duration;
         break;
       case glucoseEventType:
-        hoursNonFasting = minTimeSinceDextrose;
+        hoursNonFasting = ignoreGlucose ? null : minTimeSinceDextrose;
         break;
       case activityEventType:
         hoursNonFasting = a.duration ? a.duration / 60 : null;
@@ -74,19 +76,27 @@ function getFastingVelocities(
         getTimestampFromOffset(a.timestamp, hoursNonFasting),
       ]);
   });
+  return nonFasting;
+}
+function isFasting(timestamp: Date, nonFasting: [Date, Date][]): boolean {
+  for (let datePair of nonFasting) {
+    const timestampA = datePair[0];
+    const timestampB = datePair[1];
+    if (timestampIsBetween(timestamp, timestampA, timestampB)) return false;
+  }
+  return true;
+}
+function getFastingVelocities(
+  treatments: any[],
+  readings: SugarReading[]
+): number[] {
+  let nonFasting = getNonFastingWindows(treatments); // A set of date pairs to describe when we are not fasting
 
+  console.log(nonFasting);
   let velocities: number[] = [];
-  const isFasting = (timestamp: Date): boolean => {
-    for (let datePair of nonFasting) {
-      const timestampA = datePair[0];
-      const timestampB = datePair[1];
-      if (timestampIsBetween(timestamp, timestampA, timestampB)) return false;
-    }
-    return true;
-  };
   let currentSet: SugarReading[] = [];
   readings.forEach((reading: SugarReading, index: number) => {
-    const fasting = isFasting(reading.timestamp);
+    const fasting = isFasting(reading.timestamp, nonFasting);
     if (fasting) {
       currentSet.push(reading);
     }
@@ -99,6 +109,17 @@ function getFastingVelocities(
     }
   });
   return velocities;
+}
+function getFastingGlucoses(treatments: any[]): Glucose[] {
+  let nonFasting = getNonFastingWindows(treatments, true);
+  let glucoses: Glucose[] = [];
+  treatments.forEach((a: any) => {
+    if (a.eventType === glucoseEventType) {
+      glucoses.push(new Glucose(a.carbs, new Date(a.created_at)));
+    }
+  });
+  glucoses = glucoses.filter((g) => isFasting(g.timestamp, nonFasting));
+  return glucoses;
 }
 
 export async function populateFastingVelocitiesCache() {
@@ -117,12 +138,28 @@ export async function populateFastingVelocitiesCache() {
     treatments,
     readings
   );
+  BasalStore.fastingGlucosesCache.value = getFastingGlucoses(treatments);
+  console.log(BasalStore.fastingGlucosesCache.value);
 }
 
 export function getFastingVelocity() {
   const fastingVelocities = BasalStore.fastingVelocitiesCache.value;
-  const averageVelocities = MathUtil.mean(fastingVelocities);
-  return averageVelocities;
+  const averageVelocity = MathUtil.mean(fastingVelocities);
+
+  // We account for correction glucose that had to be taken while fasting
+  const hours = getFastingLength();
+  const glucoseEffect = CalibrationStore.glucoseEffect.value;
+  const fastingGlucoses = BasalStore.fastingGlucosesCache.value;
+  let totalFastingGlucoseEffect = 0;
+  fastingGlucoses.forEach(
+    (g) => (totalFastingGlucoseEffect += (g.value ?? 0) * glucoseEffect)
+  );
+  console.log(
+    averageVelocity,
+    totalFastingGlucoseEffect / hours,
+    fastingGlucoses
+  );
+  return averageVelocity - totalFastingGlucoseEffect / hours;
 }
 
 /**
