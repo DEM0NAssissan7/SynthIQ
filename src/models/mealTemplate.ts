@@ -42,6 +42,24 @@ export default class MealTemplate extends Subscribable implements Template {
       throw new Error(`Cannot retrieve latest session: unknown error`);
     return session;
   }
+  get bestSession(): Session {
+    if (this.sessions.length === 0)
+      throw new Error(`There are no sessions in this template!`);
+    const sessions = this.freshSessions;
+    let session: Session | null = null;
+    sessions.forEach((s) => {
+      if (!session) {
+        session = s;
+        return;
+      }
+      if (s.score < session.score) {
+        session = s;
+      }
+    });
+    if (!session)
+      throw new Error(`Cannot retrieve best session: unknown error`);
+    return session;
+  }
 
   // Nutrition Information
   get carbs(): number {
@@ -67,6 +85,11 @@ export default class MealTemplate extends Subscribable implements Template {
   get validSessions(): Session[] {
     const sessions = this.sessions.filter((s) => !s.isInvalid);
     if (sessions.length === 0) return this.sessions; // Return invalid sessions if we have no valid ones
+    return sessions;
+  }
+  get freshSessions(): Session[] {
+    const sessions = this.validSessions.filter((s) => !s.expired);
+    if (sessions.length === 0) return this.validSessions; // Return invalid sessions if we have no valid ones
     return sessions;
   }
 

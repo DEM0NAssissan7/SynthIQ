@@ -125,7 +125,7 @@ export default class WizardManager {
     WizardStore.template.value = template;
     if (!template.isFirstTime) {
       WizardStore.meal.value = Meal.deserialize(
-        Meal.serialize(template.latestSession.firstMeal)
+        Meal.serialize(template.bestSession.firstMeal)
       );
     } else {
       WizardStore.meal.value = new Meal(new Date());
