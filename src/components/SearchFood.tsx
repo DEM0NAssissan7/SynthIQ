@@ -29,9 +29,21 @@ export default function SearchFood({ food, addFood }: SearchFoodProps) {
       <div className="d-flex justify-content-between align-items-center">
         <span className="fw-bold">{food.name}</span>
         <span className="text-muted">
-          {food.carbsRate}g carbs
-          <br />
-          {food.proteinRate}g protein
+          {[
+            ...(food.carbsRate !== 0 ? [`${food.carbsRate}g carbs`] : []),
+            ...(food.netCarbsRate !== food.carbsRate
+              ? [`${food.netCarbsRate}g net carbs`]
+              : []),
+            ...(food.proteinRate !== 0 ? [`${food.proteinRate}g protein`] : []),
+            ...(food.arbitraryRise !== 0
+              ? [`${food.arbitraryRise}mg/dL rise`]
+              : []),
+          ].map((line, i, arr) => (
+            <span key={line}>
+              {line}
+              {i < arr.length - 1 && <br />}
+            </span>
+          ))}
           <br />/{getFoodUnitPrettyName(food.unit)}
         </span>
       </div>

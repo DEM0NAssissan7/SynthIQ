@@ -69,6 +69,11 @@ export default class Session extends Subscribable {
     this.meals.forEach((a: Meal) => (carbs += a.carbs));
     return carbs;
   }
+  get totalCarbs(): number {
+    let netCarbs = 0;
+    this.meals.forEach((a: Meal) => (netCarbs += a.totalCarbs));
+    return netCarbs;
+  }
   get protein(): number {
     let protein = 0;
     this.meals.forEach((a: Meal) => (protein += a.protein));

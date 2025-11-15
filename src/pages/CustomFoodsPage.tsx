@@ -12,6 +12,8 @@ export default function CustomFoodsPage() {
   const [foodName, setFoodName] = useState("");
   const [carbsRate, setCarbsRate] = useState(0);
   const [proteinRate, setProteinRate] = useState(0);
+  const [fiberRate, setFiberRate] = useState(0);
+  const [rise, setRise] = useState(0);
   const [fatRate, setFatRate] = useState(0);
   const [unit, setUnit] = useState(Unit.Food.HundredGrams);
 
@@ -27,7 +29,9 @@ export default function CustomFoodsPage() {
     setFoodName("");
     setCarbsRate(0);
     setProteinRate(0);
+    setFiberRate(0);
     setFatRate(0);
+    setRise(0);
     setUnit(Unit.Food.HundredGrams);
   }
   function add() {
@@ -35,7 +39,15 @@ export default function CustomFoodsPage() {
       alert("Please enter a valid food name.");
       return;
     }
-    const food = new Food(foodName, carbsRate, proteinRate, unit, fatRate);
+    const food = new Food(
+      foodName,
+      carbsRate,
+      proteinRate,
+      unit,
+      rise,
+      fatRate,
+      fiberRate
+    );
     CustomStore.addFood(food);
     resetUIStates();
     console.log(`Added ${foodName} to custom foods.`);
@@ -79,10 +91,10 @@ export default function CustomFoodsPage() {
                   <option value={Unit.Food.Unit}>per unit</option>
                 </Form.Select>
                 <br />
-                carbs/{prettyUnit}:
+                carbs / {prettyUnit}:
                 <Form.Control
                   type="number"
-                  placeholder={`0`}
+                  placeholder={`0g`}
                   className="text-center"
                   value={carbsRate || ""}
                   onInput={(e: BaseSyntheticEvent) => {
@@ -91,10 +103,22 @@ export default function CustomFoodsPage() {
                   }}
                 />
                 <br />
-                protein/{prettyUnit}:
+                fiber / {prettyUnit}:
                 <Form.Control
                   type="number"
-                  placeholder={`0`}
+                  placeholder={`0g`}
+                  className="text-center"
+                  value={fiberRate || ""}
+                  onInput={(e: BaseSyntheticEvent) => {
+                    const value = parseFloat(e.target.value) || 0;
+                    setFiberRate(value);
+                  }}
+                />
+                <br />
+                protein / {prettyUnit}:
+                <Form.Control
+                  type="number"
+                  placeholder={`0g`}
                   className="text-center"
                   value={proteinRate || ""}
                   onInput={(e: BaseSyntheticEvent) => {
@@ -103,15 +127,27 @@ export default function CustomFoodsPage() {
                   }}
                 />
                 <br />
-                fat/{prettyUnit}:
+                fat / {prettyUnit}:
                 <Form.Control
                   type="number"
-                  placeholder={`0`}
+                  placeholder={`0g`}
                   className="text-center"
                   value={fatRate || ""}
                   onInput={(e: BaseSyntheticEvent) => {
                     const value = parseFloat(e.target.value) || 0;
                     setFatRate(value);
+                  }}
+                />
+                <br />
+                rise(arbitrary) / {prettyUnit}:
+                <Form.Control
+                  type="number"
+                  placeholder={`0mg/dL`}
+                  className="text-center"
+                  value={rise || ""}
+                  onInput={(e: BaseSyntheticEvent) => {
+                    const value = parseFloat(e.target.value) || 0;
+                    setRise(value);
                   }}
                 />
                 <br />

@@ -2,11 +2,12 @@
   "foods": [
     {
       "name": "Avocado",
-      "carbs": 4,
+      "carbs": 12,
       "protein": 4,
       "units": "unit",
       "GI": 10,
-      "fat": 22
+      "fat": 22,
+      "fiber": 8
     },
     {
       "name": "American Cheese (kraft)",
@@ -14,7 +15,8 @@
       "protein": 3.6,
       "units": "unit",
       "GI": 10,
-      "fat": 4.9
+      "fat": 4.9,
+      "fiber": 0
     },
     {
       "name": "Basturma",
@@ -22,7 +24,8 @@
       "protein": 29.2,
       "units": "percent",
       "GI": 15,
-      "fat": 2.7
+      "fat": 2.7,
+      "fiber": 0
     },
     {
       "name": "Kiri Cream Cheese (per square)",
@@ -30,15 +33,17 @@
       "protein": 1.6,
       "units": "unit",
       "GI": 15,
-      "fat": 2.7
+      "fat": 2.7,
+      "fiber": 0
     },
     {
       "name": "Avocado (by weight)",
-      "carbs": 2,
+      "carbs": 9,
       "protein": 2,
       "units": "percent",
       "GI": 10,
-      "fat": 15
+      "fat": 15,
+      "fiber": 7
     },
     {
       "name": "Atlantic Salmon",
@@ -46,7 +51,8 @@
       "protein": 20,
       "units": "percent",
       "GI": 0,
-      "fat": 13.1
+      "fat": 13.1,
+      "fiber": 0
     },
     {
       "name": "Bass (bone-in)",
@@ -54,7 +60,8 @@
       "protein": 22.6,
       "units": "percent",
       "GI": 0,
-      "fat": 3.1
+      "fat": 3.1,
+      "fiber": 0
     },
     {
       "name": "Beef Bacon -strip-",
@@ -62,7 +69,8 @@
       "protein": 3,
       "units": "unit",
       "GI": 0,
-      "fat": 2.3
+      "fat": 2.3,
+      "fiber": 0
     },
     {
       "name": "Babybel Cheese (per piece)",
@@ -70,7 +78,8 @@
       "protein": 4,
       "units": "unit",
       "GI": 0,
-      "fat": 5
+      "fat": 5,
+      "fiber": 0
     },
     {
       "name": "Beef (short ribs)",
@@ -78,7 +87,8 @@
       "protein": 22,
       "units": "percent",
       "GI": 0,
-      "fat": 19.03
+      "fat": 19.03,
+      "fiber": 0
     },
     {
       "name": "Bell Peppers (green)",
@@ -86,23 +96,26 @@
       "protein": 0.8,
       "units": "percent",
       "GI": 15,
-      "fat": 0.2
+      "fat": 0.2,
+      "fiber": 0
     },
     {
       "name": "Cauliflower",
-      "carbs": 1.9,
+      "carbs": 4.9,
       "protein": 1.9,
       "units": "percent",
       "GI": 20,
-      "fat": 0.4
+      "fat": 0.4,
+      "fiber": 3
     },
     {
       "name": "Celery",
-      "carbs": 1.4,
+      "carbs": 3,
       "protein": 0.7,
       "units": "percent",
       "GI": 20,
-      "fat": 0.17
+      "fat": 0.17,
+      "fiber": 1.6
     },
     {
       "name": "Chicken Breast",
@@ -110,7 +123,8 @@
       "protein": 31,
       "units": "percent",
       "GI": 0,
-      "fat": 3.6
+      "fat": 3.6,
+      "fiber": 0
     },
     {
       "name": "Chicken Thigh (boneless)",
@@ -118,7 +132,8 @@
       "protein": 24,
       "units": "percent",
       "GI": 0,
-      "fat": 9.1
+      "fat": 9.1,
+      "fiber": 0
     },
     {
       "name": "Chicken Quarter (boneless)",
@@ -126,7 +141,8 @@
       "protein": 28.5,
       "units": "percent",
       "GI": 0,
-      "fat": 23
+      "fat": 23,
+      "fiber": 0
     },
     {
       "name": "Cucumber",
@@ -134,7 +150,8 @@
       "protein": 0.7,
       "units": "percent",
       "GI": 20,
-      "fat": 0.1
+      "fat": 0.1,
+      "fiber": 0.5
     },
     {
       "name": "Eggs (large, scrambled)",
@@ -142,15 +159,17 @@
       "protein": 6,
       "units": "unit",
       "GI": 10,
-      "fat": 5
+      "fat": 5,
+      "fiber": 0
     },
     {
       "name": "Garlic",
-      "carbs": 30.9,
+      "carbs": 33,
       "protein": 6.4,
       "units": "percent",
       "GI": 30,
-      "fat": 0.5
+      "fat": 0.5,
+      "fiber": 2.1
     },
     {
       "name": "Ground Beef",
@@ -158,7 +177,8 @@
       "protein": 27.4,
       "units": "percent",
       "GI": 0,
-      "fat": 25
+      "fat": 25,
+      "fiber": 0
     },
     {
       "name": "Ground Lamb",
@@ -166,7 +186,8 @@
       "protein": 24.7,
       "units": "percent",
       "GI": 0,
-      "fat": 23
+      "fat": 23,
+      "fiber": 0
     },
     {
       "name": "Gouda Cheese",
@@ -174,7 +195,8 @@
       "protein": 25,
       "units": "percent",
       "GI": 15,
-      "fat": 27
+      "fat": 27,
+      "fiber": 0
     },
     {
       "name": "Hamburger Patties",
@@ -182,15 +204,17 @@
       "protein": 18,
       "units": "unit",
       "GI": 0,
-      "fat": 17
+      "fat": 17,
+      "fiber": 0
     },
     {
       "name": "Kale",
-      "carbs": 3.6,
+      "carbs": 8.8,
       "protein": 1.9,
       "units": "percent",
       "GI": 15,
-      "fat": 0.4
+      "fat": 0.4,
+      "fiber": 5.2
     },
     {
       "name": "Lamb Breast",
@@ -198,7 +222,8 @@
       "protein": 25,
       "units": "percent",
       "GI": 0,
-      "fat": 30
+      "fat": 30,
+      "fiber": 0
     },
     {
       "name": "Mushroom (white; bella) [per shroom]",
@@ -206,15 +231,17 @@
       "protein": 0.6,
       "units": "unit",
       "GI": 15,
-      "fat": 0.1
+      "fat": 0.1,
+      "fiber": 0
     },
     {
       "name": "Mushroom (white; bella) [by weight]",
-      "carbs": 3.1,
+      "carbs": 3.3,
       "protein": 2.2,
       "units": "percent",
       "GI": 15,
-      "fat": 0.3
+      "fat": 0.3,
+      "fiber": 0.2
     },
     {
       "name": "Olives (small)",
@@ -222,7 +249,8 @@
       "protein": 0,
       "units": "unit",
       "GI": 15,
-      "fat": 0.5
+      "fat": 0.5,
+      "fiber": 0
     },
     {
       "name": "Pickles (by weight)",
@@ -230,7 +258,8 @@
       "protein": 0.5,
       "units": "percent",
       "GI": 15,
-      "fat": 0.3
+      "fat": 0.3,
+      "fiber": 0
     },
     {
       "name": "Pickle Spears",
@@ -238,7 +267,8 @@
       "protein": 0.2,
       "units": "unit",
       "GI": 15,
-      "fat": 0.1
+      "fat": 0.1,
+      "fiber": 0
     },
     {
       "name": "Dill Pickle Chips (innacurate)",
@@ -246,31 +276,35 @@
       "protein": 0,
       "units": "unit",
       "GI": 15,
-      "fat": 0.05
+      "fat": 0.05,
+      "fiber": 0
     },
     {
       "name": "Onion (red)",
-      "carbs": 8.6,
+      "carbs": 9.9,
       "protein": 1.4,
       "units": "percent",
       "GI": 10,
-      "fat": 0.2
+      "fat": 0.2,
+      "fiber": 1.3
     },
     {
       "name": "Onion (yellow)",
-      "carbs": 8.6,
+      "carbs": 9.9,
       "protein": 1.4,
       "units": "percent",
       "GI": 10,
-      "fat": 0.2
+      "fat": 0.2,
+      "fiber": 1.3
     },
     {
       "name": "Lettuce (Romaine)",
-      "carbs": 1.2,
+      "carbs": 3.3,
       "protein": 1.2,
       "units": "percent",
       "GI": 15,
-      "fat": 0.3
+      "fat": 0.3,
+      "fiber": 2.1
     },
     {
       "name": "Sausage Patty",
@@ -278,7 +312,8 @@
       "protein": 9,
       "units": "unit",
       "GI": 0,
-      "fat": 8
+      "fat": 8,
+      "fiber": 0
     },
     {
       "name": "Sausage Link",
@@ -286,7 +321,8 @@
       "protein": 8,
       "units": "unit",
       "GI": 0,
-      "fat": 7
+      "fat": 7,
+      "fiber": 0
     },
     {
       "name": "Steak (ribeye)",
@@ -294,7 +330,8 @@
       "protein": 24,
       "units": "percent",
       "GI": 0,
-      "fat": 20
+      "fat": 20,
+      "fiber": 0
     },
     {
       "name": "Steak (sirloin)",
@@ -302,7 +339,8 @@
       "protein": 27,
       "units": "percent",
       "GI": 0,
-      "fat": 10
+      "fat": 10,
+      "fiber": 0
     },
     {
       "name": "Steak (skirt)",
@@ -310,7 +348,8 @@
       "protein": 26,
       "units": "percent",
       "GI": 0,
-      "fat": 12
+      "fat": 12,
+      "fiber": 0
     },
     {
       "name": "Steak (tri tip)",
@@ -318,7 +357,8 @@
       "protein": 20.64,
       "units": "percent",
       "GI": 0,
-      "fat": 9
+      "fat": 9,
+      "fiber": 0
     },
     {
       "name": "Steak (t-bone)",
@@ -326,7 +366,8 @@
       "protein": 19,
       "units": "percent",
       "GI": 0,
-      "fat": 17
+      "fat": 17,
+      "fiber": 0
     }
   ]
 }

@@ -7,7 +7,9 @@ export default class Food {
   name: string;
   carbsRate: number;
   proteinRate: number;
+  arbitraryRise: number;
   fatRate: number;
+  fiberRate: number;
   unit: Unit.Food;
   key: UUID; // This only exists to uniquely identify the food
 
@@ -17,15 +19,22 @@ export default class Food {
     carbsRate: number,
     proteinRate: number,
     unit: Unit.Food = Unit.Food.HundredGrams,
-    fatRate?: number
+    arbitraryRise?: number,
+    fatRate?: number,
+    fiberRate?: number
   ) {
     this.name = name;
     this.carbsRate = carbsRate;
     this.proteinRate = proteinRate;
     this.unit = unit;
+    this.arbitraryRise = arbitraryRise || 0;
     this.fatRate = fatRate || 0;
+    this.fiberRate = fiberRate || 0;
 
     this.key = genUUID();
+  }
+  get netCarbsRate(): number {
+    return this.carbsRate - this.fiberRate;
   }
   get carbs(): number {
     return (this.carbsRate / this.unit) * this.amount;
@@ -35,6 +44,15 @@ export default class Food {
   }
   get fat(): number {
     return (this.fatRate / this.unit) * this.amount;
+  }
+  get fiber(): number {
+    return (this.fiberRate / this.unit) * this.amount;
+  }
+  get netCarbs(): number {
+    return (this.netCarbsRate / this.unit) * this.amount;
+  }
+  get rise(): number {
+    return (this.arbitraryRise / this.unit) * this.amount;
   }
 
   static createFromImport(food: any): Food {
@@ -59,7 +77,9 @@ export default class Food {
       food.carbs,
       food.protein,
       unit,
-      food.fat || 0
+      food.rise || 0,
+      food.fat || 0,
+      food.fiber || 0
     );
     newFood.amount = food.amount || 0;
     return newFood;
@@ -71,7 +91,9 @@ export default class Food {
       name: food.name,
       carbs: food.carbsRate,
       protein: food.proteinRate,
+      rise: food.arbitraryRise,
       fat: food.fatRate,
+      fiber: food.fiberRate,
       units: food.unit,
       amount: food.amount,
     };
@@ -109,7 +131,9 @@ export function getFoodByName(name: string): Food {
         food.carbsRate,
         food.proteinRate,
         food.unit,
-        food.fatRate
+        food.arbitraryRise,
+        food.fatRate,
+        food.fiberRate
       );
   throw new Error(`Foods: could not find food with name ${name}`);
 }

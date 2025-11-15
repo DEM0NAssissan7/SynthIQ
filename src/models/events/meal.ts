@@ -4,13 +4,13 @@ import type { Deserializer, Serializer } from "../types/types";
 import Unit from "../unit";
 
 function createCarbsOffset() {
-  return new Food("Carbs Offset", 1, 0, Unit.Food.Unit, 0);
+  return new Food("Carbs Offset", 1, 0, Unit.Food.Unit);
 }
 function createProteinOffset() {
   return new Food("Protein Offset", 0, 1, Unit.Food.Unit);
 }
 function createFatOffset() {
-  return new Food("Fat Offset", 0, 0, Unit.Food.Unit, 1);
+  return new Food("Fat Offset", 0, 0, Unit.Food.Unit, 0, 1);
 }
 export default class Meal extends MetaEvent {
   foods: Food[] = [
@@ -76,8 +76,13 @@ export default class Meal extends MetaEvent {
   // Metabolism
   get carbs(): number {
     let carbs = 0;
-    this.foods.forEach((a: Food) => (carbs += a.carbs));
+    this.foods.forEach((a: Food) => (carbs += a.netCarbs));
     return carbs;
+  }
+  get totalCarbs(): number {
+    let netCarbs = 0;
+    this.foods.forEach((a: Food) => (netCarbs += a.netCarbs));
+    return netCarbs;
   }
   get protein(): number {
     let protein = 0;
@@ -118,7 +123,15 @@ export default class Meal extends MetaEvent {
   copyFoods(foods: Food[]) {
     this.foods = [];
     foods.forEach((a: Food) => {
-      const f = new Food(a.name, a.carbsRate, a.proteinRate, a.unit, a.fatRate);
+      const f = new Food(
+        a.name,
+        a.carbsRate,
+        a.proteinRate,
+        a.unit,
+        a.arbitraryRise,
+        a.fatRate,
+        a.fiberRate
+      );
       f.amount = a.amount;
       this.foods.push(f);
     });

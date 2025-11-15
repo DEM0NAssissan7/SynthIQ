@@ -9,6 +9,8 @@ export default function useFood(food: Food, meal?: Meal) {
     amount: food.amount,
     carbs: food.carbs,
     protein: food.protein,
+    fiber: food.fiber,
+    rise: food.rise,
     setAmount: (amount: number) => {
       food.amount = amount;
       meal?.notify();

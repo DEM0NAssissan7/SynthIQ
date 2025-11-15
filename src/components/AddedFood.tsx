@@ -1,6 +1,6 @@
 import { Button, Form } from "react-bootstrap";
 import { getFoodUnitPrettyName } from "../models/unit";
-import { type BaseSyntheticEvent } from "react";
+import { useMemo, type BaseSyntheticEvent } from "react";
 import type Food from "../models/food";
 import useFood from "../state/useFood";
 import { round } from "../lib/util";
@@ -14,7 +14,13 @@ interface SearchFoodProps {
 export default function AddedFood({ food, meal }: SearchFoodProps) {
   let prettyUnit = getFoodUnitPrettyName(food.unit);
   let letter = prettyUnit[prettyUnit.length - 1];
-  const { amount, setAmount, carbs, protein } = useFood(food, meal);
+  const { amount, setAmount, carbs, protein, fiber, rise } = useFood(
+    food,
+    meal
+  );
+  const netCarbs = useMemo(() => {
+    return carbs - fiber;
+  }, [carbs, fiber]);
 
   // Just to prevent reload when pressing enter
   const handleFormSubmit = (e: BaseSyntheticEvent) => {
@@ -30,9 +36,24 @@ export default function AddedFood({ food, meal }: SearchFoodProps) {
       <div className="d-flex justify-content-between align-items-center">
         <span className="fw-bold">{food.name}</span>
         <span className="text-muted">
-          {round(carbs, 2)}g carbs
-          <br />
-          {round(protein, 2)}g protein
+          {carbs !== 0 && (
+            <>
+              {round(carbs, 2)}g carbs <br />
+            </>
+          )}
+          {carbs !== netCarbs && (
+            <>
+              {round(netCarbs, 2)}g net carbs
+              <br />
+            </>
+          )}
+          {protein !== 0 && (
+            <>
+              {round(protein, 2)}g protein
+              <br />
+            </>
+          )}
+          {rise !== 0 && <>{rise}mg/dL rise</>}
         </span>
       </div>
       <Form onSubmit={handleFormSubmit}>
