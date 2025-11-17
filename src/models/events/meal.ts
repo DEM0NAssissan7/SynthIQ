@@ -75,14 +75,14 @@ export default class Meal extends MetaEvent {
 
   // Metabolism
   get carbs(): number {
-    let carbs = 0;
-    this.foods.forEach((a: Food) => (carbs += a.netCarbs));
-    return carbs;
-  }
-  get totalCarbs(): number {
     let netCarbs = 0;
     this.foods.forEach((a: Food) => (netCarbs += a.netCarbs));
     return netCarbs;
+  }
+  get totalCarbs(): number {
+    let carbs = 0;
+    this.foods.forEach((a: Food) => (carbs += a.carbs));
+    return carbs;
   }
   get protein(): number {
     let protein = 0;

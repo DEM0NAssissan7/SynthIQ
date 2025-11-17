@@ -118,8 +118,14 @@ export default function TemplateMealSummary({
   return (
     <>
       <hr />
-      <b>{round(meal.carbs, 0)}g</b> carbs
+      <b>{round(meal.totalCarbs, 0)}g</b> carbs
       <br />
+      {meal.totalCarbs !== meal.carbs && (
+        <>
+          <b>{round(meal.carbs, 0)}g</b> net carbs
+          <br />
+        </>
+      )}
       <b>{round(meal.protein, 0)}g</b> protein
       <br />
       <br />

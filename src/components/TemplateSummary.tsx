@@ -110,8 +110,14 @@ export default function TemplateSummary({
           {getFormattedTime(getMinutesAgo(session.firstMealTimestamp))} ago
           <br />
           <br />
-          <b>{round(session.carbs, 0)}g</b> carbs
+          <b>{round(session.totalCarbs, 0)}g</b> carbs
           <br />
+          {session.carbs !== session.totalCarbs && (
+            <>
+              <b>{round(session.carbs, 0)}g</b> net carbs
+              <br />
+            </>
+          )}
           <b>{round(session.protein, 0)}g</b> protein
           <br />
           {round(session.fat, 0)}g fat (approx)
