@@ -110,42 +110,6 @@ export default class MealTemplate extends Subscribable implements Template {
   }
 
   // Meal Vectorization
-  get alpha(): {
-    carbs: number;
-    protein: number;
-  } {
-    // The alpha is basically a gradient descent from the general profile
-    let alphaCarbs = CalibrationStore.carbsEffect.value;
-    let alphaProtein = CalibrationStore.proteinEffect.value;
-
-    const baseLearningRate = 0.0006;
-
-    const sessionHalfLife = PreferencesStore.sessionHalfLife.value;
-
-    // Don't allow less than 3 valid sessions before making any conclusions
-    const validSessions = this.validSessions;
-    if (validSessions.length >= 3) {
-      for (let i = validSessions.length - 1; i >= 0; i--) {
-        const session = validSessions[i];
-        const age = session.age;
-        const weight = Math.pow(0.5, age / sessionHalfLife);
-        const eta = baseLearningRate * weight;
-
-        const predictedMealRise =
-          alphaCarbs * session.carbs + alphaProtein * session.protein;
-        const actualMealRise = session.mealRise;
-        const error = predictedMealRise - actualMealRise;
-
-        alphaCarbs -= eta * error * session.carbs;
-        alphaProtein -= eta * error * session.protein;
-      }
-    }
-
-    return {
-      carbs: alphaCarbs,
-      protein: alphaProtein,
-    };
-  }
   getClosestSessions(
     carbs: number,
     protein: number,
@@ -305,19 +269,19 @@ export default class MealTemplate extends Subscribable implements Template {
     protein: number,
     variant = InsulinVariantManager.getDefault()
   ) {
-    const alpha = this.alpha;
-    const carbsRise = carbs * alpha.carbs;
-    const proteinRise = protein * alpha.protein;
+    const carbsRise = carbs * CalibrationStore.carbsEffect.value;
+    const proteinRise = protein * CalibrationStore.proteinEffect.value;
     return (carbsRise + proteinRise) / variant.effect;
   }
   getInsulinOffsets(session: Session, carbs: number, protein: number) {
     const insulins = session.optimalMealInsulins;
-    const alpha = this.alpha;
-    const extraCarbsRise = (carbs - session.carbs) * alpha.carbs;
+    const extraCarbsRise =
+      (carbs - session.carbs) * CalibrationStore.carbsEffect.value;
     insulins[0].value = extraCarbsRise / insulins[0].variant.effect; // Add extra carbs offset to first shot, as they typically only act on first shot timeframe
 
     const extraProteinRisePerShot =
-      ((protein - session.protein) / insulins.length) * alpha.protein;
+      ((protein - session.protein) / insulins.length) *
+      CalibrationStore.proteinEffect.value;
     insulins.forEach(
       (i) => (i.value = extraProteinRisePerShot / i.variant.effect)
     ); // Distribute protein between all shots
