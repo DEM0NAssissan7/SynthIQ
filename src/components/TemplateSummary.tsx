@@ -73,7 +73,7 @@ export default function TemplateSummary({
         <>
           <br />
           <br />
-          <b>{session.glucose} caps/grams</b> dextrose; last dose{" "}
+          <b>{session.glucose}</b> low correction doses; last dose{" "}
           <b>
             {getFormattedTime(getMinutesAgo(session.latestGlucoseTimestamp))}{" "}
             ago

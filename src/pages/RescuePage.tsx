@@ -82,7 +82,7 @@ export default function RescuePage() {
 
   return (
     <>
-      <h1>Rescue Correction</h1>
+      <h1>Low Correction</h1>
       {session.started && (
         <Card>
           <TemplateSummary template={template} session={session} />

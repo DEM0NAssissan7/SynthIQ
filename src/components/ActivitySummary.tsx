@@ -91,7 +91,9 @@ export default function ActivitySummary({
           <b>{getFormattedTime(getMinuteDiff(now, activity.timestamp))} ago</b>
           <br />
           <br />
-          <b>{activity.glucose} caps/grams</b> of glucose.
+          <b>{activity.glucose} doses</b>,{" "}
+          {getFormattedTime(getMinuteDiff(now, activity.latestRescueTimestamp))}{" "}
+          ago
         </>
       )}
     </>

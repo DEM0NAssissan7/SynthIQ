@@ -87,7 +87,7 @@ export default function StatisticsPage() {
       <DataStatistics title="Protein (g)" data={protein} />
       <DataStatistics title="Calories (kcal)" data={calories} />
       <DataStatistics title="Insulin (u)" data={insulin} />
-      <DataStatistics title="Glucose (caps)" data={glucose} />
+      <DataStatistics title="Low Correction (doses)" data={glucose} />
       <DataStatistics title="Blood Sugar (mg/dL)" data={allReadings} />
       <h3>Learned Info</h3>
       <p>Information Derived From Data</p>

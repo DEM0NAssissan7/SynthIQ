@@ -10,7 +10,7 @@ const MENU_SECTIONS: MenuSection[] = [
   {
     label: "Treatment",
     items: [
-      { label: "Rescue Glucose", to: "/rescue" },
+      { label: "Low Correction", to: "/rescue" },
       { label: "Basal Injection", to: "/basal" },
       { label: "Insulin Dosing", to: "/insulin" },
       { label: "Activity", to: "/activity" },

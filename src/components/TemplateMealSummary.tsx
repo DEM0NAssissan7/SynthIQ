@@ -198,7 +198,7 @@ export default function TemplateMealSummary({
               <br />
               Score: <b>{session.score.toFixed(0)}</b>
               <br />
-              <i>{session.glucose} grams/caps</i> glucose
+              <i>{session.glucose} low correction doses</i>
               <br />
               <br />
               {session.windows.map((window) => (

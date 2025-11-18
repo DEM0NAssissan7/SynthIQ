@@ -72,6 +72,9 @@ export default class Activity extends MetaEvent {
     this.glucoses.forEach((g) => (effect += g.value * g.variant.effect));
     return effect;
   }
+  get latestRescueTimestamp(): Date {
+    return this.glucoses[this.glucoses.length - 1]?.timestamp ?? new Date();
+  }
   /**
    * This value is the rate that BG drops while doing the activity, measured in mg/dL per hour
    */
