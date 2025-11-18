@@ -25,7 +25,6 @@ import { convertDimensions, MathUtil, round } from "./util";
 
 export async function isFastingState(timestamp: Date) {
   const minTimeSinceMeal = BasalStore.minTimeSinceMeal.value;
-  const minTimeSinceDextrose = BasalStore.minTimeSinceDextrose.value / 60; // Minutes -> Hours
 
   async function isPresent(eventType: string, minTime: number) {
     const timestampA = getTimestampFromOffset(timestamp, -minTime);
@@ -38,7 +37,7 @@ export async function isFastingState(timestamp: Date) {
   }
   if (await isPresent(mealEventType, minTimeSinceMeal)) return false;
   if (await isPresent(insulinEventType, 7)) return false;
-  if (await isPresent(glucoseEventType, minTimeSinceDextrose)) return false;
+  if (await isPresent(glucoseEventType, 0.5)) return false;
   return true;
 }
 
@@ -47,7 +46,6 @@ function getNonFastingWindows(
   ignoreGlucose: boolean = false
 ): [Date, Date][] {
   const minTimeSinceMeal = BasalStore.minTimeSinceMeal.value;
-  const minTimeSinceDextrose = BasalStore.minTimeSinceDextrose.value / 60;
 
   let nonFasting: [Date, Date][] = []; // A set of date pairs to describe when we are not fasting
   treatments.forEach((a: any) => {
@@ -58,13 +56,12 @@ function getNonFastingWindows(
         hoursNonFasting = minTimeSinceMeal;
         break;
       case insulinEventType:
-        const variant =
-          InsulinVariantManager.getVariant(a.notes) ??
-          InsulinVariantManager.getDefault();
-        hoursNonFasting = variant.duration;
+        hoursNonFasting = InsulinVariantManager.getVariant(a.notes).duration;
         break;
       case glucoseEventType:
-        hoursNonFasting = ignoreGlucose ? null : minTimeSinceDextrose;
+        hoursNonFasting = ignoreGlucose
+          ? null
+          : RescueVariantManager.getVariant(a.notes).duration / 60; // Convert from minutes to hours
         break;
       case activityEventType:
         hoursNonFasting = a.duration ? a.duration / 60 : null;

@@ -248,12 +248,6 @@ export default function SettingsPage() {
           iconClass="bi bi-clock"
           unit="hours"
         />
-        <NumberSetting
-          keyInterface={BasalStore.minTimeSinceDextrose}
-          title="Dextrose Effective Time"
-          iconClass="bi bi-clock"
-          unit="minutes"
-        />
       </Card>
     </>
   );
