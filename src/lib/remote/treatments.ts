@@ -64,12 +64,13 @@ class RemoteTreatments {
       timestamp
     );
   }
-  static markGlucose(caps: number, timestamp: Date): void {
+  static markGlucose(caps: number, timestamp: Date, variant: string): void {
     Backend.post(
       "treatments",
       {
         carbs: caps,
         eventType: glucoseEventType,
+        notes: variant,
       },
       timestamp
     );

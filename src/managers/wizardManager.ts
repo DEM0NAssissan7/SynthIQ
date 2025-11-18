@@ -8,6 +8,7 @@ import { WizardStore } from "../storage/wizardStore";
 import MealTemplate from "../models/mealTemplate";
 import type Activity from "../models/events/activity";
 import { InsulinVariantManager } from "./insulinVariantManager";
+import type { RescueVariant } from "../models/types/rescueVariant";
 
 export default class WizardManager {
   // Page Redirects
@@ -75,11 +76,11 @@ export default class WizardManager {
     this.insulin(units, BG, variantName);
   }
   // Glucose
-  static markGlucose(grams: number) {
+  static markGlucose(grams: number, variant: RescueVariant) {
     // We really don't want to mark glucose if we haven't taken insulin. The glucose would never be taken because of a meal. Meals raise glucose.
     const session: Session = WizardStore.session.value;
     if (session.started) {
-      session.createGlucose(grams, new Date());
+      session.createGlucose(grams, new Date(), variant);
     }
   }
 

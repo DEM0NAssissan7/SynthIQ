@@ -177,12 +177,6 @@ export default function SettingsPage() {
       </Card>
       <Card>
         <NumberSetting
-          keyInterface={CalibrationStore.glucoseEffect}
-          title="Dextrose Effect (per cap/gram)"
-          iconClass="bi bi-capsule"
-          unit="mg/dL"
-        />
-        <NumberSetting
           keyInterface={CalibrationStore.carbsEffect}
           title="Carbs Effect (per gram)"
           iconClass="bi bi-cake2"

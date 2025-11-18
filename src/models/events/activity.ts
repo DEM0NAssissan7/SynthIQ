@@ -1,6 +1,5 @@
 import { getMinuteDiff } from "../../lib/timing";
 import { convertDimensions } from "../../lib/util";
-import { CalibrationStore } from "../../storage/calibrationStore";
 import Snapshot from "../snapshot";
 import type { Deserializer, JSONObject, Serializer } from "../types/types";
 import Unit from "../unit";
@@ -10,7 +9,6 @@ import MetaEvent from "./metaEvent";
 export default class Activity extends MetaEvent {
   snapshot: Snapshot = new Snapshot();
   glucoses: Glucose[] = [];
-  glucoseEffect: number = CalibrationStore.glucoseEffect.value;
   constructor(public name: string) {
     super(new Date());
   }
@@ -69,6 +67,11 @@ export default class Activity extends MetaEvent {
     this.glucoses.forEach((g) => (glucose += g.value));
     return glucose;
   }
+  get glucoseEffect(): number {
+    let effect = 0;
+    this.glucoses.forEach((g) => (effect += g.value * g.variant.effect));
+    return effect;
+  }
   /**
    * This value is the rate that BG drops while doing the activity, measured in mg/dL per hour
    */
@@ -77,8 +80,7 @@ export default class Activity extends MetaEvent {
     const finalBG = this.finalBG;
     if (!initialBG || !finalBG)
       throw new Error(`Cannot find deltaBG: no initial or final glucose`);
-    const theoreticalFinalBG =
-      finalBG - this.glucose * CalibrationStore.glucoseEffect.value;
+    const theoreticalFinalBG = finalBG - this.glucoseEffect;
     return (
       (theoreticalFinalBG - initialBG) /
       (this.length * convertDimensions(Unit.Time.Minute, Unit.Time.Hour))
@@ -97,7 +99,6 @@ export default class Activity extends MetaEvent {
       snapshot: Snapshot.serialize(a.snapshot),
       name: a.name,
       glucoses: a.glucoses.map((g) => Glucose.serialize(g)),
-      glucoseEffect: a.glucoseEffect,
     };
   };
   static deserialize: Deserializer<Activity> = (o) => {
@@ -107,7 +108,6 @@ export default class Activity extends MetaEvent {
       o.glucoses.forEach((g: JSONObject) =>
         activity.addGlucose(Glucose.deserialize(g))
       );
-      activity.glucoseEffect = o.glucoseEffect;
     }
     return activity;
   };

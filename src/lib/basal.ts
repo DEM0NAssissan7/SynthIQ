@@ -1,4 +1,5 @@
 import { InsulinVariantManager } from "../managers/insulinVariantManager";
+import { RescueVariantManager } from "../managers/rescueVariantManager";
 import Glucose from "../models/events/glucose";
 import Insulin from "../models/events/insulin";
 import { InsulinVariant } from "../models/types/insulinVariant";
@@ -8,7 +9,6 @@ import SugarReading, {
 import Unit from "../models/unit";
 import { BackendStore } from "../storage/backendStore";
 import { BasalStore } from "../storage/basalStore";
-import { CalibrationStore } from "../storage/calibrationStore";
 import { HealthMonitorStore } from "../storage/healthMonitorStore";
 import { getBasalCorrection } from "./metabolism";
 import { getBGVelocities } from "./readingsUtil";
@@ -115,7 +115,13 @@ function getFastingGlucoses(treatments: any[]): Glucose[] {
   let glucoses: Glucose[] = [];
   treatments.forEach((a: any) => {
     if (a.eventType === glucoseEventType) {
-      glucoses.push(new Glucose(a.carbs, new Date(a.created_at)));
+      glucoses.push(
+        new Glucose(
+          a.carbs,
+          new Date(a.created_at),
+          RescueVariantManager.getVariant(a.variant)
+        )
+      );
     }
   });
   glucoses = glucoses.filter((g) => isFasting(g.timestamp, nonFasting));
@@ -148,11 +154,10 @@ export function getFastingVelocity() {
 
   // We account for correction glucose that had to be taken while fasting
   const hours = getFastingLength();
-  const glucoseEffect = CalibrationStore.glucoseEffect.value;
   const fastingGlucoses = BasalStore.fastingGlucosesCache.value;
   let totalFastingGlucoseEffect = 0;
   fastingGlucoses.forEach(
-    (g) => (totalFastingGlucoseEffect += (g.value ?? 0) * glucoseEffect)
+    (g) => (totalFastingGlucoseEffect += (g.value ?? 0) * g.variant.effect)
   );
   console.log(
     averageVelocity,

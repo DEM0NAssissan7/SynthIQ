@@ -29,6 +29,7 @@ import Glucose from "../models/events/glucose";
 import { HealthMonitorStore } from "../storage/healthMonitorStore";
 import { PreferencesStore } from "../storage/preferencesStore";
 import { BasalStore } from "../storage/basalStore";
+import type { RescueVariant } from "../models/types/rescueVariant";
 
 export let healthMonitorStatus = HealthMonitorStatus.Nominal;
 
@@ -68,8 +69,8 @@ export function timeToCritical() {
 }
 
 // Rescue Glucose
-export function markGlucose(grams: number) {
-  HealthMonitorStore.lastRescue.value = new Glucose(grams, new Date());
+export function markGlucose(grams: number, variant: RescueVariant) {
+  HealthMonitorStore.lastRescue.value = new Glucose(grams, new Date(), variant);
 }
 
 export function getLastRescueMinutes() {

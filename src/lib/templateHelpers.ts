@@ -1,6 +1,6 @@
 import { InsulinVariantManager } from "../managers/insulinVariantManager";
+import { RescueVariantManager } from "../managers/rescueVariantManager";
 import type Session from "../models/session";
-import { CalibrationStore } from "../storage/calibrationStore";
 import { PreferencesStore } from "../storage/preferencesStore";
 import { round } from "./util";
 
@@ -60,7 +60,7 @@ export function insulinRuleEngine(session: Session) {
   const glucose = session.glucose;
   const glucoseThreshold =
     (PreferencesStore.targetBG.value - lowBG) /
-    CalibrationStore.glucoseEffect.value; // Set the threshold at whatever is required to bounce from low
+    RescueVariantManager.getDefault().effect; // Set the threshold at whatever is required to bounce from low
   const glucoseExcess: boolean = glucose > glucoseThreshold;
   /** It's normal for you to have to correct down to a certain amount
    * We wanna give enough error where our user doesn't dip down below lowBG. If he had to take more than what's

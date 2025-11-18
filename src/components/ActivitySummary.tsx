@@ -3,9 +3,9 @@ import { getFormattedTime, getMinuteDiff, getPrettyTime } from "../lib/timing";
 import type { ActivityTemplate } from "../models/activityTemplate";
 import type Activity from "../models/events/activity";
 import { useNow } from "../state/useNow";
-import { CalibrationStore } from "../storage/calibrationStore";
 import { roundByHalf } from "../lib/util";
 import { InsulinVariantManager } from "../managers/insulinVariantManager";
+import { RescueVariantManager } from "../managers/rescueVariantManager";
 
 interface ActivitySummaryProps {
   activity: Activity;
@@ -17,8 +17,9 @@ export default function ActivitySummary({
 }: ActivitySummaryProps) {
   const now = useNow();
   const defaultVariant = InsulinVariantManager.getDefault();
+  const defaultRescueVariant = RescueVariantManager.getDefault();
   const glucoseCorrectionRate = useMemo(
-    () => -template.score / CalibrationStore.glucoseEffect.value,
+    () => -template.score / defaultRescueVariant.effect,
     [template]
   );
   const totalGlucoseCorrection = useMemo(
@@ -54,11 +55,14 @@ export default function ActivitySummary({
           {template.score < 0 ? (
             <>
               Consider taking{" "}
-              <b>{roundByHalf(glucoseCorrectionRate, true)} caps/grams</b> of
-              glucose every hour.
+              <b>
+                {roundByHalf(glucoseCorrectionRate, true)}{" "}
+                {defaultRescueVariant.name}
+              </b>{" "}
+              every hour.
               <br /> You might need to take{" "}
-              {roundByHalf(totalGlucoseCorrection, true)} caps/grams of glucose
-              in total.
+              {roundByHalf(totalGlucoseCorrection, true)}{" "}
+              {defaultRescueVariant.name} in total.
             </>
           ) : (
             <>
@@ -69,7 +73,7 @@ export default function ActivitySummary({
               </b>{" "}
               for every hour you plan to do this activity.
               <br />
-              Typically,{" "}
+              Typically{" "}
               <b>
                 {roundByHalf(insulinCorrectionTotal, false)}u{" of "}
                 {defaultVariant.name}

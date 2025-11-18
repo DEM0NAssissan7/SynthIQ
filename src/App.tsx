@@ -33,6 +33,7 @@ import InsulinVariantsPage from "./pages/InsulinVariantsPage";
 import { useNow } from "./state/useNow";
 import { convertDimensions } from "./lib/util";
 import Unit from "./models/unit";
+import RescueVariantsPage from "./pages/RescueVariantsPage";
 
 function App() {
   const navigate = useNavigate();
@@ -85,6 +86,7 @@ function App() {
           <Route path="/dextrose" element={<DextrosePage />} />
           <Route path="/statistics" element={<StatisticsPage />} />
           <Route path="/rescue" element={<RescuePage />} />
+          <Route path="/rescuevariants" element={<RescueVariantsPage />} />
           <Route path="/basal" element={<BasalPage />} />
           <Route path="/insulin" element={<InsulinPage />} />
           <Route path="/insulinvariants" element={<InsulinVariantsPage />} />

@@ -1,12 +1,12 @@
 import { Button, Form, ListGroup } from "react-bootstrap";
 import Card from "../components/Card";
 import { useMemo, useState, type BaseSyntheticEvent } from "react";
-import { InsulinVariantStore } from "../storage/insulinVariantStore";
-import { InsulinVariant } from "../models/types/insulinVariant";
-import { InsulinVariantManager } from "../managers/insulinVariantManager";
+import { RescueVariantStore } from "../storage/rescueVariantStore";
+import { RescueVariantManager as RescueVariantManager } from "../managers/rescueVariantManager";
+import type { RescueVariant } from "../models/types/rescueVariant";
 
-export default function InsulinVariantsPage() {
-  const [variants] = InsulinVariantStore.variants.useState();
+export default function RescueVariantsPage() {
+  const [variants] = RescueVariantStore.variants.useState();
 
   const [name, setName] = useState("");
   const [effect, setEffect] = useState(0);
@@ -39,24 +39,24 @@ export default function InsulinVariantsPage() {
       alert("Enter a valid effect");
       return;
     }
-    InsulinVariantManager.createVariant(name, duration, effect);
+    RescueVariantManager.createVariant(name, duration, effect);
     resetUIStates();
     console.log(`Added ${name} to custom foods.`);
   }
-  function removeVariant(v: InsulinVariant) {
+  function removeVariant(v: RescueVariant) {
     if (confirm(`Are you sure you want to remove '${v.name}'?`)) {
-      InsulinVariantManager.removeVariant(v.name);
+      RescueVariantManager.removeVariant(v.name);
       console.log(`Removed ${v.name} from custom foods.`);
     }
   }
-  function setDefault(v: InsulinVariant) {
-    InsulinVariantManager.setDefault(v.name);
+  function setDefault(v: RescueVariant) {
+    RescueVariantManager.setDefault(v.name);
   }
 
   return (
     <>
       <div className="container">
-        <h1>Insulin Variants</h1>
+        <h1>Rescue Variants</h1>
         <Card>
           <Form onSubmit={handleFormSubmit}>
             <div className="d-flex align-items-center gap-2">
@@ -64,7 +64,7 @@ export default function InsulinVariantsPage() {
                 Name:{" "}
                 <Form.Control
                   type="text"
-                  placeholder="e.g. Novolog"
+                  placeholder="e.g. tabs, grams, shots"
                   className="text-center"
                   value={name}
                   onInput={(e: BaseSyntheticEvent) => {
@@ -72,7 +72,7 @@ export default function InsulinVariantsPage() {
                   }}
                 />
                 <br />
-                Duration (hours):
+                Duration (minutes):
                 <Form.Control
                   type="number"
                   placeholder={`0`}
@@ -139,10 +139,10 @@ export default function InsulinVariantsPage() {
                         v.duration = Number.isFinite(val as number)
                           ? (val as number)
                           : 0;
-                        InsulinVariantManager.updateVariant(v);
+                        RescueVariantManager.updateVariant(v);
                       }}
                     />
-                    <span className="text-muted">h</span>
+                    <span className="text-muted">min</span>
                   </label>
 
                   {/* Effect */}
@@ -164,10 +164,10 @@ export default function InsulinVariantsPage() {
                         v.effect = Number.isFinite(val as number)
                           ? (val as number)
                           : 0;
-                        InsulinVariantManager.updateVariant(v);
+                        RescueVariantManager.updateVariant(v);
                       }}
                     />
-                    <span className="text-muted">mg/dL per U</span>
+                    <span className="text-muted">mg/dL per unit</span>
                   </label>
                   <div className="w-100 d-flex justify-content-end mt-2">
                     {i !== 0 && (

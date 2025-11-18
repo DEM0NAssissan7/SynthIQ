@@ -8,6 +8,7 @@ import {
 import Activity from "../models/events/activity";
 import WizardManager from "./wizardManager";
 import Glucose from "../models/events/glucose";
+import type { InsulinVariant } from "../models/types/insulinVariant";
 
 export namespace ActivityManager {
   // Navigation
@@ -70,8 +71,8 @@ export namespace ActivityManager {
   }
 
   // Subevents
-  export function markGlucose(grams: number) {
-    const glucose = new Glucose(grams, new Date());
+  export function markGlucose(grams: number, variant: InsulinVariant) {
+    const glucose = new Glucose(grams, new Date(), variant);
     const activity = ActivityStore.activity.value;
 
     if (activity.started) {

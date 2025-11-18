@@ -1,4 +1,5 @@
 import type { InsulinVariant } from "../models/types/insulinVariant";
+import type { RescueVariant } from "../models/types/rescueVariant";
 import { CalibrationStore } from "../storage/calibrationStore";
 import { PreferencesStore } from "../storage/preferencesStore";
 import { WizardStore } from "../storage/wizardStore";
@@ -29,17 +30,20 @@ export function getOvercompensationInsulins(
 }
 
 // Glucose
-export function getGlucoseCorrectionCaps(sugar: number) {
+export function getGlucoseCorrectionCaps(
+  sugar: number,
+  variant: InsulinVariant
+) {
   return Math.max(
-    (PreferencesStore.targetBG.value - sugar) /
-      CalibrationStore.glucoseEffect.value,
+    (PreferencesStore.targetBG.value - sugar) / variant.effect,
     0
   );
 }
 export function getIntelligentGlucoseCorrection(
   velocityHours: number,
   currentBG: number,
-  actingMinutes: number
+  actingMinutes: number,
+  variant: RescueVariant
 ) {
   /**
    * We consider the current BG velocity to last another 30 minutes.
@@ -49,7 +53,7 @@ export function getIntelligentGlucoseCorrection(
    */
   const velocityMinutes = velocityHours / 60;
   const predictedDrop = velocityMinutes * actingMinutes;
-  return getGlucoseCorrectionCaps(currentBG + predictedDrop); // We add predictedDrop because if the sugar is dropping, the velocity will be negative (along with predictedDrop being negative too)
+  return getGlucoseCorrectionCaps(currentBG + predictedDrop, variant); // We add predictedDrop because if the sugar is dropping, the velocity will be negative (along with predictedDrop being negative too)
 }
 
 // Basal

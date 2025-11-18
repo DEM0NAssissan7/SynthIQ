@@ -2,6 +2,7 @@ import Serialization from "../lib/serialization";
 import StorageNode from "./storageNode";
 import Glucose from "../models/events/glucose";
 import SugarReading from "../models/types/sugarReading";
+import { RescueVariantManager } from "../managers/rescueVariantManager";
 
 export namespace HealthMonitorStore {
   const node = new StorageNode("healthMonitor");
@@ -14,7 +15,7 @@ export namespace HealthMonitorStore {
   );
   export const lastRescue = node.add<Glucose>(
     "lastRescue",
-    new Glucose(0, new Date()),
+    new Glucose(0, new Date(), RescueVariantManager.getDefault()),
     Glucose.serialize,
     Glucose.deserialize
   );

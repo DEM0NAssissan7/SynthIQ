@@ -5,9 +5,11 @@ import { HealthMonitorStore } from "../storage/healthMonitorStore";
 export default function GlucoseSuggestion({
   intelligentCorrection,
   baseCorrection,
+  unitName,
 }: {
   intelligentCorrection: number;
   baseCorrection: number;
+  unitName: string;
 }) {
   const [timeBetweenShots] = HealthMonitorStore.timeBetweenShots.useState();
   const lastRescueMinutes = round(getLastRescueMinutes(), 0);
@@ -23,13 +25,13 @@ export default function GlucoseSuggestion({
     <>
       {lastRescueMinutes < timeBetweenShots && lastRescueCaps > 0 && (
         <>
-          It's been <b>{lastRescueMinutes}</b> minutes since your last glucose
-          shot. Consider waiting <b>{timeBetweenShots - lastRescueMinutes}</b>{" "}
-          minutes before taking more glucose
+          It's been <b>{lastRescueMinutes}</b> minutes since your last dose.
+          Consider waiting <b>{timeBetweenShots - lastRescueMinutes}</b> minutes
+          before taking more.
           <hr />
         </>
       )}
-      Take <b>{displayRange}</b> caps/grams glucose
+      Take <b>{displayRange}</b> {unitName}
     </>
   );
 }

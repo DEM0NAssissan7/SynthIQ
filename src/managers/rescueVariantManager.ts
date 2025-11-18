@@ -1,12 +1,12 @@
-import { InsulinVariant } from "../models/types/insulinVariant";
-import { InsulinVariantStore } from "../storage/insulinVariantStore";
+import { RescueVariant } from "../models/types/rescueVariant";
+import { RescueVariantStore } from "../storage/rescueVariantStore";
 
-export namespace InsulinVariantManager {
+export namespace RescueVariantManager {
   export function getDefault() {
-    return InsulinVariantStore.variants.value[0];
+    return RescueVariantStore.variants.value[0];
   }
   function hasDuplicate(name: string) {
-    const variants = InsulinVariantStore.variants.value;
+    const variants = RescueVariantStore.variants.value;
     for (let variant of variants) {
       if (variant.name === name) return true;
     }
@@ -19,14 +19,14 @@ export namespace InsulinVariantManager {
   ) {
     if (hasDuplicate(name))
       throw new Error(`Cannot create insulin '${name}': already exists`);
-    const variant = new InsulinVariant(name, duration, effect);
-    InsulinVariantStore.variants.value = [
-      ...InsulinVariantStore.variants.value,
+    const variant = new RescueVariant(name, duration, effect);
+    RescueVariantStore.variants.value = [
+      ...RescueVariantStore.variants.value,
       variant,
     ];
   }
-  export function getVariant(name: string): InsulinVariant {
-    const variants = InsulinVariantStore.variants.value;
+  export function getVariant(name: string): RescueVariant {
+    const variants = RescueVariantStore.variants.value;
     for (let variant of variants) {
       if (variant.name === name) return variant;
     }
@@ -34,10 +34,10 @@ export namespace InsulinVariantManager {
   }
   export function getOptimalVariant(
     hours: number,
-    originalVariant?: InsulinVariant
-  ): InsulinVariant {
+    originalVariant?: RescueVariant
+  ): RescueVariant {
     let optimalVariant = originalVariant ?? getDefault();
-    const variants = InsulinVariantStore.variants.value;
+    const variants = RescueVariantStore.variants.value;
     for (let v of variants) {
       optimalVariant = v;
       if (v.duration > hours) break;
@@ -45,7 +45,7 @@ export namespace InsulinVariantManager {
     return optimalVariant;
   }
   function getVariantIndex(name: string): number | null {
-    const variants = InsulinVariantStore.variants.value;
+    const variants = RescueVariantStore.variants.value;
     for (let i = 0; i < variants.length; i++) {
       const variant = variants[i];
       if (variant.name === name) return i;
@@ -53,33 +53,33 @@ export namespace InsulinVariantManager {
     return null;
   }
   export function removeVariant(name: string) {
-    const variants = InsulinVariantStore.variants.value;
+    const variants = RescueVariantStore.variants.value;
     if (variants.length === 1)
       throw new Error(`Can't remove the last insulin variant`);
     const index = getVariantIndex(name);
     if (index === null) return;
     variants.splice(index, 1);
-    InsulinVariantStore.variants.value = variants;
+    RescueVariantStore.variants.value = variants;
   }
-  export function updateVariant(v: InsulinVariant) {
+  export function updateVariant(v: RescueVariant) {
     const index = getVariantIndex(v.name);
     if (index === null) return;
-    const variants = InsulinVariantStore.variants.value;
+    const variants = RescueVariantStore.variants.value;
     variants[index] = v;
-    InsulinVariantStore.variants.value = variants;
+    RescueVariantStore.variants.value = variants;
   }
   export function setDefault(name: string) {
     const index = getVariantIndex(name);
-    if (!hasDuplicate(name) || !index) return;
+    if (index === null || !hasDuplicate(name)) return;
 
     const variant = getVariant(name);
-    const variants = InsulinVariantStore.variants.value;
+    const variants = RescueVariantStore.variants.value;
     variants.splice(index, 1);
     variants.splice(0, 0, variant);
-    InsulinVariantStore.variants.value = variants;
+    RescueVariantStore.variants.value = variants;
   }
   export function deserialize(o: any) {
-    const deserialized = InsulinVariant.deserialize(o);
+    const deserialized = RescueVariant.deserialize(o);
     if (!hasDuplicate(deserialized.name)) return deserialized;
     const pulled = getVariant(deserialized.name);
     return pulled;

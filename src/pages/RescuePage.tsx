@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { Button, Form, InputGroup } from "react-bootstrap";
+import { Button, Form, InputGroup, ListGroup } from "react-bootstrap";
 import { useNavigate } from "react-router";
 import BloodSugarInput from "../components/BloodSugarInput";
 import {
@@ -23,6 +23,9 @@ import { PreferencesStore } from "../storage/preferencesStore";
 import { ActivityManager } from "../managers/activityManager";
 import RemoteTreatments from "../lib/remote/treatments";
 import { NumberOptionSelector } from "../components/NumberOptionSelector";
+import { RescueVariantManager } from "../managers/rescueVariantManager";
+import type { RescueVariant } from "../models/types/rescueVariant";
+import { RescueVariantStore } from "../storage/rescueVariantStore";
 
 export default function RescuePage() {
   const [session] = WizardStore.session.useState();
@@ -34,9 +37,10 @@ export default function RescuePage() {
       : PreferencesStore.targetBG.value
   );
   const [gramsTaken, setCapsTaken] = useState(0);
+  const [variant, setVariant] = useState(RescueVariantManager.getDefault());
 
   const correction = useMemo(() => {
-    return roundByHalf(getGlucoseCorrectionCaps(currentBG), true);
+    return roundByHalf(getGlucoseCorrectionCaps(currentBG, variant), true);
   }, [currentBG]);
   const [intelligentCorrection, setIntelligentCorrection] = useState(0);
 
@@ -50,7 +54,8 @@ export default function RescuePage() {
           getIntelligentGlucoseCorrection(
             velocityHours,
             currentBG,
-            actingMinutes
+            actingMinutes,
+            variant
           ),
           true
         )
@@ -62,22 +67,22 @@ export default function RescuePage() {
   function goBack() {
     navigate("/");
   }
-  function markGlucoseTaken(grams: number) {
-    if (confirm(`Confirm that you have taken ${grams} grams of glucose`)) {
-      WizardManager.markGlucose(grams);
-      markGlucose(grams);
-      ActivityManager.markGlucose(grams);
-      RemoteTreatments.markGlucose(grams, new Date());
+  function markGlucoseTaken(grams: number, variant: RescueVariant) {
+    if (confirm(`Confirm that you have taken ${grams} ${variant.name}`)) {
+      WizardManager.markGlucose(grams, variant);
+      markGlucose(grams, variant);
+      ActivityManager.markGlucose(grams, variant);
+      RemoteTreatments.markGlucose(grams, new Date(), variant.name);
       goBack();
     }
   }
   function onMark() {
-    markGlucoseTaken(gramsTaken);
+    markGlucoseTaken(gramsTaken, variant);
   }
 
   return (
     <>
-      <h1>Glucose Correction</h1>
+      <h1>Rescue Correction</h1>
       {session.started && (
         <Card>
           <TemplateSummary template={template} session={session} />
@@ -87,6 +92,7 @@ export default function RescuePage() {
         <GlucoseSuggestion
           intelligentCorrection={intelligentCorrection}
           baseCorrection={correction}
+          unitName={variant.name}
         />
         <hr />
         <HealthMonitorMessage />
@@ -97,6 +103,21 @@ export default function RescuePage() {
           setInitialGlucose={setCurrentBG}
           pullFromNightscout={true}
         />
+        <ListGroup>
+          <Form.Label>Variant</Form.Label>
+          <Form.Select
+            onChange={(e) => {
+              // You can handle insulin type selection here if needed
+              const v = RescueVariantManager.getVariant(e.target.value);
+              if (v) setVariant(v);
+            }}
+            className="mb-2"
+          >
+            {RescueVariantStore.variants.value.map((v) => (
+              <option value={v.name}>{v.name}</option>
+            ))}
+          </Form.Select>
+        </ListGroup>
         <InputGroup className="mb-3">
           <InputGroup.Text id="basic-addon1">
             <i className="bi bi-capsule"></i>
@@ -111,16 +132,16 @@ export default function RescuePage() {
               else setCapsTaken(0);
             }}
           />
-          <InputGroup.Text id="basic-addon1">caps</InputGroup.Text>
+          <InputGroup.Text id="basic-addon1">{variant.name}</InputGroup.Text>
         </InputGroup>
         <div className="d-flex justify-content-center flex-wrap">
           <NumberOptionSelector
             value={intelligentCorrection}
             rangeFromOrigin={2}
             increment={0.5}
-            labelSuffix="g"
+            labelSuffix={variant.name.toLowerCase()[0]}
             onSelect={(val) => {
-              markGlucoseTaken(val);
+              markGlucoseTaken(val, variant);
             }}
           />
         </div>

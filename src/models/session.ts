@@ -13,17 +13,18 @@ import RemoteReadings from "../lib/remote/readings";
 import Snapshot from "./snapshot";
 import Subscribable from "./subscribable";
 import type { Deserializer, JSONObject, Serializer } from "./types/types";
-import { CalibrationStore } from "../storage/calibrationStore";
 import { PreferencesStore } from "../storage/preferencesStore";
 import Activity from "./events/activity";
 import type { InsulinVariant } from "./types/insulinVariant";
 import { InsulinVariantManager } from "../managers/insulinVariantManager";
+import type { RescueVariant } from "./types/rescueVariant";
 
 type TreatmentWindow = {
   initialBG: number;
   insulin: Insulin;
   optimalVariant: InsulinVariant;
   glucose: number;
+  glucoseEffect: number;
   finalBG: number;
   length: number;
 };
@@ -175,8 +176,7 @@ export default class Session extends Subscribable {
 
     const totalDeltaBG = finalBG - initialGlucose;
 
-    const glucose = this.glucose;
-    const glucoseDeltaBG = glucose * CalibrationStore.glucoseEffect.value;
+    const glucoseDeltaBG = this.glucoseEffect;
 
     let insulinDeltaBG = 0;
     this.insulins.forEach(
@@ -255,6 +255,7 @@ export default class Session extends Subscribable {
         finalBG: snapshot.finalBG.sugar,
         length: snapshot.length,
         glucose: 0,
+        glucoseEffect: 0,
       };
       // We account for glucose taken within the time frame and subtract it from the final sugar to see what it would be without any adjustment
       for (let glucose of glucoses) {
@@ -267,6 +268,7 @@ export default class Session extends Subscribable {
         ) {
           // If the glucose was taken during this window
           window.glucose += glucose.value;
+          window.glucoseEffect += glucose.value * glucose.variant.effect;
         }
       }
 
@@ -282,6 +284,7 @@ export default class Session extends Subscribable {
           lastWindow.insulin.value += window.insulin.value;
           lastWindow.finalBG = window.finalBG;
           lastWindow.glucose += window.glucose;
+          lastWindow.glucoseEffect += window.glucoseEffect;
           lastWindow.length += window.length;
           lastWindow.optimalVariant = InsulinVariantManager.getOptimalVariant(
             lastWindow.length,
@@ -303,7 +306,7 @@ export default class Session extends Subscribable {
        * Now that we have a list of the theoretical finalBGs, we can adjust each on to try and get a zero-change scenario
        */
       const insulin = Insulin.deserialize(Insulin.serialize(window.insulin));
-      const glucoseRise = window.glucose * CalibrationStore.glucoseEffect.value;
+      const glucoseRise = window.glucoseEffect;
       const theoreticalFinalBG = window.finalBG - glucoseRise; // Avoid blaming glucose for a rise in BG
       const deltaBG = theoreticalFinalBG - window.initialBG; // Try to keep things as flat as possible
 
@@ -384,8 +387,12 @@ export default class Session extends Subscribable {
   }
 
   // Glucoses
-  createGlucose(grams: number, timestamp: Date): Glucose {
-    const glucose = new Glucose(grams, timestamp);
+  createGlucose(
+    grams: number,
+    timestamp: Date,
+    variant: RescueVariant
+  ): Glucose {
+    const glucose = new Glucose(grams, timestamp, variant);
     this.glucoses.push(glucose);
     this.addChildSubscribable(glucose);
     this.notify();
@@ -400,6 +407,13 @@ export default class Session extends Subscribable {
     let glucose = 0;
     this.glucoses.forEach((a: Glucose) => (glucose += a.value));
     return glucose;
+  }
+  get glucoseEffect(): number {
+    let effect = 0;
+    this.glucoses.forEach(
+      (a: Glucose) => (effect += a.value * a.variant.effect)
+    );
+    return effect;
   }
   get latestGlucoseTimestamp(): Date {
     if (this.glucoses.length === 0) return this.timestamp;
@@ -513,7 +527,7 @@ export default class Session extends Subscribable {
     )
       score += Math.abs(this.finalBG - targetBG);
 
-    score += this.glucose * CalibrationStore.glucoseEffect.value; // Add the effect glucose had
+    score += this.glucoseEffect; // Add the effect glucose had
 
     // Add IAD (integrated absolute deviation)
     score += MathUtil.mean(
@@ -563,7 +577,7 @@ export default class Session extends Subscribable {
     });
     o.glucoses.map((a: string) => {
       const glucose = Glucose.deserialize(a);
-      session.createGlucose(glucose.value, glucose.timestamp);
+      session.createGlucose(glucose.value, glucose.timestamp, glucose.variant);
     });
 
     const snapshots: Snapshot[] = o.snapshots.map((a: JSONObject) =>
