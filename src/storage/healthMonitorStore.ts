@@ -3,6 +3,10 @@ import StorageNode from "./storageNode";
 import Glucose from "../models/events/glucose";
 import SugarReading from "../models/types/sugarReading";
 import { RescueVariantManager } from "../managers/rescueVariantManager";
+import HealthMonitorStatus, {
+  getStatusFromName,
+  getStatusName,
+} from "../models/types/healthMonitorStatus";
 
 export namespace HealthMonitorStore {
   const node = new StorageNode("healthMonitor");
@@ -18,6 +22,12 @@ export namespace HealthMonitorStore {
     new Glucose(0, new Date(), RescueVariantManager.getDefault()),
     Glucose.serialize,
     Glucose.deserialize
+  );
+  export const statusCache = node.add<HealthMonitorStatus>(
+    "monitorStatusCache",
+    HealthMonitorStatus.Nominal,
+    (a) => getStatusName(a),
+    (s) => getStatusFromName(s)
   );
   export const readingsCacheSize = node.add("readingsCacheSize", 6);
   export const currentBG = node.add("currentBG", 83);

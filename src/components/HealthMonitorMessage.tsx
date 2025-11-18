@@ -1,8 +1,4 @@
-import {
-  getBGVelocity,
-  healthMonitorStatus,
-  timeToCritical,
-} from "../lib/healthMonitor";
+import { getBGVelocity, timeToCritical } from "../lib/healthMonitor";
 import { round } from "../lib/util";
 import HealthMonitorStatus from "../models/types/healthMonitorStatus";
 import { HealthMonitorStore } from "../storage/healthMonitorStore";
@@ -17,7 +13,9 @@ export default function HealthMonitorMessage() {
   const [targetBG] = PreferencesStore.targetBG.useState();
   const [highBG] = PreferencesStore.highBG.useState();
 
-  switch (healthMonitorStatus) {
+  const [status] = HealthMonitorStore.statusCache.useState();
+
+  switch (status) {
     case HealthMonitorStatus.Nominal:
       return "Health status is currently nominal";
     case HealthMonitorStatus.Falling:

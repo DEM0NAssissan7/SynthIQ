@@ -3,6 +3,8 @@ import { Link } from "react-router";
 import { useEffect, useState } from "react";
 import Backend from "../lib/remote/backend";
 import { WizardStore } from "../storage/wizardStore";
+import { HealthMonitorStore } from "../storage/healthMonitorStore";
+import HealthMonitorStatus from "../models/types/healthMonitorStatus";
 
 enum NightscoutAuthLevel {
   Invalid,
@@ -15,6 +17,7 @@ function HubPage() {
     NightscoutAuthLevel.Invalid
   );
   const [session] = WizardStore.session.useState();
+  const [healthStatus] = HealthMonitorStore.statusCache.useState();
   useEffect(() => {
     Backend.verifyAuth()
       .then((a) => {
@@ -38,6 +41,86 @@ function HubPage() {
       </header>
       <main>
         <Row className="g-4 justify-content-center">
+          <Col xs={12} sm={6} md={4} lg={3}>
+            <Card className="h-100 shadow-sm">
+              <Card.Body>
+                {(() => {
+                  switch (healthStatus) {
+                    case HealthMonitorStatus.Nominal:
+                      return (
+                        <>
+                          <Card.Title>Nominal Health</Card.Title>
+                          <Card.Text>No pending alerts</Card.Text>
+                          <i className="bi bi-check"></i>
+                        </>
+                      );
+                    case HealthMonitorStatus.Basal:
+                      return (
+                        <>
+                          <Card.Title>Basal Injection</Card.Title>
+                          <Card.Text>Your injection is due</Card.Text>
+                          <Button
+                            variant="primary"
+                            as={Link as any}
+                            to="/basal"
+                          >
+                            Take Injection
+                          </Button>
+                        </>
+                      );
+                    case HealthMonitorStatus.Low:
+                      return (
+                        <>
+                          <Card.Title>Low Blood Sugar</Card.Title>
+                          <Card.Text>
+                            Your blood sugar is below target range
+                          </Card.Text>
+                          <Button
+                            variant="primary"
+                            as={Link as any}
+                            to="/rescue"
+                          >
+                            Take Low Correction
+                          </Button>
+                        </>
+                      );
+
+                    case HealthMonitorStatus.Falling:
+                      return (
+                        <>
+                          <Card.Title>Falling Blood Sugar</Card.Title>
+                          <Card.Text>
+                            Your blood sugar is falling quickly
+                          </Card.Text>
+                          <Button
+                            variant="primary"
+                            as={Link as any}
+                            to="/rescue"
+                          >
+                            Take Low Correction
+                          </Button>
+                        </>
+                      );
+                    case HealthMonitorStatus.High:
+                      <>
+                        <Card.Title>High Blood sugar</Card.Title>
+                        <Card.Text>
+                          Your blood sugar is above the target range
+                        </Card.Text>
+                        <Button
+                          variant="primary"
+                          as={Link as any}
+                          to="/insulin"
+                        >
+                          Take Insulin
+                        </Button>
+                      </>;
+                  }
+                  return <></>;
+                })()}
+              </Card.Body>
+            </Card>
+          </Col>
           <Col xs={12} sm={6} md={4} lg={3}>
             <Card className="h-100 shadow-sm">
               <Card.Body>

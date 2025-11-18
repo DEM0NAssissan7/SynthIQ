@@ -31,8 +31,6 @@ import { PreferencesStore } from "../storage/preferencesStore";
 import { BasalStore } from "../storage/basalStore";
 import type { RescueVariant } from "../models/types/rescueVariant";
 
-export let healthMonitorStatus = HealthMonitorStatus.Nominal;
-
 /** Poll nightscout to fill the reading cache */
 export async function populateReadingCache() {
   const readingsCacheSize = HealthMonitorStore.readingsCacheSize.value;
@@ -144,7 +142,7 @@ export async function updateHealthMonitorStatus() {
     const currentBG = HealthMonitorStore.currentBG.value;
 
     // Assume things are nominal
-    healthMonitorStatus = HealthMonitorStatus.Nominal;
+    HealthMonitorStore.statusCache.value = HealthMonitorStatus.Nominal;
 
     // If the user hasn't already taken glucose
     const timeBetweenShots = HealthMonitorStore.timeBetweenShots.value;
@@ -152,26 +150,26 @@ export async function updateHealthMonitorStatus() {
       // Check critical time
       const criticalTime = timeToCritical();
       if (criticalTime <= 20) {
-        healthMonitorStatus = HealthMonitorStatus.Falling;
-        return healthMonitorStatus;
+        HealthMonitorStore.statusCache.value = HealthMonitorStatus.Falling;
+        return HealthMonitorStore.statusCache.value;
       }
 
       if (currentBG < PreferencesStore.lowBG.value) {
-        healthMonitorStatus = HealthMonitorStatus.Low;
-        return healthMonitorStatus;
+        HealthMonitorStore.statusCache.value = HealthMonitorStatus.Low;
+        return HealthMonitorStore.statusCache.value;
       }
     }
 
     const fasting = await isFastingState(new Date());
     if (currentBG > PreferencesStore.highBG.value && fasting) {
-      healthMonitorStatus = HealthMonitorStatus.High;
-      return healthMonitorStatus;
+      HealthMonitorStore.statusCache.value = HealthMonitorStatus.High;
+      return HealthMonitorStore.statusCache.value;
     }
 
     // If we need to take basal insulin
     if (basalIsDue()) {
-      healthMonitorStatus = HealthMonitorStatus.Basal;
-      return healthMonitorStatus;
+      HealthMonitorStore.statusCache.value = HealthMonitorStatus.Basal;
+      return HealthMonitorStore.statusCache.value;
     }
 
     // Final return
@@ -180,7 +178,7 @@ export async function updateHealthMonitorStatus() {
   return null;
 }
 export async function smartMonitor(navigate: NavigateFunction) {
-  const status: HealthMonitorStatus | null = await updateHealthMonitorStatus();
+  const status = HealthMonitorStore.statusCache.value;
   if (status !== null) {
     switch (status) {
       case HealthMonitorStatus.Nominal:
