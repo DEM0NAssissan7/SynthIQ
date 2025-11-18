@@ -151,31 +151,27 @@ export async function updateHealthMonitorStatus() {
       const criticalTime = timeToCritical();
       if (criticalTime <= 20) {
         HealthMonitorStore.statusCache.value = HealthMonitorStatus.Falling;
-        return HealthMonitorStore.statusCache.value;
+        return;
       }
 
       if (currentBG < PreferencesStore.lowBG.value) {
         HealthMonitorStore.statusCache.value = HealthMonitorStatus.Low;
-        return HealthMonitorStore.statusCache.value;
+        return;
       }
     }
 
     const fasting = await isFastingState(new Date());
     if (currentBG > PreferencesStore.highBG.value && fasting) {
       HealthMonitorStore.statusCache.value = HealthMonitorStatus.High;
-      return HealthMonitorStore.statusCache.value;
+      return;
     }
 
     // If we need to take basal insulin
     if (basalIsDue()) {
       HealthMonitorStore.statusCache.value = HealthMonitorStatus.Basal;
-      return HealthMonitorStore.statusCache.value;
+      return;
     }
-
-    // Final return
-    return HealthMonitorStatus.Nominal;
   }
-  return null;
 }
 export async function smartMonitor(navigate: NavigateFunction) {
   const status = HealthMonitorStore.statusCache.value;
