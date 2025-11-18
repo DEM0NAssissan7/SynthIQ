@@ -15,7 +15,7 @@ import WizardSelectionPage from "./pages/wizard/WizardSelectionPage";
 import WizardFinalBGPage from "./pages/wizard/WizardFinalBGPage";
 import WizardEditPage from "./pages/wizard/WizardEditPage";
 import RescuePage from "./pages/RescuePage";
-import { smartMonitor } from "./lib/healthMonitor";
+import { smartMonitor, updateHealthMonitorStatus } from "./lib/healthMonitor";
 import Backend from "./lib/remote/backend";
 import RemoteStorage from "./lib/remote/storage";
 import BasalPage from "./pages/BasalPage";
@@ -41,9 +41,12 @@ function App() {
   useEffect(() => {
     // Attempt to fulfill requests upon page load
     Backend.fulfillRequests();
+
+    // Update health monitor status cache
+    updateHealthMonitorStatus();
   }, [now]);
 
-  const redirectNow = useNow(
+  const redirectTimer = useNow(
     20 * convertDimensions(Unit.Time.Minute, Unit.Time.Second)
   );
   useEffect(() => {
@@ -52,7 +55,7 @@ function App() {
 
     // Execute health monitor navigator
     smartMonitor(navigate);
-  }, [redirectNow]);
+  }, [redirectTimer]);
 
   console.log(WizardStore.session.value);
   console.log(WizardStore.template.value);
