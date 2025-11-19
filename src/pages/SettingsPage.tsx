@@ -248,6 +248,12 @@ export default function SettingsPage() {
           iconClass="bi bi-clock"
           unit="hours"
         />
+        <NumberSetting
+          keyInterface={PreferencesStore.sugarSaveTime}
+          title="BG Box Expiration Time"
+          iconClass="bi bi-clock"
+          unit="mins"
+        />
       </Card>
     </>
   );

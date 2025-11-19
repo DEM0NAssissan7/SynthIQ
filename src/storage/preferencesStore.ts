@@ -17,4 +17,5 @@ export namespace PreferencesStore {
   export const maxSessionLife = node.add("maxSessionLife", 30);
   export const usableSessionLife = node.add("usableSessionLife", 7);
   export const overshootOffset = node.add("overshootOffset", 10);
+  export const sugarSaveTime = node.add("sugarSaveTime", 10);
 }
