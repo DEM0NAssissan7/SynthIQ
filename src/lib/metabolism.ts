@@ -32,12 +32,12 @@ export function getOvercompensationInsulins(
 // Glucose
 export function getGlucoseCorrectionCaps(
   sugar: number,
-  variant: InsulinVariant
+  variant: InsulinVariant,
+  allowNegative = false
 ) {
-  return Math.max(
-    (PreferencesStore.targetBG.value - sugar) / variant.effect,
-    0
-  );
+  const correction = (PreferencesStore.targetBG.value - sugar) / variant.effect;
+  if (allowNegative) return correction;
+  return Math.max(correction, 0);
 }
 export function getIntelligentGlucoseCorrection(
   velocityHours: number,

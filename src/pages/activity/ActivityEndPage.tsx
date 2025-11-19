@@ -39,7 +39,11 @@ export default function ActivityEndPage() {
   return (
     <>
       <Card>
-        <ActivitySummary activity={activity} template={template} />
+        <ActivitySummary
+          activity={activity}
+          template={template}
+          currentBG={activity.initialBG}
+        />
       </Card>
       <Card>
         <BloodSugarInput

@@ -6,25 +6,35 @@ import { useNow } from "../state/useNow";
 import { roundByHalf } from "../lib/util";
 import { InsulinVariantManager } from "../managers/insulinVariantManager";
 import { RescueVariantManager } from "../managers/rescueVariantManager";
+import { getGlucoseCorrectionCaps } from "../lib/metabolism";
 
 interface ActivitySummaryProps {
   activity: Activity;
   template: ActivityTemplate;
+  currentBG: number | null;
 }
 export default function ActivitySummary({
   activity,
   template,
+  currentBG,
 }: ActivitySummaryProps) {
   const now = useNow();
   const defaultVariant = InsulinVariantManager.getDefault();
   const defaultRescueVariant = RescueVariantManager.getDefault();
+  const baseCorrection = useMemo(
+    () =>
+      currentBG
+        ? getGlucoseCorrectionCaps(currentBG, defaultRescueVariant, true)
+        : 0,
+    [currentBG]
+  );
   const glucoseCorrectionRate = useMemo(
     () => -template.score / defaultRescueVariant.effect,
     [template]
   );
   const totalGlucoseCorrection = useMemo(
-    () => glucoseCorrectionRate * (template.length / 60),
-    [glucoseCorrectionRate, template]
+    () => glucoseCorrectionRate * (template.length / 60) + baseCorrection,
+    [glucoseCorrectionRate, template, baseCorrection]
   );
   const insulinCorrectionRate = useMemo(
     () => template.score / defaultVariant.effect,
@@ -62,7 +72,16 @@ export default function ActivitySummary({
               every hour.
               <br /> You might need to take{" "}
               {roundByHalf(totalGlucoseCorrection, true)}{" "}
-              {defaultRescueVariant.name} in total.
+              {defaultRescueVariant.name} in total.{" "}
+              {roundByHalf(baseCorrection, false) !== 0 && (
+                <>
+                  <br />
+                  {baseCorrection >= 0 && "+"}
+                  {roundByHalf(baseCorrection, false)}{" "}
+                  {defaultRescueVariant.name} to correct for BG of {currentBG}
+                  mg/dL
+                </>
+              )}
             </>
           ) : (
             <>

@@ -31,7 +31,11 @@ export default function ActivityStartPage() {
   return (
     <>
       <Card>
-        <ActivitySummary activity={activity} template={template} />
+        <ActivitySummary
+          activity={activity}
+          template={template}
+          currentBG={currentBG}
+        />
       </Card>
       <Card>
         <BloodSugarInput
