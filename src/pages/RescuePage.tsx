@@ -41,7 +41,7 @@ export default function RescuePage() {
 
   const correction = useMemo(() => {
     return roundByHalf(getGlucoseCorrectionCaps(currentBG, variant), true);
-  }, [currentBG]);
+  }, [currentBG, variant]);
   const [intelligentCorrection, setIntelligentCorrection] = useState(0);
 
   useEffect(() => {
@@ -61,7 +61,7 @@ export default function RescuePage() {
         )
       );
     });
-  }, [currentBG]);
+  }, [currentBG, variant]);
 
   const navigate = useNavigate();
   function goBack() {
