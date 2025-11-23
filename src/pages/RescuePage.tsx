@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useReducer } from "react";
 import { Button, Form, InputGroup, ListGroup } from "react-bootstrap";
 import { useNavigate } from "react-router";
 import BloodSugarInput from "../components/BloodSugarInput";
@@ -26,6 +26,7 @@ import { NumberOptionSelector } from "../components/NumberOptionSelector";
 import { RescueVariantManager } from "../managers/rescueVariantManager";
 import type { RescueVariant } from "../models/types/rescueVariant";
 import { RescueVariantStore } from "../storage/rescueVariantStore";
+import { useNow } from "../state/useNow";
 
 export default function RescuePage() {
   const [session] = WizardStore.session.useState();
@@ -44,6 +45,11 @@ export default function RescuePage() {
   }, [currentBG, variant]);
   const [intelligentCorrection, setIntelligentCorrection] = useState(0);
 
+  const now = useNow();
+  const [updated, update] = useReducer((a) => a + 1, 0);
+  useEffect(() => {
+    populateReadingCache().then(update);
+  }, [now]);
   useEffect(() => {
     populateReadingCache().then(() => {
       const velocityHours = getBGVelocity();
@@ -61,7 +67,7 @@ export default function RescuePage() {
         )
       );
     });
-  }, [currentBG, variant]);
+  }, [currentBG, variant, updated]);
 
   const navigate = useNavigate();
   function goBack() {
