@@ -64,7 +64,7 @@ function SetupPage() {
     }
     await Backend.verifyAuth()
       .then((a) => {
-        console.log(a);
+        if (PrivateStore.debugLogs.value) console.log(a);
         if (a.message.canRead && a.message.canWrite) {
           advance();
           return;

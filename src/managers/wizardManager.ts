@@ -9,6 +9,7 @@ import MealTemplate from "../models/mealTemplate";
 import type Activity from "../models/events/activity";
 import { InsulinVariantManager } from "./insulinVariantManager";
 import type { RescueVariant } from "../models/types/rescueVariant";
+import { PrivateStore } from "../storage/privateStore";
 
 export default class WizardManager {
   // Page Redirects
@@ -122,7 +123,7 @@ export default class WizardManager {
     } else {
       WizardStore.meal.value = new Meal(new Date());
     }
-    console.log(template);
+    if (PrivateStore.debugLogs.value) console.log(template);
   }
   static createTemplate(name: string) {
     try {

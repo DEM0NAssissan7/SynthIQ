@@ -35,6 +35,7 @@ import { convertDimensions } from "./lib/util";
 import Unit from "./models/unit";
 import RescueVariantsPage from "./pages/RescueVariantsPage";
 import { TerminalManager } from "./managers/terminalManager";
+import { PrivateStore } from "./storage/privateStore";
 
 function App() {
   const navigate = useNavigate();
@@ -53,7 +54,7 @@ function App() {
 
       // Attempt to fulfill requests
       await Backend.fulfillRequests();
-      console.warn("Sync Finished!");
+      if (PrivateStore.debugLogs.value) console.warn("Sync Finished!");
     })();
   }, [now]);
 
@@ -65,10 +66,12 @@ function App() {
     smartMonitor(navigate);
   }, [redirectTimer]);
 
-  console.log(WizardStore.session.value);
-  console.log(WizardStore.template.value);
-  console.log(ActivityStore.activity.value);
-  console.log(ActivityStore.template.value);
+  if (PrivateStore.debugLogs.value) {
+    console.log(WizardStore.session.value);
+    console.log(WizardStore.template.value);
+    console.log(ActivityStore.activity.value);
+    console.log(ActivityStore.template.value);
+  }
   return (
     <div>
       <TopBar />

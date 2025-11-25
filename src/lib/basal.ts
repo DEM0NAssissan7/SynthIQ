@@ -10,6 +10,7 @@ import Unit from "../models/unit";
 import { BackendStore } from "../storage/backendStore";
 import { BasalStore } from "../storage/basalStore";
 import { HealthMonitorStore } from "../storage/healthMonitorStore";
+import { PrivateStore } from "../storage/privateStore";
 import { getBasalCorrection } from "./metabolism";
 import { getBGVelocities } from "./readingsUtil";
 import RemoteReadings from "./remote/readings";
@@ -89,7 +90,7 @@ function getFastingVelocities(
 ): number[] {
   let nonFasting = getNonFastingWindows(treatments); // A set of date pairs to describe when we are not fasting
 
-  console.log(nonFasting);
+  if (PrivateStore.debugLogs.value) console.log(nonFasting);
   let velocities: number[] = [];
   let currentSet: SugarReading[] = [];
   readings.forEach((reading: SugarReading, index: number) => {
@@ -142,7 +143,8 @@ export async function populateFastingVelocitiesCache() {
     readings
   );
   BasalStore.fastingGlucosesCache.value = getFastingGlucoses(treatments);
-  console.log(BasalStore.fastingGlucosesCache.value);
+  if (PrivateStore.debugLogs.value)
+    console.log(BasalStore.fastingGlucosesCache.value);
 }
 
 export function getFastingVelocity() {
@@ -156,11 +158,12 @@ export function getFastingVelocity() {
   fastingGlucoses.forEach(
     (g) => (totalFastingGlucoseEffect += (g.value ?? 0) * g.variant.effect)
   );
-  console.log(
-    averageVelocity,
-    totalFastingGlucoseEffect / hours,
-    fastingGlucoses
-  );
+  if (PrivateStore.debugLogs.value)
+    console.log(
+      averageVelocity,
+      totalFastingGlucoseEffect / hours,
+      fastingGlucoses
+    );
   return averageVelocity - totalFastingGlucoseEffect / hours;
 }
 

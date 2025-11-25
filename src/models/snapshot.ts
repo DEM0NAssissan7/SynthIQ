@@ -7,6 +7,7 @@
 
 import RemoteReadings from "../lib/remote/readings";
 import { convertDimensions, MathUtil } from "../lib/util";
+import { PrivateStore } from "../storage/privateStore";
 import Subscribable from "./subscribable";
 import SugarReading, { getReadingFromNightscout } from "./types/sugarReading";
 import type { Deserializer, Serializer } from "./types/types";
@@ -88,7 +89,7 @@ export default class Snapshot extends Subscribable {
       this.finalBG.timestamp
     );
     const rawReadings = remoteReadings.map((r) => getReadingFromNightscout(r));
-    console.log(rawReadings);
+    if (PrivateStore.debugLogs.value) console.log(rawReadings);
     rawReadings.forEach((r) => this.addReading(r, false));
     this.notify();
   }
@@ -159,7 +160,6 @@ export default class Snapshot extends Subscribable {
             reducePrecision(reading.timestamp.getTime())
         );
       }
-      console.log(jumps);
       timeJump = Math.round(MathUtil.mean(jumps));
     }
     return {

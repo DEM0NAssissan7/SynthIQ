@@ -12,4 +12,5 @@ export namespace PrivateStore {
     MasterState.serialize,
     MasterState.deserialize
   );
+  export const debugLogs = node.add("debugLogs", false);
 }

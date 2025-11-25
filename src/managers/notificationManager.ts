@@ -1,11 +1,12 @@
 import { convertDimensions } from "../lib/util";
 import Unit from "../models/unit";
+import { PrivateStore } from "../storage/privateStore";
 
 export namespace NotificationManager {
   export function create(title: string, body: string, delaySeconds?: number) {
     if (window.Notification) {
       Notification.requestPermission(function (status) {
-        console.log("Status: ", status);
+        if (PrivateStore.debugLogs.value) console.log("Status: ", status);
         const notifier = () => new Notification(title, { body: body });
         setTimeout(
           notifier,

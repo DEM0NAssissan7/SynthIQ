@@ -13,6 +13,7 @@ import React from "react";
 import { getFormattedTime, getFullPrettyDate } from "../lib/timing";
 import { InsulinVariantManager } from "../managers/insulinVariantManager";
 import { useNow } from "../state/useNow";
+import { PrivateStore } from "../storage/privateStore";
 
 function getFactorDesc(num: number, unit: string, type: string) {
   if (round(num, 1) === 0) return "";
@@ -47,7 +48,7 @@ export default function TemplateMealSummary({
     currentBG
   );
   const defaultVariant = InsulinVariantManager.getDefault();
-  console.log(session);
+  if (PrivateStore.debugLogs.value) console.log(session);
   const insulinCorrection = useMemo(
     () => getCorrectionInsulin(currentBG, defaultVariant),
     [currentBG]

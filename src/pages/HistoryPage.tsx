@@ -5,6 +5,7 @@ import type MealTemplate from "../models/mealTemplate";
 import type Session from "../models/session";
 import { WizardStore } from "../storage/wizardStore";
 import { useState } from "react";
+import { PrivateStore } from "../storage/privateStore";
 
 export default function HistoryPage() {
   return (
@@ -29,7 +30,12 @@ export default function HistoryPage() {
             {[...template.sessions].reverse().map((session: Session) => {
               if (session.meals.length < 1) return <></>;
               const [, setRerenderFlag] = useState(false);
-              console.log(template.name, session, session.optimalMealInsulins);
+              if (PrivateStore.debugLogs.value)
+                console.log(
+                  template.name,
+                  session,
+                  session.optimalMealInsulins
+                );
               return (
                 <tbody
                   style={

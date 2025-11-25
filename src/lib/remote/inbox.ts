@@ -10,6 +10,7 @@ import Insulin from "../../models/events/insulin";
 import Meal from "../../models/events/meal";
 import { Inbox } from "../../models/messages/inbox";
 import { Mail } from "../../models/messages/mail";
+import { PrivateStore } from "../../storage/privateStore";
 import { basalInsulinVariant } from "../basal";
 import { RemoteProfile } from "./profile";
 
@@ -19,7 +20,7 @@ export namespace RemoteInbox {
       const inbox = p.inbox ? Inbox.deserialize(p.inbox) : new Inbox();
       inbox.addMail(mail);
       p.inbox = Inbox.serialize(inbox);
-      console.log(p.inbox);
+      if (PrivateStore.debugLogs.value) console.log(p.inbox);
       return p;
     });
   }
@@ -50,7 +51,7 @@ export namespace RemoteInbox {
   }
   export async function getMail() {
     const profile = await RemoteProfile.getProfile();
-    console.log(profile);
+    if (PrivateStore.debugLogs.value) console.log(profile);
     if (!profile.inbox) return null;
     return Inbox.deserialize(profile.inbox).mail;
   }

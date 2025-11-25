@@ -45,7 +45,7 @@ export namespace TerminalManager {
     if (!isMaster()) return;
     const mail = await RemoteInbox.getMail();
     if (!mail) return;
-    console.log(mail);
+    if (PrivateStore.debugLogs.value) console.log(mail);
     mail.forEach((m) => {
       // Insulin
       const insulin = m.insulin;
