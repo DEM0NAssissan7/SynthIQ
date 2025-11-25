@@ -13,12 +13,12 @@ import TemplateSummary from "../components/TemplateSummary";
 import { WizardStore } from "../storage/wizardStore";
 import { WizardPage } from "../models/types/wizardPage";
 import { PreferencesStore } from "../storage/preferencesStore";
-import RemoteTreatments from "../lib/remote/treatments";
 import { InsulinVariantManager } from "../managers/insulinVariantManager";
 import { InsulinVariantStore } from "../storage/insulinVariantStore";
 import { NumberOptionSelector } from "../components/NumberOptionSelector";
 import Insulin from "../models/events/insulin";
 import { useNow } from "../state/useNow";
+import { TreatmentManager } from "../managers/treatmentManager";
 
 export default function InsulinPage() {
   const navigate = useNavigate();
@@ -55,11 +55,6 @@ export default function InsulinPage() {
     if (!isNaN(insulin)) {
       if (confirm(`Confirm that you have taken ${insulin} units of insulin`)) {
         if (isBolus && (currentGlucose || session.initialGlucose)) {
-          const BG =
-            currentGlucose ??
-            session.initialGlucose ??
-            PreferencesStore.targetBG.value;
-          WizardManager.markInsulin(insulin, BG, variant.name);
           if (currentGlucose) WizardManager.setInitialGlucose(currentGlucose);
         }
         if (session.started) {
@@ -72,7 +67,11 @@ export default function InsulinPage() {
         }
 
         // TODO: Use date selector
-        RemoteTreatments.markInsulin(insulin, now, variant.name);
+        const BG =
+          currentGlucose ??
+          session.initialGlucose ??
+          PreferencesStore.targetBG.value;
+        TreatmentManager.insulin(insulin, variant.name, BG, isBolus, now);
         setIsBolus(false);
       }
     } else {

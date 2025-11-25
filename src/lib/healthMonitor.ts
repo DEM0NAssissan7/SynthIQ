@@ -67,8 +67,12 @@ export function timeToCritical() {
 }
 
 // Rescue Glucose
-export function markGlucose(grams: number, variant: RescueVariant) {
-  HealthMonitorStore.lastRescue.value = new Glucose(grams, new Date(), variant);
+export function markGlucose(
+  grams: number,
+  variant: RescueVariant,
+  timestamp = new Date()
+) {
+  HealthMonitorStore.lastRescue.value = new Glucose(grams, timestamp, variant);
 }
 
 export function getLastRescueMinutes() {

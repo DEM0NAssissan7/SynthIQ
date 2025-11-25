@@ -7,26 +7,20 @@ import {
   getIntelligentGlucoseCorrection,
 } from "../lib/metabolism";
 import { roundByHalf } from "../lib/util";
-import WizardManager from "../managers/wizardManager";
 import Card from "../components/Card";
 import GlucoseSuggestion from "../components/GlucoseSuggestion";
 import HealthMonitorMessage from "../components/HealthMonitorMessage";
-import {
-  populateReadingCache,
-  getBGVelocity,
-  markGlucose,
-} from "../lib/healthMonitor";
+import { populateReadingCache, getBGVelocity } from "../lib/healthMonitor";
 import TemplateSummary from "../components/TemplateSummary";
 import { HealthMonitorStore } from "../storage/healthMonitorStore";
 import { WizardStore } from "../storage/wizardStore";
 import { PreferencesStore } from "../storage/preferencesStore";
-import { ActivityManager } from "../managers/activityManager";
-import RemoteTreatments from "../lib/remote/treatments";
 import { NumberOptionSelector } from "../components/NumberOptionSelector";
 import { RescueVariantManager } from "../managers/rescueVariantManager";
 import type { RescueVariant } from "../models/types/rescueVariant";
 import { RescueVariantStore } from "../storage/rescueVariantStore";
 import { useNow } from "../state/useNow";
+import { TreatmentManager } from "../managers/treatmentManager";
 
 export default function RescuePage() {
   const [session] = WizardStore.session.useState();
@@ -75,10 +69,7 @@ export default function RescuePage() {
   }
   function markGlucoseTaken(grams: number, variant: RescueVariant) {
     if (confirm(`Confirm that you have taken ${grams} ${variant.name}`)) {
-      WizardManager.markGlucose(grams, variant);
-      markGlucose(grams, variant);
-      ActivityManager.markGlucose(grams, variant);
-      RemoteTreatments.markGlucose(grams, new Date(), variant.name);
+      TreatmentManager.glucose(grams, variant.name, new Date());
       goBack();
     }
   }
