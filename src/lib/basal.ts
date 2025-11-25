@@ -175,12 +175,12 @@ export function getFastingLength() {
   return hours;
 }
 
-const basalInsulinVariant = new InsulinVariant(
+export const basalInsulinVariant = new InsulinVariant(
   "Basal",
   24 * BasalStore.basalEffectDays.value,
   BasalStore.basalEffect.value
 );
-export function markBasal(units: number) {
+export function markBasal(units: number, timestamp: Date) {
   const days = BasalStore.basalEffectDays.value;
   const shotsPerDay = HealthMonitorStore.basalShotsPerDay.value;
 
@@ -193,16 +193,15 @@ export function markBasal(units: number) {
   BasalStore.shotsSinceLastChange.value = shotsSinceChange + 1;
 
   // Add dose to the list of doses
-  const now = new Date();
   const doses: Insulin[] = BasalStore.basalDoses.value;
   const newBasalDoses = [
-    new Insulin(units, now, basalInsulinVariant),
+    new Insulin(units, timestamp, basalInsulinVariant),
     ...doses,
   ];
   BasalStore.basalDoses.value = newBasalDoses.slice(0, days * shotsPerDay);
 
   // Mark in nightscout
-  RemoteTreatments.markBasal(units, now);
+  RemoteTreatments.markBasal(units, timestamp);
 }
 
 export function getDailyBasal() {

@@ -16,6 +16,7 @@ import { BackendStore } from "../storage/backendStore";
 import { HealthMonitorStore } from "../storage/healthMonitorStore";
 import StorageBackends from "../registries/storageBackends";
 import { BasalStore } from "../storage/basalStore";
+import { MasterState } from "../models/types/masterState";
 
 interface Setting {
   title: string;
@@ -93,27 +94,18 @@ export default function SettingsPage() {
     }
   }
 
-  const syncOptions: [boolean | null, string][] = [
-    [null, "Disabled"],
-    [false, "Slave"],
-    [true, "Master"],
+  const syncOptions: [MasterState, string][] = [
+    [MasterState.NONE, "Disabled"],
+    [MasterState.SLAVE, "Slave"],
+    [MasterState.TERMINAL, "Terminal"],
+    [MasterState.MASTER, "Master"],
   ];
-  function getSelectedIndexFromValue(state: boolean | null) {
-    switch (state) {
-      case null:
-        return 0;
-      case false:
-        return 1;
-      case true:
-        return 2;
-    }
-  }
   const [selectedIndex, setSelectedIndex] = useState(
-    getSelectedIndexFromValue(PrivateStore.isMaster.value)
+    PrivateStore.masterState.value.valueOf()
   );
-  function setSyncState(value: boolean | null) {
-    PrivateStore.isMaster.value = value;
-    setSelectedIndex(getSelectedIndexFromValue(value));
+  function setSyncState(value: MasterState) {
+    PrivateStore.masterState.value = value;
+    setSelectedIndex(value.valueOf());
   }
   return (
     <>
@@ -164,6 +156,7 @@ export default function SettingsPage() {
               variant={
                 (i === 0 && "outline-secondary") ||
                 (i === 1 && "outline-primary") ||
+                (i === 2 && "outline-warning") ||
                 "outline-danger"
               }
               value={i}

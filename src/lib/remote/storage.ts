@@ -1,3 +1,4 @@
+import { MasterState } from "../../models/types/masterState";
 import { PrivateStore } from "../../storage/privateStore";
 import StorageNode from "../../storage/storageNode";
 import { nodes } from "../../storage/storageNode";
@@ -31,24 +32,24 @@ class RemoteStorage {
 
   // Slave-master dynamic
   static async sync() {
-    switch (PrivateStore.isMaster.value) {
-      case null:
+    switch (PrivateStore.masterState.value) {
+      case MasterState.NONE:
         // If sync is disabled
         return;
-      case true:
+      case MasterState.MASTER:
         // If it is master
         console.log(`Synchronizing storage to backend.`);
         await this.upload();
         break;
-      case false:
+      case MasterState.SLAVE:
+      case MasterState.TERMINAL:
         // If it is slave
         const synced = await this.download();
         if (synced) {
           console.log(`Storage synchronized from backend. Reloading...`);
-          PrivateStore.isMaster.value = false;
           location.reload(); // Reload page upon sync to ensure state consistency
         }
-        break;
+        return true;
     }
   }
 }

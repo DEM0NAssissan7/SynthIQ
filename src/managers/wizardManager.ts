@@ -64,15 +64,6 @@ export default class WizardManager {
     session.createInsulin(units, timestamp, variant, BG);
   }
   static markInsulin(units: number, BG: number, variantName: string) {
-    let session: Session = WizardStore.session.value;
-    if (session.insulinMarked) {
-      if (
-        !confirm(
-          `You are going to mark additional insulin. You've already taken ${session.insulin}u of insulin. Are you sure you want to do this?`
-        )
-      )
-        return;
-    }
     this.insulin(units, BG, variantName);
   }
   // Glucose

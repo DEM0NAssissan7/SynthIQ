@@ -6,7 +6,6 @@ import {
   getFastingVelocity,
   getLastShot,
   getRecommendedBasal,
-  markBasal,
   populateFastingVelocitiesCache,
 } from "../lib/basal";
 import { getBasalCorrection } from "../lib/metabolism";
@@ -19,6 +18,7 @@ import { BasalStore } from "../storage/basalStore";
 import { getLatestBasalTimestamp } from "../lib/healthMonitor";
 import type Insulin from "../models/events/insulin";
 import { useNow } from "../state/useNow";
+import { TreatmentManager } from "../managers/treatmentManager";
 
 export default function BasalPage() {
   const now = useNow(60);
@@ -27,9 +27,15 @@ export default function BasalPage() {
     populateFastingVelocitiesCache().then(() => incrementUpdate());
   }, [now]);
   const fastingVelocity = useMemo(() => getFastingVelocity(), [updated]);
-  const basalCorrection = useMemo(() => round(getBasalCorrection(fastingVelocity), 0), [fastingVelocity]);
+  const basalCorrection = useMemo(
+    () => round(getBasalCorrection(fastingVelocity), 0),
+    [fastingVelocity]
+  );
   const shotsPerDay = HealthMonitorStore.basalShotsPerDay.value;
-  const basalCorrectionPerDay = useMemo(() => round(basalCorrection / shotsPerDay, 1), [basalCorrection]);
+  const basalCorrectionPerDay = useMemo(
+    () => round(basalCorrection / shotsPerDay, 1),
+    [basalCorrection]
+  );
   const basals = BasalStore.basalDoses.value;
   const lastBasalTimestamp = getLatestBasalTimestamp();
   const fastingTime = getFastingLength();
@@ -42,7 +48,7 @@ export default function BasalPage() {
   const navigate = useNavigate();
   function markBasalInjection(dose: number) {
     if (confirm(`Confirm that you have injected ${dose}u of basal insulin`)) {
-      markBasal(dose);
+      TreatmentManager.basal(dose, new Date());
       navigate("/");
     }
   }
@@ -108,7 +114,8 @@ export default function BasalPage() {
             Consider adjusting dosage to <b>{suggestedBasal}u per shot</b>{" "}
             <i>
               {shotsPerDay > 1 &&
-                `(${basalCorrectionPerDay > 0 ? "+" : ""
+                `(${
+                  basalCorrectionPerDay > 0 ? "+" : ""
                 }${basalCorrectionPerDay}u per shot)`}
             </i>
           </>

@@ -34,25 +34,33 @@ import { useNow } from "./state/useNow";
 import { convertDimensions } from "./lib/util";
 import Unit from "./models/unit";
 import RescueVariantsPage from "./pages/RescueVariantsPage";
+import { TerminalManager } from "./managers/terminalManager";
 
 function App() {
   const navigate = useNavigate();
   const now = useNow(60);
   useEffect(() => {
-    // Attempt to fulfill requests upon page load
-    Backend.fulfillRequests();
-
     // Update health monitor status cache
     updateHealthMonitorStatus();
+
+    (async () => {
+      // Fulfill Inbox
+      await TerminalManager.applyMail();
+
+      // Synchronize master/slave state (if set)
+      const shouldFulfill = await RemoteStorage.sync();
+      if (shouldFulfill) return;
+
+      // Attempt to fulfill requests
+      await Backend.fulfillRequests();
+      console.warn("Sync Finished!");
+    })();
   }, [now]);
 
   const redirectTimer = useNow(
     20 * convertDimensions(Unit.Time.Minute, Unit.Time.Second)
   );
   useEffect(() => {
-    // Synchronize master/slave state (if set)
-    RemoteStorage.sync();
-
     // Execute health monitor navigator
     smartMonitor(navigate);
   }, [redirectTimer]);

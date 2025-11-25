@@ -1,3 +1,4 @@
+import { MasterState } from "../models/types/masterState";
 import StorageNode from "./storageNode";
 
 export namespace PrivateStore {
@@ -5,5 +6,10 @@ export namespace PrivateStore {
 
   export const apiSecret = node.add("apiSecret", "");
   export const syncUUID = node.add("syncUUID", 0);
-  export const isMaster = node.add<boolean | null>("isMaster", null);
+  export const masterState = node.add<MasterState>(
+    "masterState",
+    MasterState.NONE,
+    MasterState.serialize,
+    MasterState.deserialize
+  );
 }
