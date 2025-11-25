@@ -11,4 +11,8 @@ export namespace RemoteProfile {
   export async function putProfile(p: any) {
     Backend.put("profile", p);
   }
+  export async function modifyProfile<T>(f: (p: T) => T) {
+    const profile = f(await getProfile());
+    await putProfile(profile);
+  }
 }
