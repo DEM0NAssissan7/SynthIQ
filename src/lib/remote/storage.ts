@@ -1,34 +1,24 @@
-import { BackendStore } from "../../storage/backendStore";
 import { PrivateStore } from "../../storage/privateStore";
 import StorageNode from "../../storage/storageNode";
 import { nodes } from "../../storage/storageNode";
 import { genUUID } from "../util";
-import Backend from "./backend";
+import { RemoteProfile } from "./profile";
 
 class RemoteStorage {
-  private static async getProfiles() {
-    return await Backend.get("profile");
-  }
-  private static async getProfile() {
-    return (await this.getProfiles())[BackendStore.profileID.value];
-  }
-  private static async putProfile(p: any) {
-    Backend.put("profile", p);
-  }
   static async upload() {
     let nodeObjects = [];
     nodeObjects = nodes.map((n: StorageNode) => n.export());
-    let profile = await this.getProfile();
+    let profile = await RemoteProfile.getProfile();
     profile.nodeObjects = nodeObjects;
 
     const uuid = genUUID();
     profile.nodeUUID = uuid;
     PrivateStore.syncUUID.value = uuid;
 
-    this.putProfile(profile);
+    RemoteProfile.putProfile(profile);
   }
   static async download(forced = false) {
-    const profile = await this.getProfile();
+    const profile = await RemoteProfile.getProfile();
     if (profile.nodeUUID !== PrivateStore.syncUUID.value || forced) {
       profile.nodeObjects.map((o: any) => {
         nodes.forEach((n: StorageNode) => n.import(o));
