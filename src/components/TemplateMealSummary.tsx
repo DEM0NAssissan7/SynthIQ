@@ -152,20 +152,7 @@ export default function TemplateMealSummary({
           )}
         </React.Fragment>
       ))}
-      <hr />
-      {session && (
-        <>
-          <b>{session.mealInsulin.toFixed(1)}u</b> base
-          <br />
-          <br />
-        </>
-      )}
-      {getFactorDesc(insulinCorrection, "u", "correction")}
-      {getFactorDesc(insulinOffset, "u", "offset")}
-      {getFactorDesc(insulinAdjustment, " u", "adjustment")}
-      {getFactorDesc(overshootInsulinOffset, " u", "overcompensation")}
-      {isSingleBolus &&
-        getFactorDesc(adjustments.timingAdjustment, " min", "adjustment")}
+      <br />
       <br />
       <Button
         onClick={toggleShowExtra}
@@ -178,6 +165,21 @@ export default function TemplateMealSummary({
       <br />
       {showExtra && (
         <>
+          {" "}
+          <hr />
+          {session && (
+            <>
+              <b>{session.mealInsulin.toFixed(1)}u</b> base
+              <br />
+              <br />
+            </>
+          )}
+          {getFactorDesc(insulinCorrection, "u", "correction")}
+          {getFactorDesc(insulinOffset, "u", "offset")}
+          {getFactorDesc(insulinAdjustment, " u", "adjustment")}
+          {getFactorDesc(overshootInsulinOffset, " u", "overcompensation")}
+          {isSingleBolus &&
+            getFactorDesc(adjustments.timingAdjustment, " min", "adjustment")}
           <hr />
           <b>Profile:</b> This meal requires{" "}
           <b>{round(profileInsulin + insulinCorrection, 1)}u</b> insulin (

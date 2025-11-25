@@ -1,5 +1,11 @@
 import { useState, useMemo, useEffect, useReducer } from "react";
-import { Button, Form, InputGroup, ListGroup } from "react-bootstrap";
+import {
+  Button,
+  Form,
+  InputGroup,
+  ListGroup,
+  ToggleButton,
+} from "react-bootstrap";
 import { useNavigate } from "react-router";
 import BloodSugarInput from "../components/BloodSugarInput";
 import {
@@ -77,12 +83,26 @@ export default function RescuePage() {
     markGlucoseTaken(gramsTaken, variant);
   }
 
+  const [showTemplate, setShowTemplate] = useState(false);
+
   return (
     <>
       <h1>Low Correction</h1>
       {session.started && (
         <Card>
-          <TemplateSummary template={template} session={session} />
+          <ToggleButton
+            id="toggle-debug-logs"
+            type="checkbox"
+            variant={showTemplate ? "secondary" : "outline-secondary"}
+            checked={showTemplate}
+            value={showTemplate ? "1" : "0"}
+            onChange={() => setShowTemplate(!showTemplate)}
+          >
+            Show Session Summary
+          </ToggleButton>
+          {showTemplate && (
+            <TemplateSummary template={template} session={session} />
+          )}
         </Card>
       )}
       <Card>

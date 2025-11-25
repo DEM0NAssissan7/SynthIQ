@@ -10,7 +10,6 @@ export default function HealthMonitorMessage() {
   const [dangerBG] = PreferencesStore.dangerBG.useState();
 
   const [currentBG] = HealthMonitorStore.currentBG.useState();
-  const [targetBG] = PreferencesStore.targetBG.useState();
   const [highBG] = PreferencesStore.highBG.useState();
 
   const [status] = HealthMonitorStore.statusCache.useState();
@@ -22,8 +21,8 @@ export default function HealthMonitorMessage() {
       return (
         <>
           Your blood sugar is falling at a rate of{" "}
-          <b>{round(fallRate, 0)} pts/hr</b>. You are predicted to reach{" "}
-          {dangerBG} mg/dL within <b>{time} minutes</b>
+          <b>{round(fallRate / 60, 0)} pts/min</b>. You will reach{" "}
+          <b>{dangerBG} mg/dL</b> in <b>{time} minutes</b>.
         </>
       );
     case HealthMonitorStatus.Low:
@@ -31,9 +30,7 @@ export default function HealthMonitorMessage() {
         <>
           {" "}
           Your blood sugar is falling at a rate of{" "}
-          <b>{round(fallRate, 0)} pts/hr</b>. Your blood sugar was{" "}
-          <b>{currentBG} mg/dL</b>, {targetBG - currentBG} mg/dL below the
-          target.
+          <b>{round(fallRate / 60, 0)} pts/min</b>.
         </>
       );
     case HealthMonitorStatus.High:
