@@ -106,13 +106,13 @@ export default function RescuePage() {
         </Card>
       )}
       <Card>
+        <HealthMonitorMessage />
+        <hr />
         <GlucoseSuggestion
           intelligentCorrection={intelligentCorrection}
           baseCorrection={correction}
           unitName={variant.name}
         />
-        <hr />
-        <HealthMonitorMessage />
       </Card>
       <Card>
         <BloodSugarInput
