@@ -41,7 +41,7 @@ export default function RescuePage() {
   const [variant, setVariant] = useState(RescueVariantManager.getDefault());
 
   const correction = useMemo(() => {
-    return roundByHalf(getGlucoseCorrectionCaps(currentBG, variant), true);
+    return roundByHalf(getGlucoseCorrectionCaps(currentBG, variant), false);
   }, [currentBG, variant]);
   const [intelligentCorrection, setIntelligentCorrection] = useState(0);
 
