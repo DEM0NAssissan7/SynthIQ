@@ -93,6 +93,7 @@ export default function SettingsPage() {
       }
     }
   }
+  const [debugLogs, setDebugLogs] = PrivateStore.debugLogs.useState();
 
   const syncOptions: [MasterState, string][] = [
     [MasterState.NONE, "Disabled"],
@@ -247,6 +248,18 @@ export default function SettingsPage() {
           iconClass="bi bi-clock"
           unit="mins"
         />
+      </Card>
+      <Card>
+        <ToggleButton
+          id="toggle-debug-logs"
+          type="checkbox"
+          variant={debugLogs ? "outline-danger" : "outline-secondary"}
+          checked={debugLogs}
+          value={debugLogs ? "1" : "0"}
+          onChange={() => setDebugLogs(!debugLogs)}
+        >
+          Enable Debug Logs
+        </ToggleButton>
       </Card>
     </>
   );
