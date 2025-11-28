@@ -115,9 +115,13 @@ class Backend {
     addRequest(RequestType.POST, api, payload, timestamp);
     this.fulfillRequests();
   }
-  static put(api: string, payload: any): void {
-    addRequest(RequestType.PUT, api, payload);
-    this.fulfillRequests();
+  static put(api: string, payload: any, useQueue: boolean): void {
+    if (useQueue) {
+      addRequest(RequestType.PUT, api, payload);
+      this.fulfillRequests();
+    } else {
+      this.executeRequest(new RequestQueue(RequestType.PUT, api, payload));
+    }
   }
   static fulfillRequests(): void {
     for (const request of BackendStore.queue.value) {

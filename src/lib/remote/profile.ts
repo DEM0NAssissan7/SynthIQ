@@ -9,7 +9,7 @@ export namespace RemoteProfile {
     return (await getProfiles())[BackendStore.profileID.value];
   }
   export async function putProfile(p: any) {
-    Backend.put("profile", p);
+    Backend.put("profile", p, false);
   }
   export async function modifyProfile<T>(f: (p: T) => T) {
     const profile = f(await getProfile());

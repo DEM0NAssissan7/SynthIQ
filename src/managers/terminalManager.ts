@@ -40,6 +40,11 @@ export namespace TerminalManager {
     await RemoteInbox.basal(insulin);
   }
 
+  export async function fulfillInboxCache() {
+    if (!isTerminal()) return;
+    await RemoteInbox.fulfillInbox();
+  }
+
   // This is for the master only
   export async function applyMail() {
     if (!isMaster()) return;

@@ -1,6 +1,7 @@
 import Serialization from "../lib/serialization";
 import StorageNode from "./storageNode";
 import RequestQueue from "../models/requestQueue";
+import { Inbox } from "../models/messages/inbox";
 
 export namespace BackendStore {
   const node = new StorageNode("nightscout");
@@ -21,4 +22,12 @@ export namespace BackendStore {
 
   // Meals
   export const ignoredUUIDs = node.add<number[]>("ignoredUUIDs", []);
+
+  // Inbox
+  export const inboxCache = node.add(
+    "inboxCache",
+    new Inbox(),
+    Inbox.serialize,
+    Inbox.deserialize
+  );
 }

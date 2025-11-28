@@ -45,7 +45,10 @@ function App() {
     updateHealthMonitorStatus();
 
     (async () => {
-      // Fulfill Inbox
+      // Upload stored inbox on terminal side
+      await TerminalManager.fulfillInboxCache();
+
+      // Fulfill Inbox on master side
       await TerminalManager.applyMail();
 
       // Synchronize master/slave state (if set)

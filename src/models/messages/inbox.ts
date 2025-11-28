@@ -10,6 +10,9 @@ export class Inbox {
   addMail(message: Mail) {
     this.mail.push(message);
   }
+  absorb(inbox: Inbox) {
+    this.mail.push(...inbox.mail);
+  }
   get treatments() {
     let insulins: Insulin[] = [];
     let sessionInsulins: Insulin[] = [];

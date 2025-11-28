@@ -10,19 +10,28 @@ import Insulin from "../../models/events/insulin";
 import Meal from "../../models/events/meal";
 import { Inbox } from "../../models/messages/inbox";
 import { Mail } from "../../models/messages/mail";
+import { BackendStore } from "../../storage/backendStore";
 import { PrivateStore } from "../../storage/privateStore";
 import { basalInsulinVariant } from "../basal";
 import { RemoteProfile } from "./profile";
 
 export namespace RemoteInbox {
-  export async function addMail(mail: Mail) {
+  export async function fulfillInbox() {
+    const inboxCache = BackendStore.inboxCache.value;
     await RemoteProfile.modifyProfile((p: any) => {
       const inbox = p.inbox ? Inbox.deserialize(p.inbox) : new Inbox();
-      inbox.addMail(mail);
+      inbox.absorb(inboxCache);
       p.inbox = Inbox.serialize(inbox);
       if (PrivateStore.debugLogs.value) console.log(p.inbox);
       return p;
     });
+    // Reset inbox cache when/if completed
+    BackendStore.inboxCache.value = new Inbox();
+  }
+  export function addMail(mail: Mail) {
+    BackendStore.inboxCache.value.addMail(mail);
+    BackendStore.inboxCache.write(); // Serialize after modification
+    fulfillInbox;
   }
   export async function insulin(i: Insulin, isBolus: boolean) {
     let mail = new Mail();
