@@ -55,6 +55,25 @@ function NumberSetting({ title, keyInterface, iconClass, unit }: Setting) {
     </>
   );
 }
+interface ToggleSettingParams {
+  title: string;
+  keyInterface: KeyInterface<boolean>;
+}
+function ToggleSetting({ title, keyInterface }: ToggleSettingParams) {
+  const [val, setVal] = keyInterface.useState();
+  return (
+    <Form.Group className="mb-3 py-2">
+      <Form.Check
+        type="switch"
+        label={title}
+        checked={!!val}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+          setVal(e.target.checked)
+        }
+      />
+    </Form.Group>
+  );
+}
 
 export default function SettingsPage() {
   function uploadStorage() {
@@ -93,7 +112,6 @@ export default function SettingsPage() {
       }
     }
   }
-  const [debugLogs, setDebugLogs] = PrivateStore.debugLogs.useState();
 
   const syncOptions: [MasterState, string][] = [
     [MasterState.NONE, "Disabled"],
@@ -250,16 +268,10 @@ export default function SettingsPage() {
         />
       </Card>
       <Card>
-        <ToggleButton
-          id="toggle-debug-logs"
-          type="checkbox"
-          variant={debugLogs ? "outline-danger" : "outline-secondary"}
-          checked={debugLogs}
-          value={debugLogs ? "1" : "0"}
-          onChange={() => setDebugLogs(!debugLogs)}
-        >
-          Enable Debug Logs
-        </ToggleButton>
+        <ToggleSetting
+          title="Enable Debug Logs"
+          keyInterface={PrivateStore.debugLogs}
+        />
       </Card>
     </>
   );
