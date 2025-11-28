@@ -32,11 +32,11 @@ class Backend {
   private static getApiPath(api: string): string {
     return `${BackendStore.url.value}/api/v1/${api}`;
   }
-  private static postRequest(api: string, payload: any, timestamp: Date) {
+  private static async postRequest(api: string, payload: any, timestamp: Date) {
     payload.enteredBy = selfID;
     payload.created_at = timestamp;
     payload.eventTime = timestamp;
-    return fetch(this.getApiPath(api), {
+    return await fetch(this.getApiPath(api), {
       headers: {
         accept: "*/*",
         "accept-language": "en-US,en;q=0.9",
@@ -51,8 +51,8 @@ class Backend {
       credentials: "omit",
     });
   }
-  private static putRequest(api: string, payload: any) {
-    return fetch(this.getApiPath(api), {
+  private static async putRequest(api: string, payload: any) {
+    return await fetch(this.getApiPath(api), {
       headers: {
         accept: "*/*",
         "accept-language": "en-US,en;q=0.9",
@@ -67,10 +67,30 @@ class Backend {
       credentials: "omit",
     });
   }
+  static async executeRequest(request: RequestQueue) {
+    const api = request.api;
+    const payload = request.payload;
+    const timestamp = request.timestamp;
+
+    let a: Response;
+    switch (request.type) {
+      case RequestType.POST:
+        a = await this.postRequest(api, payload, timestamp);
+        break;
+      case RequestType.PUT:
+        a = await this.putRequest(api, payload);
+        break;
+      case RequestType.GET:
+        return await this.get(api);
+    }
+    if (a.ok) return fullfilRequest(request);
+
+    console.error(`Cannot fulfill request. HTTP status code '${a.status}'`);
+  }
 
   // REST Queue
   static async get(api: string, options?: any) {
-    return await fetch(this.getApiPath(api), {
+    let a = await fetch(this.getApiPath(api), {
       method: "GET",
       headers: {
         "api-secret": PrivateStore.apiSecret.value,
@@ -78,19 +98,18 @@ class Backend {
       mode: "cors",
       credentials: "omit",
       ...options, // allows override or extension
-    })
-      .then((a) => {
-        if (a.ok) {
-          if (a) return a.json();
-          else throw new Error("Nightscout: GET request gave invalid data");
-        } else if (errorLogging)
-          throw new Error(
-            `Nightscout: GET request failed - HTTP status code '${a.status}'`
-          );
-      })
-      .catch((e) => {
-        if (errorLogging) console.error(e);
-      });
+    });
+    try {
+      if (a.ok) {
+        if (a) return a.json();
+        else throw new Error("Nightscout: GET request gave invalid data");
+      } else if (errorLogging)
+        throw new Error(
+          `Nightscout: GET request failed - HTTP status code '${a.status}'`
+        );
+    } catch (e) {
+      if (errorLogging) console.error(e);
+    }
   }
   static post(api: string, payload: any, timestamp: Date): void {
     addRequest(RequestType.POST, api, payload, timestamp);
@@ -101,25 +120,8 @@ class Backend {
     this.fulfillRequests();
   }
   static fulfillRequests(): void {
-    for (let request of BackendStore.queue.value) {
-      const api = request.api;
-      const payload = request.payload;
-      const timestamp = request.timestamp;
-      const fulfill = (a: Response) => {
-        if (a.ok) fullfilRequest(request);
-        else
-          console.error(
-            `Cannot fulfill request. HTTP status code '${a.status}'`
-          );
-      };
-      switch (request.type) {
-        case RequestType.POST:
-          this.postRequest(api, payload, timestamp).then(fulfill);
-          break;
-        case RequestType.PUT:
-          this.putRequest(api, payload).then(fulfill);
-          break;
-      }
+    for (const request of BackendStore.queue.value) {
+      this.executeRequest(request);
     }
   }
 
