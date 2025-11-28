@@ -272,6 +272,10 @@ export default function SettingsPage() {
           title="Enable Debug Logs"
           keyInterface={PrivateStore.debugLogs}
         />
+        <ToggleSetting
+          title="Upload Treatment to Nightscout"
+          keyInterface={PreferencesStore.uploadToBackend}
+        />
       </Card>
     </>
   );

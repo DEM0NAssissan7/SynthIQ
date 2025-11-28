@@ -1,3 +1,4 @@
+import { PreferencesStore } from "../../storage/preferencesStore";
 import { round } from "../util";
 import Backend from "./backend";
 
@@ -30,6 +31,8 @@ class RemoteTreatments {
     );
   }
   static markMeal(_carbs: number, _protein: number, timestamp: Date): void {
+    if (!PreferencesStore.uploadToBackend.value) return;
+
     const carbs = round(_carbs, 1);
     const protein = round(_protein, 1);
     Backend.post(
@@ -44,6 +47,8 @@ class RemoteTreatments {
     );
   }
   static markInsulin(units: number, timestamp: Date, variant: string): void {
+    if (!PreferencesStore.uploadToBackend.value) return;
+
     Backend.post(
       "treatments",
       {
@@ -55,6 +60,8 @@ class RemoteTreatments {
     );
   }
   static markBasal(units: number, timestamp: Date): void {
+    if (!PreferencesStore.uploadToBackend.value) return;
+
     Backend.post(
       "treatments",
       {
@@ -65,6 +72,8 @@ class RemoteTreatments {
     );
   }
   static markGlucose(caps: number, timestamp: Date, variant: string): void {
+    if (!PreferencesStore.uploadToBackend.value) return;
+
     Backend.post(
       "treatments",
       {
@@ -76,6 +85,8 @@ class RemoteTreatments {
     );
   }
   static markActivity(name: string, timestamp: Date, minutes: number): void {
+    if (!PreferencesStore.uploadToBackend.value) return;
+
     Backend.post(
       "treatments",
       {

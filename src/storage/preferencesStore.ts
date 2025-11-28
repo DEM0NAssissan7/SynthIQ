@@ -3,6 +3,7 @@ import StorageNode from "./storageNode";
 export namespace PreferencesStore {
   const node = new StorageNode("preferences");
 
+  export const uploadToBackend = node.add("uploadToBackend", true);
   export const maxSessionLength = node.add("maxSessionLength", 8);
   export const minSessionLength = node.add("minSessionLength", 3.5);
   export const maxSessionGlucose = node.add("maxSessionGlucose", 9);
