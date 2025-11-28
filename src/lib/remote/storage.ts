@@ -38,8 +38,8 @@ class RemoteStorage {
         return;
       case MasterState.MASTER:
         // If it is master
-        console.log(`Synchronizing storage to backend.`);
         await this.upload();
+        console.log(`Storage synchronized to backend`);
         break;
       case MasterState.SLAVE:
       case MasterState.TERMINAL:
