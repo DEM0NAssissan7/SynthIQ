@@ -202,9 +202,6 @@ export function markBasal(units: number, timestamp: Date) {
     ...doses,
   ];
   BasalStore.basalDoses.value = newBasalDoses.slice(0, days * shotsPerDay);
-
-  // Mark in nightscout
-  RemoteTreatments.markBasal(units, timestamp);
 }
 
 export function getDailyBasal() {

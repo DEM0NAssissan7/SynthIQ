@@ -55,5 +55,6 @@ export namespace TreatmentManager {
     }
 
     markBasal(amount, timestamp);
+    RemoteTreatments.markBasal(amount, timestamp);
   }
 }
