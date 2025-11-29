@@ -4,7 +4,7 @@ import RequestQueue from "../models/requestQueue";
 import { Inbox } from "../models/messages/inbox";
 
 export namespace BackendStore {
-  const node = new StorageNode("nightscout");
+  const node = new StorageNode("nightscout", true);
   export const url = node.add<string | null>("url", null);
   export const queue = node.add<RequestQueue[]>(
     "queue",
