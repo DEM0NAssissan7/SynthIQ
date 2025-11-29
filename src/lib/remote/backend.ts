@@ -111,21 +111,23 @@ class Backend {
       if (errorLogging) console.error(e);
     }
   }
-  static post(api: string, payload: any, timestamp: Date): void {
+  static async post(api: string, payload: any, timestamp: Date) {
     addRequest(RequestType.POST, api, payload, timestamp);
-    this.fulfillRequests();
+    await this.fulfillRequests();
   }
-  static put(api: string, payload: any, useQueue: boolean): void {
+  static async put(api: string, payload: any, useQueue: boolean) {
     if (useQueue) {
       addRequest(RequestType.PUT, api, payload);
-      this.fulfillRequests();
+      await this.fulfillRequests();
     } else {
-      this.executeRequest(new RequestQueue(RequestType.PUT, api, payload));
+      await this.executeRequest(
+        new RequestQueue(RequestType.PUT, api, payload)
+      );
     }
   }
-  static fulfillRequests(): void {
+  static async fulfillRequests() {
     for (const request of BackendStore.queue.value) {
-      this.executeRequest(request);
+      await this.executeRequest(request);
     }
   }
 
