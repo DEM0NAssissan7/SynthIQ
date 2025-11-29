@@ -36,8 +36,16 @@ import Unit from "./models/unit";
 import RescueVariantsPage from "./pages/RescueVariantsPage";
 import { TerminalManager } from "./managers/terminalManager";
 import { PrivateStore } from "./storage/privateStore";
+import { nodes } from "./storage/storageNode";
 
 function App() {
+  if (PrivateStore.debugLogs.value) {
+    console.log(BackendStore);
+    console.log(PrivateStore);
+    for (let node of nodes) {
+      console.log(node);
+    }
+  }
   const navigate = useNavigate();
   const now = useNow(60);
   useEffect(() => {
