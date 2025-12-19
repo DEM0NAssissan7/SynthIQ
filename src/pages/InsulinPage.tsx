@@ -57,6 +57,14 @@ export default function InsulinPage() {
         if (isBolus && (currentGlucose || session.initialGlucose)) {
           if (currentGlucose) WizardManager.setInitialGlucose(currentGlucose);
         }
+
+        // TODO: Use date selector
+        const BG =
+          currentGlucose ??
+          session.initialGlucose ??
+          PreferencesStore.targetBG.value;
+        TreatmentManager.insulin(insulin, variant.name, BG, isBolus, now);
+
         if (session.started) {
           WizardManager.moveToPage(
             session.mealMarked ? WizardPage.Hub : WizardPage.Meal,
@@ -66,12 +74,6 @@ export default function InsulinPage() {
           navigate("/hub");
         }
 
-        // TODO: Use date selector
-        const BG =
-          currentGlucose ??
-          session.initialGlucose ??
-          PreferencesStore.targetBG.value;
-        TreatmentManager.insulin(insulin, variant.name, BG, isBolus, now);
         setIsBolus(false);
       }
     } else {
@@ -95,11 +97,11 @@ export default function InsulinPage() {
   const overshootInsulinOffset =
     shotIndex < vectorizedInsulins.length
       ? getOvercompensationInsulins(
-          currentGlucose && currentGlucose > 0
-            ? currentGlucose
-            : PreferencesStore.targetBG.value,
-          vectorizedInsulins.map((i) => i.variant)
-        )[shotIndex]
+        currentGlucose && currentGlucose > 0
+          ? currentGlucose
+          : PreferencesStore.targetBG.value,
+        vectorizedInsulins.map((i) => i.variant)
+      )[shotIndex]
       : 0;
 
   const extraInsulin = correctionInsulin + overshootInsulinOffset;
@@ -177,9 +179,8 @@ export default function InsulinPage() {
             placeholder={
               correctionIsDisplayed
                 ? roundByHalf(correctionInsulin).toFixed(1)
-                : `${roundByHalf(displayedInsulin)} ${
-                    extraInsulin ? `[${extraInsulin.toFixed(1)}]` : ``
-                  }`
+                : `${roundByHalf(displayedInsulin)} ${extraInsulin ? `[${extraInsulin.toFixed(1)}]` : ``
+                }`
             }
             aria-describedby="basic-addon1"
             onChange={(e: any) => {
