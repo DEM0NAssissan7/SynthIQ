@@ -37,6 +37,7 @@ import RescueVariantsPage from "./pages/RescueVariantsPage";
 import { TerminalManager } from "./managers/terminalManager";
 import { PrivateStore } from "./storage/privateStore";
 import { nodes } from "./storage/storageNode";
+import ExpirationPage from "./pages/ExpirationPage";
 
 function App() {
   if (PrivateStore.debugLogs.value) {
@@ -116,6 +117,7 @@ function App() {
           <Route path="/insulin" element={<InsulinPage />} />
           <Route path="/insulinvariants" element={<InsulinVariantsPage />} />
           <Route path="/history" element={<HistoryPage />} />
+          <Route path="/expirations" element={<ExpirationPage />} />
 
           {/* Wizard Routes */}
           <Route path="/wizard" element={<WizardRouterPage />} />

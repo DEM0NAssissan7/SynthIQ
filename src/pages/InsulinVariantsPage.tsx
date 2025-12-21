@@ -22,6 +22,7 @@ export default function InsulinVariantsPage() {
   const [name, setName] = useState("");
   const [effect, setEffect] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [daysLife, setDaysLife] = useState(0);
 
   const isValid = useMemo(
     () => name.length > 0 && duration && effect,
@@ -36,6 +37,7 @@ export default function InsulinVariantsPage() {
     setName("");
     setEffect(0);
     setDuration(0);
+    setDaysLife(0);
   }
   function add() {
     if (!name || name.trim() === "") {
@@ -50,7 +52,11 @@ export default function InsulinVariantsPage() {
       alert("Enter a valid effect");
       return;
     }
-    InsulinVariantManager.createVariant(name, duration, effect);
+    if (!daysLife) {
+      alert("Enter a valid medication life");
+      return;
+    }
+    InsulinVariantManager.createVariant(name, duration, effect, daysLife);
     resetUIStates();
     console.log(`Added ${name} to custom foods.`);
   }
@@ -92,6 +98,18 @@ export default function InsulinVariantsPage() {
                   onInput={(e: BaseSyntheticEvent) => {
                     const value = parseFloat(e.target.value) || 0;
                     setDuration(value);
+                  }}
+                />
+                <br />
+                Medication Life After Opened (days):
+                <Form.Control
+                  type="number"
+                  placeholder={`0`}
+                  className="text-center"
+                  value={daysLife || ""}
+                  onInput={(e: BaseSyntheticEvent) => {
+                    const value = parseFloat(e.target.value) || 0;
+                    setDaysLife(value);
                   }}
                 />
                 <br />
@@ -187,6 +205,32 @@ export default function InsulinVariantsPage() {
                     />
                     <span className="text-muted">mg/dL per U</span>
                   </label>
+
+                  {/* Life */}
+                  <label className="m-0 d-flex align-items-center gap-1 small">
+                    <span className="text-muted">Life</span>
+                    <Form.Control
+                      type="number"
+                      inputMode="decimal"
+                      step="any"
+                      value={v.daysLife || ""}
+                      aria-label="days"
+                      style={{ maxWidth: "40px" }}
+                      className="form-control-sm w-auto border-0 border-bottom rounded-0 shadow-none px-1 text-center"
+                      onChange={(e) => {
+                        const val =
+                          e.target.value === ""
+                            ? undefined
+                            : parseFloat(e.target.value);
+                        v.daysLife = Number.isFinite(val as number)
+                          ? (val as number)
+                          : 0;
+                        InsulinVariantManager.updateVariant(v);
+                      }}
+                    />
+                    <span className="text-muted">days</span>
+                  </label>
+
                   <div className="w-100 d-flex justify-content-end mt-2">
                     {i !== 0 && (
                       <Button

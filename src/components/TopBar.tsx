@@ -26,7 +26,10 @@ const MENU_SECTIONS: MenuSection[] = [
   },
   {
     label: "Utility",
-    items: [{ label: "Dextrose", to: "/dextrose" }],
+    items: [
+      { label: "Dextrose", to: "/dextrose" },
+      { label: "Insulin Expirations", to: "/expirations" },
+    ],
   },
   {
     label: "Data",
