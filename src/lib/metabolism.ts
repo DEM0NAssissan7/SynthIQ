@@ -32,7 +32,7 @@ export function getOvercompensationInsulins(
 // Glucose
 export function getGlucoseCorrectionCaps(
   sugar: number,
-  variant: InsulinVariant,
+  variant: RescueVariant,
   allowNegative = false
 ) {
   const correction = (PreferencesStore.targetBG.value - sugar) / variant.effect;
