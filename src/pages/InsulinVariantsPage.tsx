@@ -144,6 +144,7 @@ export default function InsulinVariantsPage() {
           <InsulinVariantDropdown
             variant={basalVariant}
             setVariant={setBasalVariant}
+            warnBasal={false}
           />
         </Card>
         <Card>

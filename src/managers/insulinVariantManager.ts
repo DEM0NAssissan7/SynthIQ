@@ -26,11 +26,13 @@ export namespace InsulinVariantManager {
       variant,
     ];
   }
+  export function isBasal(name: string) {
+    return InsulinVariantStore.basalVariant.value === name;
+  }
   export function getBasalVariant(): InsulinVariant {
     const variants = InsulinVariantStore.variants.value;
-    const name = InsulinVariantStore.basalVariant.value;
     for (let variant of variants) {
-      if (variant.name === name) return variant;
+      if (isBasal(variant.name)) return variant;
     }
     return getDefault();
   }

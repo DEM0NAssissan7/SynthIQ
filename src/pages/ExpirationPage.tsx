@@ -72,6 +72,7 @@ export default function ExpirationPage() {
                   <InsulinVariantDropdown
                     variant={variant}
                     setVariant={setVariant}
+                    warnBasal={false}
                   />
                 </ListGroup>
                 <br />

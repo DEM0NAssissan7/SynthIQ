@@ -156,7 +156,6 @@ export default function InsulinPage() {
           />
         )}
         <ListGroup>
-          <Form.Label>Variant</Form.Label>
           <InsulinVariantDropdown setVariant={setVariant} variant={variant} />
         </ListGroup>
         <InputGroup className="mb-3">
