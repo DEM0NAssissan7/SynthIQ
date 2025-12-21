@@ -59,14 +59,13 @@ export default function ExpirationPage() {
                 Label{" "}
                 <Form.Control
                   type="text"
-                  placeholder="e.g. Novolog"
+                  placeholder="e.g. Fridge"
                   className="text-center"
                   value={label}
                   onInput={(e: BaseSyntheticEvent) => {
                     setLabel(`${e.target.value}`);
                   }}
                 />
-                {variant?.name || ""}
                 <br />
                 <ListGroup>
                   <InsulinVariantDropdown
