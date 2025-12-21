@@ -14,6 +14,7 @@ import { getFormattedTime, getFullPrettyDate } from "../lib/timing";
 import { InsulinVariantManager } from "../managers/insulinVariantManager";
 import { useNow } from "../state/useNow";
 import { PrivateStore } from "../storage/privateStore";
+import { getFastingVelocity } from "../lib/basal";
 
 function getFactorDesc(num: number, unit: string, type: string) {
   if (round(num, 1) === 0) return "";
@@ -70,6 +71,25 @@ export default function TemplateMealSummary({
     defaultVariant
   );
   const profileInsulin = profileCarbInsulin + profileProteinInsulin;
+  const fastingAdjustmentInsulins = (() => {
+    if (!session) return [];
+    const windows = session.windows;
+    const currentFastingVelocity = getFastingVelocity();
+    return windows.map((w) => {
+      const insulin = w.insulin;
+      if (session.fastingVelocity === null) {
+        insulin.value = 0;
+        return insulin;
+      }
+      insulin.value = w.length * currentFastingVelocity;
+      return insulin;
+    });
+  })();
+  const fastingInsulinAdjustment = (() => {
+    let i = 0;
+    fastingAdjustmentInsulins.forEach((insulin) => (i += insulin.value));
+    return i;
+  })();
   const insulins = (() => {
     const vectorizedInsulin = template.vectorizeInsulin(
       meal.carbs,
@@ -137,7 +157,8 @@ export default function TemplateMealSummary({
             {roundByHalf(
               insulin.value +
                 (i === 0 ? insulinCorrection : 0) +
-                overshootInsulinOffset / insulins.length // We add just a bit more insulin to overshoot our target and scale it by the number of insulins
+                overshootInsulinOffset / insulins.length + // We add just a bit more insulin to overshoot our target and scale it by the number of insulins
+                fastingAdjustmentInsulins[i].value // Add our adjustment for this window
             )}
             u
           </b>{" "}
@@ -177,6 +198,7 @@ export default function TemplateMealSummary({
           {getFactorDesc(insulinCorrection, "u", "correction")}
           {getFactorDesc(insulinOffset, "u", "offset")}
           {getFactorDesc(insulinAdjustment, " u", "adjustment")}
+          {getFactorDesc(fastingInsulinAdjustment, "u", "fasting offset")}
           {getFactorDesc(overshootInsulinOffset, " u", "overcompensation")}
           {isSingleBolus &&
             getFactorDesc(adjustments.timingAdjustment, " min", "adjustment")}
