@@ -33,9 +33,10 @@ export default class WizardManager {
   }
 
   // Glucose marking
-  static setInitialGlucose(BG: number) {
+  static setInitialGlucose(BG: number, fastingVelocity: number) {
     const session = WizardStore.session.value;
     if (!session.initialGlucose) {
+      session.fastingVelocity = fastingVelocity;
       session.initialGlucose = BG;
     }
   }
