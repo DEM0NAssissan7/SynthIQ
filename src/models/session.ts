@@ -44,6 +44,8 @@ export default class Session extends Subscribable {
   glucoses: Glucose[] = [];
   activities: Activity[] = [];
 
+  fastingVelocity: number | null = null; // mg/dL per hour
+
   constructor(createSnapshot = true) {
     // This timestamp marks when eating _begins_
     super();
@@ -537,7 +539,12 @@ export default class Session extends Subscribable {
     return score;
   }
 
-  // Initial glucose
+  // Basal
+  get fastingRise(): number {
+    if (!this.endTimestamp)
+      throw new Error(`Cannot get fasting rise: no end timestamp`);
+    return this.fastingVelocity ? this.fastingVelocity * this.length : 0;
+  }
 
   // Glucose statistics stuff
   async getLastReadings(hours: number) {
@@ -561,6 +568,7 @@ export default class Session extends Subscribable {
       completed: session.completed,
       notes: session.notes,
       version: session.version,
+      fastingVelocity: session.fastingVelocity,
     };
   };
   static deserialize: Deserializer<Session> = (o) => {
@@ -569,6 +577,7 @@ export default class Session extends Subscribable {
     session.isGarbage = o.isGarbage ?? false;
     session.completed = o.completed ?? true;
     session.notes = o.notes || "";
+    session.fastingVelocity = o.fastingVelocity || null;
 
     o.meals.map((a: string) => session.addMeal(Meal.deserialize(a)));
     o.insulins.map((a: string) => {
