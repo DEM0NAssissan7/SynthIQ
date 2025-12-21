@@ -30,6 +30,7 @@ import { HealthMonitorStore } from "../storage/healthMonitorStore";
 import { PreferencesStore } from "../storage/preferencesStore";
 import { BasalStore } from "../storage/basalStore";
 import type { RescueVariant } from "../models/types/rescueVariant";
+import { InsulinExpirationManager } from "../managers/expirationManager";
 
 /** Poll nightscout to fill the reading cache */
 export async function populateReadingCache() {
@@ -173,6 +174,11 @@ export async function updateHealthMonitorStatus() {
     // If we need to take basal insulin
     if (basalIsDue()) {
       HealthMonitorStore.statusCache.value = HealthMonitorStatus.Basal;
+      return;
+    }
+
+    if (InsulinExpirationManager.getExpired().length) {
+      HealthMonitorStore.statusCache.value = HealthMonitorStatus.InsulinExpired;
       return;
     }
   }

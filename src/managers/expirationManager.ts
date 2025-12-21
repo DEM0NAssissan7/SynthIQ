@@ -4,12 +4,13 @@ import { ExpirationStore } from "../storage/expirationStore";
 import { PrivateStore } from "../storage/privateStore";
 
 export namespace InsulinExpirationManager {
-  export function replacementDue() {
+  export function getExpired() {
     const expirations = ExpirationStore.expirations.value;
+    let expired = [];
     for (let e of expirations) {
-      if (e.daysLeft <= 0) return e;
+      if (e.daysLeft <= 0) expired.push(e);
     }
-    return false;
+    return expired;
   }
   export function get(fullName: string) {
     const expirations = ExpirationStore.expirations.value;

@@ -5,6 +5,7 @@ import Backend from "../lib/remote/backend";
 import { WizardStore } from "../storage/wizardStore";
 import { HealthMonitorStore } from "../storage/healthMonitorStore";
 import HealthMonitorStatus from "../models/types/healthMonitorStatus";
+import { InsulinExpirationManager } from "../managers/expirationManager";
 
 enum NightscoutAuthLevel {
   Invalid,
@@ -52,6 +53,30 @@ function HubPage() {
                           <Card.Title>Nominal Health</Card.Title>
                           <Card.Text>No pending alerts</Card.Text>
                           <i className="bi bi-check"></i>
+                        </>
+                      );
+                    case HealthMonitorStatus.InsulinExpired:
+                      const expired = InsulinExpirationManager.getExpired();
+                      return (
+                        <>
+                          <Card.Title>Insulin Expired</Card.Title>
+                          <Card.Text>
+                            {expired.length} insulin(s) expired
+                          </Card.Text>
+                          {expired.map((e) => (
+                            <>
+                              <span className="text-muted">{e.fullName}</span>
+                              <br />
+                            </>
+                          ))}
+                          <br />
+                          <Button
+                            variant="primary"
+                            as={Link as any}
+                            to="/expirations"
+                          >
+                            View Insulin Expirations
+                          </Button>
                         </>
                       );
                     case HealthMonitorStatus.Basal:

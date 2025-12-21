@@ -4,6 +4,7 @@ enum HealthMonitorStatus {
   Falling,
   High,
   Basal,
+  InsulinExpired,
 }
 export default HealthMonitorStatus;
 
@@ -14,6 +15,7 @@ const statusNames: StatusNameKey[] = [
   [HealthMonitorStatus.Falling, "falling"],
   [HealthMonitorStatus.High, "high"],
   [HealthMonitorStatus.Basal, "basal"],
+  [HealthMonitorStatus.InsulinExpired, "insulinexpired"],
 ];
 
 // Serialization
