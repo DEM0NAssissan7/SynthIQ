@@ -14,11 +14,11 @@ import { WizardStore } from "../storage/wizardStore";
 import { WizardPage } from "../models/types/wizardPage";
 import { PreferencesStore } from "../storage/preferencesStore";
 import { InsulinVariantManager } from "../managers/insulinVariantManager";
-import { InsulinVariantStore } from "../storage/insulinVariantStore";
 import { NumberOptionSelector } from "../components/NumberOptionSelector";
 import Insulin from "../models/events/insulin";
 import { useNow } from "../state/useNow";
 import { TreatmentManager } from "../managers/treatmentManager";
+import InsulinVariantDropdown from "../components/InsulinVariantDropdown";
 
 export default function InsulinPage() {
   const navigate = useNavigate();
@@ -97,11 +97,11 @@ export default function InsulinPage() {
   const overshootInsulinOffset =
     shotIndex < vectorizedInsulins.length
       ? getOvercompensationInsulins(
-        currentGlucose && currentGlucose > 0
-          ? currentGlucose
-          : PreferencesStore.targetBG.value,
-        vectorizedInsulins.map((i) => i.variant)
-      )[shotIndex]
+          currentGlucose && currentGlucose > 0
+            ? currentGlucose
+            : PreferencesStore.targetBG.value,
+          vectorizedInsulins.map((i) => i.variant)
+        )[shotIndex]
       : 0;
 
   const extraInsulin = correctionInsulin + overshootInsulinOffset;
@@ -157,18 +157,7 @@ export default function InsulinPage() {
         )}
         <ListGroup>
           <Form.Label>Variant</Form.Label>
-          <Form.Select
-            onChange={(e) => {
-              // You can handle insulin type selection here if needed
-              const v = InsulinVariantManager.getVariant(e.target.value);
-              if (v) setVariant(v);
-            }}
-            className="mb-2"
-          >
-            {InsulinVariantStore.variants.value.map((v) => (
-              <option value={v.name}>{v.name}</option>
-            ))}
-          </Form.Select>
+          <InsulinVariantDropdown setVariant={setVariant} variant={variant} />
         </ListGroup>
         <InputGroup className="mb-3">
           <InputGroup.Text id="basic-addon1">
@@ -179,8 +168,9 @@ export default function InsulinPage() {
             placeholder={
               correctionIsDisplayed
                 ? roundByHalf(correctionInsulin).toFixed(1)
-                : `${roundByHalf(displayedInsulin)} ${extraInsulin ? `[${extraInsulin.toFixed(1)}]` : ``
-                }`
+                : `${roundByHalf(displayedInsulin)} ${
+                    extraInsulin ? `[${extraInsulin.toFixed(1)}]` : ``
+                  }`
             }
             aria-describedby="basic-addon1"
             onChange={(e: any) => {

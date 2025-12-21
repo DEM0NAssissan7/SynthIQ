@@ -4,8 +4,8 @@ import type { InsulinVariant } from "../models/types/insulinVariant";
 import { InsulinVariantStore } from "../storage/insulinVariantStore";
 
 interface InsulinVariantDropdownArgs {
-  variant: InsulinVariant | undefined;
-  setVariant: (v: InsulinVariant | undefined) => void;
+  variant: InsulinVariant;
+  setVariant: (v: InsulinVariant) => void;
 }
 export default function InsulinVariantDropdown({
   variant,
@@ -18,13 +18,10 @@ export default function InsulinVariantDropdown({
         // You can handle insulin type selection here if needed
         const v = InsulinVariantManager.getVariant(e.target.value);
         if (v) setVariant(v);
-        else setVariant(undefined);
       }}
       value={variant?.name || ""}
       className="mb-2"
     >
-      {/* Blank option */}
-      <option value={""}></option>
       {variants.map((v) => (
         <option value={v.name}>{v.name}</option>
       ))}

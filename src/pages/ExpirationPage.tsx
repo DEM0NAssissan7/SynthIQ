@@ -6,12 +6,14 @@ import { ExpirationStore } from "../storage/expirationStore";
 import { InsulinExpirationManager } from "../managers/expirationManager";
 import { InsulinExpiration } from "../models/insulinExpiration";
 import InsulinVariantDropdown from "../components/InsulinVariantDropdown";
+import { InsulinVariantManager } from "../managers/insulinVariantManager";
 
 export default function ExpirationPage() {
   const [expirations] = ExpirationStore.expirations.useState();
+  const defaultVariant = InsulinVariantManager.getDefault();
 
   const [label, setLabel] = useState("");
-  const [variant, setVariant] = useState<InsulinVariant | undefined>(undefined);
+  const [variant, setVariant] = useState<InsulinVariant>(defaultVariant);
 
   const isValid = useMemo(() => label.length > 0 && variant, [label, variant]);
 
@@ -21,7 +23,7 @@ export default function ExpirationPage() {
 
   function resetUIStates() {
     setLabel("");
-    setVariant(undefined);
+    setVariant(defaultVariant);
   }
   function add() {
     if (!label || label.trim() === "") {
