@@ -19,6 +19,7 @@ import Insulin from "../models/events/insulin";
 import { useNow } from "../state/useNow";
 import { TreatmentManager } from "../managers/treatmentManager";
 import InsulinVariantDropdown from "../components/InsulinVariantDropdown";
+import { getFastingVelocity } from "../lib/basal";
 
 export default function InsulinPage() {
   const navigate = useNavigate();
@@ -55,7 +56,11 @@ export default function InsulinPage() {
     if (!isNaN(insulin)) {
       if (confirm(`Confirm that you have taken ${insulin} units of insulin`)) {
         if (isBolus && (currentGlucose || session.initialGlucose)) {
-          if (currentGlucose) WizardManager.setInitialGlucose(currentGlucose);
+          if (currentGlucose)
+            WizardManager.setInitialGlucose(
+              currentGlucose,
+              getFastingVelocity()
+            );
         }
 
         // TODO: Use date selector
