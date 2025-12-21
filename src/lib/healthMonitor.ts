@@ -190,9 +190,6 @@ export async function smartMonitor(navigate: NavigateFunction) {
       case HealthMonitorStatus.High:
         navigate("/insulin");
         break;
-      case HealthMonitorStatus.Basal:
-        navigate("/basal");
-        break;
       default:
         break;
     }
