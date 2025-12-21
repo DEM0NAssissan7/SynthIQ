@@ -240,18 +240,6 @@ export default function SettingsPage() {
           iconClass="bi bi-clock"
           unit=""
         />
-        <NumberSetting
-          keyInterface={CalibrationStore.basalEffect}
-          title="Basal Insulin Effect (per unit)"
-          iconClass="bi bi-eyedropper"
-          unit="mg/dL per hr"
-        />
-        <NumberSetting
-          keyInterface={BasalStore.basalEffectDays}
-          title="Basal Insulin Effective Days"
-          iconClass="bi bi-clock"
-          unit="days"
-        />
       </Card>
       <Card>
         <NumberSetting

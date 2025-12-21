@@ -2,11 +2,9 @@ import { InsulinVariantManager } from "../managers/insulinVariantManager";
 import { RescueVariantManager } from "../managers/rescueVariantManager";
 import Glucose from "../models/events/glucose";
 import Insulin from "../models/events/insulin";
-import { InsulinVariant } from "../models/types/insulinVariant";
 import SugarReading, {
   getReadingFromNightscout,
 } from "../models/types/sugarReading";
-import Unit from "../models/unit";
 import { BackendStore } from "../storage/backendStore";
 import { BasalStore } from "../storage/basalStore";
 import { HealthMonitorStore } from "../storage/healthMonitorStore";
@@ -22,7 +20,7 @@ import RemoteTreatments, {
   activityEventType,
 } from "./remote/treatments";
 import { getTimestampFromOffset, timestampIsBetween } from "./timing";
-import { convertDimensions, MathUtil, round } from "./util";
+import { MathUtil, round } from "./util";
 
 export async function isFastingState(timestamp: Date) {
   const minTimeSinceMeal = BasalStore.minTimeSinceMeal.value;
@@ -127,8 +125,7 @@ function getFastingGlucoses(treatments: any[]): Glucose[] {
 }
 
 export async function populateFastingVelocitiesCache() {
-  const days = BasalStore.basalEffectDays.value;
-  const hours = days * convertDimensions(Unit.Time.Day, Unit.Time.Hour);
+  const hours = basalInsulinVariant.duration;
   const now = new Date();
   const timestampA = getTimestampFromOffset(now, -hours);
   const timestampB = now;
@@ -178,13 +175,9 @@ export function getFastingLength() {
   return hours;
 }
 
-export const basalInsulinVariant = new InsulinVariant(
-  "Basal",
-  24 * BasalStore.basalEffectDays.value,
-  BasalStore.basalEffect.value
-);
+export const basalInsulinVariant = InsulinVariantManager.getBasalVariant();
 export function markBasal(units: number, timestamp: Date) {
-  const days = BasalStore.basalEffectDays.value;
+  const days = basalInsulinVariant.duration / 24;
   const shotsPerDay = HealthMonitorStore.basalShotsPerDay.value;
 
   // Detect if user has made changes to dosing pattern
@@ -235,7 +228,7 @@ export function getLastShot(): number {
 export function dosingChangeComplete() {
   const shotsSinceChange = BasalStore.shotsSinceLastChange.value;
   const shotsPerDay = HealthMonitorStore.basalShotsPerDay.value;
-  const minDays = BasalStore.basalEffectDays.value;
+  const minDays = basalInsulinVariant.duration / 24;
 
   const minShots = shotsPerDay * minDays;
   return shotsSinceChange >= minShots;

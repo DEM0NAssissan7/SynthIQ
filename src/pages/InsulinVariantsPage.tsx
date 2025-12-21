@@ -4,9 +4,20 @@ import { useMemo, useState, type BaseSyntheticEvent } from "react";
 import { InsulinVariantStore } from "../storage/insulinVariantStore";
 import { InsulinVariant } from "../models/types/insulinVariant";
 import { InsulinVariantManager } from "../managers/insulinVariantManager";
+import InsulinVariantDropdown from "../components/InsulinVariantDropdown";
 
 export default function InsulinVariantsPage() {
   const [variants] = InsulinVariantStore.variants.useState();
+
+  const [basalVariantName, setBasalVariantName] =
+    InsulinVariantStore.basalVariant.useState();
+  const basalVariant = useMemo(
+    () => InsulinVariantManager.getVariant(basalVariantName),
+    [basalVariantName]
+  );
+  function setBasalVariant(v: InsulinVariant | undefined) {
+    if (v) setBasalVariantName(v.name);
+  }
 
   const [name, setName] = useState("");
   const [effect, setEffect] = useState(0);
@@ -109,6 +120,13 @@ export default function InsulinVariantsPage() {
               </Form.Group>
             </div>
           </Form>
+        </Card>
+        <Card>
+          <h2>Basal Variant</h2>
+          <InsulinVariantDropdown
+            variant={basalVariant}
+            setVariant={setBasalVariant}
+          />
         </Card>
         <Card>
           <ListGroup className="mt-3">

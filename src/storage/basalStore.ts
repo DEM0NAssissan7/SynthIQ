@@ -27,8 +27,6 @@ export namespace BasalStore {
     Serialization.getArrayDeserializer(Glucose.deserialize)
   );
   export const minTimeSinceMeal = node.add<number>("minTimeSinceMeal", 6);
-  export const basalEffect = node.add<number>("basalEffect", 1.5);
-  export const basalEffectDays = node.add<number>("basalEffectDays", 3);
   export const lastRecommendation = node.add<any[]>("lastRecommendation", []);
   export const shotsSinceLastChange = node.add<number>(
     "shotsSinceLastChange",

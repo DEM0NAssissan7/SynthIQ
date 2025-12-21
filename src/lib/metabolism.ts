@@ -1,3 +1,4 @@
+import { InsulinVariantManager } from "../managers/insulinVariantManager";
 import type { InsulinVariant } from "../models/types/insulinVariant";
 import type { RescueVariant } from "../models/types/rescueVariant";
 import { CalibrationStore } from "../storage/calibrationStore";
@@ -61,7 +62,7 @@ export function getIntelligentGlucoseCorrection(
  * velocity: (mg/dL) / hr
  */
 export function getBasalCorrection(velocity: number): number {
-  const basalVelocityEffect = CalibrationStore.basalEffect.value; // [(mg/dL) per hour] / unit
+  const basalVelocityEffect = InsulinVariantManager.getBasalVariant().effect; // [(mg/dL) per hour] / unit
   return velocity / basalVelocityEffect;
 }
 
