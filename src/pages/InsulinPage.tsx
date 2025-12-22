@@ -20,11 +20,16 @@ import { useNow } from "../state/useNow";
 import { TreatmentManager } from "../managers/treatmentManager";
 import InsulinVariantDropdown from "../components/InsulinVariantDropdown";
 import { getFastingVelocity } from "../lib/basal";
+import { getFormattedTime } from "../lib/timing";
+import { getTimeSinceLastBolus } from "../lib/healthMonitor";
+import { HealthMonitorStore } from "../storage/healthMonitorStore";
 
 export default function InsulinPage() {
   const navigate = useNavigate();
   const [session] = WizardStore.session.useState();
   const [isBolus, setIsBolus] = WizardStore.isBolus.useState();
+
+  const [lastBolus] = HealthMonitorStore.lastBolus.useState();
 
   const isFirstPostMealInjection = useMemo(
     () =>
@@ -151,6 +156,13 @@ export default function InsulinPage() {
           />
         </Card>
       )}
+
+      <Card>
+        Last bolus:
+        <br />
+        {lastBolus.value}u of <b>{lastBolus.variant.name}</b> taken{" "}
+        {getFormattedTime(getTimeSinceLastBolus() * 60)} ago
+      </Card>
 
       <Card>
         {!isFirstPostMealInjection && (

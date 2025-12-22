@@ -150,29 +150,35 @@ export default function TemplateMealSummary({
       <b>{round(meal.protein, 0)}g</b> protein
       <br />
       <br />
-      {insulins.map((insulin: Insulin, i: number) => (
-        <React.Fragment key={i}>
-          {isSingleBolus ? `Take ` : `Shot ${i + 1}: `}
-          <b>
-            {roundByHalf(
-              insulin.value +
-                (i === 0 ? insulinCorrection : 0) +
-                overshootInsulinOffset / insulins.length + // We add just a bit more insulin to overshoot our target and scale it by the number of insulins
-                fastingAdjustmentInsulins[i].value // Add our adjustment for this window
+      {insulins.map((insulin: Insulin, i: number) => {
+        const fastingAdjustment =
+          fastingAdjustmentInsulins.length <= i
+            ? 0
+            : fastingAdjustmentInsulins[i].value;
+        return (
+          <React.Fragment key={i}>
+            {isSingleBolus ? `Take ` : `Shot ${i + 1}: `}
+            <b>
+              {roundByHalf(
+                insulin.value +
+                  (i === 0 ? insulinCorrection : 0) +
+                  overshootInsulinOffset / insulins.length + // We add just a bit more insulin to overshoot our target and scale it by the number of insulins
+                  fastingAdjustment // Add our adjustment for this window
+              )}
+              u
+            </b>{" "}
+            of <i>{insulin.variant.name}</i>{" "}
+            {!template.isFirstTime && (
+              <>
+                <b>{getFormattedTime(Math.abs(getTiming(i)))}</b>{" "}
+                {getTiming(i) > 0 ? "after" : "before"} you start eating
+                <br />
+                <br />
+              </>
             )}
-            u
-          </b>{" "}
-          of <i>{insulin.variant.name}</i>{" "}
-          {!template.isFirstTime && (
-            <>
-              <b>{getFormattedTime(Math.abs(getTiming(i)))}</b>{" "}
-              {getTiming(i) > 0 ? "after" : "before"} you start eating
-              <br />
-              <br />
-            </>
-          )}
-        </React.Fragment>
-      ))}
+          </React.Fragment>
+        );
+      })}
       <br />
       <br />
       <Button

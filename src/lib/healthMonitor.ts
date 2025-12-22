@@ -24,13 +24,15 @@ import { getHourDiff, getMinuteDiff } from "./timing";
 import { MathUtil, round } from "./util";
 import RemoteReadings from "./remote/readings";
 import { getBGVelocities } from "./readingsUtil";
-import { isFastingState, populateFastingVelocitiesCache } from "./basal";
+import { populateFastingVelocitiesCache } from "./basal";
 import Glucose from "../models/events/glucose";
 import { HealthMonitorStore } from "../storage/healthMonitorStore";
 import { PreferencesStore } from "../storage/preferencesStore";
 import { BasalStore } from "../storage/basalStore";
 import type { RescueVariant } from "../models/types/rescueVariant";
 import { InsulinExpirationManager } from "../managers/expirationManager";
+import Insulin from "../models/events/insulin";
+import type { InsulinVariant } from "../models/types/insulinVariant";
 
 /** Poll nightscout to fill the reading cache */
 export async function populateReadingCache() {
@@ -95,6 +97,24 @@ export function getLatestBasalTimestamp() {
   const latestBasal = getLatestBasal();
   const lastBasalTimestamp = latestBasal ? latestBasal.timestamp : new Date();
   return lastBasalTimestamp;
+}
+
+// Insulin Bolus
+export function markBolus(
+  units: number,
+  variant: InsulinVariant,
+  timestamp = new Date()
+) {
+  HealthMonitorStore.lastBolus.value = new Insulin(units, timestamp, variant);
+}
+export function getLatestBolus() {
+  return HealthMonitorStore.lastBolus.value;
+}
+export function getTimeSinceLastBolus() {
+  const now = new Date();
+  const latestBasal = getLatestBolus();
+  const lastBasalTimestamp = latestBasal ? latestBasal.timestamp : now;
+  return getHourDiff(now, lastBasalTimestamp);
 }
 
 // Basal
@@ -165,8 +185,10 @@ export async function updateHealthMonitorStatus() {
       }
     }
 
-    const fasting = await isFastingState(new Date());
-    if (currentBG > PreferencesStore.highBG.value && fasting) {
+    if (
+      currentBG > PreferencesStore.highBG.value &&
+      getTimeSinceLastBolus() > getLatestBolus().variant.duration
+    ) {
       HealthMonitorStore.statusCache.value = HealthMonitorStatus.High;
       return;
     }
