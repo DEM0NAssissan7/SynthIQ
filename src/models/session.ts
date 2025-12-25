@@ -511,36 +511,39 @@ export default class Session extends Subscribable {
       !this.finalBG
     )
       throw new Error(`Cannot get glucose score from incomplete session`);
-    let score = 0;
+    let penalties = [];
     const wentLow = this.minGlucose < lowThreshold;
 
-    const adjustedDelta = (delta: number, tol = 3) =>
+    const adjustedDelta = (delta: number, tol = 0) =>
       Math.abs(delta <= tol ? 0 : delta - tol);
 
     if (this.initialGlucose >= targetBG) {
-      score += adjustedDelta(this.peakGlucose - this.initialGlucose);
+      penalties.push(adjustedDelta(this.peakGlucose - this.initialGlucose));
       if (wentLow) {
-        score += adjustedDelta(targetBG - this.minGlucose);
+        penalties.push(adjustedDelta(targetBG - this.minGlucose));
       }
     } else {
-      score += adjustedDelta(this.peakGlucose - targetBG);
+      penalties.push(adjustedDelta(this.peakGlucose - targetBG));
       if (wentLow) {
-        score += adjustedDelta(this.initialGlucose - this.minGlucose);
+        penalties.push(adjustedDelta(this.initialGlucose - this.minGlucose));
       }
     }
     if (
       (this.finalBG < targetBG && this.finalBG < lowThreshold) ||
       this.finalBG > targetBG
     )
-      score += Math.abs(this.finalBG - targetBG);
+      penalties.push(Math.abs(this.finalBG - targetBG));
 
-    score += this.glucoseEffect; // Add the effect glucose had
+    penalties.push(this.glucoseEffect); // Add the effect glucose had
 
     // Add IAD (integrated absolute deviation)
-    score += MathUtil.mean(
-      this.snapshot.readings.map((r) => adjustedDelta(r.sugar - targetBG))
+    penalties.push(
+      MathUtil.mean(
+        this.snapshot.readings.map((r) => adjustedDelta(r.sugar - targetBG))
+      )
     );
 
+    let score = MathUtil.mean(penalties);
     return score;
   }
 
