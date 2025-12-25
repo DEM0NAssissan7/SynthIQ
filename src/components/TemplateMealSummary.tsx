@@ -34,11 +34,13 @@ interface TemplateMealSummaryProps {
   template: MealTemplate;
   meal: Meal;
   currentBG: number;
+  fastingVelocity: number;
 }
 export default function TemplateMealSummary({
   template,
   meal,
   currentBG,
+  fastingVelocity,
 }: TemplateMealSummaryProps) {
   const now = useNow();
   const time = meal.timestamp ?? now;
@@ -46,7 +48,8 @@ export default function TemplateMealSummary({
     meal.carbs,
     meal.protein,
     time,
-    currentBG
+    currentBG,
+    fastingVelocity
   );
   const defaultVariant = InsulinVariantManager.getDefault();
   if (PrivateStore.debugLogs.value) console.log(session);
@@ -95,7 +98,8 @@ export default function TemplateMealSummary({
       meal.carbs,
       meal.protein,
       time,
-      currentBG
+      currentBG,
+      fastingVelocity
     );
     // Fall back to profile
     if (!vectorizedInsulin || template.isFirstTime)

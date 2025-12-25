@@ -7,6 +7,7 @@ import type MealTemplate from "../models/mealTemplate";
 import TemplateMealSummary from "./TemplateMealSummary";
 import { PreferencesStore } from "../storage/preferencesStore";
 import { useNow } from "../state/useNow";
+import { getFastingVelocity } from "../lib/basal";
 
 interface TemplateSummaryProps {
   template: MealTemplate;
@@ -101,6 +102,7 @@ export default function TemplateSummary({
           template={template}
           meal={meal}
           currentBG={bloodSugar}
+          fastingVelocity={session.fastingVelocity ?? getFastingVelocity()}
         />
       )}
       {session.meals.length > 0 && (
