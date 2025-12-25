@@ -114,6 +114,14 @@ export default function InsulinPage() {
           vectorizedInsulins.map((i) => i.variant)
         )[shotIndex]
       : 0;
+  const continuedRiseInsulin = (() => {
+    const fastingVelocity = getFastingVelocity(); // mg/dL per hour
+    const insulinDuration = variant.duration; // hours
+    const rise = fastingVelocity * insulinDuration;
+    return rise / variant.effect;
+  })();
+
+  const risenCorrectionInsulin = correctionInsulin + continuedRiseInsulin; // This is only for corrections, not bolus
 
   const extraInsulin = correctionInsulin + overshootInsulinOffset;
   const displayedInsulin = (() => {
@@ -121,6 +129,16 @@ export default function InsulinPage() {
     let insulin: number =
       vectorizedInsulins[shotIndex]?.value ?? -overshootInsulinOffset;
     return insulin + extraInsulin;
+  })();
+  const displayedRange: string = (() => {
+    const correction = Math.max(roundByHalf(correctionInsulin), 0);
+    const risenCorrection = Math.max(roundByHalf(risenCorrectionInsulin), 0);
+    return correction === risenCorrection
+      ? `${correction}`
+      : `${Math.min(risenCorrection, correction)}u - ${Math.max(
+          risenCorrection,
+          correction
+        )}u`;
   })();
 
   // A variable that changes once per minute
@@ -163,6 +181,8 @@ export default function InsulinPage() {
         <br />
         {lastBolus.value}u of <b>{lastBolus.variant.name}</b> taken{" "}
         {getFormattedTime(getTimeSinceLastBolus() * 60)} ago
+        <hr />
+        Take {correctionIsDisplayed && displayedRange}
       </Card>
 
       <Card>
