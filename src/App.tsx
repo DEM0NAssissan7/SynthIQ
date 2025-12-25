@@ -38,6 +38,7 @@ import { TerminalManager } from "./managers/terminalManager";
 import { PrivateStore } from "./storage/privateStore";
 import { nodes } from "./storage/storageNode";
 import ExpirationPage from "./pages/ExpirationPage";
+import DebugPage from "./pages/DebugPage";
 
 function App() {
   if (PrivateStore.debugLogs.value) {
@@ -108,6 +109,7 @@ function App() {
           <Route path="/hub" element={<HubPage />} />
           <Route path="/setup" element={<SetupPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/debug" element={<DebugPage />} />
           <Route path="/customfoods" element={<CustomFoodsPage />} />
           <Route path="/dextrose" element={<DextrosePage />} />
           <Route path="/statistics" element={<StatisticsPage />} />
