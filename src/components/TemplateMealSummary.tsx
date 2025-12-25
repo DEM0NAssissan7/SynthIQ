@@ -84,7 +84,8 @@ export default function TemplateMealSummary({
         insulin.value = 0;
         return insulin;
       }
-      insulin.value = w.length * currentFastingVelocity;
+      insulin.value =
+        (w.length * currentFastingVelocity) / insulin.variant.effect;
       return insulin;
     });
   })();
