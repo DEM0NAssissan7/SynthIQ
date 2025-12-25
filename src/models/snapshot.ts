@@ -7,6 +7,7 @@
 
 import RemoteReadings from "../lib/remote/readings";
 import { convertDimensions, MathUtil } from "../lib/util";
+import { PreferencesStore } from "../storage/preferencesStore";
 import { PrivateStore } from "../storage/privateStore";
 import Subscribable from "./subscribable";
 import SugarReading, { getReadingFromNightscout } from "./types/sugarReading";
@@ -137,6 +138,43 @@ export default class Snapshot extends Subscribable {
       (finalBG.timestamp.getTime() - initialBG.timestamp.getTime()) *
       convertDimensions(Unit.Time.Millis, Unit.Time.Hour)
     );
+  }
+
+  // Metabolic Stress
+  get deviations() {
+    const targetBG = PreferencesStore.targetBG.value;
+    const lowThreshold = PreferencesStore.lowBG.value;
+    if (!this.initialBG || !this.peakBG || !this.minBG || !this.finalBG)
+      throw new Error(`Cannot get glucose score from incomplete session`);
+
+    let deviations = [];
+    const wentLow = this.minBG.sugar < lowThreshold;
+
+    const adjustedDelta = (delta: number, tol = 0) =>
+      Math.abs(delta <= tol ? 0 : delta - tol);
+
+    if (this.initialBG.sugar >= targetBG) {
+      deviations.push(adjustedDelta(this.peakBG.sugar - this.initialBG.sugar));
+      if (wentLow) {
+        deviations.push(adjustedDelta(targetBG - this.minBG.sugar));
+      }
+    } else {
+      deviations.push(adjustedDelta(this.peakBG.sugar - targetBG));
+      if (wentLow) {
+        deviations.push(adjustedDelta(this.initialBG.sugar - this.minBG.sugar));
+      }
+    }
+    if (
+      (this.finalBG.sugar < targetBG && this.finalBG.sugar < lowThreshold) ||
+      this.finalBG.sugar > targetBG
+    )
+      deviations.push(Math.abs(this.finalBG.sugar - targetBG));
+
+    // Add IAD (integrated absolute deviation)
+    deviations.push(
+      MathUtil.mean(this.readings.map((r) => adjustedDelta(r.sugar - targetBG)))
+    );
+    return deviations;
   }
 
   // Serialization
