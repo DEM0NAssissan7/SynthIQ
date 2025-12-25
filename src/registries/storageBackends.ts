@@ -23,6 +23,16 @@ namespace StorageBackends {
         throw new StorageBackendFailedError();
       }
     },
+    get size(): number {
+      let total = 0;
+      for (let key in localStorage) {
+        if (!localStorage.hasOwnProperty(key)) {
+          continue;
+        }
+        total += (localStorage[key].length + key.length) * 2;
+      }
+      return total;
+    },
     clear: () => {
       if (typeof window !== "undefined" && window.localStorage) {
         localStorage.clear();
