@@ -1,5 +1,5 @@
 import { getMinuteDiff } from "../../lib/timing";
-import { convertDimensions } from "../../lib/util";
+import { convertDimensions, MathUtil } from "../../lib/util";
 import Snapshot from "../snapshot";
 import type { Deserializer, JSONObject, Serializer } from "../types/types";
 import Unit from "../unit";
@@ -78,7 +78,7 @@ export default class Activity extends MetaEvent {
   /**
    * This value is the rate that BG drops while doing the activity, measured in mg/dL per hour
    */
-  get score(): number {
+  get changeRate(): number {
     const initialBG = this.initialBG;
     const finalBG = this.finalBG;
     if (!initialBG || !finalBG)
@@ -88,6 +88,14 @@ export default class Activity extends MetaEvent {
       (theoreticalFinalBG - initialBG) /
       (this.length * convertDimensions(Unit.Time.Minute, Unit.Time.Hour))
     );
+  }
+  /**
+   * Score is a measure of how much the glucose (typically) deviates while doing the activity
+   */
+  get score() {
+    let deviations = this.snapshot.deviations;
+    // deviations.push(this.glucoseEffect);
+    return MathUtil.mean(deviations);
   }
 
   // Subevents
