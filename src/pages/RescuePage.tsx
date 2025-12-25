@@ -27,6 +27,7 @@ import type { RescueVariant } from "../models/types/rescueVariant";
 import { RescueVariantStore } from "../storage/rescueVariantStore";
 import { useNow } from "../state/useNow";
 import { TreatmentManager } from "../managers/treatmentManager";
+import LastBolusMessage from "../components/LastBolusMessage";
 
 export default function RescuePage() {
   const [session] = WizardStore.session.useState();
@@ -107,6 +108,8 @@ export default function RescuePage() {
       )}
       <Card>
         <HealthMonitorMessage />
+        <hr />
+        <LastBolusMessage />
         <hr />
         <GlucoseSuggestion
           intelligentCorrection={intelligentCorrection}
