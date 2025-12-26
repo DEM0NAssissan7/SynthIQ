@@ -235,8 +235,14 @@ export default function TemplateMealSummary({
               Score: <b>{session.score.toFixed(0)}</b>
               <br />
               <i>{session.glucose} low correction doses</i>
-              <br />
-              <br />
+              {session.fastingVelocity && (
+                <>
+                  <br />
+                  Fasting Velocity: {session.fastingVelocity > 0 ? "+" : ""}
+                  <b>{session.fastingVelocity.toFixed(0)}mg/dL</b> per hour
+                </>
+              )}
+              <hr />
               {session.windows.map((window) => (
                 <>
                   <b>{window.insulin.value.toFixed(1)}u</b>{" "}
@@ -250,11 +256,18 @@ export default function TemplateMealSummary({
                   )}{" "}
                   {session.getRelativeN(window.insulin.timestamp) > 0
                     ? "after"
-                    : "before"}{" "}
-                  eating{" "}
+                    : "before"}
+                  eating <br />
                   {`[${getFormattedTime(round(window.length * 60))}, ${
                     window.initialBG
                   }mg/dL -> ${window.finalBG}mg/dL]`}
+                  <br />
+                  <i>
+                    {window.glucose !== 0
+                      ? `(${window.glucose} low correction doses)`
+                      : ""}
+                  </i>
+                  <br />
                   <br />
                 </>
               ))}
