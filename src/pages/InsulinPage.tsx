@@ -55,7 +55,11 @@ export default function InsulinPage() {
       return;
     }
     if (!isNaN(insulin)) {
-      if (confirm(`Confirm that you have taken ${insulin} units of insulin`)) {
+      if (
+        confirm(
+          `Confirm that you have taken ${insulin} units of ${variant.name}`
+        )
+      ) {
         if (isBolus && (currentGlucose || session.initialGlucose)) {
           if (currentGlucose)
             WizardManager.setInitialGlucose(
