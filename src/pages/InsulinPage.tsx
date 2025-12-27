@@ -152,6 +152,12 @@ export default function InsulinPage() {
   // Set usage state based on the current session state
   useEffect(() => {
     if (!isBolus) setIsBolus(session.started);
+    else {
+      setVariant(
+        vectorizedInsulins[shotIndex]?.variant ??
+          InsulinVariantManager.getDefault()
+      );
+    }
   }, []);
 
   return (
