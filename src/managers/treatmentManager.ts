@@ -4,7 +4,7 @@
  */
 
 import { markBasal } from "../lib/basal";
-import { markGlucose } from "../lib/healthMonitor";
+import { markBolus, markGlucose } from "../lib/healthMonitor";
 import RemoteTreatments from "../lib/remote/treatments";
 import { MasterState } from "../models/types/masterState";
 import { PrivateStore } from "../storage/privateStore";
@@ -29,6 +29,7 @@ export namespace TreatmentManager {
       return;
     }
 
+    markBolus(amount, v, timestamp);
     if (isBolus) WizardManager.markInsulin(amount, BG, variant);
     RemoteTreatments.markInsulin(amount, timestamp, variant);
   }

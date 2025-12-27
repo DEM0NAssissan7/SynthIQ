@@ -177,8 +177,8 @@ export default class Session extends Subscribable {
       );
 
     const totalDeltaBG = finalBG - initialGlucose;
-
     const glucoseDeltaBG = this.glucoseEffect;
+    const fastingRise = this.fastingRise;
 
     let insulinDeltaBG = 0;
     this.insulins.forEach(
@@ -193,14 +193,16 @@ export default class Session extends Subscribable {
   The rise from the meal
   The fall from insulin
   The rise from glucoses
+  The effect from basal insulin
 
   Of course there's variance and other factors, but these are the major players, and all we can realistically measure
 
   so to rearrange to solve for effectMeal, we have:
-  mealDeltaBG = totalDeltaBG + insulinDeltaBG - glucoseDeltaBG
+  mealDeltaBG = totalDeltaBG + insulinDeltaBG - glucoseDeltaBG - fastingRise
 
   */
-    const mealDeltaBG = totalDeltaBG + insulinDeltaBG - glucoseDeltaBG;
+    const mealDeltaBG =
+      totalDeltaBG + insulinDeltaBG - glucoseDeltaBG - fastingRise;
     return mealDeltaBG;
   }
   get correctionInsulin(): number {
@@ -309,7 +311,10 @@ export default class Session extends Subscribable {
        */
       const insulin = Insulin.deserialize(Insulin.serialize(window.insulin));
       const glucoseRise = window.glucoseEffect;
-      const theoreticalFinalBG = window.finalBG - glucoseRise; // Avoid blaming glucose for a rise in BG
+      const fastingRise = this.fastingVelocity
+        ? window.length * this.fastingVelocity
+        : 0;
+      const theoreticalFinalBG = window.finalBG - glucoseRise - fastingRise; // Avoid blaming rescues for a rise in BG. Also avoid blaming basal insulin
       const deltaBG = theoreticalFinalBG - window.initialBG; // Try to keep things as flat as possible
 
       const correction = deltaBG / insulin.variant.effect;
@@ -497,45 +502,10 @@ export default class Session extends Subscribable {
 
   // Score
   get score(): number {
-    const targetBG = PreferencesStore.targetBG.value;
-    const lowThreshold = PreferencesStore.lowBG.value;
-    if (
-      !this.initialGlucose ||
-      !this.peakGlucose ||
-      !this.minGlucose ||
-      !this.finalBG
-    )
-      throw new Error(`Cannot get glucose score from incomplete session`);
-    let score = 0;
-    const wentLow = this.minGlucose < lowThreshold;
+    let deviations = this.snapshot.deviations;
+    deviations.push(this.glucoseEffect); // Add the effect glucose had
 
-    const adjustedDelta = (delta: number, tol = 3) =>
-      Math.abs(delta <= tol ? 0 : delta - tol);
-
-    if (this.initialGlucose >= targetBG) {
-      score += adjustedDelta(this.peakGlucose - this.initialGlucose);
-      if (wentLow) {
-        score += adjustedDelta(targetBG - this.minGlucose);
-      }
-    } else {
-      score += adjustedDelta(this.peakGlucose - targetBG);
-      if (wentLow) {
-        score += adjustedDelta(this.initialGlucose - this.minGlucose);
-      }
-    }
-    if (
-      (this.finalBG < targetBG && this.finalBG < lowThreshold) ||
-      this.finalBG > targetBG
-    )
-      score += Math.abs(this.finalBG - targetBG);
-
-    score += this.glucoseEffect; // Add the effect glucose had
-
-    // Add IAD (integrated absolute deviation)
-    score += MathUtil.mean(
-      this.snapshot.readings.map((r) => adjustedDelta(r.sugar - targetBG))
-    );
-
+    let score = MathUtil.mean(deviations);
     return score;
   }
 

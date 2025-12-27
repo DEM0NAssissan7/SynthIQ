@@ -114,7 +114,8 @@ export default class MealTemplate extends Subscribable implements Template {
     carbs: number,
     protein: number,
     timestamp: Date,
-    initialBG: number
+    initialBG: number,
+    fastingVelocity: number
   ): Session[] | null {
     if (this.isFirstTime) return null;
 
@@ -164,6 +165,9 @@ export default class MealTemplate extends Subscribable implements Template {
     const timeOfDayScale = getSafeScale(
       sessions.map((s) => Math.abs(timeOfDayOffset(timestamp, s.timestamp)))
     );
+    const fastingVelocityScale = getSafeScale(
+      sessions.map((s) => Math.abs(fastingVelocity - (s.fastingVelocity ?? 0)))
+    );
 
     // Get the closest X sessions
     let sessionDistances: [Session, number][] = [];
@@ -174,7 +178,10 @@ export default class MealTemplate extends Subscribable implements Template {
         ((carbs - s.carbs) / carbsScale) ** 2 +
           ((protein - s.protein) / proteinScale) ** 2 +
           (timeOfDayOffset(timestamp, s.timestamp) / timeOfDayScale) ** 2 + // Squared ecludian distance
-          ((initialBG - s.initialGlucose) / initialBGScale) ** 2,
+          ((initialBG - s.initialGlucose) / initialBGScale) ** 2 +
+          ((fastingVelocity - (s.fastingVelocity ?? 0)) /
+            fastingVelocityScale) **
+            2,
       ]);
     }
     sessionDistances.sort((a, b) => a[1] - b[1]);
@@ -214,13 +221,15 @@ export default class MealTemplate extends Subscribable implements Template {
     carbs: number,
     protein: number,
     timestamp: Date,
-    initialBG: number
+    initialBG: number,
+    fastingVelocity: number
   ): Session | null {
     const closestSessions = this.getClosestSessions(
       carbs,
       protein,
       timestamp,
-      initialBG
+      initialBG,
+      fastingVelocity
     );
     if (!closestSessions) return null;
     return closestSessions[0];
@@ -229,13 +238,15 @@ export default class MealTemplate extends Subscribable implements Template {
     carbs: number,
     protein: number,
     timestamp: Date,
-    initialBG: number
+    initialBG: number,
+    fastingVelocity: number
   ): Session | null {
     const closestSessions = this.getClosestSessions(
       carbs,
       protein,
       timestamp,
-      initialBG
+      initialBG,
+      fastingVelocity
     );
     if (!closestSessions) return null;
     return closestSessions.sort((a, b) => a.score - b.score)[0];
@@ -246,13 +257,15 @@ export default class MealTemplate extends Subscribable implements Template {
     carbs: number,
     protein: number,
     timeOfDay: Date,
-    initialBG: number
+    initialBG: number,
+    fastingVelocity: number
   ): Insulin[] | null {
     const session = this.getOptimalSession(
       carbs,
       protein,
       timeOfDay,
-      initialBG
+      initialBG,
+      fastingVelocity
     );
     if (!session) return null;
     if (session.insulins.length === 0) return null;

@@ -7,6 +7,8 @@ import HealthMonitorStatus, {
   getStatusFromName,
   getStatusName,
 } from "../models/types/healthMonitorStatus";
+import Insulin from "../models/events/insulin";
+import { InsulinVariantManager } from "../managers/insulinVariantManager";
 
 export namespace HealthMonitorStore {
   const node = new StorageNode("healthMonitor");
@@ -22,6 +24,12 @@ export namespace HealthMonitorStore {
     new Glucose(0, new Date(), RescueVariantManager.getDefault()),
     Glucose.serialize,
     Glucose.deserialize
+  );
+  export const lastBolus = node.add<Insulin>(
+    "lastBolus",
+    new Insulin(0, new Date(), InsulinVariantManager.getDefault()),
+    Insulin.serialize,
+    Insulin.deserialize
   );
   export const statusCache = node.add<HealthMonitorStatus>(
     "monitorStatusCache",

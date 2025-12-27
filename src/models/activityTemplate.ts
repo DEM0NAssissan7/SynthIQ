@@ -27,6 +27,9 @@ export class ActivityTemplate implements Template {
     if (this.isFirstTime) return new Activity(this.name);
     return this.activities[this.activities.length - 1];
   }
+  get changeRate(): number {
+    return MathUtil.median(this.activities.map((a) => a.changeRate));
+  }
   get score(): number {
     return MathUtil.median(this.activities.map((a) => a.score));
   }

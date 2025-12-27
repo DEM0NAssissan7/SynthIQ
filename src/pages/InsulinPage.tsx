@@ -20,6 +20,7 @@ import { useNow } from "../state/useNow";
 import { TreatmentManager } from "../managers/treatmentManager";
 import InsulinVariantDropdown from "../components/InsulinVariantDropdown";
 import { getFastingVelocity } from "../lib/basal";
+import LastBolusMessage from "../components/LastBolusMessage";
 
 export default function InsulinPage() {
   const navigate = useNavigate();
@@ -54,7 +55,11 @@ export default function InsulinPage() {
       return;
     }
     if (!isNaN(insulin)) {
-      if (confirm(`Confirm that you have taken ${insulin} units of insulin`)) {
+      if (
+        confirm(
+          `Confirm that you have taken ${insulin} units of ${variant.name}`
+        )
+      ) {
         if (isBolus && (currentGlucose || session.initialGlucose)) {
           if (currentGlucose)
             WizardManager.setInitialGlucose(
@@ -96,7 +101,8 @@ export default function InsulinPage() {
     meal.carbs,
     meal.protein,
     session.timestamp,
-    currentGlucose ? currentGlucose : PreferencesStore.targetBG.value
+    currentGlucose ? currentGlucose : PreferencesStore.targetBG.value,
+    session.fastingVelocity ?? getFastingVelocity()
   ) ?? [new Insulin(suggestedInsulin, now, InsulinVariantManager.getDefault())];
   const shotIndex = session.insulins.length;
   const overshootInsulinOffset =
@@ -108,6 +114,14 @@ export default function InsulinPage() {
           vectorizedInsulins.map((i) => i.variant)
         )[shotIndex]
       : 0;
+  const continuedRiseInsulin = (() => {
+    const fastingVelocity = getFastingVelocity(); // mg/dL per hour
+    const insulinDuration = variant.duration; // hours
+    const rise = fastingVelocity * insulinDuration;
+    return rise / variant.effect;
+  })();
+
+  const risenCorrectionInsulin = correctionInsulin + continuedRiseInsulin; // This is only for corrections, not bolus
 
   const extraInsulin = correctionInsulin + overshootInsulinOffset;
   const displayedInsulin = (() => {
@@ -115,6 +129,16 @@ export default function InsulinPage() {
     let insulin: number =
       vectorizedInsulins[shotIndex]?.value ?? -overshootInsulinOffset;
     return insulin + extraInsulin;
+  })();
+  const displayedRange: string = (() => {
+    const correction = Math.max(roundByHalf(correctionInsulin), 0);
+    const risenCorrection = Math.max(roundByHalf(risenCorrectionInsulin), 0);
+    return correction === risenCorrection
+      ? `${correction}`
+      : `${Math.min(risenCorrection, correction)}u - ${Math.max(
+          risenCorrection,
+          correction
+        )}u`;
   })();
 
   // A variable that changes once per minute
@@ -132,6 +156,12 @@ export default function InsulinPage() {
   // Set usage state based on the current session state
   useEffect(() => {
     if (!isBolus) setIsBolus(session.started);
+    else {
+      setVariant(
+        vectorizedInsulins[shotIndex]?.variant ??
+          InsulinVariantManager.getDefault()
+      );
+    }
   }, []);
 
   return (
@@ -151,6 +181,12 @@ export default function InsulinPage() {
           />
         </Card>
       )}
+
+      <Card>
+        <LastBolusMessage />
+        <hr />
+        Take {correctionIsDisplayed && displayedRange}
+      </Card>
 
       <Card>
         {!isFirstPostMealInjection && (

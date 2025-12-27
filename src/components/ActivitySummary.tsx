@@ -29,7 +29,7 @@ export default function ActivitySummary({
     [currentBG]
   );
   const glucoseCorrectionRate = useMemo(
-    () => -template.score / defaultRescueVariant.effect,
+    () => -template.changeRate / defaultRescueVariant.effect,
     [template]
   );
   const totalGlucoseCorrection = useMemo(
@@ -37,7 +37,7 @@ export default function ActivitySummary({
     [glucoseCorrectionRate, template, baseCorrection]
   );
   const insulinCorrectionRate = useMemo(
-    () => template.score / defaultVariant.effect,
+    () => template.changeRate / defaultVariant.effect,
     [template, defaultVariant]
   );
   const insulinCorrectionTotal = useMemo(
@@ -58,11 +58,11 @@ export default function ActivitySummary({
           <br />
           Score:{" "}
           <b>
-            {template.score > 0 && "+"}
-            {template.score.toFixed()}mg/dL per hour
+            {template.changeRate > 0 && "+"}
+            {template.changeRate.toFixed()}mg/dL per hour
           </b>
           <hr />
-          {template.score < 0 ? (
+          {template.changeRate < 0 ? (
             <>
               Consider taking{" "}
               <b>

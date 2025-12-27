@@ -14,6 +14,7 @@ import { getFormattedTime, getFullPrettyDate } from "../lib/timing";
 import { InsulinVariantManager } from "../managers/insulinVariantManager";
 import { useNow } from "../state/useNow";
 import { PrivateStore } from "../storage/privateStore";
+import { getFastingVelocity } from "../lib/basal";
 
 function getFactorDesc(num: number, unit: string, type: string) {
   if (round(num, 1) === 0) return "";
@@ -33,11 +34,13 @@ interface TemplateMealSummaryProps {
   template: MealTemplate;
   meal: Meal;
   currentBG: number;
+  fastingVelocity: number;
 }
 export default function TemplateMealSummary({
   template,
   meal,
   currentBG,
+  fastingVelocity,
 }: TemplateMealSummaryProps) {
   const now = useNow();
   const time = meal.timestamp ?? now;
@@ -45,7 +48,8 @@ export default function TemplateMealSummary({
     meal.carbs,
     meal.protein,
     time,
-    currentBG
+    currentBG,
+    fastingVelocity
   );
   const defaultVariant = InsulinVariantManager.getDefault();
   if (PrivateStore.debugLogs.value) console.log(session);
@@ -70,12 +74,33 @@ export default function TemplateMealSummary({
     defaultVariant
   );
   const profileInsulin = profileCarbInsulin + profileProteinInsulin;
+  const fastingAdjustmentInsulins = (() => {
+    if (!session) return [];
+    const windows = session.windows;
+    const currentFastingVelocity = getFastingVelocity();
+    return windows.map((w) => {
+      const insulin = w.insulin;
+      if (session.fastingVelocity === null) {
+        insulin.value = 0;
+        return insulin;
+      }
+      insulin.value =
+        (w.length * currentFastingVelocity) / insulin.variant.effect;
+      return insulin;
+    });
+  })();
+  const fastingInsulinAdjustment = (() => {
+    let i = 0;
+    fastingAdjustmentInsulins.forEach((insulin) => (i += insulin.value));
+    return i;
+  })();
   const insulins = (() => {
     const vectorizedInsulin = template.vectorizeInsulin(
       meal.carbs,
       meal.protein,
       time,
-      currentBG
+      currentBG,
+      fastingVelocity
     );
     // Fall back to profile
     if (!vectorizedInsulin || template.isFirstTime)
@@ -130,28 +155,35 @@ export default function TemplateMealSummary({
       <b>{round(meal.protein, 0)}g</b> protein
       <br />
       <br />
-      {insulins.map((insulin: Insulin, i: number) => (
-        <React.Fragment key={i}>
-          {isSingleBolus ? `Take ` : `Shot ${i + 1}: `}
-          <b>
-            {roundByHalf(
-              insulin.value +
-                (i === 0 ? insulinCorrection : 0) +
-                overshootInsulinOffset / insulins.length // We add just a bit more insulin to overshoot our target and scale it by the number of insulins
+      {insulins.map((insulin: Insulin, i: number) => {
+        const fastingAdjustment =
+          fastingAdjustmentInsulins.length <= i
+            ? 0
+            : fastingAdjustmentInsulins[i].value;
+        return (
+          <React.Fragment key={i}>
+            {isSingleBolus ? `Take ` : `Shot ${i + 1}: `}
+            <b>
+              {roundByHalf(
+                insulin.value +
+                  (i === 0 ? insulinCorrection : 0) +
+                  overshootInsulinOffset / insulins.length + // We add just a bit more insulin to overshoot our target and scale it by the number of insulins
+                  fastingAdjustment // Add our adjustment for this window
+              )}
+              u
+            </b>{" "}
+            of <i>{insulin.variant.name}</i>{" "}
+            {!template.isFirstTime && (
+              <>
+                <b>{getFormattedTime(Math.abs(getTiming(i)))}</b>{" "}
+                {getTiming(i) > 0 ? "after" : "before"} you start eating
+                <br />
+                <br />
+              </>
             )}
-            u
-          </b>{" "}
-          of <i>{insulin.variant.name}</i>{" "}
-          {!template.isFirstTime && (
-            <>
-              <b>{getFormattedTime(Math.abs(getTiming(i)))}</b>{" "}
-              {getTiming(i) > 0 ? "after" : "before"} you start eating
-              <br />
-              <br />
-            </>
-          )}
-        </React.Fragment>
-      ))}
+          </React.Fragment>
+        );
+      })}
       <br />
       <br />
       <Button
@@ -177,6 +209,7 @@ export default function TemplateMealSummary({
           {getFactorDesc(insulinCorrection, "u", "correction")}
           {getFactorDesc(insulinOffset, "u", "offset")}
           {getFactorDesc(insulinAdjustment, " u", "adjustment")}
+          {getFactorDesc(fastingInsulinAdjustment, "u", "fasting offset")}
           {getFactorDesc(overshootInsulinOffset, " u", "overcompensation")}
           {isSingleBolus &&
             getFactorDesc(adjustments.timingAdjustment, " min", "adjustment")}
@@ -202,8 +235,14 @@ export default function TemplateMealSummary({
               Score: <b>{session.score.toFixed(0)}</b>
               <br />
               <i>{session.glucose} low correction doses</i>
-              <br />
-              <br />
+              {session.fastingVelocity && (
+                <>
+                  <br />
+                  Fasting Velocity: {session.fastingVelocity > 0 ? "+" : ""}
+                  <b>{session.fastingVelocity.toFixed(0)}mg/dL</b> per hour
+                </>
+              )}
+              <hr />
               {session.windows.map((window) => (
                 <>
                   <b>{window.insulin.value.toFixed(1)}u</b>{" "}
@@ -217,11 +256,18 @@ export default function TemplateMealSummary({
                   )}{" "}
                   {session.getRelativeN(window.insulin.timestamp) > 0
                     ? "after"
-                    : "before"}{" "}
-                  eating{" "}
+                    : "before"}
+                  eating <br />
                   {`[${getFormattedTime(round(window.length * 60))}, ${
                     window.initialBG
                   }mg/dL -> ${window.finalBG}mg/dL]`}
+                  <br />
+                  <i>
+                    {window.glucose !== 0
+                      ? `(${window.glucose} low correction doses)`
+                      : ""}
+                  </i>
+                  <br />
                   <br />
                 </>
               ))}
