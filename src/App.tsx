@@ -39,6 +39,7 @@ import { PrivateStore } from "./storage/privateStore";
 import { nodes } from "./storage/storageNode";
 import ExpirationPage from "./pages/ExpirationPage";
 import DebugPage from "./pages/DebugPage";
+import GraphsPage from "./pages/GraphsPage";
 
 function App() {
   if (PrivateStore.debugLogs.value) {
@@ -113,6 +114,7 @@ function App() {
           <Route path="/customfoods" element={<CustomFoodsPage />} />
           <Route path="/dextrose" element={<DextrosePage />} />
           <Route path="/statistics" element={<StatisticsPage />} />
+          <Route path="/graphs" element={<GraphsPage />} />
           <Route path="/rescue" element={<RescuePage />} />
           <Route path="/rescuevariants" element={<RescueVariantsPage />} />
           <Route path="/basal" element={<BasalPage />} />
