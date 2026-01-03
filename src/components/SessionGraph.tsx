@@ -25,7 +25,7 @@ export default function SessionGraph({ session }: SessionGraphProps) {
       return {
         kind: "line",
         x: session.getRelativeN(g.timestamp),
-        label: `${g.value} ${g.variant.name}`,
+        label: `${g.value}${g.variant.suffix}`,
         color: "#b165b2ff",
       } as Marker;
     }),

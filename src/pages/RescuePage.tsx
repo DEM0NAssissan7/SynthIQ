@@ -159,7 +159,7 @@ export default function RescuePage() {
             value={intelligentCorrection}
             rangeFromOrigin={2}
             increment={0.5}
-            labelSuffix={variant.name.toLowerCase()[0]}
+            labelSuffix={variant.suffix}
             onSelect={(val) => {
               markGlucoseTaken(val, variant);
             }}
