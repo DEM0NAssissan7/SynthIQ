@@ -121,7 +121,7 @@ function markersPlugin(getMarkers: () => Marker[] | undefined): uPlot.Plugin {
                 ctx.fillRect(xPos + 4, yText, w + pad * 2, 16);
 
                 ctx.fillStyle = color;
-                ctx.fillText(m.label, xPos + 4 + pad, yText + 2);
+                ctx.fillText(m.label, xPos + 4 + w + pad, yText + 2);
               }
             } else {
               const xPos = u.valToPos(m.x, "x", true);
@@ -144,7 +144,7 @@ function markersPlugin(getMarkers: () => Marker[] | undefined): uPlot.Plugin {
                 ctx.fillRect(xPos + 6, yText, w + pad * 2, 16);
 
                 ctx.fillStyle = color;
-                ctx.fillText(m.label, xPos + 6 + pad, yText + 2);
+                ctx.fillText(m.label, xPos + 4 + w + pad, yText + 2);
               }
             }
           }
