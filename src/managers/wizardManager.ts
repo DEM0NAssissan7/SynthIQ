@@ -183,4 +183,12 @@ export default class WizardManager {
     RemoteSessions.storeSession(WizardStore.session.value); // Store the entire session into nightscout so we can analyze it later
     this.resetWizard(navigate); // Reset the wizard states
   }
+
+  // General helper functions
+  static getAllSessions() {
+    const templates = WizardStore.templates.value;
+    let sessions: Session[] = [];
+    templates.forEach((t) => t.sessions.forEach((s) => sessions.push(s)));
+    return sessions;
+  }
 }
