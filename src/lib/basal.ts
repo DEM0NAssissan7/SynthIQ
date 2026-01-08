@@ -1,10 +1,12 @@
 import { InsulinVariantManager } from "../managers/insulinVariantManager";
 import { RescueVariantManager } from "../managers/rescueVariantManager";
+import WizardManager from "../managers/wizardManager";
 import Glucose from "../models/events/glucose";
 import Insulin from "../models/events/insulin";
 import SugarReading, {
   getReadingFromNightscout,
 } from "../models/types/sugarReading";
+import Unit from "../models/unit";
 import { BackendStore } from "../storage/backendStore";
 import { BasalStore } from "../storage/basalStore";
 import { HealthMonitorStore } from "../storage/healthMonitorStore";
@@ -20,7 +22,7 @@ import RemoteTreatments, {
   activityEventType,
 } from "./remote/treatments";
 import { getTimestampFromOffset, timestampIsBetween } from "./timing";
-import { MathUtil, round } from "./util";
+import { convertDimensions, MathUtil, round } from "./util";
 
 export async function isFastingState(timestamp: Date) {
   const minTimeSinceMeal = BasalStore.minTimeSinceMeal.value;
@@ -72,7 +74,19 @@ function getNonFastingWindows(
         getTimestampFromOffset(a.timestamp, hoursNonFasting),
       ]);
   });
+  nonFasting.push(...getSessionWindows());
   return nonFasting;
+}
+function getSessionWindows(): [Date, Date][] {
+  const hours = basalInsulinVariant.duration;
+  let sessions = WizardManager.getAllSessions();
+  sessions.sort(
+    (a: any, b: any) => b.timestamp.getTime() - a.timestamp.getTime()
+  );
+  sessions = sessions.filter(
+    (s) => s.age * convertDimensions(Unit.Time.Day, Unit.Time.Hour) <= hours
+  );
+  return sessions.map((s) => [s.timestamp, s.endTimestamp ?? new Date()]);
 }
 function isFasting(timestamp: Date, nonFasting: [Date, Date][]): boolean {
   for (let datePair of nonFasting) {
