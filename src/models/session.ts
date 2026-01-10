@@ -178,7 +178,6 @@ export default class Session extends Subscribable {
 
     const totalDeltaBG = finalBG - initialGlucose;
     const glucoseDeltaBG = this.glucoseEffect;
-    const fastingRise = this.fastingRise;
 
     let insulinDeltaBG = 0;
     this.insulins.forEach(
@@ -193,16 +192,15 @@ export default class Session extends Subscribable {
   The rise from the meal
   The fall from insulin
   The rise from glucoses
-  The effect from basal insulin
+  The effect from basal insulin (ignored)
 
   Of course there's variance and other factors, but these are the major players, and all we can realistically measure
 
   so to rearrange to solve for effectMeal, we have:
-  mealDeltaBG = totalDeltaBG + insulinDeltaBG - glucoseDeltaBG - fastingRise
+  mealDeltaBG = totalDeltaBG + insulinDeltaBG - glucoseDeltaBG - [fastingRise (ignored)]
 
   */
-    const mealDeltaBG =
-      totalDeltaBG + insulinDeltaBG - glucoseDeltaBG - fastingRise;
+    const mealDeltaBG = totalDeltaBG + insulinDeltaBG - glucoseDeltaBG;
     return mealDeltaBG;
   }
   get correctionInsulin(): number {
@@ -311,10 +309,7 @@ export default class Session extends Subscribable {
        */
       const insulin = Insulin.deserialize(Insulin.serialize(window.insulin));
       const glucoseRise = window.glucoseEffect;
-      const fastingRise = this.fastingVelocity
-        ? window.length * this.fastingVelocity
-        : 0;
-      const theoreticalFinalBG = window.finalBG - glucoseRise - fastingRise; // Avoid blaming rescues for a rise in BG. Also avoid blaming basal insulin
+      const theoreticalFinalBG = window.finalBG - glucoseRise; // Avoid blaming rescues for a rise in BG. Also avoid blaming basal insulin
       const deltaBG = theoreticalFinalBG - window.initialBG; // Try to keep things as flat as possible
 
       const correction = deltaBG / insulin.variant.effect;
