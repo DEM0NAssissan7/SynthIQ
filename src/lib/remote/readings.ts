@@ -1,3 +1,4 @@
+import { getReadingFromNightscout } from "../../models/types/sugarReading";
 import Unit from "../../models/unit";
 import { BackendStore } from "../../storage/backendStore";
 import { getTimestampFromOffset } from "../timing";
@@ -20,7 +21,9 @@ class RemoteReadings {
     });
   }
   static async getCurrentSugar() {
-    return await Backend.get("entries.json").then((a) => a[0].sgv);
+    return await Backend.get("entries.json").then((a) =>
+      getReadingFromNightscout(a[0])
+    );
   }
   static async getReadings(
     timestampA: Date,

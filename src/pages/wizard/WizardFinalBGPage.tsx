@@ -12,7 +12,7 @@ export default function WizardFinalBGPage() {
   const [bloodSugar, setBloodSugar] = useState(PreferencesStore.targetBG.value);
   useEffect(() => {
     RemoteReadings.getCurrentSugar().then((a) => {
-      if (a) setBloodSugar(a);
+      if (a) setBloodSugar(a.sugar);
     });
   }, []);
 

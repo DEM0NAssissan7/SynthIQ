@@ -39,7 +39,7 @@ export default function BloodSugarInput({
   }
   function pullCurrentGlucose(force = false) {
     RemoteReadings.getCurrentSugar().then((g) => {
-      setGlucose(g, force);
+      setGlucose(g.sugar, g.isCalibration || force);
     });
   }
   useEffect(() => {
