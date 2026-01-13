@@ -1,3 +1,4 @@
+import { round } from "../../lib/util";
 import type { Deserializer, Serializer } from "./types";
 
 export default class SugarReading {
@@ -24,14 +25,14 @@ export default class SugarReading {
 }
 
 export function getReadingFromNightscout(o: {
-  sgv: number;
+  sgv: number; // Sensor Glucose Value
+  mbg: number; // Meter Blood Glucose (more accurate)
   date: string;
 }): SugarReading {
-  return new SugarReading(o.sgv, new Date(o.date), false);
-}
-export function createNightscoutReading(r: SugarReading) {
-  return {
-    sgv: r.sugar,
-    date: r.timestamp,
-  };
+  const isCalibration = !!o.mbg;
+  return new SugarReading(
+    round(o.mbg ?? o.sgv, 0),
+    new Date(o.date),
+    isCalibration
+  );
 }

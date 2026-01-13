@@ -28,7 +28,7 @@ class RemoteReadings {
   static async getReadings(
     timestampA: Date,
     timestampB: Date
-  ): Promise<{ sgv: number; date: string }[]> {
+  ): Promise<{ sgv: number; mbg: number; date: string }[]> {
     let count =
       ((timestampB.getTime() - timestampA.getTime()) *
         convertDimensions(Unit.Time.Millis, Unit.Time.Minute)) /
