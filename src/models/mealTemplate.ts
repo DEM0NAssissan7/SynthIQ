@@ -104,7 +104,7 @@ export default class MealTemplate extends Subscribable implements Template {
     return (
       sessionsWeightedAverage(
         (s: Session) => s.getRelativeN(s.firstInsulinTimestamp),
-        this.sessions
+        this.sessions,
       ) * 60
     );
   }
@@ -115,7 +115,7 @@ export default class MealTemplate extends Subscribable implements Template {
     protein: number,
     timestamp: Date,
     initialBG: number,
-    fastingVelocity: number
+    fastingVelocity: number,
   ): Session[] | null {
     if (this.isFirstTime) return null;
 
@@ -123,8 +123,8 @@ export default class MealTemplate extends Subscribable implements Template {
 
     // K is the number of neighbors to select
     const K = Math.min(
-      clamp(Math.floor(Math.sqrt(this.sessions.length)), 3, 9),
-      this.sessions.length
+      clamp(Math.floor(this.sessions.length / 3), 3, 9),
+      this.sessions.length,
     ); // Adaptive number of desired sessions based on number of valid sessions
 
     // Discard expired sessions unless we don't have enough to fulfill K
@@ -150,23 +150,23 @@ export default class MealTemplate extends Subscribable implements Template {
 
     // Query-centered per-axis scales = median/mean absolute differences (safe-guarded)
     const carbsScale = getSafeScale(
-      sessions.map((s) => Math.abs(carbs - s.carbs))
+      sessions.map((s) => Math.abs(carbs - s.carbs)),
     );
     const proteinScale = getSafeScale(
-      sessions.map((s) => Math.abs(protein - s.protein))
+      sessions.map((s) => Math.abs(protein - s.protein)),
     );
     const initialBGScale = getSafeScale(
       sessions.map((s) => {
         return Math.abs(
-          s.initialGlucose !== null ? initialBG - s.initialGlucose : 0
+          s.initialGlucose !== null ? initialBG - s.initialGlucose : 0,
         );
-      })
+      }),
     );
     const timeOfDayScale = getSafeScale(
-      sessions.map((s) => Math.abs(timeOfDayOffset(timestamp, s.timestamp)))
+      sessions.map((s) => Math.abs(timeOfDayOffset(timestamp, s.timestamp))),
     );
     const fastingVelocityScale = getSafeScale(
-      sessions.map((s) => Math.abs(fastingVelocity - (s.fastingVelocity ?? 0)))
+      sessions.map((s) => Math.abs(fastingVelocity - (s.fastingVelocity ?? 0))),
     );
 
     // Get the closest X sessions
@@ -194,12 +194,12 @@ export default class MealTemplate extends Subscribable implements Template {
     // Eliminate outliers
     const kept: Session[] = [];
     const medianOptimalInsulin = MathUtil.median(
-      nearSessions.map((s) => s.optimalMealInsulin)
+      nearSessions.map((s) => s.optimalMealInsulin),
     );
     const optimalInsulinMAD = getSafeScale(
       nearSessions.map((s) =>
-        Math.abs(s.optimalMealInsulin - medianOptimalInsulin)
-      )
+        Math.abs(s.optimalMealInsulin - medianOptimalInsulin),
+      ),
     );
 
     const TAU = 1.5; // or 2.0 if you want looser
@@ -222,14 +222,14 @@ export default class MealTemplate extends Subscribable implements Template {
     protein: number,
     timestamp: Date,
     initialBG: number,
-    fastingVelocity: number
+    fastingVelocity: number,
   ): Session | null {
     const closestSessions = this.getClosestSessions(
       carbs,
       protein,
       timestamp,
       initialBG,
-      fastingVelocity
+      fastingVelocity,
     );
     if (!closestSessions) return null;
     return closestSessions[0];
@@ -239,17 +239,23 @@ export default class MealTemplate extends Subscribable implements Template {
     protein: number,
     timestamp: Date,
     initialBG: number,
-    fastingVelocity: number
+    fastingVelocity: number,
   ): Session | null {
     const closestSessions = this.getClosestSessions(
       carbs,
       protein,
       timestamp,
       initialBG,
-      fastingVelocity
+      fastingVelocity,
     );
     if (!closestSessions) return null;
-    return closestSessions.sort((a, b) => a.score - b.score)[0];
+    // Choose the most typically controlled session (to avoid outliars)
+    const medianScore = MathUtil.median(closestSessions.map((a) => a.score));
+    return closestSessions.sort((a, b) => {
+      const MADA = Math.abs(a.score - medianScore);
+      const MADB = Math.abs(b.score - medianScore);
+      return MADA - MADB;
+    })[0];
   }
 
   // Dosing helpers
@@ -258,14 +264,14 @@ export default class MealTemplate extends Subscribable implements Template {
     protein: number,
     timeOfDay: Date,
     initialBG: number,
-    fastingVelocity: number
+    fastingVelocity: number,
   ): Insulin[] | null {
     const session = this.getOptimalSession(
       carbs,
       protein,
       timeOfDay,
       initialBG,
-      fastingVelocity
+      fastingVelocity,
     );
     if (!session) return null;
     if (session.insulins.length === 0) return null;
@@ -280,7 +286,7 @@ export default class MealTemplate extends Subscribable implements Template {
   getProfileInsulin(
     carbs: number,
     protein: number,
-    variant = InsulinVariantManager.getDefault()
+    variant = InsulinVariantManager.getDefault(),
   ) {
     const carbsRise = carbs * CalibrationStore.carbsEffect.value;
     const proteinRise = protein * CalibrationStore.proteinEffect.value;
@@ -296,7 +302,7 @@ export default class MealTemplate extends Subscribable implements Template {
       ((protein - session.protein) / insulins.length) *
       CalibrationStore.proteinEffect.value;
     insulins.forEach(
-      (i) => (i.value = extraProteinRisePerShot / i.variant.effect)
+      (i) => (i.value = extraProteinRisePerShot / i.variant.effect),
     ); // Distribute protein between all shots
     return insulins;
   }
@@ -310,7 +316,7 @@ export default class MealTemplate extends Subscribable implements Template {
   // Serialization
   static serialize: Serializer<MealTemplate> = (template: MealTemplate) => {
     const sessions = template.sessions.filter(
-      (s) => s.age < PreferencesStore.maxSessionLife.value
+      (s) => s.age < PreferencesStore.maxSessionLife.value,
     ); // Get rid of old sessions upon serialization
     return {
       name: template.name,
@@ -321,7 +327,7 @@ export default class MealTemplate extends Subscribable implements Template {
   static deserialize: Deserializer<MealTemplate> = (o) => {
     let template = new MealTemplate(o.name);
     o.sessions.forEach((s: string) =>
-      template.addSession(Session.deserialize(s))
+      template.addSession(Session.deserialize(s)),
     );
     template.timestamp = new Date(o.timestamp);
     return template;
