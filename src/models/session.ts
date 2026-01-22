@@ -168,12 +168,12 @@ export default class Session extends Subscribable {
     const finalBG = this.finalBG;
     if (!finalBG)
       throw new Error(
-        `Cannot get insulin dosing: there is no final blood glucose`
+        `Cannot get insulin dosing: there is no final blood glucose`,
       );
     const initialGlucose = this.initialGlucose;
     if (!initialGlucose)
       throw new Error(
-        `Cannot get insulin dosing: there is no initial blood glucose`
+        `Cannot get insulin dosing: there is no initial blood glucose`,
       );
 
     const totalDeltaBG = finalBG - initialGlucose;
@@ -181,7 +181,7 @@ export default class Session extends Subscribable {
 
     let insulinDeltaBG = 0;
     this.insulins.forEach(
-      (i) => (insulinDeltaBG += i.value * i.variant.effect)
+      (i) => (insulinDeltaBG += i.value * i.variant.effect),
     );
 
     /* 
@@ -209,7 +209,7 @@ export default class Session extends Subscribable {
     const insulinEffect = this.insulins[0].variant.effect;
     return Math.max(
       (initialBG - PreferencesStore.targetBG.value) / insulinEffect,
-      0
+      0,
     );
   }
   get windows(): TreatmentWindow[] {
@@ -240,6 +240,7 @@ export default class Session extends Subscribable {
 
     // Treatment windows creation
     let windows: TreatmentWindow[] = [];
+    if (insulins.length === 0) return [];
     for (let i = 0; i < snapshots.length; i++) {
       const snapshot = snapshots[i];
       const insulin = insulins[i] ?? insulins[i - 1];
@@ -248,7 +249,7 @@ export default class Session extends Subscribable {
       // Find optimal variant
       let optimalVariant = InsulinVariantManager.getOptimalVariant(
         snapshot.length,
-        insulin.variant
+        insulin.variant,
       );
       const window: TreatmentWindow = {
         initialBG: snapshot.initialBG.sugar,
@@ -265,7 +266,7 @@ export default class Session extends Subscribable {
           timestampIsBetween(
             glucose.timestamp,
             snapshot.initialBG.timestamp,
-            snapshot.finalBG.timestamp
+            snapshot.finalBG.timestamp,
           )
         ) {
           // If the glucose was taken during this window
@@ -290,7 +291,7 @@ export default class Session extends Subscribable {
           lastWindow.length += window.length;
           lastWindow.optimalVariant = InsulinVariantManager.getOptimalVariant(
             lastWindow.length,
-            lastWindow.insulin.variant
+            lastWindow.insulin.variant,
           );
           continue;
         }
@@ -348,7 +349,7 @@ export default class Session extends Subscribable {
     units: number,
     timestamp: Date,
     variant: InsulinVariant,
-    BG?: number
+    BG?: number,
   ): Insulin {
     // Mark snapshot
     if (this.insulins.length !== 0 && BG) {
@@ -392,7 +393,7 @@ export default class Session extends Subscribable {
   createGlucose(
     grams: number,
     timestamp: Date,
-    variant: RescueVariant
+    variant: RescueVariant,
   ): Glucose {
     const glucose = new Glucose(grams, timestamp, variant);
     this.glucoses.push(glucose);
@@ -413,7 +414,7 @@ export default class Session extends Subscribable {
   get glucoseEffect(): number {
     let effect = 0;
     this.glucoses.forEach(
-      (a: Glucose) => (effect += a.value * a.variant.effect)
+      (a: Glucose) => (effect += a.value * a.variant.effect),
     );
     return effect;
   }
@@ -490,18 +491,17 @@ export default class Session extends Subscribable {
   getObservedReadings() {
     if (!this.endTimestamp)
       throw new Error(
-        `Cannot give total readings - there is no end timestamp!`
+        `Cannot give total readings - there is no end timestamp!`,
       );
     return RemoteReadings.getReadings(this.timestamp, this.endTimestamp);
   }
 
   // Score
   get score(): number {
-    let deviations = this.snapshot.deviations;
-    deviations.push(this.glucoseEffect); // Add the effect glucose had
-
-    let score = MathUtil.mean(deviations);
-    return score;
+    const deviations = [...this.snapshot.deviations];
+    const rescuePenalty = Math.sqrt(this.glucoseEffect);
+    deviations.push(rescuePenalty);
+    return MathUtil.mean(deviations);
   }
 
   // Basal
@@ -555,7 +555,7 @@ export default class Session extends Subscribable {
     });
 
     const snapshots: Snapshot[] = o.snapshots.map((a: JSONObject) =>
-      Snapshot.deserialize(a)
+      Snapshot.deserialize(a),
     );
     snapshots.forEach((s) => session.addSnapshot(s));
 
