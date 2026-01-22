@@ -1,4 +1,4 @@
-import { ToggleButton } from "react-bootstrap";
+import { Button, ToggleButton } from "react-bootstrap";
 import Card from "../components/Card";
 import { getFullPrettyDate } from "../lib/timing";
 import type MealTemplate from "../models/mealTemplate";
@@ -7,9 +7,36 @@ import { WizardStore } from "../storage/wizardStore";
 import { useState } from "react";
 import { PrivateStore } from "../storage/privateStore";
 
+function getCSV(templates: MealTemplate[]): string {
+  let out =
+    "Template Name,Date,Carbs,Protein,Total Insulin Taken,# Insulin Doses,Rescue Doses Taken,InitialBG,FinalBG,Control Score (lower is better),Optimal Standalone Meal Insulin,Invalid\n";
+  for (let t of templates) {
+    for (let s of t.sessions) {
+      out += `${t.name},${getFullPrettyDate(s.timestamp)},${s.carbs},${s.protein},${s.insulin},${s.insulins.length},${s.glucose},${s.initialGlucose},${s.finalBG},${s.score},${s.optimalMealInsulin},${s.isInvalid}\n`;
+    }
+  }
+  return out;
+}
 export default function HistoryPage() {
   return (
     <>
+      <div style={{ marginBottom: "2rem" }}>
+        <Button
+          variant="outline-primary"
+          onClick={() => {
+            const csv = getCSV(WizardStore.templates.value);
+            const blob = new Blob([csv], { type: "text/csv" });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "history.csv";
+            a.click();
+            window.URL.revokeObjectURL(url);
+          }}
+        >
+          Export to CSV
+        </Button>
+      </div>
       {WizardStore.templates.value.map((template: MealTemplate, i) => (
         <Card key={i}>
           <h1>{template.name}</h1>
@@ -34,7 +61,7 @@ export default function HistoryPage() {
                 console.log(
                   template.name,
                   session,
-                  session.optimalMealInsulins
+                  session.optimalMealInsulins,
                 );
               return (
                 <tbody
