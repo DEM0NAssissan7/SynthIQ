@@ -1,14 +1,14 @@
 import { Button, Form, InputGroup } from "react-bootstrap";
 import Card from "../components/Card";
 import {
+  basalInsulinVariant,
   dosingChangeComplete,
+  getDailyBasal,
   getFastingLength,
   getFastingVelocity,
   getLastShot,
-  getRecommendedBasal,
   populateFastingVelocitiesCache,
 } from "../lib/basal";
-import { getBasalCorrection } from "../lib/metabolism";
 import { round } from "../lib/util";
 import { useEffect, useMemo, useReducer, useState } from "react";
 import { useNavigate } from "react-router";
@@ -27,20 +27,12 @@ export default function BasalPage() {
     populateFastingVelocitiesCache().then(() => incrementUpdate());
   }, [now]);
   const fastingVelocity = useMemo(() => getFastingVelocity(), [updated]);
-  const basalCorrection = useMemo(
-    () => round(getBasalCorrection(fastingVelocity), 0),
-    [fastingVelocity]
-  );
   const shotsPerDay = HealthMonitorStore.basalShotsPerDay.value;
-  const basalCorrectionPerDay = useMemo(
-    () => round(basalCorrection / shotsPerDay, 1),
-    [basalCorrection]
-  );
+  const unitsPerDay = getDailyBasal();
   const basals = BasalStore.basalDoses.value;
   const lastBasalTimestamp = getLatestBasalTimestamp();
   const fastingTime = getFastingLength();
 
-  const suggestedBasal = getRecommendedBasal();
   const lastShot = getLastShot();
   const changeIsComplete = dosingChangeComplete();
   const [basalDose, setBasalDose] = useState(0);
@@ -75,7 +67,11 @@ export default function BasalPage() {
   return (
     <>
       <Card>
-        You take {shotsPerDay} basal injection(s) per day at:
+        You take{" "}
+        <b>
+          {unitsPerDay}u {basalInsulinVariant.name}
+        </b>{" "}
+        in {shotsPerDay} injection(s) per day at:
         <br />
         {getTimes().map((s: string) => {
           return (
@@ -108,22 +104,10 @@ export default function BasalPage() {
         </b>
         <br />
         Collected <b>{fastingTime.toFixed(1)} hours</b> of fasting
-        <br />
-        {Math.abs(basalCorrection) > 1 && changeIsComplete && (
-          <>
-            Consider adjusting dosage to <b>{suggestedBasal}u per shot</b>{" "}
-            <i>
-              {shotsPerDay > 1 &&
-                `(${
-                  basalCorrectionPerDay > 0 ? "+" : ""
-                }${basalCorrectionPerDay}u per shot)`}
-            </i>
-          </>
-        )}
         <hr />
         {changeIsComplete
-          ? `Your current dosing cycle is complete`
-          : `Your current dosing cycle is not complete`}
+          ? `Current dosing cycle is complete`
+          : `Current dosing cycle is not complete`}
       </Card>
       <Card>
         <InputGroup className="mb-3">
