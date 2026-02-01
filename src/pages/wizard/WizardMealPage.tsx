@@ -12,7 +12,7 @@ import { WizardStore } from "../../storage/wizardStore";
 import { WizardPage } from "../../models/types/wizardPage";
 import { PreferencesStore } from "../../storage/preferencesStore";
 import { useNow } from "../../state/useNow";
-import { getFastingVelocity } from "../../lib/basal";
+import { getDailyBasal, getFastingVelocity } from "../../lib/basal";
 
 export default function WizardMealPage() {
   const [template] = WizardStore.template.useState();
@@ -35,10 +35,14 @@ export default function WizardMealPage() {
     if (confirm("Are you ready to start eating?")) {
       WizardManager.markMeal();
       if (initialGlucose)
-        WizardManager.setInitialGlucose(initialGlucose, getFastingVelocity());
+        WizardManager.setInitialGlucose(
+          initialGlucose,
+          getFastingVelocity(),
+          getDailyBasal(),
+        );
       WizardManager.moveToPage(
         session.insulinMarked ? WizardPage.Hub : WizardPage.Insulin,
-        navigate
+        navigate,
       );
     }
   }

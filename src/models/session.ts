@@ -45,6 +45,7 @@ export default class Session extends Subscribable {
   activities: Activity[] = [];
 
   fastingVelocity: number | null = null; // mg/dL per hour
+  dailyBasal: number | null = null; // Units
 
   constructor(createSnapshot = true) {
     // This timestamp marks when eating _begins_
@@ -534,6 +535,7 @@ export default class Session extends Subscribable {
       notes: session.notes,
       version: session.version,
       fastingVelocity: session.fastingVelocity,
+      dailyBasal: session.dailyBasal,
     };
   };
   static deserialize: Deserializer<Session> = (o) => {
@@ -543,6 +545,7 @@ export default class Session extends Subscribable {
     session.completed = o.completed ?? true;
     session.notes = o.notes || "";
     session.fastingVelocity = o.fastingVelocity || null;
+    session.dailyBasal = o.dailyBasal || null;
 
     o.meals.map((a: string) => session.addMeal(Meal.deserialize(a)));
     o.insulins.map((a: string) => {

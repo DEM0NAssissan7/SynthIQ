@@ -33,11 +33,16 @@ export default class WizardManager {
   }
 
   // Glucose marking
-  static setInitialGlucose(BG: number, fastingVelocity: number) {
+  static setInitialGlucose(
+    BG: number,
+    fastingVelocity: number,
+    dailyBasal: number,
+  ) {
     const session = WizardStore.session.value;
     if (!session.initialGlucose) {
       session.fastingVelocity = fastingVelocity;
       session.initialGlucose = BG;
+      session.dailyBasal = dailyBasal;
     }
   }
 
@@ -82,7 +87,7 @@ export default class WizardManager {
     RemoteTreatments.markActivity(
       activity.name,
       activity.timestamp,
-      activity.length
+      activity.length,
     );
     const session = WizardStore.session.value;
     session.addActivity(activity);
@@ -119,7 +124,7 @@ export default class WizardManager {
     WizardStore.template.value = template;
     if (!template.isFirstTime) {
       WizardStore.meal.value = Meal.deserialize(
-        Meal.serialize(template.bestSession.firstMeal)
+        Meal.serialize(template.bestSession.firstMeal),
       );
     } else {
       WizardStore.meal.value = new Meal(new Date());
@@ -172,7 +177,7 @@ export default class WizardManager {
   static cancelSession(navigate: NavigateFunction) {
     if (
       confirm(
-        "Are you sure you want to discard the entire session? This will delete all data you've inputted so far for this session."
+        "Are you sure you want to discard the entire session? This will delete all data you've inputted so far for this session.",
       )
     ) {
       this.resetWizard(navigate);

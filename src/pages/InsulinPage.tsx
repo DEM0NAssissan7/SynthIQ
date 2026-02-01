@@ -19,7 +19,7 @@ import Insulin from "../models/events/insulin";
 import { useNow } from "../state/useNow";
 import { TreatmentManager } from "../managers/treatmentManager";
 import InsulinVariantDropdown from "../components/InsulinVariantDropdown";
-import { getFastingVelocity } from "../lib/basal";
+import { getDailyBasal, getFastingVelocity } from "../lib/basal";
 import LastBolusMessage from "../components/LastBolusMessage";
 
 export default function InsulinPage() {
@@ -32,7 +32,7 @@ export default function InsulinPage() {
       session.initialGlucose !== null &&
       session.insulins.length === 0 &&
       isBolus,
-    [isBolus, session]
+    [isBolus, session],
   );
 
   const now = useNow();
@@ -43,7 +43,7 @@ export default function InsulinPage() {
   const suggestedInsulin = template.getProfileInsulin(
     meal.carbs,
     meal.protein,
-    variant
+    variant,
   );
 
   // Inputted Insulin
@@ -57,14 +57,15 @@ export default function InsulinPage() {
     if (!isNaN(insulin)) {
       if (
         confirm(
-          `Confirm that you have taken ${insulin} units of ${variant.name}`
+          `Confirm that you have taken ${insulin} units of ${variant.name}`,
         )
       ) {
         if (isBolus && (currentGlucose || session.initialGlucose)) {
           if (currentGlucose)
             WizardManager.setInitialGlucose(
               currentGlucose,
-              getFastingVelocity()
+              getFastingVelocity(),
+              getDailyBasal(),
             );
         }
 
@@ -78,7 +79,7 @@ export default function InsulinPage() {
         if (session.started) {
           WizardManager.moveToPage(
             session.mealMarked ? WizardPage.Hub : WizardPage.Meal,
-            navigate
+            navigate,
           );
         } else {
           navigate("/hub");
@@ -102,7 +103,7 @@ export default function InsulinPage() {
     meal.protein,
     session.timestamp,
     currentGlucose ? currentGlucose : PreferencesStore.targetBG.value,
-    session.fastingVelocity ?? getFastingVelocity()
+    session.fastingVelocity ?? getFastingVelocity(),
   ) ?? [new Insulin(suggestedInsulin, now, InsulinVariantManager.getDefault())];
   const shotIndex = session.insulins.length;
   const overshootInsulinOffset =
@@ -111,7 +112,7 @@ export default function InsulinPage() {
           currentGlucose && currentGlucose > 0
             ? currentGlucose
             : PreferencesStore.targetBG.value,
-          vectorizedInsulins.map((i) => i.variant)
+          vectorizedInsulins.map((i) => i.variant),
         )[shotIndex]
       : 0;
   const continuedRiseInsulin = (() => {
@@ -137,7 +138,7 @@ export default function InsulinPage() {
       ? `${correction}`
       : `${Math.min(risenCorrection, correction)}u - ${Math.max(
           risenCorrection,
-          correction
+          correction,
         )}u`;
   })();
 
@@ -146,7 +147,7 @@ export default function InsulinPage() {
     WizardStore.isBolus.value = false;
     WizardManager.moveToPage(
       session.mealMarked ? WizardPage.Hub : WizardPage.Meal,
-      navigate
+      navigate,
     );
   }
 
@@ -159,7 +160,7 @@ export default function InsulinPage() {
     else {
       setVariant(
         vectorizedInsulins[shotIndex]?.variant ??
-          InsulinVariantManager.getDefault()
+          InsulinVariantManager.getDefault(),
       );
     }
   }, []);
