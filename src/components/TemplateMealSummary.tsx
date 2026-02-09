@@ -47,14 +47,13 @@ export default function TemplateMealSummary({
     meal.carbs,
     meal.protein,
     time,
-    currentBG,
-    fastingVelocity
+    fastingVelocity,
   );
   const defaultVariant = InsulinVariantManager.getDefault();
   if (PrivateStore.debugLogs.value) console.log(session);
   const insulinCorrection = useMemo(
     () => getCorrectionInsulin(currentBG, defaultVariant),
-    [currentBG]
+    [currentBG],
   );
   const adjustments = insulinDosingRecommendation(session ? [session] : []);
 
@@ -65,12 +64,12 @@ export default function TemplateMealSummary({
   const profileCarbInsulin = template.getProfileInsulin(
     meal.carbs,
     0,
-    defaultVariant
+    defaultVariant,
   );
   const profileProteinInsulin = template.getProfileInsulin(
     0,
     meal.protein,
-    defaultVariant
+    defaultVariant,
   );
   const profileInsulin = profileCarbInsulin + profileProteinInsulin;
   const insulins = (() => {
@@ -78,8 +77,7 @@ export default function TemplateMealSummary({
       meal.carbs,
       meal.protein,
       time,
-      currentBG,
-      fastingVelocity
+      fastingVelocity,
     );
     // Fall back to profile
     if (!vectorizedInsulin || template.isFirstTime)
@@ -91,7 +89,7 @@ export default function TemplateMealSummary({
 
   const overcompensationInsulins = getOvercompensationInsulins(
     currentBG,
-    insulins.map((i) => i.variant)
+    insulins.map((i) => i.variant),
   );
   const overshootInsulinOffset: number = (() => {
     let total = 0;
@@ -106,7 +104,7 @@ export default function TemplateMealSummary({
   const finalTiming = round(
     (session ? session.getRelativeN(session.firstInsulinTimestamp) * 60 : 0) +
       adjustments.timingAdjustment,
-    0
+    0,
   );
   function getTiming(index: number) {
     if (!session) return 0;
@@ -141,7 +139,7 @@ export default function TemplateMealSummary({
             {roundByHalf(
               insulin.value +
                 (i === 0 ? insulinCorrection : 0) +
-                overshootInsulinOffset / insulins.length // We add just a bit more insulin to overshoot our target and scale it by the number of insulins
+                overshootInsulinOffset / insulins.length, // We add just a bit more insulin to overshoot our target and scale it by the number of insulins
             )}
             u
           </b>{" "}
@@ -222,8 +220,8 @@ export default function TemplateMealSummary({
                     round(
                       Math.abs(session.getRelativeN(window.insulin.timestamp)) *
                         60,
-                      1
-                    )
+                      1,
+                    ),
                   )}{" "}
                   {session.getRelativeN(window.insulin.timestamp) > 0
                     ? "after"

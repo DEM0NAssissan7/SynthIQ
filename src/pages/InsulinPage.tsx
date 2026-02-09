@@ -102,7 +102,6 @@ export default function InsulinPage() {
     meal.carbs,
     meal.protein,
     session.timestamp,
-    currentGlucose ? currentGlucose : PreferencesStore.targetBG.value,
     session.fastingVelocity ?? getFastingVelocity(),
   ) ?? [new Insulin(suggestedInsulin, now, InsulinVariantManager.getDefault())];
   const shotIndex = session.insulins.length;
