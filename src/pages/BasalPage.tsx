@@ -3,6 +3,7 @@ import Card from "../components/Card";
 import {
   basalInsulinVariant,
   dosingChangeComplete,
+  getBasalSensitivity,
   getDailyBasal,
   getFastingLength,
   getFastingVelocity,
@@ -32,6 +33,10 @@ export default function BasalPage() {
   const basals = BasalStore.basalDoses.value;
   const lastBasalTimestamp = getLatestBasalTimestamp();
   const fastingTime = getFastingLength();
+  const liverOutput = BasalStore.estimatedLiverOutput.value;
+  const sensitivityIndex = liverOutput
+    ? getBasalSensitivity(liverOutput, fastingVelocity, unitsPerDay)
+    : null;
 
   const lastShot = getLastShot();
   const changeIsComplete = dosingChangeComplete();
@@ -69,9 +74,9 @@ export default function BasalPage() {
       <Card>
         You take{" "}
         <b>
-          {unitsPerDay}u {basalInsulinVariant.name}
+          {unitsPerDay.toFixed(1)}u {basalInsulinVariant.name} in total
         </b>{" "}
-        in {shotsPerDay} injection(s) per day at:
+        with {shotsPerDay} injection(s) per day at:
         <br />
         {getTimes().map((s: string) => {
           return (
@@ -104,7 +109,19 @@ export default function BasalPage() {
         </b>
         <br />
         Collected <b>{fastingTime.toFixed(1)} hours</b> of fasting
-        <hr />
+        {liverOutput !== null && sensitivityIndex !== null && (
+          <>
+            <hr />
+            Estimated liver output:{" "}
+            <b>{liverOutput.toFixed(1)} mg/dL per hour</b>
+            <br />
+            Sensitivity Index: <b>{sensitivityIndex.toFixed(0)}</b>
+            <br />
+            Your estimated basal insulin sensitivity is{" "}
+            <b>{(sensitivityIndex / 42).toFixed(1)} mg/dL / hr per unit</b>
+            <hr />
+          </>
+        )}
         {changeIsComplete
           ? `Current dosing cycle is complete`
           : `Current dosing cycle is not complete`}
