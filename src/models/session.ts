@@ -290,9 +290,11 @@ export default class Session extends Subscribable {
             1 &&
           window.insulin.variant.name === lastWindow.insulin.variant.name // the same kind of insulin
         ) {
+          lastWindow.snapshot.absorb(window.snapshot);
           lastWindow.insulin.value += window.insulin.value;
           lastWindow.finalBG = window.finalBG;
           lastWindow.glucose += window.glucose;
+          lastWindow.glucoses.push(...window.glucoses);
           lastWindow.glucoseEffect += window.glucoseEffect;
           lastWindow.length += window.length;
           lastWindow.optimalVariant = InsulinVariantManager.getOptimalVariant(
