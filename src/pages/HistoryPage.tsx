@@ -6,25 +6,27 @@ import type Session from "../models/session";
 import { WizardStore } from "../storage/wizardStore";
 import { useState } from "react";
 import { PrivateStore } from "../storage/privateStore";
+import { BasalStore } from "../storage/basalStore";
 
-function getCSV(templates: MealTemplate[]): string {
+function getCSV(templates: MealTemplate[], liverOutput: number): string {
   let out =
-    "Template Name,Date,Carbs,Protein,Total Insulin Taken,# Insulin Doses,Rescue Doses Taken,InitialBG,FinalBG,Control Score (lower is better),Optimal Standalone Meal Insulin,Invalid\n";
+    "Template Name,Date,Carbs,Protein,Total Insulin Taken,# Insulin Doses,Rescue Doses Taken,InitialBG,FinalBG,Control Score (lower is better),Optimal Standalone Meal Insulin,Fasting Velocity (mg/dL per hour),Basal Units per Day (u/day),Sensitivity Index,Invalid\n";
   for (let t of templates) {
     for (let s of t.sessions) {
-      out += `${t.name},${getFullPrettyDate(s.timestamp)},${s.carbs},${s.protein},${s.insulin},${s.insulins.length},${s.glucose},${s.initialGlucose},${s.finalBG},${s.score},${s.optimalMealInsulin},${s.isInvalid}\n`;
+      out += `${t.name},${getFullPrettyDate(s.timestamp)},${s.carbs},${s.protein},${s.insulin},${s.insulins.length},${s.glucose},${s.initialGlucose},${s.finalBG},${s.score},${s.optimalMealInsulin},${s.fastingVelocity},${s.dailyBasal},${s.getSensitivityIndex(liverOutput)},${s.isInvalid}\n`;
     }
   }
   return out;
 }
 export default function HistoryPage() {
+  const liverOutput = BasalStore.estimatedLiverOutput.value ?? 0;
   return (
     <>
       <div style={{ marginBottom: "2rem" }}>
         <Button
           variant="outline-primary"
           onClick={() => {
-            const csv = getCSV(WizardStore.templates.value);
+            const csv = getCSV(WizardStore.templates.value, liverOutput);
             const blob = new Blob([csv], { type: "text/csv" });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement("a");
@@ -52,6 +54,9 @@ export default function HistoryPage() {
                 <th>Glucose (g)</th>
                 <th>Score</th>
                 <th>Optimal Meal Insulin (u)</th>
+                <th>Fasting Velocity (mg/dL per hour)</th>
+                <th>Daily Basal (u/day) (u)</th>
+                <th>Sensitivity Index</th>
               </tr>
             </thead>
             {[...template.sessions].reverse().map((session: Session) => {
@@ -94,6 +99,11 @@ export default function HistoryPage() {
                     <td>{session.glucose}</td>
                     <td>{session.score.toFixed(0)}</td>
                     <td>{session.optimalMealInsulin.toFixed(1)}</td>
+                    <td>{session.fastingVelocity?.toFixed(1)}</td>
+                    <td>{session.dailyBasal?.toFixed(1)}</td>
+                    <td>
+                      {session.getSensitivityIndex(liverOutput)?.toFixed(1)}
+                    </td>
                     <td>
                       <ToggleButton
                         id={`toggle-check-${session.uuid}`}
