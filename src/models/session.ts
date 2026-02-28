@@ -20,6 +20,7 @@ import { InsulinVariantManager } from "../managers/insulinVariantManager";
 import type { RescueVariant } from "./types/rescueVariant";
 
 type TreatmentWindow = {
+  snapshot: Snapshot;
   initialBG: number;
   insulin: Insulin;
   optimalVariant: InsulinVariant;
@@ -253,6 +254,7 @@ export default class Session extends Subscribable {
         insulin.variant,
       );
       const window: TreatmentWindow = {
+        snapshot: snapshot,
         initialBG: snapshot.initialBG.sugar,
         insulin: Insulin.deserialize(Insulin.serialize(insulin)),
         optimalVariant: optimalVariant,
@@ -303,7 +305,7 @@ export default class Session extends Subscribable {
     return windows;
   }
   get optimalMealInsulins(): Insulin[] {
-    const windows = this.windows;
+    const windows: TreatmentWindow[] = this.windows;
     let resultInsulins: Insulin[] = [];
     for (let window of windows) {
       /**
