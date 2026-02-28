@@ -25,6 +25,7 @@ type TreatmentWindow = {
   insulin: Insulin;
   optimalVariant: InsulinVariant;
   glucose: number;
+  glucoses: Glucose[];
   glucoseEffect: number;
   finalBG: number;
   length: number;
@@ -261,6 +262,7 @@ export default class Session extends Subscribable {
         finalBG: snapshot.finalBG.sugar,
         length: snapshot.length,
         glucose: 0,
+        glucoses: [],
         glucoseEffect: 0,
       };
       // We account for glucose taken within the time frame and subtract it from the final sugar to see what it would be without any adjustment
@@ -273,6 +275,7 @@ export default class Session extends Subscribable {
           )
         ) {
           // If the glucose was taken during this window
+          window.glucoses.push(Glucose.deserialize(Glucose.serialize(glucose)));
           window.glucose += glucose.value;
           window.glucoseEffect += glucose.value * glucose.variant.effect;
         }
