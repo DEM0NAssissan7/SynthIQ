@@ -324,7 +324,7 @@ export default class Session extends Subscribable {
       const initialBG = window.initialBG;
       const finalBG = window.finalBG;
       const minBG = window.snapshot.minBG?.sugar ?? Infinity;
-      const minBGRange = 5; // mg/dL
+      const minBGRange = 10; // mg/dL
 
       /** Determine if there was a delayed rise and there was an overdose */
       if (
