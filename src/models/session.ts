@@ -519,7 +519,7 @@ export default class Session extends Subscribable {
       this.insulin <= 0 ||
       (this.completed ? this.length : this.getN(new Date())) <
         PreferencesStore.minSessionLength.value ||
-      this.glucose > PreferencesStore.maxSessionGlucose.value ||
+      this.glucoseEffect > this.insulinEffect * 0.3 ||
       this.activities.length !== 0
     );
   }
