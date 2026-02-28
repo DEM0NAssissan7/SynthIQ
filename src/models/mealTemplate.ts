@@ -84,7 +84,6 @@ export default class MealTemplate extends Subscribable implements Template {
   }
   get validSessions(): Session[] {
     const sessions = this.sessions.filter((s) => !s.isInvalid);
-    if (sessions.length === 0) return this.sessions; // Return invalid sessions if we have no valid ones
     return sessions;
   }
   get freshSessions(): Session[] {
