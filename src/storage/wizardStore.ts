@@ -17,13 +17,13 @@ export namespace WizardStore {
     "templates",
     [],
     Serialization.getArraySerializer(MealTemplate.serialize),
-    Serialization.getArrayDeserializer(MealTemplate.deserialize)
+    Serialization.getArrayDeserializer(MealTemplate.deserialize),
   );
   export const template = node.add<MealTemplate>(
     "currentTemplate",
     new MealTemplate(""),
     MealTemplate.serialize,
-    MealTemplate.deserialize
+    MealTemplate.deserialize,
   );
 
   // Page
@@ -31,7 +31,7 @@ export namespace WizardStore {
     "page",
     WizardPage.Select,
     serializeWizardPage,
-    deserializeWizardPage
+    deserializeWizardPage,
   );
 
   // State tracking for insulin page
@@ -42,7 +42,7 @@ export namespace WizardStore {
     "session",
     new Session(),
     Session.serialize,
-    Session.deserialize
+    Session.deserialize,
   );
   {
     const callback = () => session.write();
@@ -57,7 +57,7 @@ export namespace WizardStore {
     "meal",
     new Meal(new Date()),
     Meal.serialize,
-    Meal.deserialize
+    Meal.deserialize,
   );
   {
     const callback = () => {
