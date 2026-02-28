@@ -118,6 +118,7 @@ export default class MealTemplate extends Subscribable implements Template {
     if (this.isFirstTime) return null;
 
     let sessions = this.validSessions;
+    if (sessions.length === 0) return null;
 
     // K is the number of neighbors to select
     const K = Math.min(
