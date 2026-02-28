@@ -206,6 +206,11 @@ export default class Session extends Subscribable {
     const mealDeltaBG = totalDeltaBG + insulinDeltaBG - glucoseDeltaBG;
     return mealDeltaBG;
   }
+  get insulinEffect(): number {
+    let mgdl = 0;
+    this.insulins.forEach((i) => (mgdl += i.value * i.variant.effect));
+    return mgdl;
+  }
   get correctionInsulin(): number {
     if (this.insulins.length === 0) return 0;
     const initialBG = this.initialGlucose ?? PreferencesStore.targetBG.value;
