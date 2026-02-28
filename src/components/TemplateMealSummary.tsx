@@ -14,6 +14,7 @@ import { getFormattedTime, getFullPrettyDate } from "../lib/timing";
 import { InsulinVariantManager } from "../managers/insulinVariantManager";
 import { useNow } from "../state/useNow";
 import { PrivateStore } from "../storage/privateStore";
+import { BasalStore } from "../storage/basalStore";
 
 function getFactorDesc(num: number, unit: string, type: string) {
   if (round(num, 1) === 0) return "";
@@ -34,12 +35,14 @@ interface TemplateMealSummaryProps {
   meal: Meal;
   currentBG: number;
   fastingVelocity: number;
+  dailyBasal: number;
 }
 export default function TemplateMealSummary({
   template,
   meal,
   currentBG,
   fastingVelocity,
+  dailyBasal,
 }: TemplateMealSummaryProps) {
   const now = useNow();
   const time = meal.timestamp ?? now;
@@ -48,8 +51,10 @@ export default function TemplateMealSummary({
     meal.protein,
     time,
     fastingVelocity,
+    dailyBasal,
   );
   const defaultVariant = InsulinVariantManager.getDefault();
+  const liverOutput = BasalStore.estimatedLiverOutput.value;
   if (PrivateStore.debugLogs.value) console.log(session);
   const insulinCorrection = useMemo(
     () => getCorrectionInsulin(currentBG, defaultVariant),
@@ -78,6 +83,7 @@ export default function TemplateMealSummary({
       meal.protein,
       time,
       fastingVelocity,
+      dailyBasal,
     );
     // Fall back to profile
     if (!vectorizedInsulin || template.isFirstTime)
@@ -207,8 +213,12 @@ export default function TemplateMealSummary({
               {session.fastingVelocity && (
                 <>
                   <br />
-                  Fasting Velocity: {session.fastingVelocity > 0 ? "+" : ""}
-                  <b>{session.fastingVelocity.toFixed(0)}mg/dL</b> per hour
+                  Sensitivity Index:{" "}
+                  <b>
+                    {session.getSensitivityIndex(liverOutput ?? 0)?.toFixed(0)}
+                    mg/dL
+                  </b>{" "}
+                  per unit
                 </>
               )}
               <hr />

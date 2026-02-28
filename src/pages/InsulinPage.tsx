@@ -103,6 +103,7 @@ export default function InsulinPage() {
     meal.protein,
     session.timestamp,
     session.fastingVelocity ?? getFastingVelocity(),
+    session.dailyBasal ?? getDailyBasal(),
   ) ?? [new Insulin(suggestedInsulin, now, InsulinVariantManager.getDefault())];
   const shotIndex = session.insulins.length;
   const overshootInsulinOffset =

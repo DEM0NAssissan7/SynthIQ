@@ -7,7 +7,7 @@ import type MealTemplate from "../models/mealTemplate";
 import TemplateMealSummary from "./TemplateMealSummary";
 import { PreferencesStore } from "../storage/preferencesStore";
 import { useNow } from "../state/useNow";
-import { getFastingVelocity } from "../lib/basal";
+import { getDailyBasal, getFastingVelocity } from "../lib/basal";
 
 interface TemplateSummaryProps {
   template: MealTemplate;
@@ -27,9 +27,9 @@ export default function TemplateSummary({
       currentBG
         ? currentBG
         : session.initialGlucose
-        ? session.initialGlucose
-        : PreferencesStore.targetBG.value,
-    [currentBG, session]
+          ? session.initialGlucose
+          : PreferencesStore.targetBG.value,
+    [currentBG, session],
   );
 
   function getMinutesAgo(timestamp: Date) {
@@ -103,6 +103,7 @@ export default function TemplateSummary({
           meal={meal}
           currentBG={bloodSugar}
           fastingVelocity={session.fastingVelocity ?? getFastingVelocity()}
+          dailyBasal={session.dailyBasal ?? getDailyBasal()}
         />
       )}
       {session.meals.length > 0 && (

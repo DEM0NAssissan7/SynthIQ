@@ -1,7 +1,9 @@
+import { getBasalSensitivity } from "../lib/basal";
 import { sessionsWeightedAverage } from "../lib/templateHelpers";
 import { timeOfDayOffset } from "../lib/timing";
 import { clamp, MathUtil } from "../lib/util";
 import { InsulinVariantManager } from "../managers/insulinVariantManager";
+import { BasalStore } from "../storage/basalStore";
 import { CalibrationStore } from "../storage/calibrationStore";
 import { PreferencesStore } from "../storage/preferencesStore";
 import Insulin from "./events/insulin";
@@ -109,11 +111,12 @@ export default class MealTemplate extends Subscribable implements Template {
   }
 
   // Meal Vectorization
-  getClosestSessions(
+  vectorizer(
     carbs: number,
     protein: number,
     timestamp: Date,
     fastingVelocity: number,
+    dailyBasal: number,
   ): Session[] | null {
     if (this.isFirstTime) return null;
 
@@ -157,8 +160,18 @@ export default class MealTemplate extends Subscribable implements Template {
     const timeOfDayScale = getSafeScale(
       sessions.map((s) => Math.abs(timeOfDayOffset(timestamp, s.timestamp))),
     );
-    const fastingVelocityScale = getSafeScale(
-      sessions.map((s) => Math.abs(fastingVelocity - (s.fastingVelocity ?? 0))),
+    const estimatedLiverOutput = BasalStore.estimatedLiverOutput.value ?? 0;
+    const sensitivityIndex = getBasalSensitivity(
+      estimatedLiverOutput,
+      fastingVelocity,
+      dailyBasal,
+    ); // mg/dL per unit
+    const sensitivityIndexScale = getSafeScale(
+      sessions.map((s) =>
+        Math.abs(
+          sensitivityIndex - (s.getSensitivityIndex(estimatedLiverOutput) ?? 0),
+        ),
+      ),
     );
 
     // Get the closest X sessions
@@ -170,8 +183,9 @@ export default class MealTemplate extends Subscribable implements Template {
         ((carbs - s.carbs) / carbsScale) ** 2 +
           ((protein - s.protein) / proteinScale) ** 2 +
           (timeOfDayOffset(timestamp, s.timestamp) / timeOfDayScale) ** 2 + // Squared ecludian distance
-          ((fastingVelocity - (s.fastingVelocity ?? 0)) /
-            fastingVelocityScale) **
+          ((sensitivityIndex -
+            (s.getSensitivityIndex(estimatedLiverOutput) ?? 0)) /
+            sensitivityIndexScale) **
             2,
       ]);
     }
@@ -211,12 +225,14 @@ export default class MealTemplate extends Subscribable implements Template {
     protein: number,
     timestamp: Date,
     fastingVelocity: number,
+    dailyBasal: number,
   ): Session | null {
-    const closestSessions = this.getClosestSessions(
+    const closestSessions = this.vectorizer(
       carbs,
       protein,
       timestamp,
       fastingVelocity,
+      dailyBasal,
     );
     if (!closestSessions) return null;
     return closestSessions[0];
@@ -226,12 +242,14 @@ export default class MealTemplate extends Subscribable implements Template {
     protein: number,
     timestamp: Date,
     fastingVelocity: number,
+    dailyBasal: number,
   ): Session | null {
-    const closestSessions = this.getClosestSessions(
+    const closestSessions = this.vectorizer(
       carbs,
       protein,
       timestamp,
       fastingVelocity,
+      dailyBasal,
     );
     if (!closestSessions) return null;
     // Choose the most typically controlled session (to avoid outliars)
@@ -249,12 +267,14 @@ export default class MealTemplate extends Subscribable implements Template {
     protein: number,
     timeOfDay: Date,
     fastingVelocity: number,
+    dailyBasal: number,
   ): Insulin[] | null {
     const session = this.getOptimalSession(
       carbs,
       protein,
       timeOfDay,
       fastingVelocity,
+      dailyBasal,
     );
     if (!session) return null;
     if (session.insulins.length === 0) return null;
