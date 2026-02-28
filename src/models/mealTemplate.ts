@@ -259,7 +259,9 @@ export default class MealTemplate extends Subscribable implements Template {
     if (!session) return null;
     if (session.insulins.length === 0) return null;
 
-    const insulins = session.optimalMealInsulins;
+    let insulins = session.optimalMealInsulins.map(
+      (i) => new Insulin(i.value, i.timestamp, i.variant),
+    );
     const offsets = this.getInsulinOffsets(session, carbs, protein);
     for (let i = 0; i < insulins.length; i++) {
       insulins[i].value += offsets[i].value;
@@ -276,16 +278,18 @@ export default class MealTemplate extends Subscribable implements Template {
     return (carbsRise + proteinRise) / variant.effect;
   }
   getInsulinOffsets(session: Session, carbs: number, protein: number) {
-    const insulins = session.optimalMealInsulins;
+    const insulins = session.optimalMealInsulins.map(
+      (i) => new Insulin(0, i.timestamp, i.variant),
+    );
     const extraCarbsRise =
       (carbs - session.carbs) * CalibrationStore.carbsEffect.value;
-    insulins[0].value = extraCarbsRise / insulins[0].variant.effect; // Add extra carbs offset to first shot, as they typically only act on first shot timeframe
+    insulins[0].value += extraCarbsRise / insulins[0].variant.effect; // Add extra carbs offset to first shot, as they typically only act on first shot timeframe
 
     const extraProteinRisePerShot =
       ((protein - session.protein) / insulins.length) *
       CalibrationStore.proteinEffect.value;
     insulins.forEach(
-      (i) => (i.value = extraProteinRisePerShot / i.variant.effect),
+      (i) => (i.value += extraProteinRisePerShot / i.variant.effect),
     ); // Distribute protein between all shots
     return insulins;
   }
