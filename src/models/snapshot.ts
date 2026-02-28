@@ -87,7 +87,7 @@ export default class Snapshot extends Subscribable {
       throw new Error(`Cannot pull glucose readings: snapshot incomplete`);
     const remoteReadings = await RemoteReadings.getReadings(
       this.initialBG.timestamp,
-      this.finalBG.timestamp
+      this.finalBG.timestamp,
     );
     const rawReadings = remoteReadings.map((r) => getReadingFromNightscout(r));
     if (PrivateStore.debugLogs.value) console.log(rawReadings);
@@ -113,12 +113,12 @@ export default class Snapshot extends Subscribable {
 
   get minBG(): SugarReading | null {
     return this.isValid
-      ? this.valueSorted[Math.round(this.valueSorted.length * 0.1)] // Get the bottom 10%
+      ? this.valueSorted[Math.round(this.valueSorted.length * 0.05)] // Get the bottom 5%
       : null;
   }
   get peakBG(): SugarReading | null {
     return this.isValid
-      ? this.valueSorted[Math.floor(this.valueSorted.length * 0.9)] // Get the top 10%
+      ? this.valueSorted[Math.floor(this.valueSorted.length * 0.95)] // Get the top 5%
       : null;
   }
 
@@ -172,7 +172,9 @@ export default class Snapshot extends Subscribable {
 
     // Add IAD (integrated absolute deviation)
     deviations.push(
-      MathUtil.mean(this.readings.map((r) => adjustedDelta(r.sugar - targetBG)))
+      MathUtil.mean(
+        this.readings.map((r) => adjustedDelta(r.sugar - targetBG)),
+      ),
     );
     return deviations;
   }
@@ -195,7 +197,7 @@ export default class Snapshot extends Subscribable {
         const nextReading = readings[i + 1];
         jumps.push(
           reducePrecision(nextReading.timestamp.getTime()) -
-            reducePrecision(reading.timestamp.getTime())
+            reducePrecision(reading.timestamp.getTime()),
         );
       }
       timeJump = Math.round(MathUtil.mean(jumps));
@@ -208,7 +210,7 @@ export default class Snapshot extends Subscribable {
         const clone = new SugarReading(
           r.sugar,
           new Date(offsetMs),
-          r.isCalibration
+          r.isCalibration,
         );
         return SugarReading.serialize(clone);
       }),
@@ -224,10 +226,10 @@ export default class Snapshot extends Subscribable {
       (s: string, i: number) => {
         const reading = SugarReading.deserialize(s);
         reading.timestamp = new Date(
-          reading.timestamp.getTime() + baseTime + timeJump * i
+          reading.timestamp.getTime() + baseTime + timeJump * i,
         ); // Bring forward by basetime
         return reading;
-      }
+      },
     );
     readings.forEach((r) => snapshot.addReading(r, false));
     return snapshot;
