@@ -10,26 +10,30 @@ export namespace BasalStore {
     "doses",
     [],
     Serialization.getArraySerializer(Insulin.serialize),
-    Serialization.getArrayDeserializer(Insulin.deserialize)
+    Serialization.getArrayDeserializer(Insulin.deserialize),
   );
   export const fastingVelocitiesCache = node.add<number[]>(
     "fastingVelocitiesCache",
-    []
+    [],
   );
   export const fastingVelocitiesCacheLastUpdated = node.add<Date>(
     "fastingVelocitiesCacheLastUpdated",
-    new Date("")
+    new Date(""),
   );
   export const fastingGlucosesCache = node.add<Glucose[]>(
     "fastingGlucosesCache",
     [],
     Serialization.getArraySerializer(Glucose.serialize),
-    Serialization.getArrayDeserializer(Glucose.deserialize)
+    Serialization.getArrayDeserializer(Glucose.deserialize),
   );
   export const minTimeSinceMeal = node.add<number>("minTimeSinceMeal", 6);
   export const lastRecommendation = node.add<any[]>("lastRecommendation", []);
   export const shotsSinceLastChange = node.add<number>(
     "shotsSinceLastChange",
-    0
+    0,
+  );
+  export const estimatedLiverOutput = node.add<number | null>(
+    "estimatedLiverOutput",
+    null,
   );
 }

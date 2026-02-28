@@ -3,6 +3,7 @@ import { RescueVariantManager } from "../managers/rescueVariantManager";
 import WizardManager from "../managers/wizardManager";
 import Glucose from "../models/events/glucose";
 import Insulin from "../models/events/insulin";
+import type Session from "../models/session";
 import SugarReading, {
   getReadingFromNightscout,
 } from "../models/types/sugarReading";
@@ -32,7 +33,7 @@ export async function isFastingState(timestamp: Date) {
     const treatments = await RemoteTreatments.getTreatmentByType(
       eventType,
       timestampA,
-      timestamp
+      timestamp,
     );
     return treatments.length !== 0;
   }
@@ -44,7 +45,7 @@ export async function isFastingState(timestamp: Date) {
 
 function getNonFastingWindows(
   treatments: any[],
-  ignoreGlucose: boolean = false
+  ignoreGlucose: boolean = false,
 ): [Date, Date][] {
   const minTimeSinceMeal = BasalStore.minTimeSinceMeal.value;
 
@@ -81,10 +82,10 @@ function getSessionWindows(): [Date, Date][] {
   const hours = basalInsulinVariant.duration;
   let sessions = WizardManager.getAllSessions();
   sessions.sort(
-    (a: any, b: any) => b.timestamp.getTime() - a.timestamp.getTime()
+    (a: any, b: any) => b.timestamp.getTime() - a.timestamp.getTime(),
   );
   sessions = sessions.filter(
-    (s) => s.age * convertDimensions(Unit.Time.Day, Unit.Time.Hour) <= hours
+    (s) => s.age * convertDimensions(Unit.Time.Day, Unit.Time.Hour) <= hours,
   );
   return sessions.map((s) => [s.timestamp, s.endTimestamp ?? new Date()]);
 }
@@ -98,7 +99,7 @@ function isFasting(timestamp: Date, nonFasting: [Date, Date][]): boolean {
 }
 function getFastingVelocities(
   treatments: any[],
-  readings: SugarReading[]
+  readings: SugarReading[],
 ): number[] {
   let nonFasting = getNonFastingWindows(treatments); // A set of date pairs to describe when we are not fasting
 
@@ -129,8 +130,8 @@ function getFastingGlucoses(treatments: any[]): Glucose[] {
         new Glucose(
           a.carbs,
           new Date(a.created_at),
-          RescueVariantManager.getVariant(a.variant)
-        )
+          RescueVariantManager.getVariant(a.variant),
+        ),
       );
     }
   });
@@ -145,17 +146,22 @@ export async function populateFastingVelocitiesCache() {
   const timestampB = now;
   const treatments: any[] = await RemoteTreatments.getTreatments(
     timestampA,
-    now
+    now,
   );
   const rawReadings = await RemoteReadings.getReadings(timestampA, timestampB);
   const readings = rawReadings.map((a: any) => getReadingFromNightscout(a));
   BasalStore.fastingVelocitiesCache.value = getFastingVelocities(
     treatments,
-    readings
+    readings,
   );
   BasalStore.fastingGlucosesCache.value = getFastingGlucoses(treatments);
   if (PrivateStore.debugLogs.value)
     console.log(BasalStore.fastingGlucosesCache.value);
+
+  // Update global liver output prediction
+  BasalStore.estimatedLiverOutput.value = estimateLiverOutput(
+    WizardManager.getAllSessions(),
+  );
 }
 
 export function getFastingVelocity() {
@@ -167,13 +173,13 @@ export function getFastingVelocity() {
   const fastingGlucoses = BasalStore.fastingGlucosesCache.value;
   let totalFastingGlucoseEffect = 0;
   fastingGlucoses.forEach(
-    (g) => (totalFastingGlucoseEffect += (g.value ?? 0) * g.variant.effect)
+    (g) => (totalFastingGlucoseEffect += (g.value ?? 0) * g.variant.effect),
   );
   if (PrivateStore.debugLogs.value)
     console.log(
       averageVelocity,
       totalFastingGlucoseEffect / hours,
-      fastingGlucoses
+      fastingGlucoses,
     );
   return averageVelocity - totalFastingGlucoseEffect / hours;
 }
@@ -279,4 +285,105 @@ export function getRecommendedBasal(): number {
   } else {
     return getLastRecommendation() > 0 ? getLastRecommendation() : lastShot;
   }
+}
+type LiverModel = {
+  L: number; // mg/dL per hour (intercept when B=0)
+  S: number; // mg/dL per U (sensitivity)
+  slope: number; // b in V = a + b*B_hr (so S = -b)
+  n: number; // number of points used
+};
+
+/**
+ * Robustly estimate the linear model:
+ *   V = L - S * B_hr
+ * where B_hr = (dailyBasal / 24).
+ *
+ * Uses a Theil–Sen style estimator:
+ *   slope b = median of pairwise slopes in V vs B_hr
+ *   intercept a = median of (V_i - b*B_i)
+ *
+ * Returns {L, S, ...} or null if not enough data.
+ */
+export function estimateLiverModel(
+  sessions: Session[],
+  minBasalDiffPerDay: number = 1, // bump default for stability
+  requireNonNegativeS: boolean = true,
+): LiverModel | null {
+  // ---- Filter + convert ----
+  const pts = sessions
+    .filter(
+      (s) =>
+        !s.isInvalid &&
+        s.fastingVelocity != null &&
+        s.dailyBasal != null &&
+        Number.isFinite(s.fastingVelocity) &&
+        Number.isFinite(s.dailyBasal) &&
+        s.dailyBasal > 0,
+    )
+    .map((s) => ({
+      V: s.fastingVelocity as number,
+      Bhr: (s.dailyBasal as number) / 24.0,
+    }));
+
+  if (pts.length < 2) return null;
+
+  const minDiffHr = minBasalDiffPerDay / 24.0;
+
+  // ---- Step 1: robust slope b from pairwise slopes ----
+  const slopes: number[] = [];
+  for (let i = 0; i < pts.length; i++) {
+    for (let j = i + 1; j < pts.length; j++) {
+      const dB = pts[j].Bhr - pts[i].Bhr;
+      if (Math.abs(dB) < minDiffHr) continue;
+
+      const dV = pts[j].V - pts[i].V;
+      const b = dV / dB; // slope in V vs B_hr
+      if (Number.isFinite(b)) slopes.push(b);
+    }
+  }
+
+  const bMed = MathUtil.median(slopes);
+  if (bMed == null) return null;
+
+  // ---- Step 2: robust intercept a from per-point intercepts ----
+  const intercepts = pts.map((p) => p.V - bMed * p.Bhr);
+  let aMed = MathUtil.median(intercepts);
+  if (aMed == null) return null;
+
+  // Convert to your parameters:
+  // V = a + b*Bhr  =>  L = a,  S = -b
+  let L = aMed;
+  let S = -bMed;
+
+  // Optional: enforce physiology constraint S >= 0 without biasing slope selection
+  if (requireNonNegativeS && S < 0) {
+    // If the estimated relationship says more basal increases V (weird),
+    // clamp S to 0 and set L to robust median of V (since V ≈ L when S=0).
+    S = 0;
+    const Vmed = MathUtil.median(pts.map((p) => p.V));
+    if (Vmed == null) return null;
+    L = Vmed;
+  }
+
+  return { L, S, slope: bMed, n: pts.length };
+}
+
+/**
+ * Backwards-compatible function if you only want L.
+ */
+export function estimateLiverOutput(
+  sessions: Session[],
+  minBasalDiffPerDay: number = 1,
+): number | null {
+  const model = estimateLiverModel(sessions, minBasalDiffPerDay, true);
+  return model ? model.L : null;
+}
+
+export function getBasalSensitivity(
+  liverOutputPerHour: number,
+  fastingVelocityPerHour: number,
+  basalUnitsPerDay: number,
+) {
+  const basalUnitsPerHour = basalUnitsPerDay / 24;
+  return (liverOutputPerHour - fastingVelocityPerHour) / basalUnitsPerHour; // mg/dL per U
 }
