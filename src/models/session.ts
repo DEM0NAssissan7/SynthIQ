@@ -18,6 +18,7 @@ import Activity from "./events/activity";
 import type { InsulinVariant } from "./types/insulinVariant";
 import { InsulinVariantManager } from "../managers/insulinVariantManager";
 import type { RescueVariant } from "./types/rescueVariant";
+import { getBasalSensitivity } from "../lib/basal";
 
 type TreatmentWindow = {
   snapshot: Snapshot;
@@ -563,6 +564,14 @@ export default class Session extends Subscribable {
     if (!this.endTimestamp)
       throw new Error(`Cannot get fasting rise: no end timestamp`);
     return this.fastingVelocity ? this.fastingVelocity * this.length : 0;
+  }
+  getSensitivityIndex(liverOutput: number) {
+    if (!this.fastingVelocity || !this.dailyBasal) return null;
+    return getBasalSensitivity(
+      liverOutput,
+      this.fastingVelocity,
+      this.dailyBasal,
+    );
   }
 
   // Glucose statistics stuff
