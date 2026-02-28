@@ -184,21 +184,19 @@ export default class MealTemplate extends Subscribable implements Template {
 
     // Eliminate outliers
     const kept: Session[] = [];
-    const medianOptimalInsulin = MathUtil.median(
-      nearSessions.map((s) => s.optimalMealInsulin),
+    const medianMealInsulin = MathUtil.median(
+      nearSessions.map((s) => s.mealInsulin),
     );
-    const optimalInsulinMAD = getSafeScale(
-      nearSessions.map((s) =>
-        Math.abs(s.optimalMealInsulin - medianOptimalInsulin),
-      ),
+    const mealInsulinMAD = getSafeScale(
+      nearSessions.map((s) => Math.abs(s.mealInsulin - medianMealInsulin)),
     );
 
     const TAU = 1.5; // or 2.0 if you want looser
-    const cutoff = TAU * optimalInsulinMAD;
+    const cutoff = TAU * mealInsulinMAD;
     for (let i = 0; i < nearSessions.length; i++) {
       const s = nearSessions[i];
       // Get rid of outliers
-      if (Math.abs(s.optimalMealInsulin - medianOptimalInsulin) <= cutoff) {
+      if (Math.abs(s.mealInsulin - medianMealInsulin) <= cutoff) {
         kept.push(s);
         continue;
       }
