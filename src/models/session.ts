@@ -310,33 +310,61 @@ export default class Session extends Subscribable {
   get optimalMealInsulins(): Insulin[] {
     const windows: TreatmentWindow[] = this.windows;
     let resultInsulins: Insulin[] = [];
+    const defaultInsulinVariant = InsulinVariantManager.getDefault();
     for (let window of windows) {
-      /**
-       * Now that we have a list of the theoretical finalBGs, we can adjust each on to try and get a zero-change scenario
-       */
       const insulin = Insulin.deserialize(Insulin.serialize(window.insulin));
       const glucoseRise = window.glucoseEffect;
-      const theoreticalFinalBG = window.finalBG - glucoseRise; // Avoid blaming rescues for a rise in BG. Also avoid blaming basal insulin
+      const initialBG = window.initialBG;
+      const finalBG = window.finalBG;
+
+      /** Determine if there was a delayed rise and there was an overdose */
+      if (
+        (finalBG > initialBG || finalBG > PreferencesStore.highBG.value) &&
+        glucoseRise > 0
+      ) {
+        // This assumes that the glucose taken to correct for lows was the correct amount and did not lead to BG too high
+        const overdoseAmount = glucoseRise / insulin.variant.effect;
+
+        // We correct for whatever overdose happened in that window
+        resultInsulins.push(
+          new Insulin(
+            insulin.value - overdoseAmount,
+            insulin.timestamp,
+            insulin.variant,
+          ),
+        );
+
+        // Now, we make a new dose for that delayed rise assuming that glucose taken was correct and
+        // the last glucose taken marks the beginning of the rise
+        const delayedRise = finalBG - PreferencesStore.targetBG.value;
+        const delayedRiseInsulin = delayedRise / defaultInsulinVariant.effect;
+        const lastGlucoseTimestamp =
+          window.glucoses[window.glucoses.length - 1].timestamp;
+        resultInsulins.push(
+          new Insulin(
+            delayedRiseInsulin,
+            lastGlucoseTimestamp,
+            defaultInsulinVariant,
+          ),
+        );
+        continue;
+      }
+
+      /**
+       * In the case of a normal overdose/underdose
+       * */
+      const theoreticalFinalBG = window.finalBG - glucoseRise; // Avoid blaming rescues for a rise in BG
       const deltaBG = theoreticalFinalBG - window.initialBG; // Try to keep things as flat as possible
 
       const correction = deltaBG / insulin.variant.effect;
-      insulin.value += correction;
-      resultInsulins.push(insulin);
-
-      /**
-       * And we can also conclude things about the timing as well
-       * We can conclude things based on the curve
-       */
+      resultInsulins.push(
+        new Insulin(
+          insulin.value + correction,
+          insulin.timestamp,
+          insulin.variant,
+        ),
+      );
     }
-
-    // for (let window of windows) {
-    //   continue;
-    //   const ISFScale = insulin.variant.effect / window.optimalVariant.effect; // Scale the window's insulin by the ratio between our current ISF and the ISF when the meal was eaten
-    //   insulin.variant = window.optimalVariant;
-    //   insulin.value = insulin.value * ISFScale;
-    //   resultInsulins.push(insulin);
-    // }
-
     return resultInsulins;
   }
 
