@@ -323,10 +323,13 @@ export default class Session extends Subscribable {
       const glucoseRise = window.glucoseEffect;
       const initialBG = window.initialBG;
       const finalBG = window.finalBG;
+      const minBG = window.snapshot.minBG?.sugar ?? Infinity;
+      const minBGRange = 5; // mg/dL
 
       /** Determine if there was a delayed rise and there was an overdose */
       if (
         (finalBG > initialBG || finalBG > PreferencesStore.highBG.value) &&
+        minBG < PreferencesStore.lowBG.value + minBGRange &&
         glucoseRise > 0
       ) {
         // This assumes that the glucose taken to correct for lows was the correct amount and did not lead to BG too high
