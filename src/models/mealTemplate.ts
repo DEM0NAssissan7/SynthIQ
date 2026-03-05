@@ -47,7 +47,7 @@ export default class MealTemplate extends Subscribable implements Template {
   get bestSession(): Session {
     if (this.sessions.length === 0)
       throw new Error(`There are no sessions in this template!`);
-    const sessions = this.freshSessions;
+    const sessions = this.freshOrValidSessions;
     let session: Session | null = null;
     sessions.forEach((s) => {
       if (!session) {
@@ -63,16 +63,15 @@ export default class MealTemplate extends Subscribable implements Template {
     return session;
   }
   get typicalSession(): Session {
-    const allSessions = this.validSessions;
     if (this.sessions.length === 0)
       throw new Error(`There are no sessions in this template!`);
-    let typicalCarbs = MathUtil.mode(allSessions.map(s => s.carbs));
-    let typicalProtein = MathUtil.mode(allSessions.map(s => s.protein));
-    let typicalNumFoods = MathUtil.mode(allSessions.map(s => s.firstMeal.foods.length));
+    const sessions = this.validSessions;
+    let typicalCarbs = MathUtil.mode(sessions.map(s => s.carbs));
+    let typicalProtein = MathUtil.mode(sessions.map(s => s.protein));
+    let typicalNumFoods = MathUtil.mode(sessions.map(s => s.firstMeal.foods.length));
 
     let typicalSessions: Session[] = [];
     let minDeviation = Infinity;
-    const sessions = this.freshSessions;
     sessions.forEach((s) => {
       // Ecludian distance
       const deviation = (s.carbs - typicalCarbs) ** 2 + (s.protein - typicalProtein) ** 2 + (typicalNumFoods - s.firstMeal.foods.length) ** 2;
@@ -93,7 +92,7 @@ export default class MealTemplate extends Subscribable implements Template {
   get recommendedSession(): Session {
     if (this.sessions.length === 0)
       throw new Error(`There are no sessions in this template!`);
-    const sessions = this.freshSessions.filter((s) => s.age < 5); // All sessions within the last 5 days
+    const sessions = this.validSessions.filter((s) => s.age < 5); // All sessions within the last 5 days
     if(!sessions.length) return this.typicalSession;
     let bestSession: Session | null = null;
     let minScore = Infinity;
@@ -135,8 +134,16 @@ export default class MealTemplate extends Subscribable implements Template {
   }
   get freshSessions(): Session[] {
     const sessions = this.validSessions.filter((s) => !s.expired);
-    if (sessions.length === 0) return this.validSessions; // Return invalid sessions if we have no valid ones
     return sessions;
+  }
+  get expiredSessions(): Session[] {
+    const sessions = this.validSessions.filter((s) => s.expired);
+    return sessions;
+  }
+  get freshOrValidSessions(): Session[] {
+    const freshSessions = this.freshSessions;
+    if (freshSessions.length === 0) return this.validSessions;
+    return freshSessions;
   }
 
   // Dosing info
@@ -164,9 +171,10 @@ export default class MealTemplate extends Subscribable implements Template {
     dailyBasal: number,
   ): Session[] | null {
     if (this.isFirstTime) return null;
+    const validSessions = this.validSessions;
+    if (validSessions.length === 0) return null; // Do not vectorize if we don't have any valid sessions
 
-    let sessions = this.validSessions;
-    if (sessions.length === 0) return null;
+    let sessions = this.freshSessions;
 
     // K is the number of neighbors to select
     const K = Math.min(
@@ -175,8 +183,7 @@ export default class MealTemplate extends Subscribable implements Template {
     ); // Adaptive number of desired sessions based on number of valid sessions
 
     // Discard expired sessions unless we don't have enough to fulfill K
-    const expiredSessions = sessions
-      .filter((s) => s.expired)
+    const expiredSessions = this.expiredSessions
       .slice()
       .sort((a, b) => a.age - b.age); // Sort by age to pull the newest ones first
     sessions = sessions.filter((s) => !s.expired); // Filter out expired sessions
