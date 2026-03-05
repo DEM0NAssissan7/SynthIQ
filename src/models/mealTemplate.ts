@@ -62,6 +62,51 @@ export default class MealTemplate extends Subscribable implements Template {
       throw new Error(`Cannot retrieve best session: unknown error`);
     return session;
   }
+  get typicalSession(): Session {
+    const allSessions = this.validSessions;
+    if (this.sessions.length === 0)
+      throw new Error(`There are no sessions in this template!`);
+    let typicalCarbs = MathUtil.mode(allSessions.map(s => s.carbs));
+    let typicalProtein = MathUtil.mode(allSessions.map(s => s.protein));
+    let typicalNumFoods = MathUtil.mode(allSessions.map(s => s.firstMeal.foods.length));
+
+    let typicalSessions: Session[] = [];
+    let minDeviation = Infinity;
+    const sessions = this.freshSessions;
+    sessions.forEach((s) => {
+      // Ecludian distance
+      const deviation = (s.carbs - typicalCarbs) ** 2 + (s.protein - typicalProtein) ** 2 + (typicalNumFoods - s.firstMeal.foods.length) ** 2;
+      if(deviation < minDeviation) {
+        typicalSessions = [];
+        minDeviation = deviation;
+      }
+      if(deviation === minDeviation) {
+        typicalSessions.push(s);
+      }
+    })
+    if(typicalSessions.length === 0)
+      throw new Error(`Unknown error.`)
+    // Among the most typical, yeild the most well-controlled
+    typicalSessions.sort((a, b) => a.score - b.score);
+    return typicalSessions[0];
+  }
+  get recommendedSession(): Session {
+    if (this.sessions.length === 0)
+      throw new Error(`There are no sessions in this template!`);
+    const sessions = this.freshSessions.filter((s) => s.age < 5); // All sessions within the last 5 days
+    if(!sessions.length) return this.typicalSession;
+    let bestSession: Session | null = null;
+    let minScore = Infinity;
+    sessions.forEach((s) => {
+      const score = s.score; // Cache score in a variable to prevent running the getter again
+      if(score < minScore) {
+        minScore = score;
+        bestSession = s;
+      }
+    })
+    if(!bestSession) throw new Error(`Unknown error.`);
+    return bestSession;
+  }
 
   // Nutrition Information
   get carbs(): number {
