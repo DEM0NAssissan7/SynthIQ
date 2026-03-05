@@ -23,6 +23,9 @@ export default function SessionSelection({
             {session.age.toFixed(0)} days ago
             <br />
             Score: {session.score.toFixed(0)}
+            <br />
+            {session.insulin}u taken ({session.optimalMealInsulin.toFixed(0)}u
+            optimal)
             <hr />
           </span>
           {session.firstMeal.addedFoods.map((f) => (
