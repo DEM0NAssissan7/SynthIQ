@@ -15,6 +15,7 @@ import { InsulinVariantManager } from "../managers/insulinVariantManager";
 import { useNow } from "../state/useNow";
 import { PrivateStore } from "../storage/privateStore";
 import { BasalStore } from "../storage/basalStore";
+import { WizardStore } from "../storage/wizardStore";
 
 function getFactorDesc(num: number, unit: string, type: string) {
   if (round(num, 1) === 0) return "";
@@ -34,25 +35,14 @@ interface TemplateMealSummaryProps {
   template: MealTemplate;
   meal: Meal;
   currentBG: number;
-  fastingVelocity: number;
-  dailyBasal: number;
 }
 export default function TemplateMealSummary({
   template,
   meal,
   currentBG,
-  fastingVelocity,
-  dailyBasal,
 }: TemplateMealSummaryProps) {
   const now = useNow();
-  const time = meal.timestamp ?? now;
-  const session = template.getOptimalSession(
-    meal.carbs,
-    meal.protein,
-    time,
-    fastingVelocity,
-    dailyBasal,
-  );
+  const session = WizardStore.baseSession.value;
   const defaultVariant = InsulinVariantManager.getDefault();
   const liverOutput = BasalStore.estimatedLiverOutput.value;
   if (PrivateStore.debugLogs.value) console.log(session);
@@ -81,9 +71,7 @@ export default function TemplateMealSummary({
     const vectorizedInsulin = template.vectorizeInsulin(
       meal.carbs,
       meal.protein,
-      time,
-      fastingVelocity,
-      dailyBasal,
+      session,
     );
     // Fall back to profile
     if (!vectorizedInsulin || template.isFirstTime)

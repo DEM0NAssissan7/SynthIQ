@@ -65,26 +65,30 @@ export default class MealTemplate extends Subscribable implements Template {
   get typicalSession(): Session {
     if (this.sessions.length === 0)
       throw new Error(`There are no sessions in this template!`);
-    const sessions = this.validSessions;
-    let typicalCarbs = MathUtil.mode(sessions.map(s => s.carbs));
-    let typicalProtein = MathUtil.mode(sessions.map(s => s.protein));
-    let typicalNumFoods = MathUtil.mode(sessions.map(s => s.firstMeal.foods.length));
+    const validSessions = this.validSessions;
+    let typicalCarbs = MathUtil.mode(validSessions.map((s) => s.carbs));
+    let typicalProtein = MathUtil.mode(validSessions.map((s) => s.protein));
+    let typicalNumFoods = MathUtil.mode(
+      validSessions.map((s) => s.firstMeal.foods.length),
+    );
 
     let typicalSessions: Session[] = [];
     let minDeviation = Infinity;
-    sessions.forEach((s) => {
+    this.freshOrValidSessions.forEach((s) => {
       // Ecludian distance
-      const deviation = (s.carbs - typicalCarbs) ** 2 + (s.protein - typicalProtein) ** 2 + (typicalNumFoods - s.firstMeal.foods.length) ** 2;
-      if(deviation < minDeviation) {
+      const deviation =
+        (s.carbs - typicalCarbs) ** 2 +
+        (s.protein - typicalProtein) ** 2 +
+        (typicalNumFoods - s.firstMeal.foods.length) ** 2;
+      if (deviation < minDeviation) {
         typicalSessions = [];
         minDeviation = deviation;
       }
-      if(deviation === minDeviation) {
+      if (deviation === minDeviation) {
         typicalSessions.push(s);
       }
-    })
-    if(typicalSessions.length === 0)
-      throw new Error(`Unknown error.`)
+    });
+    if (typicalSessions.length === 0) throw new Error(`Unknown error.`);
     // Among the most typical, yeild the most well-controlled
     typicalSessions.sort((a, b) => a.score - b.score);
     return typicalSessions[0];
@@ -93,17 +97,17 @@ export default class MealTemplate extends Subscribable implements Template {
     if (this.sessions.length === 0)
       throw new Error(`There are no sessions in this template!`);
     const sessions = this.validSessions.filter((s) => s.age < 5); // All sessions within the last 5 days
-    if(!sessions.length) return this.typicalSession;
+    if (!sessions.length) return this.typicalSession;
     let bestSession: Session | null = null;
     let minScore = Infinity;
     sessions.forEach((s) => {
       const score = s.score; // Cache score in a variable to prevent running the getter again
-      if(score < minScore) {
+      if (score < minScore) {
         minScore = score;
         bestSession = s;
       }
-    })
-    if(!bestSession) throw new Error(`Unknown error.`);
+    });
+    if (!bestSession) throw new Error(`Unknown error.`);
     return bestSession;
   }
 
@@ -164,8 +168,6 @@ export default class MealTemplate extends Subscribable implements Template {
 
   // Meal Vectorization
   vectorizer(
-    carbs: number,
-    protein: number,
     timestamp: Date,
     fastingVelocity: number,
     dailyBasal: number,
@@ -203,12 +205,6 @@ export default class MealTemplate extends Subscribable implements Template {
     };
 
     // Query-centered per-axis scales = median/mean absolute differences (safe-guarded)
-    const carbsScale = getSafeScale(
-      sessions.map((s) => Math.abs(carbs - s.carbs)),
-    );
-    const proteinScale = getSafeScale(
-      sessions.map((s) => Math.abs(protein - s.protein)),
-    );
     const timeOfDayScale = getSafeScale(
       sessions.map((s) => Math.abs(timeOfDayOffset(timestamp, s.timestamp))),
     );
@@ -232,9 +228,7 @@ export default class MealTemplate extends Subscribable implements Template {
       if (!s.initialGlucose) continue;
       sessionDistances.push([
         s,
-        ((carbs - s.carbs) / carbsScale) ** 2 +
-          ((protein - s.protein) / proteinScale) ** 2 +
-          (timeOfDayOffset(timestamp, s.timestamp) / timeOfDayScale) ** 2 + // Squared ecludian distance
+        (timeOfDayOffset(timestamp, s.timestamp) / timeOfDayScale) ** 2 + // Squared ecludian distance
           ((sensitivityIndex -
             (s.getSensitivityIndex(estimatedLiverOutput) ?? 0)) /
             sensitivityIndexScale) **
@@ -273,15 +267,11 @@ export default class MealTemplate extends Subscribable implements Template {
     return result.sort((a, b) => a.age - b.age);
   }
   getClosestSession(
-    carbs: number,
-    protein: number,
     timestamp: Date,
     fastingVelocity: number,
     dailyBasal: number,
   ): Session | null {
     const closestSessions = this.vectorizer(
-      carbs,
-      protein,
       timestamp,
       fastingVelocity,
       dailyBasal,
@@ -290,15 +280,11 @@ export default class MealTemplate extends Subscribable implements Template {
     return closestSessions[0];
   }
   getOptimalSession(
-    carbs: number,
-    protein: number,
     timestamp: Date,
     fastingVelocity: number,
     dailyBasal: number,
   ): Session | null {
     const closestSessions = this.vectorizer(
-      carbs,
-      protein,
       timestamp,
       fastingVelocity,
       dailyBasal,
@@ -317,20 +303,17 @@ export default class MealTemplate extends Subscribable implements Template {
   vectorizeInsulin(
     carbs: number,
     protein: number,
-    timeOfDay: Date,
-    fastingVelocity: number,
-    dailyBasal: number,
-  ): Insulin[] | null {
-    const session = this.getOptimalSession(
-      carbs,
-      protein,
-      timeOfDay,
-      fastingVelocity,
-      dailyBasal,
-    );
-    if (!session) return null;
-    if (session.insulins.length === 0) return null;
-
+    session: Session | null,
+  ): Insulin[] {
+    if (!session) {
+      const defaultVariant = InsulinVariantManager.getDefault();
+      const profileInsulin = this.getProfileInsulin(
+        carbs,
+        protein,
+        defaultVariant,
+      );
+      return [new Insulin(profileInsulin, new Date(), defaultVariant)];
+    }
     let insulins = session.optimalMealInsulins.map(
       (i) => new Insulin(i.value, i.timestamp, i.variant),
     );

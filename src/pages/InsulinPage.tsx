@@ -15,7 +15,6 @@ import { WizardPage } from "../models/types/wizardPage";
 import { PreferencesStore } from "../storage/preferencesStore";
 import { InsulinVariantManager } from "../managers/insulinVariantManager";
 import { NumberOptionSelector } from "../components/NumberOptionSelector";
-import Insulin from "../models/events/insulin";
 import { useNow } from "../state/useNow";
 import { TreatmentManager } from "../managers/treatmentManager";
 import InsulinVariantDropdown from "../components/InsulinVariantDropdown";
@@ -25,6 +24,7 @@ import LastBolusMessage from "../components/LastBolusMessage";
 export default function InsulinPage() {
   const navigate = useNavigate();
   const [session] = WizardStore.session.useState();
+  const [baseSession] = WizardStore.baseSession.useState();
   const [isBolus, setIsBolus] = WizardStore.isBolus.useState();
 
   const isFirstPostMealInjection = useMemo(
@@ -39,12 +39,6 @@ export default function InsulinPage() {
   const meal = session.mealMarked ? session.latestMeal : WizardStore.meal.value;
   const [template] = WizardStore.template.useState();
   const [variant, setVariant] = useState(InsulinVariantManager.getDefault());
-
-  const suggestedInsulin = template.getProfileInsulin(
-    meal.carbs,
-    meal.protein,
-    variant,
-  );
 
   // Inputted Insulin
   const [insulinTaken, setInsulinTaken] = useState(0);
@@ -101,10 +95,8 @@ export default function InsulinPage() {
   const vectorizedInsulins = template.vectorizeInsulin(
     meal.carbs,
     meal.protein,
-    session.timestamp,
-    session.fastingVelocity ?? getFastingVelocity(),
-    session.dailyBasal ?? getDailyBasal(),
-  ) ?? [new Insulin(suggestedInsulin, now, InsulinVariantManager.getDefault())];
+    baseSession
+  );
   const shotIndex = session.insulins.length;
   const overshootInsulinOffset =
     shotIndex < vectorizedInsulins.length
