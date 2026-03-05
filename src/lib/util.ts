@@ -58,8 +58,8 @@ export class MathUtil {
     if (sortedArray.length % 2 !== 0) return sortedArray[mid];
     else return (sortedArray[mid - 1] + sortedArray[mid]) / 2;
   }
-  static mode(data: number[]): number | null {
-    if (data.length === 0) return null;
+  static mode(data: number[]): number {
+    if (data.length === 0) return 0;
 
     const frequency: { [key: number]: number } = {};
     data.forEach((a) => {
@@ -71,7 +71,7 @@ export class MathUtil {
 
     // Check if all values appear the same number of times
     const allSame = freqs.every((f) => f === maxFreq);
-    if (allSame) return null;
+    if (allSame) return data[0]; // If they are all the same, just return something
 
     let mode = Number(Object.keys(frequency)[0]);
     for (const key in frequency) {
