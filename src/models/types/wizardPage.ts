@@ -3,6 +3,7 @@ import type { Deserializer, Serializer } from "./types";
 export enum WizardPage {
   Intro,
   Select,
+  SelectSession,
   Hub,
   Meal,
   Insulin,
@@ -14,6 +15,7 @@ type StateNameKey = [WizardPage, string];
 const stateNames: StateNameKey[] = [
   [WizardPage.Intro, "intro"],
   [WizardPage.Select, "select"],
+  [WizardPage.SelectSession, "selectsession"],
   [WizardPage.Hub, "hub"],
   [WizardPage.Meal, "meal"],
   [WizardPage.Insulin, "insulin"],

@@ -118,18 +118,18 @@ export default class WizardManager {
     template.addSession(session);
     WizardStore.template.write();
   }
+  static selectSession(session: Session) {
+    WizardStore.meal.value = Meal.deserialize(
+      Meal.serialize(session.firstMeal),
+    );
+  }
   static selectTemplate(name: string) {
     // Select template to be used for all operations
     const template = this.getTemplateByName(name);
     WizardStore.template.value = template;
-    if (!template.isFirstTime) {
-      WizardStore.meal.value = Meal.deserialize(
-        Meal.serialize(template.bestSession.firstMeal),
-      );
-    } else {
-      WizardStore.meal.value = new Meal(new Date());
-    }
+    WizardStore.meal.value = new Meal(new Date()); // Populate meal with an empty entry
     if (PrivateStore.debugLogs.value) console.log(template);
+    return template;
   }
   static createTemplate(name: string) {
     try {

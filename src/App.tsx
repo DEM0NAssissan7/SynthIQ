@@ -39,6 +39,7 @@ import { PrivateStore } from "./storage/privateStore";
 import { nodes } from "./storage/storageNode";
 import ExpirationPage from "./pages/ExpirationPage";
 import DebugPage from "./pages/DebugPage";
+import WizardSessionSelectPage from "./pages/wizard/WizardSessionSelectPage";
 
 function App() {
   if (PrivateStore.debugLogs.value) {
@@ -72,7 +73,7 @@ function App() {
   }, [now]);
 
   const redirectTimer = useNow(
-    20 * convertDimensions(Unit.Time.Minute, Unit.Time.Second)
+    20 * convertDimensions(Unit.Time.Minute, Unit.Time.Second),
   );
   useEffect(() => {
     // Execute health monitor navigator
@@ -125,6 +126,10 @@ function App() {
           <Route path="/wizard" element={<WizardRouterPage />} />
           <Route path="/wizard/intro" element={<WizardIntroPage />} />
           <Route path="/wizard/select" element={<WizardSelectionPage />} />
+          <Route
+            path="/wizard/selectsession"
+            element={<WizardSessionSelectPage />}
+          />
           <Route path="/wizard/hub" element={<WizardHubPage />} />
           <Route path="/wizard/meal" element={<WizardMealPage />} />
           <Route path="/wizard/insulin" element={<WizardInsulinRouter />} />

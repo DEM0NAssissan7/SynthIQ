@@ -25,7 +25,9 @@ export default function WizardMealPage() {
     WizardManager.moveToPage(WizardPage.Hub, navigate);
   }
   function goToSelect() {
-    WizardManager.moveToPage(WizardPage.Select, navigate);
+    if (template.isFirstTime)
+      WizardManager.moveToPage(WizardPage.Select, navigate);
+    else WizardManager.moveToPage(WizardPage.SelectSession, navigate);
   }
   function beginEating() {
     if (!initialGlucose && !session.insulinMarked) {
