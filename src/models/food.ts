@@ -33,6 +33,9 @@ export default class Food {
 
     this.key = genUUID();
   }
+  get prettyUnit(): string {
+    return this.unit === Unit.Food.HundredGrams ? "g" : ""
+  }
   get netCarbsRate(): number {
     return this.carbsRate - this.fiberRate;
   }
