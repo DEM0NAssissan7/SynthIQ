@@ -551,7 +551,7 @@ export default class Session extends Subscribable {
     return RemoteReadings.getReadings(this.timestamp, this.endTimestamp);
   }
 
-  // Score
+  // Score (lower is better)
   get score(): number {
     const deviations = [...this.snapshot.deviations];
     const rescuePenalty = Math.sqrt(this.glucoseEffect);
