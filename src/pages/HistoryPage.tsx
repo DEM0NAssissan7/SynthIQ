@@ -54,8 +54,6 @@ export default function HistoryPage() {
                 <th>Glucose (g)</th>
                 <th>Score</th>
                 <th>Optimal Meal Insulin (u)</th>
-                <th>Fasting Velocity (mg/dL per hour)</th>
-                <th>Daily Basal (u/day) (u)</th>
                 <th>Sensitivity Index</th>
               </tr>
             </thead>
@@ -99,8 +97,6 @@ export default function HistoryPage() {
                     <td>{session.glucose}</td>
                     <td>{session.score.toFixed(0)}</td>
                     <td>{session.optimalMealInsulin.toFixed(1)}</td>
-                    <td>{session.fastingVelocity?.toFixed(1)}</td>
-                    <td>{session.dailyBasal?.toFixed(1)}</td>
                     <td>
                       {session.getSensitivityIndex(liverOutput)?.toFixed(1)}
                     </td>
