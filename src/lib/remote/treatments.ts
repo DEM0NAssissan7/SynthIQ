@@ -7,11 +7,12 @@ export const basalEventType = "Basal Insulin";
 export const mealEventType = "Meal";
 export const glucoseEventType = "Carb Correction";
 export const activityEventType = "Exercise";
+export const expirationRenewalType = "Medication Renewal";
 
 class RemoteTreatments {
   static async getTreatments(timestampA: Date, timestampB: Date) {
     return await Backend.get(
-      `treatments.json?find[created_at][$gte]=${timestampA.toString()}&find[created_at][$lte]=${timestampB.toString()}`
+      `treatments.json?find[created_at][$gte]=${timestampA.toString()}&find[created_at][$lte]=${timestampB.toString()}`,
     ).then((a: any[]) => {
       if (typeof a !== "object") return [];
       return a.map((b: any) => {
@@ -23,11 +24,11 @@ class RemoteTreatments {
   static async getTreatmentByType(
     eventType: string,
     timestampA: Date,
-    timestampB: Date
+    timestampB: Date,
   ) {
     const urlSafeEventType = eventType.replace(/ /g, "+");
     return await Backend.get(
-      `treatments.json?&find[eventType]=${urlSafeEventType}&find[created_at][$gte]=${timestampA.toString()}&find[created_at][$lte]=${timestampB.toString()}`
+      `treatments.json?&find[eventType]=${urlSafeEventType}&find[created_at][$gte]=${timestampA.toString()}&find[created_at][$lte]=${timestampB.toString()}`,
     );
   }
   static markMeal(_carbs: number, _protein: number, timestamp: Date): void {
@@ -43,7 +44,7 @@ class RemoteTreatments {
         protein: protein,
         eventType: mealEventType,
       },
-      timestamp
+      timestamp,
     );
   }
   static markInsulin(units: number, timestamp: Date, variant: string): void {
@@ -56,7 +57,7 @@ class RemoteTreatments {
         eventType: insulinEventType,
         notes: variant,
       },
-      timestamp
+      timestamp,
     );
   }
   static markBasal(units: number, timestamp: Date): void {
@@ -68,7 +69,7 @@ class RemoteTreatments {
         insulin: units,
         eventType: basalEventType,
       },
-      timestamp
+      timestamp,
     );
   }
   static markGlucose(caps: number, timestamp: Date, variant: string): void {
@@ -81,7 +82,7 @@ class RemoteTreatments {
         eventType: glucoseEventType,
         notes: variant,
       },
-      timestamp
+      timestamp,
     );
   }
   static markActivity(name: string, timestamp: Date, minutes: number): void {
@@ -94,7 +95,19 @@ class RemoteTreatments {
         duration: minutes,
         eventType: activityEventType,
       },
-      timestamp
+      timestamp,
+    );
+  }
+  static markExpirationRenewal(name: string, timestamp: Date) {
+    if (!PreferencesStore.uploadToBackend.value) return;
+
+    Backend.post(
+      "treatments",
+      {
+        notes: `Replaced ${name}`,
+        eventType: expirationRenewalType,
+      },
+      timestamp,
     );
   }
 }
