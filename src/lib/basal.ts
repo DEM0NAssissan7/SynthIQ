@@ -7,6 +7,7 @@ import type Session from "../models/session";
 import SugarReading, {
   getReadingFromNightscout,
 } from "../models/types/sugarReading";
+import type { DateRange } from "../models/types/types";
 import Unit from "../models/unit";
 import { BackendStore } from "../storage/backendStore";
 import { BasalStore } from "../storage/basalStore";
@@ -46,10 +47,10 @@ export async function isFastingState(timestamp: Date) {
 function getNonFastingWindows(
   treatments: any[],
   ignoreGlucose: boolean = false,
-): [Date, Date][] {
+): DateRange[] {
   const minTimeSinceMeal = BasalStore.minTimeSinceMeal.value;
 
-  let nonFasting: [Date, Date][] = []; // A set of date pairs to describe when we are not fasting
+  let nonFasting: DateRange[] = []; // A set of date pairs to describe when we are not fasting
   treatments.forEach((a: any) => {
     let hoursNonFasting: number | null = null;
     if (a.insulin && a.eventType !== basalEventType) hoursNonFasting = 7;
@@ -78,7 +79,7 @@ function getNonFastingWindows(
   nonFasting.push(...getSessionWindows());
   return nonFasting;
 }
-function getSessionWindows(): [Date, Date][] {
+function getSessionWindows(): DateRange[] {
   const hours = basalInsulinVariant.duration;
   let sessions = WizardManager.getAllSessions();
   sessions.sort(
@@ -89,7 +90,7 @@ function getSessionWindows(): [Date, Date][] {
   );
   return sessions.map((s) => [s.timestamp, s.endTimestamp ?? new Date()]);
 }
-function isFasting(timestamp: Date, nonFasting: [Date, Date][]): boolean {
+function isFasting(timestamp: Date, nonFasting: DateRange[]): boolean {
   for (let datePair of nonFasting) {
     const timestampA = datePair[0];
     const timestampB = datePair[1];
