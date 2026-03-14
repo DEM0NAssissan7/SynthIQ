@@ -1,3 +1,4 @@
+import RemoteTreatments from "../lib/remote/treatments";
 import { InsulinExpiration } from "../models/insulinExpiration";
 import type { InsulinVariant } from "../models/types/insulinVariant";
 import { ExpirationStore } from "../storage/expirationStore";
@@ -23,7 +24,7 @@ export namespace InsulinExpirationManager {
     const e = new InsulinExpiration(label, variant, openDate);
     if (get(e.fullName))
       throw new Error(
-        `Cannot add expirer - expirer '${e.fullName}' already exists`
+        `Cannot add expirer - expirer '${e.fullName}' already exists`,
       );
     ExpirationStore.expirations.value = [
       ...ExpirationStore.expirations.value,
@@ -31,6 +32,7 @@ export namespace InsulinExpirationManager {
     ];
     if (PrivateStore.debugLogs.value)
       console.log(`Added expirer '${e.fullName}'`);
+    RemoteTreatments.markExpirationRenewal(e.fullName, openDate);
   }
   export function remove(fullName: string) {
     ExpirationStore.expirations.value =
@@ -42,7 +44,9 @@ export namespace InsulinExpirationManager {
     const victim = get(e.fullName);
     if (!victim)
       throw new Error(`Cannot renew expirer - '${e.fullName}' does not exist`);
-    victim.openDate = new Date();
+    const now = new Date();
+    victim.openDate = now;
+    RemoteTreatments.markExpirationRenewal(e.fullName, now);
     ExpirationStore.expirations.write();
   }
 }
