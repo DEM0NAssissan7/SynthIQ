@@ -21,7 +21,6 @@ export class InsulinExpiration {
   }
   get daysLeft() {
     const now = new Date();
-    console.log(this.openDate, this.endDate, now);
     return (
       (this.endDate.getTime() - now.getTime()) *
       convertDimensions(Unit.Time.Millis, Unit.Time.Day)
