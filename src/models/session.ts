@@ -376,6 +376,17 @@ export default class Session extends Subscribable {
         ),
       );
     }
+    for(let i = 0; i < resultInsulins.length - 2; i++) {
+      let j = i+1;
+      let previousInsulin = resultInsulins[i];
+      let currentInsulin = resultInsulins[j];
+      if(currentInsulin.value < 0) {
+        previousInsulin.value += currentInsulin.value;
+        resultInsulins.splice(j,1);
+        i--;
+        continue;
+      }
+    }
     return resultInsulins;
   }
 
