@@ -14,12 +14,13 @@ import { WizardStore } from "../../storage/wizardStore";
 import WizardManager from "../../managers/wizardManager";
 import { WizardPage } from "../../models/types/wizardPage";
 import { PreferencesStore } from "../../storage/preferencesStore";
+import Meal from "../../models/events/meal";
 
 export default function WizardEditPage() {
   const [session] = WizardStore.session.useState();
   const [selectedMealIndex, setSelectedMealIndex] = useState(0);
-  const meal = useMemo(
-    () => session.meals[selectedMealIndex],
+  const meal = useMemo<Meal | null>(
+    () => session.meals[selectedMealIndex] ?? null,
     [selectedMealIndex]
   );
   const template = WizardStore.template.value;
@@ -55,17 +56,19 @@ export default function WizardEditPage() {
           </Dropdown.Menu>
         </Dropdown>
       </Card>
-      <Card>
-        <FoodSearchDisplay meal={meal} />
-      </Card>
+      {meal && <>
+        <Card>
+          <FoodSearchDisplay meal={meal} />
+        </Card>
 
-      <Card>
-        <AddedFoodsDisplay meal={meal} />
-      </Card>
+        <Card>
+          <AddedFoodsDisplay meal={meal} />
+        </Card>
 
-      <Card>
-        <MealAdditionalNutrients meal={meal} />
-      </Card>
+        <Card>
+          <MealAdditionalNutrients meal={meal} />
+        </Card>
+      </>}
 
       <Card>
         <BloodSugarInput
