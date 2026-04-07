@@ -447,6 +447,20 @@ export default class Session extends Subscribable {
   get mealInsulin(): number {
     return this.insulin - this.correctionInsulin;
   }
+  get theoreticalOptimalMealInsulin(): number {
+    // This is a crude calculation of the theoretical best insulin given glucose, and the windows in general
+    // This is just for total meal insulin
+    let insulin = 0;
+    const windows = this.windows;
+    for (let window of windows) {
+      const variant = window.insulin.variant;
+      const deltaBG = window.finalBG - window.initialBG;
+      insulin += deltaBG / variant.effect;
+      insulin -= window.glucoseEffect / variant.effect;
+      insulin += window.insulin.value;
+    }
+    return insulin;
+  }
   get firstInsulinTimestamp(): Date {
     if (this.insulins.length === 0) return this.timestamp;
     return this.insulins[0].timestamp;
