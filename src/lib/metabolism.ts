@@ -1,4 +1,5 @@
 import { InsulinVariantManager } from "../managers/insulinVariantManager";
+import type Food from "../models/food";
 import type { InsulinVariant } from "../models/types/insulinVariant";
 import type { RescueVariant } from "../models/types/rescueVariant";
 import { CalibrationStore } from "../storage/calibrationStore";
@@ -9,19 +10,19 @@ import { WizardStore } from "../storage/wizardStore";
 export function getCorrectionInsulin(glucose: number, variant: InsulinVariant) {
   return Math.max(
     (glucose - PreferencesStore.targetBG.value) / variant.effect,
-    0
+    0,
   );
 }
 export function getOvercompensationInsulins(
   glucose: number,
-  variants: InsulinVariant[]
+  variants: InsulinVariant[],
 ): number[] {
   let insulins: number[] = [];
   const BGOffsetPerShot =
     Math.max(
       Math.min(glucose - PreferencesStore.targetBG.value, 0) +
         PreferencesStore.overshootOffset.value,
-      0
+      0,
     ) / variants.length;
   for (const v of variants) {
     const insulin = BGOffsetPerShot / v.effect;
@@ -34,7 +35,7 @@ export function getOvercompensationInsulins(
 export function getGlucoseCorrectionCaps(
   sugar: number,
   variant: RescueVariant,
-  allowNegative = false
+  allowNegative = false,
 ) {
   const correction = (PreferencesStore.targetBG.value - sugar) / variant.effect;
   if (allowNegative) return correction;
@@ -44,7 +45,7 @@ export function getIntelligentGlucoseCorrection(
   velocityHours: number,
   currentBG: number,
   actingMinutes: number,
-  variant: RescueVariant
+  variant: RescueVariant,
 ) {
   /**
    * We consider the current BG velocity to last another 30 minutes.
@@ -96,4 +97,22 @@ export function getApproximatedProfile() {
     carbsEffect: alphaCarbs,
     proteinEffect: alphaProtein,
   };
+}
+export function simplifyFoods(foods: Food[]) {
+  let simplified: Food[] = [];
+  for (let food of foods) {
+    let existingFood: Food | null = null;
+    for (let f of simplified) {
+      if (food.name === f.name) {
+        existingFood = f;
+        break;
+      }
+    }
+    if (!existingFood) {
+      simplified.push(food);
+      continue;
+    }
+    existingFood.amount += food.amount;
+  }
+  return simplified;
 }
