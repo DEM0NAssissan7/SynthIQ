@@ -123,6 +123,7 @@ export default class WizardManager {
       Meal.serialize(session.firstMeal),
     );
     WizardStore.baseSession.value = session;
+    WizardStore.session.value.parent = session.uuid;
   }
   static selectTemplate(name: string) {
     // Select template to be used for all operations
