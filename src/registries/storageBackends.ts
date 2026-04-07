@@ -13,6 +13,7 @@ namespace StorageBackends {
         if (retval === null) throw new KeyDoesNotExistError();
         return retval;
       } else {
+        alert(`LocalStorage retrieval failed! Critical application error`);
         throw new StorageBackendFailedError();
       }
     },
@@ -20,6 +21,7 @@ namespace StorageBackends {
       if (typeof window !== "undefined" && window.localStorage) {
         localStorage.setItem(key, value);
       } else {
+        alert(`LocalStorage upload failed! Critical application error`);
         throw new StorageBackendFailedError();
       }
     },
