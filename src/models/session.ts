@@ -35,6 +35,8 @@ type TreatmentWindow = {
 export default class Session extends Subscribable {
   uuid: UUID;
 
+  _parent: UUID | null = null;
+
   snapshots: Snapshot[] = [];
 
   _isGarbage: boolean = false;
@@ -55,6 +57,15 @@ export default class Session extends Subscribable {
     super();
     this.uuid = genUUID();
     if (createSnapshot) this.addSnapshot(); // Create the initial snapshot
+  }
+
+  // Parent
+  get parent(): UUID | null {
+    return this._parent;
+  }
+  set parent(p: UUID) {
+    this._parent = p;
+    this.notify();
   }
 
   // Meals
@@ -376,13 +387,13 @@ export default class Session extends Subscribable {
         ),
       );
     }
-    for(let i = 0; i < resultInsulins.length - 2; i++) {
-      let j = i+1;
+    for (let i = 0; i < resultInsulins.length - 2; i++) {
+      let j = i + 1;
       let previousInsulin = resultInsulins[i];
       let currentInsulin = resultInsulins[j];
-      if(currentInsulin.value < 0) {
+      if (currentInsulin.value < 0) {
         previousInsulin.value += currentInsulin.value;
-        resultInsulins.splice(j,1);
+        resultInsulins.splice(j, 1);
         i--;
         continue;
       }
@@ -598,6 +609,7 @@ export default class Session extends Subscribable {
   static serialize: Serializer<Session> = (session: Session) => {
     return {
       uuid: session.uuid,
+      parent: session.parent,
       snapshots: session.snapshots.map((s) => Snapshot.serialize(s)),
       meals: session.meals.map((a) => Meal.serialize(a)),
       insulins: session.insulins.map((a) => Insulin.serialize(a)),
@@ -614,6 +626,7 @@ export default class Session extends Subscribable {
   static deserialize: Deserializer<Session> = (o) => {
     let session = new Session(false);
     session.uuid = o.uuid;
+    session._parent = o.parent;
     session.isGarbage = o.isGarbage ?? false;
     session.completed = o.completed ?? true;
     session.notes = o.notes || "";
