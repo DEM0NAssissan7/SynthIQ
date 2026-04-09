@@ -35,27 +35,27 @@ export default function StatisticsPage() {
 
   const carbs = useMemo(
     () => importedSessions.map((s) => s.carbs),
-    [importedSessions]
+    [importedSessions],
   );
   const protein = useMemo(
     () => importedSessions.map((s) => s.protein),
-    [importedSessions]
+    [importedSessions],
   );
   const fat = useMemo(
     () => importedSessions.map((s) => s.fat),
-    [importedSessions]
+    [importedSessions],
   );
   const calories = useMemo(
     () => importedSessions.map((s) => s.calories),
-    [importedSessions]
+    [importedSessions],
   );
   const insulin = useMemo(
     () => importedSessions.map((s) => s.insulin),
-    [importedSessions]
+    [importedSessions],
   );
   const glucose = useMemo(
     () => importedSessions.map((s) => s.glucose),
-    [importedSessions]
+    [importedSessions],
   );
 
   const [readings, setReadings] = useState([] as number[][]);
@@ -73,7 +73,7 @@ export default function StatisticsPage() {
   const allReadings = useMemo(() => {
     let retval: number[] = [];
     readings.forEach((sessionReadings: number[]) =>
-      sessionReadings.forEach((r) => retval.push(r))
+      sessionReadings.forEach((r) => retval.push(r)),
     );
     return retval;
   }, [readings]);
