@@ -85,6 +85,21 @@ export default class Meal extends MetaEvent {
   get summedFoods() {
     return simplifyFoods(this.foods);
   }
+  isIdentical(meal: Meal) {
+    const myFoods = this.summedFoods;
+    const foods = meal.summedFoods;
+    for (let food of foods) {
+      let isIdentical = false;
+      for (let f of myFoods) {
+        if (f.amount !== food.amount) continue;
+        if (f.name !== food.name) continue;
+        isIdentical = true;
+        break;
+      }
+      if (!isIdentical) return false;
+    }
+    return true;
+  }
 
   // Metabolism
   get carbs(): number {

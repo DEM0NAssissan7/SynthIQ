@@ -3,6 +3,13 @@ import useImportedSessionsState from "../state/useImportedSessionsState";
 import Card from "../components/Card";
 import { MathUtil } from "../lib/util";
 import { getApproximatedProfile } from "../lib/metabolism";
+import { optimizeVariants } from "../lib/variantOptimizer";
+import { InsulinVariantStore } from "../storage/insulinVariantStore";
+import { RescueVariantStore } from "../storage/rescueVariantStore";
+import { WizardStore } from "../storage/wizardStore";
+import { InsulinVariant } from "../models/types/insulinVariant";
+import { RescueVariant } from "../models/types/rescueVariant";
+import { Button } from "react-bootstrap";
 
 interface DataStatisticsProps {
   title: string;
@@ -79,6 +86,25 @@ export default function StatisticsPage() {
   }, [readings]);
 
   const [approximatedProfile] = useState(getApproximatedProfile());
+  const [originalInsulinVariants] = InsulinVariantStore.variants.useState();
+  const [originalRescueVariants] = RescueVariantStore.variants.useState();
+
+  const [insulinVariants, setInsulinVariants] = useState<InsulinVariant[]>(
+    originalInsulinVariants,
+  );
+  const [rescueVariants, setRescueVariants] = useState<RescueVariant[]>(
+    originalRescueVariants,
+  );
+  function optimizeForVariant(name: string) {
+    const { insulinVariants, rescueVariants } = optimizeVariants(
+      WizardStore.templates.value,
+      originalInsulinVariants,
+      originalRescueVariants,
+      [name],
+    );
+    setInsulinVariants(insulinVariants);
+    setRescueVariants(rescueVariants);
+  }
 
   return (
     <>
@@ -101,6 +127,55 @@ export default function StatisticsPage() {
       <br />
       Protein Effect (mg/dL rise per gram):{" "}
       {approximatedProfile.proteinEffect.toFixed(2)}
+      <hr />
+      <h3>Variants</h3>
+      {originalInsulinVariants.map((v) => (
+        <>
+          {v.name}: {v.effect}mg/dL per unit
+          <span style={{ marginLeft: "8px" }}>
+            <Button
+              onClick={() => optimizeForVariant(v.name)}
+              variant="outline-primary"
+              size="sm"
+            >
+              Optimize
+            </Button>
+          </span>
+          <br />
+        </>
+      ))}
+      <hr />
+      {originalRescueVariants.map((v) => (
+        <>
+          {v.name}: {v.effect}mg/dL/{v.unitLetter}
+          <span style={{ marginLeft: "8px" }}>
+            <Button
+              onClick={() => optimizeForVariant(v.name)}
+              variant="outline-primary"
+              size="sm"
+            >
+              Optimize
+            </Button>
+          </span>
+          <br />
+        </>
+      ))}
+      <h3>Optimized Variant Effects</h3>
+      {insulinVariants.map((v, i) => (
+        <>
+          {v.name}: {v.effect}mg/dL per unit (from{" "}
+          {originalInsulinVariants[i].effect})
+          <br />
+        </>
+      ))}
+      <hr />
+      {rescueVariants.map((v, i) => (
+        <>
+          {v.name}: {v.effect}mg/dL/{v.unitLetter} (from{" "}
+          {originalRescueVariants[i].effect})
+          <br />
+        </>
+      ))}
     </>
   );
 }
