@@ -73,7 +73,7 @@ export function getApproximatedProfile() {
   let alphaCarbs = CalibrationStore.carbsEffect.value;
   let alphaProtein = CalibrationStore.proteinEffect.value;
 
-  const baseLearningRate = 0.0001;
+  const baseLearningRate = 0.00001;
 
   // Don't allow less than 3 valid sessions before making any conclusions
   for (let template of templates) {
