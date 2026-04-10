@@ -20,7 +20,7 @@ export namespace TerminalManager {
     amount: number,
     variant: InsulinVariant,
     isBolus: boolean,
-    timestamp = new Date()
+    timestamp = new Date(),
   ) {
     if (!isTerminal()) return;
     const insulin = new Insulin(amount, timestamp, variant);
@@ -29,7 +29,7 @@ export namespace TerminalManager {
   export async function glucose(
     amount: number,
     variant: RescueVariant,
-    timestamp = new Date()
+    timestamp = new Date(),
   ) {
     if (!isTerminal()) return;
     const glucose = new Glucose(amount, timestamp, variant);
@@ -63,7 +63,7 @@ export namespace TerminalManager {
             insulin.variant.name,
             m.BG ?? PreferencesStore.targetBG.value,
             m.isSessionApplicable,
-            insulin.timestamp
+            insulin.timestamp,
           );
         }
       }
@@ -74,7 +74,7 @@ export namespace TerminalManager {
         TreatmentManager.glucose(
           glucose.value,
           glucose.variant.name,
-          glucose.timestamp
+          glucose.timestamp,
         );
       }
     });
