@@ -95,12 +95,12 @@ export default function StatisticsPage() {
   const [rescueVariants, setRescueVariants] = useState<RescueVariant[]>(
     originalRescueVariants,
   );
-  function optimizeForVariant(name: string) {
+  function optimizeForVariant(...names: string[]) {
     const { insulinVariants, rescueVariants } = optimizeVariants(
       WizardStore.templates.value,
       originalInsulinVariants,
       originalRescueVariants,
-      [name],
+      names,
     );
     setInsulinVariants(insulinVariants);
     setRescueVariants(rescueVariants);
@@ -129,9 +129,13 @@ export default function StatisticsPage() {
       {approximatedProfile.proteinEffect.toFixed(2)}
       <hr />
       <h3>Variants</h3>
+      <Button onClick={() => optimizeForVariant()} variant="outline-primary">
+        Optimize All
+      </Button>
+      <br />
       {originalInsulinVariants.map((v) => (
         <>
-          {v.name}: {v.effect}mg/dL per unit
+          {v.name}: <b>{v.effect}mg/dL</b> per unit
           <span style={{ marginLeft: "8px" }}>
             <Button
               onClick={() => optimizeForVariant(v.name)}
@@ -147,7 +151,10 @@ export default function StatisticsPage() {
       <hr />
       {originalRescueVariants.map((v) => (
         <>
-          {v.name}: {v.effect}mg/dL/{v.unitLetter}
+          {v.name}:{" "}
+          <b>
+            {v.effect}mg/dL/{v.unitLetter}
+          </b>
           <span style={{ marginLeft: "8px" }}>
             <Button
               onClick={() => optimizeForVariant(v.name)}
@@ -160,19 +167,23 @@ export default function StatisticsPage() {
           <br />
         </>
       ))}
+      <hr />
       <h3>Optimized Variant Effects</h3>
       {insulinVariants.map((v, i) => (
         <>
-          {v.name}: {v.effect}mg/dL per unit (from{" "}
-          {originalInsulinVariants[i].effect})
+          {v.name}: <b>{v.effect}mg/dL</b> per unit{" "}
+          <i>(from {originalInsulinVariants[i].effect})</i>
           <br />
         </>
       ))}
       <hr />
       {rescueVariants.map((v, i) => (
         <>
-          {v.name}: {v.effect}mg/dL/{v.unitLetter} (from{" "}
-          {originalRescueVariants[i].effect})
+          {v.name}:{" "}
+          <b>
+            {v.effect}mg/dL/{v.unitLetter}
+          </b>{" "}
+          <i>(from {originalRescueVariants[i].effect})</i>
           <br />
         </>
       ))}

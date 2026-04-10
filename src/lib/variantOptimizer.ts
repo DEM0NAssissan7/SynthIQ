@@ -152,7 +152,7 @@ export function optimizeVariants(
       targetNames.forEach((n) => {
         if (n === name) hasMatch = true;
       });
-      if (!hasMatch) continue;
+      if (!hasMatch && targetNames.length !== 0) continue;
 
       const origin = va.effect; // The original value we started with
       let improvement = 0; // What offset from origin do we get the best result with
