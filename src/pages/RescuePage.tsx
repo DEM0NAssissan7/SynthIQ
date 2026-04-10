@@ -36,7 +36,7 @@ export default function RescuePage() {
   const [currentBG, setCurrentBG] = useState(
     session.initialGlucose
       ? session.initialGlucose
-      : PreferencesStore.targetBG.value
+      : PreferencesStore.targetBG.value,
   );
   const [gramsTaken, setCapsTaken] = useState(0);
   const [variant, setVariant] = useState(RescueVariantManager.getDefault());
@@ -62,10 +62,10 @@ export default function RescuePage() {
             velocityHours,
             currentBG,
             actingMinutes,
-            variant
+            variant,
           ),
-          true
-        )
+          true,
+        ),
       );
     });
   }, [currentBG, variant, updated]);
@@ -74,9 +74,9 @@ export default function RescuePage() {
   function goBack() {
     navigate("/");
   }
-  function markGlucoseTaken(grams: number, variant: RescueVariant) {
-    if (confirm(`Confirm that you have taken ${grams} ${variant.name}`)) {
-      TreatmentManager.glucose(grams, variant.name, new Date());
+  function markGlucoseTaken(amount: number, variant: RescueVariant) {
+    if (confirm(`Confirm that you have taken ${amount} ${variant.name}`)) {
+      TreatmentManager.glucose(amount, variant.name, new Date());
       goBack();
     }
   }
@@ -159,7 +159,7 @@ export default function RescuePage() {
             value={intelligentCorrection}
             rangeFromOrigin={2}
             increment={0.5}
-            labelSuffix={variant.name.toLowerCase()[0]}
+            labelSuffix={variant.unitLetter}
             onSelect={(val) => {
               markGlucoseTaken(val, variant);
             }}
