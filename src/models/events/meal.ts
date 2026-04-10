@@ -2,7 +2,7 @@ import Food from "../food";
 import MetaEvent from "./metaEvent";
 import type { Deserializer, Serializer } from "../types/types";
 import Unit from "../unit";
-import { simplifyFoods } from "../../lib/metabolism";
+import { simplifyFoods } from "../../lib/helpers/simplifyFoods";
 
 function createCarbsOffset() {
   return new Food("Carbs Offset", 1, 0, Unit.Food.Unit);
