@@ -143,16 +143,16 @@ export function optimizeVariants(
 
   // Greedy coordinate descent
   let iterations = 0;
-  const maxIterations = 100000;
+  const maxIterations = 1000;
   while (iterations++ < maxIterations) {
     let improved = false;
     for (let va of allVariants) {
       const name = va.name;
       let hasMatch = false;
-      targetNames.forEach((s) => {
-        if (s === name) hasMatch = true;
+      targetNames.forEach((n) => {
+        if (n === name) hasMatch = true;
       });
-      if (!hasMatch) break;
+      if (!hasMatch) continue;
 
       const origin = va.effect; // The original value we started with
       let improvement = 0; // What offset from origin do we get the best result with
