@@ -143,7 +143,7 @@ export function optimizeVariants(
 
   // Greedy coordinate descent
   let iterations = 0;
-  const maxIterations = 1000;
+  const maxIterations = 100; // Nothing usually deviates more than 100mg/dL per unit
   while (iterations++ < maxIterations) {
     let improved = false;
     for (let va of allVariants) {
