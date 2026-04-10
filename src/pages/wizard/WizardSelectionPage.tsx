@@ -17,7 +17,7 @@ export default function WizardSelectionPage() {
     }
     try {
       const template = WizardManager.selectTemplate(name);
-      if (!template.isFirstTime) {
+      if (!template.isFirstTime && template.freshOrValidSessions.length !== 0) {
         if (template.sessions.length < 2) {
           WizardManager.selectSession(template.latestSession);
         }
