@@ -78,7 +78,7 @@ export default function StatisticsPage() {
     return retval;
   }, [readings]);
 
-  const approximatedProfile = getApproximatedProfile();
+  const [approximatedProfile] = useState(getApproximatedProfile());
 
   return (
     <>
