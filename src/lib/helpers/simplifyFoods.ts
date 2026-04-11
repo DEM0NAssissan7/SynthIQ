@@ -1,4 +1,4 @@
-import type Food from "../../models/food";
+import Food from "../../models/food";
 
 export function simplifyFoods(foods: Food[]) {
   let simplified: Food[] = [];
@@ -11,7 +11,17 @@ export function simplifyFoods(foods: Food[]) {
       }
     }
     if (!existingFood) {
-      simplified.push(food);
+      const clonedFood = new Food(
+        food.name,
+        food.carbsRate,
+        food.proteinRate,
+        food.unit,
+        food.arbitraryRise,
+        food.fatRate,
+        food.fiberRate,
+      );
+      clonedFood.amount = food.amount;
+      simplified.push(clonedFood);
       continue;
     }
     existingFood.amount += food.amount;
