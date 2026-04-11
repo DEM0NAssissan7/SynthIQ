@@ -25,7 +25,7 @@ export default function WizardMealPage() {
     WizardManager.moveToPage(WizardPage.Hub, navigate);
   }
   function goToSelect() {
-    if (template.isFirstTime)
+    if (template.isFirstTime && template.freshOrValidSessions.length > 0)
       WizardManager.moveToPage(WizardPage.Select, navigate);
     else WizardManager.moveToPage(WizardPage.SelectSession, navigate);
   }
