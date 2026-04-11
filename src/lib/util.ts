@@ -100,6 +100,12 @@ export class MathUtil {
   static absoluteDeviations(x: number, data: number[]): number[] {
     return data.map((x_i) => Math.abs(x_i - x));
   }
+  static meanAbsoluteDeviation(data: number[]): number {
+    const mean = this.mean(data);
+    const deviations = this.absoluteDeviations(mean, data);
+
+    return this.mean(deviations) || 0;
+  }
   static medianAbsoluteDeviation(data: number[]): number {
     const median = this.median(data);
     const deviations = this.absoluteDeviations(median, data);

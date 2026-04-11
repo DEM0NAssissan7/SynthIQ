@@ -336,12 +336,7 @@ export default class MealTemplate extends Subscribable implements Template {
         amounts.push(f.amount);
       });
 
-      // Find the target food amount we wanna optimize around
-      const targetAmount = getInputFoodAmount(name);
-
-      const meanAbsDeviation = MathUtil.mean(
-        MathUtil.absoluteDeviations(targetAmount, amounts),
-      );
+      const meanAbsDeviation = MathUtil.meanAbsoluteDeviation(amounts);
       foodMADs.set(name, meanAbsDeviation);
     }
 
@@ -383,12 +378,12 @@ export default class MealTemplate extends Subscribable implements Template {
     const K = Math.min(sessionsDistances.length, 7);
     const goodSessions = sessionsDistances.map((a) => a[0]).slice(0, K);
 
-    // Find typical insulin
+    // Find typical theoretical meal rise
     const medianMealRise = MathUtil.median(
       goodSessions.map((s) => s.theoreticalMealRise),
     );
 
-    // Find the session with the most typical insulin dosage
+    // Find the session with the most typical theoretical meal rise
     let closestDistance = Infinity;
     let closestSession: Session | null = null;
     goodSessions.forEach((s) => {
