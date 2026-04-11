@@ -122,7 +122,6 @@ export default class WizardManager {
     WizardStore.meal.value = Meal.deserialize(
       Meal.serialize(session.firstMeal),
     );
-    WizardStore.baseSession.value = session;
     WizardStore.session.value.parent = session.uuid;
   }
   static selectTemplate(name: string) {
@@ -130,7 +129,6 @@ export default class WizardManager {
     const template = this.getTemplateByName(name);
     WizardStore.template.value = template;
     WizardStore.meal.value = new Meal(new Date()); // Populate meal with an empty entry
-    WizardStore.baseSession.value = null; // Do not use a base session yet
     if (PrivateStore.debugLogs.value) console.log(template);
     return template;
   }

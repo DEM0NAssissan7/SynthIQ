@@ -4,7 +4,6 @@ import Card from "../../components/Card";
 import { Button } from "react-bootstrap";
 import WizardManager from "../../managers/wizardManager";
 import { WizardStore } from "../../storage/wizardStore";
-import { WizardPage } from "../../models/types/wizardPage";
 
 export default function WizardSelectionPage() {
   const navigate = useNavigate();
@@ -17,18 +16,12 @@ export default function WizardSelectionPage() {
     }
     try {
       const template = WizardManager.selectTemplate(name);
-      if (!template.isFirstTime && template.freshOrValidSessions.length !== 0) {
-        if (template.sessions.length < 2) {
-          WizardManager.selectSession(template.latestSession);
-        }
-        WizardManager.moveToPage(WizardPage.SelectSession, navigate);
-        return;
-      }
+      WizardManager.selectSession(template.latestSession);
+      WizardManager.begin(navigate);
     } catch (e) {
       alert(`Template named ${name} encountered an error`);
       console.error(e);
     }
-    WizardManager.begin(navigate);
   }
   function skip() {
     if (confirm("Are you sure you wanna skip naming your session?")) {

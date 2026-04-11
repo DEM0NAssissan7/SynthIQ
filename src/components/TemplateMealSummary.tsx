@@ -15,7 +15,6 @@ import { InsulinVariantManager } from "../managers/insulinVariantManager";
 import { useNow } from "../state/useNow";
 import { PrivateStore } from "../storage/privateStore";
 import { BasalStore } from "../storage/basalStore";
-import { WizardStore } from "../storage/wizardStore";
 
 function getFactorDesc(num: number, unit: string, type: string) {
   if (round(num, 1) === 0) return "";
@@ -42,7 +41,7 @@ export default function TemplateMealSummary({
   currentBG,
 }: TemplateMealSummaryProps) {
   const now = useNow();
-  const session = WizardStore.baseSession.value;
+  const session = template.getBaseSession(meal);
   const defaultVariant = InsulinVariantManager.getDefault();
   const liverOutput = BasalStore.estimatedLiverOutput.value;
   if (PrivateStore.debugLogs.value) console.log(session);

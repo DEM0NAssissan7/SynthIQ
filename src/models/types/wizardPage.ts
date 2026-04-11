@@ -25,7 +25,7 @@ const stateNames: StateNameKey[] = [
 
 // Serialization
 export const serializeWizardPage: Serializer<WizardPage> = (
-  state: WizardPage
+  state: WizardPage,
 ) => {
   for (let a of stateNames) if (a[0] === state) return a[1];
   throw new Error(`Cannot find name for state ${state}`);

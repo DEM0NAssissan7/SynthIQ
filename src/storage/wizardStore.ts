@@ -52,18 +52,6 @@ export namespace WizardStore {
     });
     session.notify(); // Notify to push the new subscriber handler
   }
-  export const baseSession = node.add<Session | null>(
-    "baseSession",
-    null,
-    (a) => {
-      if (a === null) return null;
-      return Session.serialize(a);
-    },
-    (o) => {
-      if (o === null) return null;
-      return Session.deserialize(o);
-    },
-  );
 
   export const meal = node.add<Meal>(
     "meal",

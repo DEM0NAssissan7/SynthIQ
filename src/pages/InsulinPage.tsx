@@ -24,7 +24,6 @@ import LastBolusMessage from "../components/LastBolusMessage";
 export default function InsulinPage() {
   const navigate = useNavigate();
   const [session] = WizardStore.session.useState();
-  const [baseSession] = WizardStore.baseSession.useState();
   const [isBolus, setIsBolus] = WizardStore.isBolus.useState();
 
   const isFirstPostMealInjection = useMemo(
@@ -38,6 +37,10 @@ export default function InsulinPage() {
   const now = useNow();
   const meal = session.mealMarked ? session.latestMeal : WizardStore.meal.value;
   const [template] = WizardStore.template.useState();
+  const baseSession = useMemo(
+    () => template.getBaseSession(meal),
+    [template, meal],
+  );
   const [variant, setVariant] = useState(InsulinVariantManager.getDefault());
 
   // Inputted Insulin
@@ -95,7 +98,7 @@ export default function InsulinPage() {
   const vectorizedInsulins = template.vectorizeInsulin(
     meal.carbs,
     meal.protein,
-    baseSession
+    baseSession,
   );
   const shotIndex = session.insulins.length;
   const overshootInsulinOffset =
