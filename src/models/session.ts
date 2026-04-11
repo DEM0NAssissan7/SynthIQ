@@ -412,9 +412,7 @@ export default class Session extends Subscribable {
     return this.insulins.length !== 0;
   }
   get insulin(): number {
-    let insulin = 0;
-    this.insulins.forEach((a: Insulin) => (insulin += a.value));
-    return insulin;
+    return this.insulins.reduce((n, i) => i.value + n, 0);
   }
   get mealInsulin(): number {
     return this.insulin - this.correctionInsulin;
