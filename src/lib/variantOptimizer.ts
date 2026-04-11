@@ -35,7 +35,7 @@ export function splitIdenticalMeals(sessions: Session[]): Session[][] {
 
   return splitSessions;
 }
-export function getAvgOptimalStdev(
+export function getAvgMealRiseStdev(
   groupedSplitSessions: Session[][][],
   insulinVariants: InsulinVariant[],
   rescueVariants: RescueVariant[],
@@ -51,7 +51,10 @@ export function getAvgOptimalStdev(
       const theoreticalMealRises: number[] = sessions.map((s) =>
         s.getTheoreticalMealRise(insulinVariants, rescueVariants),
       );
-      stdevs.push(MathUtil.stdev(theoreticalMealRises));
+      const stdev = MathUtil.stdev(theoreticalMealRises);
+      const mean = MathUtil.mean(theoreticalMealRises);
+      const normalizedStdev = stdev / Math.max(Math.abs(mean), 1e-6);
+      stdevs.push(normalizedStdev);
       weights.push(theoreticalMealRises.length);
     }
   }
@@ -64,82 +67,100 @@ export function getAvgOptimalStdev(
   }
   return weightedSum / totalWeights;
 }
+type AffectableVariant = { name: string; effect: number };
+function getEffectPenalty(
+  effects: number[],
+  originalEffects: number[],
+): number {
+  let penalties: number[] = [];
+
+  for (let i = 0; i < effects.length; i++) {
+    const effect = effects[i];
+    const originalEffect = originalEffects[i];
+    penalties.push(((effect - originalEffect) / originalEffect) ** 2);
+  }
+
+  return MathUtil.mean(penalties);
+}
 export function optimizeVariants(
   templates: MealTemplate[],
   _insulinVariants: InsulinVariant[],
   _rescueVariants: RescueVariant[],
   targetNames: string[],
 ): { insulinVariants: InsulinVariant[]; rescueVariants: RescueVariant[] } {
-  let insulinVariants = _insulinVariants.map((v) =>
+  const insulinVariants = _insulinVariants.map((v) =>
     InsulinVariant.deserialize(InsulinVariant.serialize(v)),
   );
-  let rescueVariants = _rescueVariants.map((v) =>
+  const rescueVariants = _rescueVariants.map((v) =>
     RescueVariant.deserialize(RescueVariant.serialize(v)),
   );
 
-  let groupedSplitSessions: Session[][][] = [];
-  for (let template of templates) {
-    const splitSessions = splitIdenticalMeals(template.validSessions);
-    groupedSplitSessions.push(splitSessions);
-  }
-  let smallestStdev = getAvgOptimalStdev(
-    groupedSplitSessions,
-    insulinVariants,
-    rescueVariants,
-  ); // Get a baseline
-
-  function isBest() {
-    const stdev = getAvgOptimalStdev(
-      groupedSplitSessions,
-      insulinVariants,
-      rescueVariants,
-    );
-    if (stdev < smallestStdev) {
-      smallestStdev = stdev;
-      return true;
-    }
-    return false;
+  const groupedSplitSessions: Session[][][] = [];
+  for (const template of templates) {
+    groupedSplitSessions.push(splitIdenticalMeals(template.validSessions));
   }
 
-  type affectableVariant = { name: string; effect: number };
-  const allVariants: affectableVariant[] = [
+  const allVariants: AffectableVariant[] = [
     ...insulinVariants,
     ...rescueVariants,
   ];
 
-  // Greedy coordinate descent
+  const filteredVariants =
+    targetNames.length === 0
+      ? allVariants
+      : allVariants.filter((v) => targetNames.includes(v.name));
+  const originalEffects = filteredVariants.map((a) => a.effect);
+
+  function getScore() {
+    const lambda = 1.2;
+    return (
+      getAvgMealRiseStdev(
+        groupedSplitSessions,
+        insulinVariants,
+        rescueVariants,
+      ) +
+      getEffectPenalty(
+        filteredVariants.map((a) => a.effect),
+        originalEffects,
+      ) *
+        lambda
+    );
+  }
+
   let iterations = 0;
-  const maxIterations = 100; // Nothing usually deviates more than 100mg/dL per unit
+  const maxIterations = 100;
+
   while (iterations++ < maxIterations) {
     let improved = false;
-    for (let va of allVariants) {
-      const name = va.name;
-      let hasMatch = false;
-      targetNames.forEach((n) => {
-        if (n === name) hasMatch = true;
-      });
-      if (!hasMatch && targetNames.length !== 0) continue;
 
-      const origin = va.effect; // The original value we started with
-      let improvement = 0; // What offset from origin do we get the best result with
+    for (const va of filteredVariants) {
+      const origin = va.effect;
+      const currentScore = getScore();
+
+      let bestEffect = origin;
+      let bestScore = currentScore;
 
       va.effect = origin + 1;
-      if (isBest()) improvement = 1;
-
-      // Sanity check
-      if (origin - 1 > 0) {
-        va.effect = origin - 1; // Back to origin, -1 to test
-        if (isBest()) improvement = -1;
+      const plusScore = getScore();
+      if (plusScore < bestScore) {
+        bestScore = plusScore;
+        bestEffect = origin + 1;
       }
 
-      // Commit the best change
-      va.effect = origin + improvement;
+      va.effect = origin - 1;
+      const minusScore = getScore();
+      if (minusScore < bestScore) {
+        bestScore = minusScore;
+        bestEffect = origin - 1;
+      }
 
-      // Record if we improved globally
-      if (improvement !== 0) improved = true;
+      va.effect = bestEffect;
+
+      if (bestEffect !== origin) {
+        improved = true;
+      }
     }
 
-    // After the stepping iterations are complete, we look at if we have made any improvements at all. If nothing improved, call it a day.
     if (!improved) break;
   }
 
