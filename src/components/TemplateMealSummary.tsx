@@ -227,7 +227,7 @@ export default function TemplateMealSummary({
                       ? "after"
                       : "before"}
                     eating <br />
-                    <i>Actual Absorbed:</i>
+                    <i>Actual Absorbed (approx):</i>
                     <br />
                     {window.insulins.map((insulin, _i) => {
                       if (round(insulin.value, 1) === 0) return;
