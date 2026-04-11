@@ -20,6 +20,7 @@ import type { RescueVariant } from "./types/rescueVariant";
 import { getBasalSensitivity } from "../lib/basal";
 import { InsulinVariantStore } from "../storage/insulinVariantStore";
 import { RescueVariantStore } from "../storage/rescueVariantStore";
+import { useVariantGetters } from "../lib/helpers/useVariantGetters";
 
 type TreatmentWindow = {
   snapshot: Snapshot;
@@ -30,29 +31,6 @@ type TreatmentWindow = {
   finalBG: number;
   length: number;
 };
-
-function useVariantGetters(
-  insulinVariants: InsulinVariant[],
-  rescueVariants: RescueVariant[],
-) {
-  const insulinVariantMap = new Map<string, InsulinVariant>();
-  const rescueVariantMap = new Map<string, RescueVariant>();
-  insulinVariants.forEach((v) => insulinVariantMap.set(v.name, v));
-  rescueVariants.forEach((v) => rescueVariantMap.set(v.name, v));
-
-  const getInsulinVariant = (v: InsulinVariant): InsulinVariant => {
-    const variant = insulinVariantMap.get(v.name);
-    if (!variant) return v;
-    return variant;
-  };
-  const getRescueVariant = (v: RescueVariant): RescueVariant => {
-    const variant = rescueVariantMap.get(v.name);
-    if (!variant) return v;
-    return variant;
-  };
-
-  return { getInsulinVariant, getRescueVariant };
-}
 
 export default class Session extends Subscribable {
   uuid: UUID;
