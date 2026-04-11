@@ -1,4 +1,5 @@
 import { getBasalSensitivity } from "../lib/basal";
+import { simplifyFoods } from "../lib/helpers/simplifyFoods";
 import { sessionsWeightedAverage } from "../lib/templateHelpers";
 import { timeOfDayOffset } from "../lib/timing";
 import { clamp, MathUtil } from "../lib/util";
@@ -7,10 +8,14 @@ import { BasalStore } from "../storage/basalStore";
 import { CalibrationStore } from "../storage/calibrationStore";
 import { PreferencesStore } from "../storage/preferencesStore";
 import Insulin from "./events/insulin";
+import type Meal from "./events/meal";
+import type Food from "./food";
 import Session from "./session";
 import Subscribable from "./subscribable";
 import type { Template } from "./types/interfaces";
 import type { Deserializer, Serializer } from "./types/types";
+
+type SessionAndScore = [Session, number];
 
 export default class MealTemplate extends Subscribable implements Template {
   sessions: Session[] = [];
@@ -223,12 +228,12 @@ export default class MealTemplate extends Subscribable implements Template {
     );
 
     // Get the closest X sessions
-    let sessionDistances: [Session, number][] = [];
+    let sessionDistances: SessionAndScore[] = [];
     for (let s of sessions) {
       if (!s.initialGlucose) continue;
       sessionDistances.push([
         s,
-        (timeOfDayOffset(timestamp, s.timestamp) / timeOfDayScale) ** 2 + // Squared ecludian distance
+        (timeOfDayOffset(timestamp, s.timestamp) / timeOfDayScale) ** 2 + // Squared euclidean distance
           ((sensitivityIndex -
             (s.getSensitivityIndex(estimatedLiverOutput) ?? 0)) /
             sensitivityIndexScale) **
@@ -297,6 +302,104 @@ export default class MealTemplate extends Subscribable implements Template {
       const MADB = Math.abs(b.score - medianScore);
       return MADA - MADB;
     })[0];
+  }
+  getSimilarSessionsDistances(meal: Meal): SessionAndScore[] | null {
+    if (this.isFirstTime) return null;
+    const validSessions = this.validSessions.filter(
+      (s) => s.meals.length === 1,
+    );
+    if (validSessions.length === 0) return null; // Do not continue if we don't have any valid sessions
+
+    let sessions = this.freshSessions;
+    let foods: Food[] = [];
+    sessions.forEach((s) => {
+      const meal = s.firstMeal;
+      foods.push(...meal.summedFoods);
+    });
+
+    const targetFoods = meal.summedFoods;
+    function getInputFoodAmount(name: string) {
+      let targetAmount = 0;
+      const filteredTargetFoods = targetFoods.filter((f) => f.name === name);
+      filteredTargetFoods.forEach((f) => (targetAmount += f.amount));
+      return targetAmount;
+    }
+
+    let foodMADs = new Map<string, number>();
+    const allConsolidatedFoods = simplifyFoods(foods);
+    for (let food of allConsolidatedFoods) {
+      // Get individual amounts for this food from each session
+      let amounts: number[] = [];
+      const name = food.name;
+      foods.forEach((f) => {
+        if (f.name !== name) return;
+        amounts.push(f.amount);
+      });
+
+      // Find the target food amount we wanna optimize around
+      const targetAmount = getInputFoodAmount(name);
+
+      const meanAbsDeviation = MathUtil.mean(
+        MathUtil.absoluteDeviations(targetAmount, amounts),
+      );
+      foodMADs.set(name, meanAbsDeviation);
+    }
+
+    function getFoodMeanAbsDeviation(name: string) {
+      const epsilon = 2e-3;
+      const meanAbsDeviation = foodMADs.get(name) ?? 0;
+      return Math.max(meanAbsDeviation, epsilon);
+    }
+
+    let sessionsDistances: SessionAndScore[] = sessions.map((session) => {
+      const m = session.firstMeal;
+      let squaredEuclideanDistance = 0;
+      const usedFoods = new Set<string>();
+      m.summedFoods.forEach((food) => {
+        const scale = getFoodMeanAbsDeviation(food.name);
+        const targetAmount = getInputFoodAmount(food.name);
+        usedFoods.add(food.name); // Record that this was a used food
+        squaredEuclideanDistance += ((food.amount - targetAmount) / scale) ** 2;
+      });
+      const nonCommonFoods = targetFoods.filter((f) => !usedFoods.has(f.name));
+      nonCommonFoods.forEach((food) => {
+        const scale = getFoodMeanAbsDeviation(food.name);
+        squaredEuclideanDistance += (food.amount / scale) ** 2;
+      });
+      return [session, squaredEuclideanDistance];
+    });
+
+    sessionsDistances.sort((a, b) => a[1] - b[1]); // Sort by smallest distance to largest
+    return sessionsDistances;
+  }
+  getBaseSession(meal: Meal): Session | null {
+    let sessionsDistances = this.getSimilarSessionsDistances(meal);
+    if (!sessionsDistances) return null;
+
+    // Filter by best control
+    // sessionsDistances.sort((a, b) => a[0].score - b[0].score);
+
+    // Do KNN (K nearest neighbors)
+    const K = Math.min(sessionsDistances.length, 7);
+    const goodSessions = sessionsDistances.map((a) => a[0]).slice(0, K);
+
+    // Find typical insulin
+    const medianMealRise = MathUtil.median(
+      goodSessions.map((s) => s.theoreticalMealRise),
+    );
+
+    // Find the session with the most typical insulin dosage
+    let closestDistance = Infinity;
+    let closestSession: Session | null = null;
+    goodSessions.forEach((s) => {
+      const distance = Math.abs(s.theoreticalMealRise - medianMealRise);
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestSession = s;
+      }
+    });
+
+    return closestSession;
   }
 
   // Dosing helpers

@@ -43,50 +43,16 @@ export function getAvgOptimalStdev(
   let stdevs: number[] = [];
   let weights: number[] = [];
 
-  // insulin and rescue variants getters (optimized)
-  const insulinVariantMap = new Map<string, InsulinVariant>();
-  const rescueVariantMap = new Map<string, RescueVariant>();
-  insulinVariants.forEach((v) => insulinVariantMap.set(v.name, v));
-  rescueVariants.forEach((v) => rescueVariantMap.set(v.name, v));
-
-  function getInsulinVariant(name: string): InsulinVariant {
-    const variant = insulinVariantMap.get(name);
-    if (!variant) throw new Error(`Insulin variant ${name} does not exist`);
-    return variant;
-  }
-  function getRescueVariant(name: string): RescueVariant {
-    const variant = rescueVariantMap.get(name);
-    if (!variant) throw new Error(`Glucose variant ${name} does not exist`);
-    return variant;
-  }
-
   // Go through all sessions that exist
   for (let splitSessions of groupedSplitSessions) {
     for (let sessions of splitSessions) {
       // We are now looking at a set of sessions that have _identical_ meals
       if (sessions.length < 2) continue;
-      const optimalMealInsulins = sessions.map((s) => {
-        // Calculate the theoretical optimal insulin
-        let insulin = 0;
-        const windows = s.windows;
-        for (let window of windows) {
-          const insulinVariant = getInsulinVariant(window.insulin.variant.name);
-          const deltaBG = window.finalBG - window.initialBG;
-          insulin += deltaBG / insulinVariant.effect;
-
-          // Calculate glucose effect
-          let glucoseEffect = 0;
-          for (let glucose of window.glucoses) {
-            const rescueVariant = getRescueVariant(glucose.variant.name);
-            glucoseEffect += glucose.value * rescueVariant.effect;
-          }
-          insulin -= glucoseEffect / insulinVariant.effect;
-          insulin += window.insulin.value;
-        }
-        return insulin;
-      });
-      stdevs.push(MathUtil.stdev(optimalMealInsulins));
-      weights.push(optimalMealInsulins.length);
+      const theoreticalMealRises: number[] = sessions.map((s) =>
+        s.getTheoreticalMealRise(insulinVariants, rescueVariants),
+      );
+      stdevs.push(MathUtil.stdev(theoreticalMealRises));
+      weights.push(theoreticalMealRises.length);
     }
   }
   let weightedSum = 0;

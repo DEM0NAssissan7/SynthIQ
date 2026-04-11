@@ -1,3 +1,5 @@
+import { Bateman } from "../../lib/bateman";
+import { getHourDiff } from "../../lib/timing";
 import { InsulinVariantManager } from "../../managers/insulinVariantManager";
 import { InsulinVariant } from "../types/insulinVariant";
 import type { Deserializer, Serializer } from "../types/types";
@@ -19,6 +21,29 @@ export default class Insulin extends MetaEvent implements ScalarMetaEvent {
     super(timestamp);
     this._value = value;
     this.variant = variant;
+  }
+
+  // t is the number of hours post-injection
+  private getHours(time: Date) {
+    return getHourDiff(time, this.timestamp);
+  }
+  bateman(time: Date) {
+    const t = this.getHours(time);
+    if (t >= this.variant.duration) return 0;
+    return this.value * Bateman.f(t, this.variant.ka, this.variant.ke);
+  }
+  bateman_integral(timeA: Date, timeB: Date) {
+    const a = this.getHours(timeA);
+    const b = this.getHours(timeB);
+    return this.value * Bateman.area(a, b, this.variant.ka, this.variant.ke);
+  }
+  iob(time: Date) {
+    const t = this.getHours(time);
+    if (t >= this.variant.duration) return 0;
+    return (
+      this.value *
+      (1 - Bateman.F(this.getHours(time), this.variant.ka, this.variant.ke))
+    );
   }
 
   // Serialization

@@ -13,7 +13,7 @@ export default function InsulinVariantsPage() {
     InsulinVariantStore.basalVariant.useState();
   const basalVariant = useMemo(
     () => InsulinVariantManager.getVariant(basalVariantName),
-    [basalVariantName]
+    [basalVariantName],
   );
   function setBasalVariant(v: InsulinVariant | undefined) {
     if (v) setBasalVariantName(v.name);
@@ -21,12 +21,14 @@ export default function InsulinVariantsPage() {
 
   const [name, setName] = useState("");
   const [effect, setEffect] = useState(0);
+  const [ka, setKa] = useState(0);
+  const [ke, setKe] = useState(0);
   const [duration, setDuration] = useState(0);
   const [daysLife, setDaysLife] = useState(0);
 
   const isValid = useMemo(
     () => name.length > 0 && duration && effect,
-    [name, duration, effect]
+    [name, duration, effect],
   );
 
   const handleFormSubmit = (e: BaseSyntheticEvent) => {
@@ -56,7 +58,14 @@ export default function InsulinVariantsPage() {
       alert("Enter a valid medication life");
       return;
     }
-    InsulinVariantManager.createVariant(name, duration, effect, daysLife);
+    InsulinVariantManager.createVariant(
+      name,
+      duration,
+      effect,
+      daysLife,
+      ka,
+      ke,
+    );
     resetUIStates();
     console.log(`Added ${name} to custom foods.`);
   }
@@ -125,6 +134,30 @@ export default function InsulinVariantsPage() {
                   }}
                 />
                 <br />
+                ka (absorption constant):
+                <Form.Control
+                  type="number"
+                  placeholder={`0`}
+                  className="text-center"
+                  value={ka || ""}
+                  onInput={(e: BaseSyntheticEvent) => {
+                    const value = parseFloat(e.target.value) || 0;
+                    setKa(value);
+                  }}
+                />
+                <br />
+                ke (elimination constant):
+                <Form.Control
+                  type="number"
+                  placeholder={`0`}
+                  className="text-center"
+                  value={ke || ""}
+                  onInput={(e: BaseSyntheticEvent) => {
+                    const value = parseFloat(e.target.value) || 0;
+                    setKe(value);
+                  }}
+                />
+                <br />
                 <br />
                 <div className="d-flex justify-content-end">
                   <Button
@@ -181,7 +214,6 @@ export default function InsulinVariantsPage() {
                     />
                     <span className="text-muted">h</span>
                   </label>
-
                   {/* Effect */}
                   <label className="m-0 d-flex align-items-center gap-1 small">
                     <span className="text-muted">Effect</span>
@@ -206,7 +238,6 @@ export default function InsulinVariantsPage() {
                     />
                     <span className="text-muted">mg/dL per U</span>
                   </label>
-
                   {/* Life */}
                   <label className="m-0 d-flex align-items-center gap-1 small">
                     <span className="text-muted">Life</span>
@@ -231,7 +262,52 @@ export default function InsulinVariantsPage() {
                     />
                     <span className="text-muted">days</span>
                   </label>
-
+                  {/* Ka */}
+                  <label className="m-0 d-flex align-items-center gap-1 small">
+                    <span className="text-muted">Ka</span>
+                    <Form.Control
+                      type="number"
+                      inputMode="decimal"
+                      step="any"
+                      value={v.ka || ""}
+                      aria-label="days"
+                      style={{ maxWidth: "50px" }}
+                      className="form-control-sm w-auto border-0 border-bottom rounded-0 shadow-none px-1 text-center"
+                      onChange={(e) => {
+                        const val =
+                          e.target.value === ""
+                            ? undefined
+                            : parseFloat(e.target.value);
+                        v.ka = Number.isFinite(val as number)
+                          ? (val as number)
+                          : 0;
+                        InsulinVariantManager.updateVariant(v);
+                      }}
+                    />
+                  </label>{" "}
+                  {/* Ke */}
+                  <label className="m-0 d-flex align-items-center gap-1 small">
+                    <span className="text-muted">Ke</span>
+                    <Form.Control
+                      type="number"
+                      inputMode="decimal"
+                      step="any"
+                      value={v.ke || ""}
+                      aria-label="days"
+                      style={{ maxWidth: "55px" }}
+                      className="form-control-sm w-auto border-0 border-bottom rounded-0 shadow-none px-1 text-center"
+                      onChange={(e) => {
+                        const val =
+                          e.target.value === ""
+                            ? undefined
+                            : parseFloat(e.target.value);
+                        v.ke = Number.isFinite(val as number)
+                          ? (val as number)
+                          : 0;
+                        InsulinVariantManager.updateVariant(v);
+                      }}
+                    />
+                  </label>
                   <div className="w-100 d-flex justify-content-end mt-2">
                     {i !== 0 && (
                       <Button

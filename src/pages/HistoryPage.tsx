@@ -10,10 +10,10 @@ import { BasalStore } from "../storage/basalStore";
 
 function getCSV(templates: MealTemplate[], liverOutput: number): string {
   let out =
-    "Template Name,Date,Carbs,Protein,Total Insulin Taken,# Insulin Doses,Rescue Doses Taken,InitialBG,FinalBG,Control Score (lower is better),Optimal Standalone Meal Insulin,Fasting Velocity (mg/dL per hour),Basal Units per Day (u/day),Sensitivity Index,Invalid\n";
+    "Template Name,Date,Carbs,Protein,Total Insulin Taken,# Insulin Doses,Rescue Doses Taken,InitialBG,FinalBG,Control Score (lower is better),Theoretical Meal Rise (mg/dL),Fasting Velocity (mg/dL per hour),Basal Units per Day (u/day),Sensitivity Index,Invalid\n";
   for (let t of templates) {
     for (let s of t.sessions) {
-      out += `${t.name},${getFullPrettyDate(s.timestamp)},${s.carbs},${s.protein},${s.insulin},${s.insulins.length},${s.glucose},${s.initialGlucose},${s.finalBG},${s.score},${s.optimalMealInsulin},${s.fastingVelocity},${s.dailyBasal},${s.getSensitivityIndex(liverOutput)},${s.isInvalid}\n`;
+      out += `${t.name},${getFullPrettyDate(s.timestamp)},${s.carbs},${s.protein},${s.length},${s.insulin},${s.insulins.length},${s.glucose},${s.initialGlucose},${s.finalBG},${s.score},${s.theoreticalMealRise},${s.fastingVelocity},${s.dailyBasal},${s.getSensitivityIndex(liverOutput)},${s.isInvalid}\n`;
     }
   }
   return out;
@@ -47,13 +47,14 @@ export default function HistoryPage() {
               <tr>
                 <th>UUID</th>
                 <th>Time</th>
+                <th>Length</th>
                 <th>Carbs (g)</th>
                 <th>Protein (g)</th>
                 <th>Insulin [correction] (u)</th>
                 <th>BG info [delta] (mg/dL)</th>
                 <th>Glucose (g)</th>
                 <th>Score</th>
-                <th>Optimal Meal Insulin (u)</th>
+                <th>Theoretical Meal Rise (mg/dL)</th>
                 <th>Sensitivity Index</th>
               </tr>
             </thead>
@@ -79,6 +80,7 @@ export default function HistoryPage() {
                   <tr>
                     <td>{session.uuid}</td>
                     <td>{`${getFullPrettyDate(session.timestamp)}`}</td>
+                    <td>{session.length.toFixed(1)}</td>
                     <td>{session.carbs.toFixed()}</td>
                     <td>{session.protein.toFixed()}</td>
                     <td>
@@ -96,7 +98,7 @@ export default function HistoryPage() {
                     </td>
                     <td>{session.glucose}</td>
                     <td>{session.score.toFixed(0)}</td>
-                    <td>{session.optimalMealInsulin.toFixed(1)}</td>
+                    <td>{session.theoreticalMealRise.toFixed(0)}</td>
                     <td>
                       {session.getSensitivityIndex(liverOutput)?.toFixed(1)}
                     </td>
