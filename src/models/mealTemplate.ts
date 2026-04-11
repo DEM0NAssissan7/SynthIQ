@@ -305,12 +305,12 @@ export default class MealTemplate extends Subscribable implements Template {
   }
   getSimilarSessionsDistances(meal: Meal): SessionAndScore[] | null {
     if (this.isFirstTime) return null;
-    const validSessions = this.validSessions.filter(
+    const validSessions = this.freshOrValidSessions.filter(
       (s) => s.meals.length === 1,
     );
     if (validSessions.length === 0) return null; // Do not continue if we don't have any valid sessions
 
-    let sessions = this.freshSessions;
+    let sessions = validSessions;
     let foods: Food[] = [];
     sessions.forEach((s) => {
       const meal = s.firstMeal;
