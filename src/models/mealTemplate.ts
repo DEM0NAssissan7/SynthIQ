@@ -570,14 +570,14 @@ export default class MealTemplate extends Subscribable implements Template {
     });
 
     // Filter out clusters that have only one session unless that's all we got
+    if (PrivateStore.debugLogs.value) console.log(clusters);
     const filteredClusters = clusters.filter((c) => c.sessions.length > 1);
     if (filteredClusters.length > 1) clusters = filteredClusters; // We need to have multiple because in the case we only have 1, we probably don't have enough data
-    console.log(clusters);
 
     // Now that we finally have our clusters, we look at the best scoring cluster of sessions
     clusters.forEach((cluster) => {
       // First calculate the score
-      cluster.score = MathUtil.mean(cluster.sessions.map((s) => s.score));
+      cluster.score = MathUtil.median(cluster.sessions.map((s) => s.score));
     });
     // Now find the lowest (best) scoring cluster
     if (clusters.length === 0) return null;
