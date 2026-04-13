@@ -305,66 +305,51 @@ export default class MealTemplate extends Subscribable implements Template {
   }
   getSimilarSessionsDistances(meal: Meal): SessionAndScore[] | null {
     if (this.isFirstTime) return null;
-    const validSessions = this.freshOrValidSessions.filter(
+
+    const sessions = this.freshOrValidSessions.filter(
       (s) => s.meals.length === 1,
     );
-    if (validSessions.length === 0) return null; // Do not continue if we don't have any valid sessions
+    if (sessions.length === 0) return null;
 
-    let sessions = validSessions;
-    let foods: Food[] = [];
-    sessions.forEach((s) => {
-      const meal = s.firstMeal;
-      foods.push(...meal.summedFoods);
+    function toFoodMap(foods: Food[]): Map<string, number> {
+      const map = new Map<string, number>();
+      for (const food of foods) {
+        map.set(food.name, (map.get(food.name) ?? 0) + food.amount);
+      }
+      return map;
+    }
+
+    const targetMap = toFoodMap(meal.summedFoods);
+    const sessionMaps = sessions.map((s) => toFoodMap(s.firstMeal.summedFoods));
+
+    const allFoodNames = new Set<string>();
+    for (const map of sessionMaps) {
+      for (const name of map.keys()) allFoodNames.add(name);
+    }
+    for (const name of targetMap.keys()) allFoodNames.add(name);
+
+    const foodScales = new Map<string, number>();
+    for (const name of allFoodNames) {
+      const amounts = sessionMaps.map((map) => map.get(name) ?? 0);
+      const mad = MathUtil.meanAbsoluteDeviation(amounts);
+      foodScales.set(name, Math.max(mad, 2e-3));
+    }
+
+    const sessionsDistances: SessionAndScore[] = sessions.map((session, i) => {
+      const sessionMap = sessionMaps[i];
+      let dist = 0;
+
+      for (const name of allFoodNames) {
+        const a = sessionMap.get(name) ?? 0;
+        const b = targetMap.get(name) ?? 0;
+        const scale = foodScales.get(name) ?? 1;
+        dist += ((a - b) / scale) ** 2;
+      }
+
+      return [session, dist];
     });
 
-    const targetFoods = meal.summedFoods;
-    function getInputFoodAmount(name: string) {
-      let targetAmount = 0;
-      const filteredTargetFoods = targetFoods.filter((f) => f.name === name);
-      filteredTargetFoods.forEach((f) => (targetAmount += f.amount));
-      return targetAmount;
-    }
-
-    let foodMADs = new Map<string, number>();
-    const allConsolidatedFoods = simplifyFoods(foods);
-    for (let food of allConsolidatedFoods) {
-      // Get individual amounts for this food from each session
-      let amounts: number[] = [];
-      const name = food.name;
-      foods.forEach((f) => {
-        if (f.name !== name) return;
-        amounts.push(f.amount);
-      });
-
-      const meanAbsDeviation = MathUtil.meanAbsoluteDeviation(amounts);
-      foodMADs.set(name, meanAbsDeviation);
-    }
-
-    function getFoodMeanAbsDeviation(name: string) {
-      const epsilon = 2e-3;
-      const meanAbsDeviation = foodMADs.get(name) ?? 0;
-      return Math.max(meanAbsDeviation, epsilon);
-    }
-
-    let sessionsDistances: SessionAndScore[] = sessions.map((session) => {
-      const m = session.firstMeal;
-      let squaredEuclideanDistance = 0;
-      const usedFoods = new Set<string>();
-      m.summedFoods.forEach((food) => {
-        const scale = getFoodMeanAbsDeviation(food.name);
-        const targetAmount = getInputFoodAmount(food.name);
-        usedFoods.add(food.name); // Record that this was a used food
-        squaredEuclideanDistance += ((food.amount - targetAmount) / scale) ** 2;
-      });
-      const nonCommonFoods = targetFoods.filter((f) => !usedFoods.has(f.name));
-      nonCommonFoods.forEach((food) => {
-        const scale = getFoodMeanAbsDeviation(food.name);
-        squaredEuclideanDistance += (food.amount / scale) ** 2;
-      });
-      return [session, squaredEuclideanDistance];
-    });
-
-    sessionsDistances.sort((a, b) => a[1] - b[1]); // Sort by smallest distance to largest
+    sessionsDistances.sort((a, b) => a[1] - b[1]); // Sort from smallest distance to largest
     return sessionsDistances;
   }
   getBaseSession(meal: Meal): Session | null {
