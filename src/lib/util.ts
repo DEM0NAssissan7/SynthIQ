@@ -112,4 +112,18 @@ export class MathUtil {
 
     return this.median(deviations) || 0;
   }
+  static getPercentile(data: number[], percentile: number) {
+    const sorted = data.slice().sort((a, b) => a - b);
+    const index = Math.floor(sorted.length * percentile);
+    return sorted[index];
+  }
+  static Q1(data: number[]): number {
+    return this.getPercentile(data, 0.25);
+  }
+  static IQR(data: number[]): number {
+    const sorted = data.slice().sort((a, b) => a - b);
+    const q1Index = Math.floor(sorted.length * 0.25);
+    const q3Index = Math.floor(sorted.length * 0.75);
+    return sorted[q3Index] - sorted[q1Index];
+  }
 }

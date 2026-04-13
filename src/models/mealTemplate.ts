@@ -374,27 +374,245 @@ export default class MealTemplate extends Subscribable implements Template {
     // Filter by best control
     // sessionsDistances.sort((a, b) => a[0].score - b[0].score);
 
-    // Do KNN (K nearest neighbors)
-    const K = Math.min(sessionsDistances.length, 7);
-    const goodSessions = sessionsDistances.map((a) => a[0]).slice(0, K);
+    // Keep pulling sessions until we begin to deviate significantly
+    let threshold = 0;
+    let prevScore = sessionsDistances[0]?.[1] ?? 0;
+    let i = 1;
+    for (; i < sessionsDistances.length; i++) {
+      const jump = sessionsDistances[i][1] - prevScore;
+      if (i > 2 && jump > threshold * 2) break;
+      if (i <= 2) threshold = jump;
+      prevScore = sessionsDistances[i][1];
+    }
+    const K = i - 1;
+    const groupedSessions = sessionsDistances.map((a) => a[0]).slice(0, K);
+    console.log(sessionsDistances, K);
 
-    // Find typical theoretical meal rise
-    const medianMealRise = MathUtil.median(
-      goodSessions.map((s) => s.theoreticalMealRise),
-    );
+    // Cluster together sessions with similar dosing strategies
+    let structuredSessions: Session[][] = [];
+    // First pass: We group together sessions that have the same variants and # of shots
+    function sameStructure(a: Session, b: Session): boolean {
+      if (a.insulins.length !== b.insulins.length) return false;
 
-    // Find the session with the most typical theoretical meal rise
-    let closestDistance = Infinity;
-    let closestSession: Session | null = null;
-    goodSessions.forEach((s) => {
-      const distance = Math.abs(s.theoreticalMealRise - medianMealRise);
-      if (distance < closestDistance) {
-        closestDistance = distance;
-        closestSession = s;
+      for (let i = 0; i < a.insulins.length; i++) {
+        const i1 = a.insulins[i];
+        const i2 = b.insulins[i];
+        if (!i1 || !i2) return false;
+        if (i1.variant.name !== i2.variant.name) return false;
       }
+
+      return true;
+    }
+    for (const session of groupedSessions) {
+      // Go through all sessions
+      let isNew = true;
+      for (const cluster of structuredSessions) {
+        let identical = true; // Tracks if we are identical to this cluster
+        const s = cluster[0]; // We choose the first element of the cluster because they would all be the same
+        if (!s) {
+          identical = false;
+        } else {
+          identical = sameStructure(s, session);
+        }
+        if (identical) {
+          cluster.push(session);
+          isNew = false;
+          break;
+        }
+      }
+      if (isNew) {
+        structuredSessions.push([session]);
+      }
+    }
+
+    /**
+     * Second pass: now that we have the identically structured sessions, we can cluster numerically
+     */
+    function findDistance(a: number[], b: number[], scales: number[]) {
+      let distance = 0;
+      if (a.length !== b.length || b.length !== scales.length)
+        throw new Error(
+          `Cannot find distance between differently sized vectors`,
+        );
+      for (let i = 0; i < a.length; i++) {
+        distance += Math.abs(a[i] - b[i]) / scales[i];
+      }
+      return distance;
+    }
+    type Dose = {
+      dose: number;
+      time: number;
+      effectRatio: number;
+    };
+    type Strategy = Dose[];
+    function flattenStrategy(strategy: Strategy): number[] {
+      const vector: number[] = [];
+      for (const d of strategy) {
+        vector.push(d.dose);
+        vector.push(d.time);
+        vector.push(d.effectRatio);
+      }
+      return vector;
+    }
+    function computeThresholdFromDistances(distances: number[]): number {
+      if (distances.length === 0) return Infinity;
+      if (distances.length === 1) return distances[0];
+
+      const q1 = MathUtil.Q1(distances);
+      const iqr = MathUtil.IQR(distances);
+
+      return q1 + 1.0 * iqr;
+    }
+    function averageVectors(vectors: number[][]): number[] {
+      const length = vectors[0].length;
+      const avg = new Array(length).fill(0);
+
+      for (const v of vectors) {
+        for (let i = 0; i < length; i++) {
+          avg[i] += v[i];
+        }
+      }
+
+      for (let i = 0; i < length; i++) {
+        avg[i] /= vectors.length;
+      }
+
+      return avg;
+    }
+    type Cluster = {
+      sessions: Session[];
+      score: number;
+      vectors: number[][];
+      centroid: number[];
+      scales: number[];
+    };
+    function clusterStrategies(
+      sessions: Session[],
+      strategies: Strategy[],
+      threshold: number,
+      scales: number[],
+    ): Cluster[] {
+      const vectors = strategies.map(flattenStrategy);
+
+      const clusters: Cluster[] = [];
+
+      for (let i = 0; i < sessions.length; i++) {
+        const session = sessions[i];
+        const vector = vectors[i];
+
+        let bestCluster: Cluster | null = null;
+        let bestDistance = Infinity;
+
+        // Find closest cluster
+        for (const cluster of clusters) {
+          const dist = findDistance(vector, cluster.centroid, scales);
+
+          if (dist < bestDistance) {
+            bestDistance = dist;
+            bestCluster = cluster;
+          }
+        }
+
+        // Decide: join or create new
+        if (bestCluster && bestDistance <= threshold) {
+          bestCluster.sessions.push(session);
+          bestCluster.vectors.push(vector);
+          bestCluster.centroid = averageVectors(bestCluster.vectors);
+        } else {
+          clusters.push({
+            sessions: [session],
+            vectors: [vector],
+            centroid: vector.slice(),
+            score: NaN,
+            scales: scales,
+          });
+        }
+      }
+
+      return clusters;
+    }
+    let clusters: Cluster[] = [];
+    structuredSessions.forEach((sessions) => {
+      // Compile all strategies into a set of vectors
+      let numInsulins = 0;
+      const strategies: Strategy[] = sessions.map((s): Strategy => {
+        const totalInsulinEffect = s.insulinEffect;
+        let doses: Dose[] = [];
+        s.insulins.forEach((insulin) => {
+          const dose: Dose = {
+            dose: insulin.value,
+            time: s.getN(insulin.timestamp),
+            effectRatio:
+              totalInsulinEffect > 0
+                ? (insulin.value * insulin.variant.effect) / totalInsulinEffect
+                : 0,
+          };
+          doses.push(dose);
+        });
+        numInsulins = s.insulins.length;
+        return doses;
+      });
+
+      // Now we build the scales vector
+      let scales: number[] = [];
+      const vectors = strategies.map(flattenStrategy);
+      for (let i = 0; i < numInsulins * 3; i++) {
+        let nums: number[] = vectors.map((s) => s[i]);
+        const epsilon = 1e-6;
+        const scale = MathUtil.IQR(nums);
+        scales.push(scale !== 0 ? scale : epsilon);
+      }
+
+      // Find the distributions of each thing relative to another
+      const distances: number[] = [];
+      for (let i = 0; i < vectors.length; i++) {
+        for (let j = i + 1; j < vectors.length; j++) {
+          distances.push(findDistance(vectors[i], vectors[j], scales));
+        }
+      }
+
+      // Compute threshold from distribution
+      const threshold = computeThresholdFromDistances(distances);
+
+      // Now cluster using that threshold
+      const subclusters = clusterStrategies(
+        sessions,
+        strategies,
+        threshold,
+        scales,
+      );
+      clusters.push(...subclusters);
     });
 
-    return closestSession;
+    // Filter out clusters that have only one session unless that's all we got
+    const filteredClusters = clusters.filter((c) => c.sessions.length > 1);
+    if (filteredClusters.length > 1) clusters = filteredClusters; // We need to have multiple because in the case we only have 1, we probably don't have enough data
+    console.log(clusters);
+
+    // Now that we finally have our clusters, we look at the best scoring cluster of sessions
+    clusters.forEach((cluster) => {
+      // First calculate the score
+      cluster.score = MathUtil.mean(cluster.sessions.map((s) => s.score));
+    });
+    // Now find the lowest (best) scoring cluster
+    if (clusters.length === 0) return null;
+    const bestCluster = clusters.sort((a, b) => a.score - b.score)[0];
+    if (!bestCluster) return null;
+
+    // Then we find the session within that cluster that has the most accurate dosing strategy
+    function findTypicalSession(cluster: Cluster) {
+      let session: Session = cluster.sessions[0];
+      let bestDistance = Infinity;
+      cluster.vectors.forEach((vector, i) => {
+        const distance = findDistance(vector, cluster.centroid, cluster.scales);
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          session = cluster.sessions[i];
+        }
+      });
+      return session;
+    }
+    return findTypicalSession(bestCluster);
   }
 
   // Dosing helpers
