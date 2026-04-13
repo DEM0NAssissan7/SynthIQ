@@ -1,5 +1,4 @@
 import { getBasalSensitivity } from "../lib/basal";
-import { simplifyFoods } from "../lib/helpers/simplifyFoods";
 import { sessionsWeightedAverage } from "../lib/templateHelpers";
 import { timeOfDayOffset } from "../lib/timing";
 import { clamp, MathUtil } from "../lib/util";
@@ -7,6 +6,7 @@ import { InsulinVariantManager } from "../managers/insulinVariantManager";
 import { BasalStore } from "../storage/basalStore";
 import { CalibrationStore } from "../storage/calibrationStore";
 import { PreferencesStore } from "../storage/preferencesStore";
+import { PrivateStore } from "../storage/privateStore";
 import Insulin from "./events/insulin";
 import type Meal from "./events/meal";
 import type Food from "./food";
@@ -355,23 +355,24 @@ export default class MealTemplate extends Subscribable implements Template {
   getBaseSession(meal: Meal): Session | null {
     let sessionsDistances = this.getSimilarSessionsDistances(meal);
     if (!sessionsDistances) return null;
+    if (sessionsDistances.length === 0) return null;
+    if (sessionsDistances.length === 1) return sessionsDistances[0][0];
 
-    // Filter by best control
-    // sessionsDistances.sort((a, b) => a[0].score - b[0].score);
+    const distances = sessionsDistances.map((x) => x[1]);
+    const q1 = MathUtil.Q1(distances);
+    const iqr = MathUtil.IQR(distances);
 
-    // Keep pulling sessions until we begin to deviate significantly
-    let threshold = 0;
-    let prevScore = sessionsDistances[0]?.[1] ?? 0;
-    let i = 1;
-    for (; i < sessionsDistances.length; i++) {
-      const jump = sessionsDistances[i][1] - prevScore;
-      if (i > 2 && jump > threshold * 2) break;
-      if (i <= 2) threshold = jump;
-      prevScore = sessionsDistances[i][1];
+    // Tighter = q1 + 1.0 * iqr
+    // Looser = q1 + 1.5 * iqr
+    const cutoff = q1 + 1.0 * iqr;
+
+    const groupedSessions = sessionsDistances
+      .filter(([, d]) => d <= cutoff)
+      .map(([s]) => s);
+
+    if (groupedSessions.length === 0) {
+      return sessionsDistances[0]![0];
     }
-    const K = i - 1;
-    const groupedSessions = sessionsDistances.map((a) => a[0]).slice(0, K);
-    console.log(sessionsDistances, K);
 
     // Cluster together sessions with similar dosing strategies
     let structuredSessions: Session[][] = [];
