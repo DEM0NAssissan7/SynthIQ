@@ -105,9 +105,10 @@ export function markBolus(
   variant: InsulinVariant,
   timestamp = new Date(),
 ) {
-  HealthMonitorStore.recentBoluses.value.push(
+  HealthMonitorStore.recentBoluses.value = [
+    ...HealthMonitorStore.recentBoluses.value,
     new Insulin(units, timestamp, variant),
-  );
+  ];
 }
 export function cleanInactivePreviousBoluses() {
   const recentBoluses = HealthMonitorStore.recentBoluses.value;
