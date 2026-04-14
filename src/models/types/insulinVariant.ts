@@ -4,7 +4,6 @@ import type { Deserializer, Serializer } from "./types";
 export class InsulinVariant {
   constructor(
     public name: string,
-    public duration: number, // The # of hours that this insulin is active for
     public effect: number,
     public daysLife: number,
     public ka: number,
@@ -23,10 +22,17 @@ export class InsulinVariant {
     return 1 - Bateman.F(t, this.ka, this.ke);
   }
 
+  /**
+   * Duration in # of hours
+   */
+  get duration(): number {
+    // We consider that once some percentage of the insulin is absorbed, it's finished
+    return Bateman.Finv(Bateman.completionConstant, this.ka, this.ke);
+  }
+
   static serialize: Serializer<InsulinVariant> = (i: InsulinVariant) => {
     return {
       name: i.name,
-      duration: i.duration,
       effect: i.effect,
       daysLife: i.daysLife,
       ka: i.ka,
@@ -36,7 +42,6 @@ export class InsulinVariant {
   static deserialize: Deserializer<InsulinVariant> = (o) => {
     return new InsulinVariant(
       o.name,
-      o.duration,
       o.effect,
       o.daysLife ?? 28,
       o.ka ?? 0.5,

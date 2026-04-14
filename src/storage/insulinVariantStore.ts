@@ -8,8 +8,8 @@ export namespace InsulinVariantStore {
   export const variants = node.add(
     "variants",
     [
-      new InsulinVariant("Insulin", 7, 50, 28, 0.5, 0.7),
-      new InsulinVariant("Basal", 72, 1.5, 56, 0.01, 0.7),
+      new InsulinVariant("Insulin", 50, 28, 0.5, 0.7),
+      new InsulinVariant("Basal", 1.5, 56, 0.01, 0.7),
     ],
     Serialization.getArraySerializer(InsulinVariant.serialize),
     Serialization.getArrayDeserializer(InsulinVariant.deserialize),

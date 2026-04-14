@@ -5,6 +5,8 @@ import { InsulinVariantStore } from "../storage/insulinVariantStore";
 import { InsulinVariant } from "../models/types/insulinVariant";
 import { InsulinVariantManager } from "../managers/insulinVariantManager";
 import InsulinVariantDropdown from "../components/InsulinVariantDropdown";
+import { Bateman } from "../lib/bateman";
+import { round } from "../lib/util";
 
 export default function InsulinVariantsPage() {
   const [variants] = InsulinVariantStore.variants.useState();
@@ -22,14 +24,20 @@ export default function InsulinVariantsPage() {
   const [name, setName] = useState("");
   const [effect, setEffect] = useState(0);
   const [ka, setKa] = useState(0);
-  const [ke, setKe] = useState(0);
+  const [ke, setKe] = useState(0.7);
   const [duration, setDuration] = useState(0);
   const [daysLife, setDaysLife] = useState(0);
 
-  const isValid = useMemo(
-    () => name.length > 0 && duration && effect,
-    [name, duration, effect],
+  // Set ka automatically when adjusting duration
+  useMemo(
+    () =>
+      setKa(
+        round(Bateman.solveKa(duration, Bateman.completionConstant, ke), 2),
+      ),
+    [duration, ke],
   );
+
+  const isValid = useMemo(() => name.length > 0 && effect, [name, effect]);
 
   const handleFormSubmit = (e: BaseSyntheticEvent) => {
     e.preventDefault(); // Prevent the default form submission behavior
@@ -39,6 +47,8 @@ export default function InsulinVariantsPage() {
     setName("");
     setEffect(0);
     setDuration(0);
+    setKa(0);
+    setKe(0.7);
     setDaysLife(0);
   }
   function add() {
@@ -46,8 +56,12 @@ export default function InsulinVariantsPage() {
       alert("Enter a valid name.");
       return;
     }
-    if (!duration) {
-      alert("Enter a valid duration");
+    if (!ka || !ke) {
+      alert(`Enter a valid ka/ke value (or duration)`);
+      return;
+    }
+    if (ka === ke) {
+      alert(`ka and ke cannot be the same`);
       return;
     }
     if (!effect) {
@@ -58,14 +72,7 @@ export default function InsulinVariantsPage() {
       alert("Enter a valid medication life");
       return;
     }
-    InsulinVariantManager.createVariant(
-      name,
-      duration,
-      effect,
-      daysLife,
-      ka,
-      ke,
-    );
+    InsulinVariantManager.createVariant(name, effect, daysLife, ka, ke);
     resetUIStates();
     console.log(`Added ${name} to custom foods.`);
   }
@@ -190,30 +197,6 @@ export default function InsulinVariantsPage() {
                 <span className="fw-semibold me-4">{v.name}</span>
 
                 <div className="d-flex align-items-center flex-wrap gap-3">
-                  {/* Duration */}
-                  <label className="m-0 d-flex align-items-center gap-1 small">
-                    <span className="text-muted">Duration</span>
-                    <Form.Control
-                      type="number"
-                      inputMode="decimal"
-                      step="any"
-                      value={v.duration || ""}
-                      aria-label="Duration"
-                      className="form-control-sm w-auto border-0 border-bottom rounded-0 shadow-none px-1 text-center"
-                      style={{ maxWidth: "40px" }}
-                      onChange={(e) => {
-                        const val =
-                          e.target.value === ""
-                            ? undefined
-                            : parseFloat(e.target.value);
-                        v.duration = Number.isFinite(val as number)
-                          ? (val as number)
-                          : 0;
-                        InsulinVariantManager.updateVariant(v);
-                      }}
-                    />
-                    <span className="text-muted">h</span>
-                  </label>
                   {/* Effect */}
                   <label className="m-0 d-flex align-items-center gap-1 small">
                     <span className="text-muted">Effect</span>
@@ -308,6 +291,11 @@ export default function InsulinVariantsPage() {
                       }}
                     />
                   </label>
+                  <div className="w-100 mt-2">
+                    <small className="text-muted d-block mb-2">
+                      Lasts approximately <b>{v.duration.toFixed(1)} hours</b>
+                    </small>
+                  </div>
                   <div className="w-100 d-flex justify-content-end mt-2">
                     {i !== 0 && (
                       <Button
