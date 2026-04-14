@@ -198,11 +198,7 @@ export async function updateHealthMonitorStatus() {
     }
 
     const latestBolus = getLatestBolus();
-    if (
-      currentBG > PreferencesStore.highBG.value && latestBolus
-        ? getTimeSinceLastBolus() > latestBolus.variant.duration
-        : true
-    ) {
+    if (currentBG > PreferencesStore.highBG.value && latestBolus === null) {
       HealthMonitorStore.statusCache.value = HealthMonitorStatus.High;
       return;
     }
