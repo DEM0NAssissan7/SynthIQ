@@ -15,7 +15,11 @@ import WizardSelectionPage from "./pages/wizard/WizardSelectionPage";
 import WizardFinalBGPage from "./pages/wizard/WizardFinalBGPage";
 import WizardEditPage from "./pages/wizard/WizardEditPage";
 import RescuePage from "./pages/RescuePage";
-import { smartMonitor, updateHealthMonitorStatus } from "./lib/healthMonitor";
+import {
+  cleanInactivePreviousBoluses,
+  smartMonitor,
+  updateHealthMonitorStatus,
+} from "./lib/healthMonitor";
 import Backend from "./lib/remote/backend";
 import RemoteStorage from "./lib/remote/storage";
 import BasalPage from "./pages/BasalPage";
@@ -54,6 +58,9 @@ function App() {
   useEffect(() => {
     // Update health monitor status cache
     updateHealthMonitorStatus();
+
+    // Clean up inactive boluses
+    cleanInactivePreviousBoluses();
 
     (async () => {
       // Upload stored inbox on terminal side

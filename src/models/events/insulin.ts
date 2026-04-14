@@ -1,5 +1,6 @@
 import { Bateman } from "../../lib/bateman";
 import { getHourDiff } from "../../lib/timing";
+import { round } from "../../lib/util";
 import { InsulinVariantManager } from "../../managers/insulinVariantManager";
 import { InsulinVariant } from "../types/insulinVariant";
 import type { Deserializer, Serializer } from "../types/types";
@@ -44,6 +45,15 @@ export default class Insulin extends MetaEvent implements ScalarMetaEvent {
       this.value *
       (1 - Bateman.F(this.getHours(time), this.variant.ka, this.variant.ke))
     );
+  }
+
+  // Insulin Activity
+  getActivityStatus(time: Date): boolean {
+    const iob = this.iob(time);
+    return round(iob, 1) > 0;
+  }
+  get isActive(): boolean {
+    return this.getActivityStatus(new Date());
   }
 
   // Serialization

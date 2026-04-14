@@ -40,7 +40,7 @@ export async function populateReadingCache() {
   const rawReadings = await RemoteReadings.getLatestReadings(readingsCacheSize);
   if (rawReadings) {
     let readings = rawReadings.map((r: any) =>
-      getReadingFromNightscout(r)
+      getReadingFromNightscout(r),
     ) as SugarReading[];
     HealthMonitorStore.readingsCache.value = readings;
     HealthMonitorStore.currentBG.value = readings[0].sugar;
@@ -73,7 +73,7 @@ export function timeToCritical() {
 export function markGlucose(
   grams: number,
   variant: RescueVariant,
-  timestamp = new Date()
+  timestamp = new Date(),
 ) {
   HealthMonitorStore.lastRescue.value = new Glucose(grams, timestamp, variant);
 }
@@ -81,7 +81,7 @@ export function markGlucose(
 export function getLastRescueMinutes() {
   const minuteDiff = round(
     getMinuteDiff(new Date(), HealthMonitorStore.lastRescue.value.timestamp),
-    0
+    0,
   );
   return minuteDiff;
 }
@@ -103,12 +103,23 @@ export function getLatestBasalTimestamp() {
 export function markBolus(
   units: number,
   variant: InsulinVariant,
-  timestamp = new Date()
+  timestamp = new Date(),
 ) {
-  HealthMonitorStore.lastBolus.value = new Insulin(units, timestamp, variant);
+  HealthMonitorStore.recentBoluses.value.push(
+    new Insulin(units, timestamp, variant),
+  );
+}
+export function cleanInactivePreviousBoluses() {
+  const recentBoluses = HealthMonitorStore.recentBoluses.value;
+  // Filter by only currently active boluses
+  HealthMonitorStore.recentBoluses.value = recentBoluses.filter(
+    (insulin) => insulin.isActive,
+  );
 }
 export function getLatestBolus() {
-  return HealthMonitorStore.lastBolus.value;
+  const recentBoluses = HealthMonitorStore.recentBoluses.value;
+  if (recentBoluses.length === 0) return null;
+  return recentBoluses[recentBoluses.length - 1];
 }
 export function getTimeSinceLastBolus() {
   const now = new Date();
@@ -185,9 +196,11 @@ export async function updateHealthMonitorStatus() {
       }
     }
 
+    const latestBolus = getLatestBolus();
     if (
-      currentBG > PreferencesStore.highBG.value &&
-      getTimeSinceLastBolus() > getLatestBolus().variant.duration
+      currentBG > PreferencesStore.highBG.value && latestBolus
+        ? getTimeSinceLastBolus() > latestBolus.variant.duration
+        : true
     ) {
       HealthMonitorStore.statusCache.value = HealthMonitorStatus.High;
       return;

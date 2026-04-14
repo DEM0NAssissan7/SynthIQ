@@ -1,22 +1,30 @@
-import { useMemo } from "react";
 import { getTimeSinceLastBolus } from "../lib/healthMonitor";
 import { getFormattedTime } from "../lib/timing";
 import { HealthMonitorStore } from "../storage/healthMonitorStore";
 import { useNow } from "../state/useNow";
 
 export default function LastBolusMessage() {
-  const [lastBolus] = HealthMonitorStore.lastBolus.useState();
+  const [boluses] = HealthMonitorStore.recentBoluses.useState();
   const now = useNow();
-  const iob = useMemo(() => lastBolus.iob(now), [now]);
 
-  return (
+  return boluses.length > 0 ? (
     <>
-      Last bolus:
-      <br />
-      {lastBolus.value}u of <b>{lastBolus.variant.name}</b> taken{" "}
-      {getFormattedTime(getTimeSinceLastBolus() * 60)} ago
-      <br />
-      <i>{iob !== 0 && `${iob.toFixed(1)}u on board`}</i>
+      <h4>Recent boluses:</h4>
+      {boluses.map((insulin) => {
+        const iob = insulin.iob(now);
+        return (
+          <>
+            <br />
+            {insulin.value}u of <b>{insulin.variant.name}</b> taken{" "}
+            {getFormattedTime(getTimeSinceLastBolus() * 60)} ago
+            <br />
+            <i>{iob !== 0 && `${iob.toFixed(1)}u on board`}</i>
+            <br />
+          </>
+        );
+      })}
     </>
+  ) : (
+    `No recent insulin doses`
   );
 }

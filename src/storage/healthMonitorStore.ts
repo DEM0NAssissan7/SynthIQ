@@ -8,7 +8,6 @@ import HealthMonitorStatus, {
   getStatusName,
 } from "../models/types/healthMonitorStatus";
 import Insulin from "../models/events/insulin";
-import { InsulinVariantManager } from "../managers/insulinVariantManager";
 
 export namespace HealthMonitorStore {
   const node = new StorageNode("healthMonitor");
@@ -17,25 +16,25 @@ export namespace HealthMonitorStore {
     "readingsCache",
     [],
     Serialization.getArraySerializer(SugarReading.serialize),
-    Serialization.getArrayDeserializer(SugarReading.deserialize)
+    Serialization.getArrayDeserializer(SugarReading.deserialize),
   );
   export const lastRescue = node.add<Glucose>(
     "lastRescue",
     new Glucose(0, new Date(), RescueVariantManager.getDefault()),
     Glucose.serialize,
-    Glucose.deserialize
+    Glucose.deserialize,
   );
-  export const lastBolus = node.add<Insulin>(
-    "lastBolus",
-    new Insulin(0, new Date(), InsulinVariantManager.getDefault()),
-    Insulin.serialize,
-    Insulin.deserialize
+  export const recentBoluses = node.add<Insulin[]>(
+    "recentBoluses",
+    [],
+    Serialization.getArraySerializer(Insulin.serialize),
+    Serialization.getArrayDeserializer(Insulin.deserialize),
   );
   export const statusCache = node.add<HealthMonitorStatus>(
     "monitorStatusCache",
     HealthMonitorStatus.Nominal,
     (a) => getStatusName(a),
-    (s) => getStatusFromName(s)
+    (s) => getStatusFromName(s),
   );
   export const readingsCacheSize = node.add("readingsCacheSize", 6);
   export const currentBG = node.add("currentBG", 83);
