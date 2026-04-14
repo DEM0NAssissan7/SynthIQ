@@ -4,7 +4,7 @@ import { convertDimensions, round } from "./util";
 // Epoch relative
 export function getEpochMinutes(date: Date): number {
   return Math.round(
-    date.getTime() * convertDimensions(Unit.Time.Millis, Unit.Time.Minute)
+    date.getTime() * convertDimensions(Unit.Time.Millis, Unit.Time.Minute),
   );
 }
 export function getEpochHours(date: Date): number {
@@ -21,7 +21,7 @@ export function getMinuteDiff(timestampA: Date, timestampB: Date): number {
 export function timestampIsBetween(
   timestamp: Date,
   timestampA: Date,
-  timestampB: Date
+  timestampB: Date,
 ) {
   const timestampEpoch = timestamp.getTime();
   if (
@@ -43,14 +43,14 @@ export function getTimestampFromOffset(timestamp: Date, hours: number): Date {
 export function getPrettyTimeDiff(
   timestampVictim: Date,
   timestamp: Date,
-  unit: Unit.Time
+  unit: Unit.Time,
 ) {
   let timediff =
     getHourDiff(timestampVictim, timestamp) *
     convertDimensions(Unit.Time.Hour, unit);
   if (timediff === 0) return "as soon as";
   const prefix = `${Math.abs(round(timediff, 0))} ${getTimeUnitPrettyName(
-    unit
+    unit,
   )}`;
   if (timediff > 0) return `${prefix} after`;
   if (timediff < 0) return `${prefix} before`;
@@ -92,7 +92,7 @@ export function timeOfDayOffset(d1: Date, d2: Date): number {
 
 export function getFormattedTime(_minutes: number): string {
   const hours = Math.floor(_minutes / 60);
-  const minutes = _minutes % 60;
+  const minutes = Math.round(_minutes % 60);
   if (hours === 0) return `${minutes} min`;
   return `${hours}:${minutes.toString().padStart(2, "0")}`;
 }
