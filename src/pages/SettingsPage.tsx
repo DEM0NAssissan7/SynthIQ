@@ -234,6 +234,12 @@ export default function SettingsPage() {
           iconClass="bi bi-clock"
           unit="min"
         />
+        <NumberSetting
+          keyInterface={PreferencesStore.insulinMinActivity}
+          title="Minimum Useful Insulin Effect"
+          iconClass="bi bi-capsule"
+          unit="mg/dL"
+        />
       </Card>
       <Card>
         <ButtonGroup>

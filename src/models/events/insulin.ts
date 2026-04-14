@@ -1,7 +1,7 @@
 import { Bateman } from "../../lib/bateman";
 import { getHourDiff } from "../../lib/timing";
-import { round } from "../../lib/util";
 import { InsulinVariantManager } from "../../managers/insulinVariantManager";
+import { PreferencesStore } from "../../storage/preferencesStore";
 import { InsulinVariant } from "../types/insulinVariant";
 import type { Deserializer, Serializer } from "../types/types";
 import MetaEvent from "./metaEvent";
@@ -50,7 +50,9 @@ export default class Insulin extends MetaEvent implements ScalarMetaEvent {
   // Insulin Activity
   getActivityStatus(time: Date): boolean {
     const iob = this.iob(time);
-    return round(iob, 1) > 0;
+    return (
+      iob * this.variant.effect >= PreferencesStore.insulinMinActivity.value
+    );
   }
   get isActive(): boolean {
     return this.getActivityStatus(new Date());
