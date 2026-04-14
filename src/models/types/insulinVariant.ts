@@ -1,3 +1,4 @@
+import { Bateman } from "../../lib/bateman";
 import type { Deserializer, Serializer } from "./types";
 
 export class InsulinVariant {
@@ -9,6 +10,18 @@ export class InsulinVariant {
     public ka: number,
     public ke: number,
   ) {}
+
+  // Bateman stuff
+  unitBateman(t: number) {
+    // t is in hours
+    return Bateman.f(t, this.ka, this.ke);
+  }
+  unitBatemanIntegral(tA: number, tB: number) {
+    return Bateman.area(tA, tB, this.ka, this.ke);
+  }
+  fractionActive(t: number) {
+    return 1 - Bateman.F(t, this.ka, this.ke);
+  }
 
   static serialize: Serializer<InsulinVariant> = (i: InsulinVariant) => {
     return {

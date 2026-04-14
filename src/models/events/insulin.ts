@@ -1,4 +1,3 @@
-import { Bateman } from "../../lib/bateman";
 import { getHourDiff } from "../../lib/timing";
 import { InsulinVariantManager } from "../../managers/insulinVariantManager";
 import { PreferencesStore } from "../../storage/preferencesStore";
@@ -30,21 +29,15 @@ export default class Insulin extends MetaEvent implements ScalarMetaEvent {
   }
   bateman(time: Date) {
     const t = this.getHours(time);
-    if (t >= this.variant.duration) return 0;
-    return this.value * Bateman.f(t, this.variant.ka, this.variant.ke);
+    return this.value * this.variant.unitBateman(t);
   }
-  bateman_integral(timeA: Date, timeB: Date) {
-    const a = this.getHours(timeA);
-    const b = this.getHours(timeB);
-    return this.value * Bateman.area(a, b, this.variant.ka, this.variant.ke);
+  batemanIntegral(timeA: Date, timeB: Date) {
+    const tA = this.getHours(timeA);
+    const tB = this.getHours(timeB);
+    return this.value * this.variant.unitBatemanIntegral(tA, tB);
   }
   iob(time: Date) {
-    const t = this.getHours(time);
-    if (t >= this.variant.duration) return 0;
-    return (
-      this.value *
-      (1 - Bateman.F(this.getHours(time), this.variant.ka, this.variant.ke))
-    );
+    return this.value * this.variant.fractionActive(this.getHours(time));
   }
 
   // Insulin Activity

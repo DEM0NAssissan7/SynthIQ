@@ -271,7 +271,7 @@ export default class Session extends Subscribable {
       if (!snapshot.finalBG || !snapshot.initialBG)
         throw new Error(`Cannot get windows: no final or inital BG`);
       // Find optimal variant
-      insulins.forEach((i) => (i.value = i.bateman_integral(timeA, timeB)));
+      insulins.forEach((i) => (i.value = i.batemanIntegral(timeA, timeB)));
       const window: TreatmentWindow = {
         snapshot: snapshot,
         initialBG: snapshot.initialBG.sugar,
