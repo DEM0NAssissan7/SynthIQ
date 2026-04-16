@@ -204,7 +204,7 @@ function HubPage() {
               variant="dark"
               className="py-2 fw-semibold"
               as={Link as any}
-              to="/wizard"
+              to={session.started ? "/wizard" : "/wizard/select"}
             >
               {session.started ? "Resume session" : "Start session"}
             </Button>
