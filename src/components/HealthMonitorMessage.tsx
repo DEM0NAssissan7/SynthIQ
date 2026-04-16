@@ -16,7 +16,7 @@ export default function HealthMonitorMessage() {
 
   switch (status) {
     case HealthMonitorStatus.Nominal:
-      return "Health status is currently nominal";
+      return "";
     case HealthMonitorStatus.Falling:
       return (
         <>
