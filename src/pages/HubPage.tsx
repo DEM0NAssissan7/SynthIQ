@@ -1,212 +1,288 @@
-import { Container, Row, Col, Card, Button } from "react-bootstrap";
-import { Link } from "react-router";
-import { useEffect, useState } from "react";
-import Backend from "../lib/remote/backend";
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  Col,
+  Container,
+  Row,
+} from "react-bootstrap";
+import { Link, useNavigate } from "react-router";
+import { basalIsDue } from "../lib/healthMonitor";
+import { getDailyBasalPerShot, getLastShot } from "../lib/basal";
+import { getHourDiff, getPrettyTime } from "../lib/timing";
+import { round } from "../lib/util";
 import { WizardStore } from "../storage/wizardStore";
+import { BasalStore } from "../storage/basalStore";
 import { HealthMonitorStore } from "../storage/healthMonitorStore";
-import HealthMonitorStatus from "../models/types/healthMonitorStatus";
+import { TreatmentManager } from "../managers/treatmentManager";
 import { InsulinExpirationManager } from "../managers/expirationManager";
+import { useNow } from "../state/useNow";
 
-enum NightscoutAuthLevel {
-  Invalid,
-  Read,
-  Write,
+function formatDose(value: number) {
+  const rounded = round(value, 1);
+  return Number.isInteger(rounded) ? `${rounded}` : rounded.toFixed(1);
+}
+
+type ActionCardProps = {
+  icon: string;
+  title: string;
+  body: string;
+  to: string;
+  buttonLabel: string;
+  buttonVariant?: string;
+  eyebrow?: string;
+};
+
+function ActionCard({
+  icon,
+  title,
+  body,
+  to,
+  buttonLabel,
+  buttonVariant = "primary",
+  eyebrow,
+}: ActionCardProps) {
+  return (
+    <Card className="h-100 border-0 shadow-sm">
+      <Card.Body className="p-3 d-flex flex-column">
+        <div className="d-flex align-items-start gap-3">
+          <div
+            className="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+            style={{
+              width: "3rem",
+              height: "3rem",
+              background: "rgba(13, 110, 253, 0.12)",
+              color: "#0d6efd",
+            }}
+          >
+            <i className={`bi ${icon} fs-4`} />
+          </div>
+          <div className="flex-grow-1">
+            {eyebrow && (
+              <div className="small text-uppercase text-muted fw-semibold mb-1">
+                {eyebrow}
+              </div>
+            )}
+            <h2 className="h5 mb-1">{title}</h2>
+            <p className="text-muted mb-0">{body}</p>
+          </div>
+        </div>
+        <Button
+          variant={buttonVariant}
+          className="w-100 mt-3 py-2 fw-semibold"
+          as={Link as any}
+          to={to}
+        >
+          {buttonLabel}
+        </Button>
+      </Card.Body>
+    </Card>
+  );
+}
+
+interface BasalCardProps {
+  dueForBasal: boolean;
+}
+function BasalCard({ dueForBasal }: BasalCardProps) {
+  const navigate = useNavigate();
+
+  const [firstShotHour] = HealthMonitorStore.basalShotTime.useState();
+  const [basalDoses] = BasalStore.basalDoses.useState();
+  const [shotsPerDay] = HealthMonitorStore.basalShotsPerDay.useState();
+
+  const interval = 24 / shotsPerDay;
+  const latestBasal = basalDoses[0] ?? null;
+  const lastShot = getLastShot();
+  const fallbackDose = getDailyBasalPerShot();
+  const typicalBasalDose =
+    lastShot > 0 ? lastShot : Number.isFinite(fallbackDose) ? fallbackDose : 0;
+  const scheduledTimes = Array.from({ length: shotsPerDay }, (_, index) => {
+    const hour = firstShotHour + index * interval;
+    const normalizedHour = hour % 24 || 24;
+    const suffix = normalizedHour < 12 || normalizedHour === 24 ? "AM" : "PM";
+    return `${normalizedHour % 12 || 12}:00 ${suffix}`;
+  });
+
+  function markTypicalBasal() {
+    if (typicalBasalDose <= 0) {
+      navigate("/basal");
+      return;
+    }
+    const doseLabel = formatDose(typicalBasalDose);
+    if (
+      confirm(`Confirm that you have injected ${doseLabel}u of basal insulin`)
+    ) {
+      TreatmentManager.basal(typicalBasalDose, new Date());
+    }
+  }
+
+  return (
+    <Card
+      className={`border-0 shadow-sm mb-3 ${dueForBasal ? "bg-primary-subtle" : ""}`}
+    >
+      <Card.Body className="p-3">
+        <div className="d-flex justify-content-between align-items-start gap-3 mb-3">
+          <div>
+            <div className="small text-uppercase text-muted fw-semibold mb-1">
+              Basal
+            </div>
+            <p className="text-muted mb-0">
+              {dueForBasal
+                ? "Your basal looks due. Quick mark your usual dose or open the full basal page."
+                : ""}
+            </p>
+          </div>
+          <Badge bg={dueForBasal ? "primary" : "secondary"}>
+            {dueForBasal ? "Due now" : "On schedule"}
+          </Badge>
+        </div>
+
+        <div className="rounded-4 bg-white p-3 mb-3">
+          <div className="d-flex justify-content-between gap-3 small">
+            <div>
+              <div className="text-muted">Typical dose</div>
+              <div className="fw-semibold">
+                {typicalBasalDose > 0
+                  ? `${formatDose(typicalBasalDose)}u`
+                  : "Open basal page"}
+              </div>
+            </div>
+            <div className="text-end">
+              <div className="text-muted">Schedule</div>
+              <div className="fw-semibold">{scheduledTimes.join(" / ")}</div>
+            </div>
+          </div>
+          <div className="small text-muted mt-2">
+            {latestBasal
+              ? `Last basal: ${formatDose(latestBasal.value)}u at ${getPrettyTime(
+                  latestBasal.timestamp,
+                )} (${round(getHourDiff(new Date(), latestBasal.timestamp), 1)}h ago)`
+              : "No basal history yet."}
+          </div>
+        </div>
+
+        <div className="d-grid gap-2">
+          <Button
+            variant={dueForBasal ? "primary" : "outline-primary"}
+            className="py-3 fw-semibold"
+            onClick={markTypicalBasal}
+          >
+            {typicalBasalDose > 0
+              ? `Mark ${formatDose(typicalBasalDose)}u now`
+              : "Open basal page"}
+          </Button>
+          <Button
+            variant="light"
+            className="py-2 fw-semibold border"
+            as={Link as any}
+            to="/basal"
+          >
+            Basal details
+          </Button>
+        </div>
+      </Card.Body>
+    </Card>
+  );
 }
 
 function HubPage() {
-  const [nightscoutAuthLevel, setNightscoutAuthLevel] = useState(
-    NightscoutAuthLevel.Invalid
-  );
+  useNow(60);
+
   const [session] = WizardStore.session.useState();
-  const [healthStatus] = HealthMonitorStore.statusCache.useState();
-  useEffect(() => {
-    Backend.verifyAuth()
-      .then((a) => {
-        if (a.message.canWrite) {
-          setNightscoutAuthLevel(NightscoutAuthLevel.Write);
-        } else if (a.message.canRead) {
-          setNightscoutAuthLevel(NightscoutAuthLevel.Read);
-          return;
-        }
-      })
-      .catch((e) => {
-        console.error(e);
-        setNightscoutAuthLevel(NightscoutAuthLevel.Invalid);
-      });
-  }, []);
+
+  const dueForBasal = basalIsDue();
+
+  const expiredInsulins = InsulinExpirationManager.getExpired();
 
   return (
-    <Container fluid className="text-center py-4 bg-light min-vh-100">
-      <header className="mb-5">
-        <h1>Welcome to the Hub</h1>
-      </header>
-      <main>
-        <Row className="g-4 justify-content-center">
-          <Col xs={12} sm={6} md={4} lg={3}>
-            <Card className="h-100 shadow-sm">
-              <Card.Body>
-                {(() => {
-                  switch (healthStatus) {
-                    case HealthMonitorStatus.Nominal:
-                      return (
-                        <>
-                          <Card.Title>Nominal Health</Card.Title>
-                          <Card.Text>No pending alerts</Card.Text>
-                          <i className="bi bi-check"></i>
-                        </>
-                      );
-                    case HealthMonitorStatus.InsulinExpired:
-                      const expired = InsulinExpirationManager.getExpired();
-                      return (
-                        <>
-                          <Card.Title>Insulin Expired</Card.Title>
-                          <Card.Text>
-                            {expired.length} insulin(s) expired
-                          </Card.Text>
-                          {expired.map((e) => (
-                            <>
-                              <span className="text-muted">{e.fullName}</span>
-                              <br />
-                            </>
-                          ))}
-                          <br />
-                          <Button
-                            variant="primary"
-                            as={Link as any}
-                            to="/expirations"
-                          >
-                            View Insulin Expirations
-                          </Button>
-                        </>
-                      );
-                    case HealthMonitorStatus.Basal:
-                      return (
-                        <>
-                          <Card.Title>Basal Injection</Card.Title>
-                          <Card.Text>Your injection is due</Card.Text>
-                          <Button
-                            variant="primary"
-                            as={Link as any}
-                            to="/basal"
-                          >
-                            Take Injection
-                          </Button>
-                        </>
-                      );
-                    case HealthMonitorStatus.Low:
-                      return (
-                        <>
-                          <Card.Title>Low Blood Sugar</Card.Title>
-                          <Card.Text>
-                            Your blood sugar is below target range
-                          </Card.Text>
-                          <Button
-                            variant="primary"
-                            as={Link as any}
-                            to="/rescue"
-                          >
-                            Take Low Correction
-                          </Button>
-                        </>
-                      );
+    <Container fluid="sm" className="px-0 pb-4">
+      <div className="mx-auto" style={{ maxWidth: "32rem" }}>
+        <header className="mb-4">
+          <div className="small text-uppercase text-muted fw-semibold mb-2">
+            Hub
+          </div>
+          <h1 className="h2 mb-2">Quick treatments</h1>
+        </header>
 
-                    case HealthMonitorStatus.Falling:
-                      return (
-                        <>
-                          <Card.Title>Falling Blood Sugar</Card.Title>
-                          <Card.Text>
-                            Your blood sugar is falling quickly
-                          </Card.Text>
-                          <Button
-                            variant="primary"
-                            as={Link as any}
-                            to="/rescue"
-                          >
-                            Take Low Correction
-                          </Button>
-                        </>
-                      );
-                    case HealthMonitorStatus.High:
-                      <>
-                        <Card.Title>High Blood sugar</Card.Title>
-                        <Card.Text>
-                          Your blood sugar is above the target range
-                        </Card.Text>
-                        <Button
-                          variant="primary"
-                          as={Link as any}
-                          to="/insulin"
-                        >
-                          Take Insulin
-                        </Button>
-                      </>;
-                  }
-                  return <></>;
-                })()}
-              </Card.Body>
-            </Card>
+        {dueForBasal && <BasalCard dueForBasal={dueForBasal} />}
+        {expiredInsulins.length > 0 && (
+          <Alert
+            variant="warning"
+            className="border-0 shadow-sm d-flex align-items-start gap-3 mb-3"
+          >
+            <i className="bi bi-exclamation-triangle-fill fs-4 flex-shrink-0" />
+            <div className="flex-grow-1">
+              <div className="fw-semibold mb-1">
+                Insulin expiration needs attention
+              </div>
+              <div className="small mb-2">
+                {expiredInsulins.map((insulin) => insulin.fullName).join(", ")}
+              </div>
+              <Button
+                variant="warning"
+                className="fw-semibold"
+                as={Link as any}
+                to="/expirations"
+              >
+                View insulin expirations
+              </Button>
+            </div>
+          </Alert>
+        )}
+
+        <Row className="g-3 mb-3">
+          <Col xs={12} sm={6}>
+            <ActionCard
+              icon="bi-life-preserver"
+              eyebrow="Rescue"
+              title="Low correction"
+              body="Jump straight to rescue corrections when you need them."
+              to="/rescue"
+              buttonLabel="Open rescue"
+            />
           </Col>
-          <Col xs={12} sm={6} md={4} lg={3}>
-            <Card className="h-100 shadow-sm">
-              <Card.Body>
-                {session.started ? (
-                  <>
-                    <Card.Title>Active Session</Card.Title>
-                    <Card.Text>You have an active session</Card.Text>
-                    <Button variant="primary" as={Link as any} to="/wizard">
-                      View
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Card.Title>Start A Session</Card.Title>
-                    <Card.Text>
-                      Build and interact with meals easily using our session
-                      wizard.
-                    </Card.Text>
-                    <Button variant="primary" as={Link as any} to="/wizard">
-                      Get Started
-                    </Button>
-                  </>
-                )}
-              </Card.Body>
-            </Card>
-          </Col>
-          <Col xs={12} sm={6} md={4} lg={3}>
-            <Card className="h-100 shadow-sm">
-              <Card.Body>
-                <Card.Title>Nightscout Status</Card.Title>
-                {nightscoutAuthLevel === NightscoutAuthLevel.Invalid ? (
-                  <>
-                    <Card.Text>
-                      Nightscout isn't set up correctly or the server isn't
-                      responding
-                    </Card.Text>
-                    <Button variant="primary" as={Link as any} to="/setup">
-                      Nightscout Setup
-                    </Button>
-                  </>
-                ) : nightscoutAuthLevel === NightscoutAuthLevel.Read ? (
-                  <>
-                    <Card.Text>
-                      Nightscout is working, but we don't have full
-                      authorization
-                    </Card.Text>
-                    <Button variant="secondary" as={Link as any} to="/setup">
-                      Nightscout Setup
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <i className="bi bi-check"></i>
-                    <Card.Text>Nightscout is fully operational</Card.Text>
-                  </>
-                )}
-              </Card.Body>
-            </Card>
+          <Col xs={12} sm={6}>
+            <ActionCard
+              icon="bi-droplet-half"
+              eyebrow="Insulin"
+              title="Insulin dosing"
+              body="Open dosing quickly for corrections or a meal-related dose."
+              to="/insulin"
+              buttonLabel="Open insulin"
+            />
           </Col>
         </Row>
-      </main>
+
+        <Card className="border-0 shadow-sm">
+          <Card.Body className="p-3">
+            <div className="small text-uppercase text-muted fw-semibold mb-1">
+              Session
+            </div>
+            <h2 className="h5 mb-1">
+              {session.started ? "Session in progress" : "Meal session"}
+            </h2>
+            <p className="text-muted mb-3">
+              {session.started
+                ? "Resume your current session or review its details."
+                : "Start a new session when you need meal planning and live guidance."}
+            </p>
+            <div className="d-grid gap-2">
+              <Button
+                variant="dark"
+                className="py-2 fw-semibold"
+                as={Link as any}
+                to="/wizard"
+              >
+                {session.started ? "Resume session" : "Start session"}
+              </Button>
+            </div>
+          </Card.Body>
+        </Card>
+        <br />
+
+        {!dueForBasal && <BasalCard dueForBasal={dueForBasal} />}
+      </div>
     </Container>
   );
 }
