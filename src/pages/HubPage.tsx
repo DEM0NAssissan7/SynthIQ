@@ -1,6 +1,6 @@
 import { Alert, Badge, Button, Card } from "react-bootstrap";
 import { Link, useNavigate } from "react-router";
-import { basalIsDue } from "../lib/healthMonitor";
+import { basalIsDue, getLatestBolus } from "../lib/healthMonitor";
 import { getDailyBasalPerShot, getLastShot } from "../lib/basal";
 import { getHourDiff, getPrettyTime } from "../lib/timing";
 import { round } from "../lib/util";
@@ -16,6 +16,7 @@ import {
   PageHeader,
   PageLayout,
 } from "../components/PageLayout";
+import LastBolusMessage from "../components/LastBolusMessage";
 
 function formatDose(value: number) {
   const rounded = round(value, 1);
@@ -133,6 +134,7 @@ function HubPage() {
   const [session] = WizardStore.session.useState();
 
   const dueForBasal = basalIsDue();
+  const latestBolus = getLatestBolus();
 
   const expiredInsulins = InsulinExpirationManager.getExpired();
 
@@ -167,14 +169,13 @@ function HubPage() {
       )}
 
       <ActionGrid>
-        <ActionCard
-          icon="bi-life-preserver"
-          eyebrow="Rescue"
-          title="Low correction"
-          body="Jump straight to rescue corrections when you need them."
-          to="/rescue"
-          buttonLabel="Open rescue"
-        />
+        {latestBolus !== null && (
+          <Card className={`h-100 border-0 shadow-sm app-action-card mb-3`}>
+            <Card.Body className="p-3">
+              <LastBolusMessage />
+            </Card.Body>
+          </Card>
+        )}
         <ActionCard
           icon="bi-droplet-half"
           eyebrow="Insulin"
@@ -182,6 +183,14 @@ function HubPage() {
           body="Open dosing quickly for corrections or a meal-related dose."
           to="/insulin"
           buttonLabel="Open insulin"
+        />
+        <ActionCard
+          icon="bi-life-preserver"
+          eyebrow="Rescue"
+          title="Low correction"
+          body="Jump straight to rescue corrections when you need them."
+          to="/rescue"
+          buttonLabel="Open rescue"
         />
       </ActionGrid>
       <br />
