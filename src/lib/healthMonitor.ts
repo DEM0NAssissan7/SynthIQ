@@ -15,7 +15,6 @@
  *
  */
 
-import type { NavigateFunction } from "react-router";
 import HealthMonitorStatus from "../models/types/healthMonitorStatus";
 import SugarReading, {
   getReadingFromNightscout,
@@ -212,24 +211,6 @@ export async function updateHealthMonitorStatus() {
     if (InsulinExpirationManager.getExpired().length) {
       HealthMonitorStore.statusCache.value = HealthMonitorStatus.InsulinExpired;
       return;
-    }
-  }
-}
-export async function smartMonitor(navigate: NavigateFunction) {
-  const status = HealthMonitorStore.statusCache.value;
-  if (status !== null) {
-    switch (status) {
-      case HealthMonitorStatus.Nominal:
-        break;
-      case HealthMonitorStatus.Falling:
-      case HealthMonitorStatus.Low:
-        navigate("/rescue");
-        break;
-      case HealthMonitorStatus.High:
-        navigate("/insulin");
-        break;
-      default:
-        break;
     }
   }
 }

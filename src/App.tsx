@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate, useNavigate } from "react-router";
+import { Routes, Route } from "react-router";
 import TopBar from "./components/TopBar";
 import HubPage from "./pages/HubPage";
 import SettingsPage from "./pages/SettingsPage";
@@ -17,7 +17,6 @@ import WizardEditPage from "./pages/wizard/WizardEditPage";
 import RescuePage from "./pages/RescuePage";
 import {
   cleanInactivePreviousBoluses,
-  smartMonitor,
   updateHealthMonitorStatus,
 } from "./lib/healthMonitor";
 import Backend from "./lib/remote/backend";
@@ -53,7 +52,6 @@ function App() {
       console.log(node);
     }
   }
-  const navigate = useNavigate();
   const now = useNow(60);
   useEffect(() => {
     // Update health monitor status cache
@@ -84,7 +82,7 @@ function App() {
   );
   useEffect(() => {
     // Execute health monitor navigator
-    smartMonitor(navigate);
+    //smartMonitor(navigate);
   }, [redirectTimer]);
 
   if (PrivateStore.debugLogs.value) {
@@ -98,22 +96,7 @@ function App() {
       <TopBar />
       <div className="app-shell">
         <Routes>
-          <Route
-            path="/"
-            element={
-              Backend.urlIsValid() || BackendStore.skipSetup.value ? (
-                ActivityStore.activity.value.started ? (
-                  <Navigate to="/activity" replace />
-                ) : WizardStore.session.value.started ? (
-                  <Navigate to="/wizard" replace />
-                ) : (
-                  <Navigate to="/hub" replace />
-                )
-              ) : (
-                <Navigate to="/setup" replace />
-              )
-            }
-          />
+          <Route path="/" element={<HubPage />} />
           <Route path="/hub" element={<HubPage />} />
           <Route path="/setup" element={<SetupPage />} />
           <Route path="/settings" element={<SettingsPage />} />
