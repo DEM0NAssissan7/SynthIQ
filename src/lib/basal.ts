@@ -64,7 +64,6 @@ function getNonFastingWindows(
           const date = new Date();
           const insulin = new Insulin(a.insulin, date, variant);
           hoursNonFasting = insulin.duration;
-          console.log(hoursNonFasting, a.insulin);
         }
         break;
       case glucoseEventType:
