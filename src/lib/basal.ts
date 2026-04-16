@@ -59,7 +59,13 @@ function getNonFastingWindows(
         hoursNonFasting = minTimeSinceMeal;
         break;
       case insulinEventType:
-        hoursNonFasting = InsulinVariantManager.getVariant(a.notes).duration;
+        const variant = InsulinVariantManager.getVariant(a.notes);
+        if (a.insulin) {
+          const date = new Date();
+          const insulin = new Insulin(a.insulin, date, variant);
+          hoursNonFasting = insulin.duration;
+          console.log(hoursNonFasting, a.insulin);
+        }
         break;
       case glucoseEventType:
         hoursNonFasting = ignoreGlucose

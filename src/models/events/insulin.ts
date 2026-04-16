@@ -50,6 +50,14 @@ export default class Insulin extends MetaEvent implements ScalarMetaEvent {
   get isActive(): boolean {
     return this.getActivityStatus(new Date());
   }
+  get duration(): number {
+    // This function return how long the insulin lasted in the system (retrospectively)
+    const completionPercent =
+      1 -
+      PreferencesStore.insulinMinActivity.value /
+        (this.value * this.variant.effect);
+    return this.variant.findCompletionTime(completionPercent);
+  }
 
   // Serialization
   static serialize: Serializer<Insulin> = (e: Insulin) => {

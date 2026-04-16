@@ -25,9 +25,12 @@ export class InsulinVariant {
   /**
    * Duration in # of hours
    */
+  findCompletionTime(completionFraction: number) {
+    return Bateman.Finv(completionFraction, this.ka, this.ke);
+  }
   get duration(): number {
     // We consider that once some percentage of the insulin is absorbed, it's finished
-    return Bateman.Finv(Bateman.completionConstant, this.ka, this.ke);
+    return this.findCompletionTime(Bateman.completionConstant);
   }
 
   static serialize: Serializer<InsulinVariant> = (i: InsulinVariant) => {
