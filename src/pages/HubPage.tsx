@@ -1,12 +1,4 @@
-import {
-  Alert,
-  Badge,
-  Button,
-  Card,
-  Col,
-  Container,
-  Row,
-} from "react-bootstrap";
+import { Alert, Badge, Button, Card } from "react-bootstrap";
 import { Link, useNavigate } from "react-router";
 import { basalIsDue } from "../lib/healthMonitor";
 import { getDailyBasalPerShot, getLastShot } from "../lib/basal";
@@ -18,67 +10,16 @@ import { HealthMonitorStore } from "../storage/healthMonitorStore";
 import { TreatmentManager } from "../managers/treatmentManager";
 import { InsulinExpirationManager } from "../managers/expirationManager";
 import { useNow } from "../state/useNow";
+import {
+  ActionCard,
+  ActionGrid,
+  PageHeader,
+  PageLayout,
+} from "../components/PageLayout";
 
 function formatDose(value: number) {
   const rounded = round(value, 1);
   return Number.isInteger(rounded) ? `${rounded}` : rounded.toFixed(1);
-}
-
-type ActionCardProps = {
-  icon: string;
-  title: string;
-  body: string;
-  to: string;
-  buttonLabel: string;
-  buttonVariant?: string;
-  eyebrow?: string;
-};
-
-function ActionCard({
-  icon,
-  title,
-  body,
-  to,
-  buttonLabel,
-  buttonVariant = "primary",
-  eyebrow,
-}: ActionCardProps) {
-  return (
-    <Card className="h-100 border-0 shadow-sm">
-      <Card.Body className="p-3 d-flex flex-column">
-        <div className="d-flex align-items-start gap-3">
-          <div
-            className="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
-            style={{
-              width: "3rem",
-              height: "3rem",
-              background: "rgba(13, 110, 253, 0.12)",
-              color: "#0d6efd",
-            }}
-          >
-            <i className={`bi ${icon} fs-4`} />
-          </div>
-          <div className="flex-grow-1">
-            {eyebrow && (
-              <div className="small text-uppercase text-muted fw-semibold mb-1">
-                {eyebrow}
-              </div>
-            )}
-            <h2 className="h5 mb-1">{title}</h2>
-            <p className="text-muted mb-0">{body}</p>
-          </div>
-        </div>
-        <Button
-          variant={buttonVariant}
-          className="w-100 mt-3 py-2 fw-semibold"
-          as={Link as any}
-          to={to}
-        >
-          {buttonLabel}
-        </Button>
-      </Card.Body>
-    </Card>
-  );
 }
 
 interface BasalCardProps {
@@ -196,94 +137,84 @@ function HubPage() {
   const expiredInsulins = InsulinExpirationManager.getExpired();
 
   return (
-    <Container fluid="sm" className="px-0 pb-4">
-      <div className="mx-auto" style={{ maxWidth: "32rem" }}>
-        <header className="mb-4">
-          <div className="small text-uppercase text-muted fw-semibold mb-2">
-            Hub
+    <PageLayout maxWidth="32rem">
+      <PageHeader eyebrow="Hub" title="Quick treatments" />
+
+      {dueForBasal && <BasalCard dueForBasal={dueForBasal} />}
+      {expiredInsulins.length > 0 && (
+        <Alert
+          variant="warning"
+          className="border-0 shadow-sm d-flex align-items-start gap-3 mb-3"
+        >
+          <i className="bi bi-exclamation-triangle-fill fs-4 flex-shrink-0" />
+          <div className="flex-grow-1">
+            <div className="fw-semibold mb-1">
+              Insulin expiration needs attention
+            </div>
+            <div className="small mb-2">
+              {expiredInsulins.map((insulin) => insulin.fullName).join(", ")}
+            </div>
+            <Button
+              variant="warning"
+              className="fw-semibold"
+              as={Link as any}
+              to="/expirations"
+            >
+              View insulin expirations
+            </Button>
           </div>
-          <h1 className="h2 mb-2">Quick treatments</h1>
-        </header>
+        </Alert>
+      )}
 
-        {dueForBasal && <BasalCard dueForBasal={dueForBasal} />}
-        {expiredInsulins.length > 0 && (
-          <Alert
-            variant="warning"
-            className="border-0 shadow-sm d-flex align-items-start gap-3 mb-3"
-          >
-            <i className="bi bi-exclamation-triangle-fill fs-4 flex-shrink-0" />
-            <div className="flex-grow-1">
-              <div className="fw-semibold mb-1">
-                Insulin expiration needs attention
-              </div>
-              <div className="small mb-2">
-                {expiredInsulins.map((insulin) => insulin.fullName).join(", ")}
-              </div>
-              <Button
-                variant="warning"
-                className="fw-semibold"
-                as={Link as any}
-                to="/expirations"
-              >
-                View insulin expirations
-              </Button>
-            </div>
-          </Alert>
-        )}
+      <ActionGrid>
+        <ActionCard
+          icon="bi-life-preserver"
+          eyebrow="Rescue"
+          title="Low correction"
+          body="Jump straight to rescue corrections when you need them."
+          to="/rescue"
+          buttonLabel="Open rescue"
+        />
+        <ActionCard
+          icon="bi-droplet-half"
+          eyebrow="Insulin"
+          title="Insulin dosing"
+          body="Open dosing quickly for corrections or a meal-related dose."
+          to="/insulin"
+          buttonLabel="Open insulin"
+        />
+      </ActionGrid>
+      <br />
 
-        <Row className="g-3 mb-3">
-          <Col xs={12} sm={6}>
-            <ActionCard
-              icon="bi-life-preserver"
-              eyebrow="Rescue"
-              title="Low correction"
-              body="Jump straight to rescue corrections when you need them."
-              to="/rescue"
-              buttonLabel="Open rescue"
-            />
-          </Col>
-          <Col xs={12} sm={6}>
-            <ActionCard
-              icon="bi-droplet-half"
-              eyebrow="Insulin"
-              title="Insulin dosing"
-              body="Open dosing quickly for corrections or a meal-related dose."
-              to="/insulin"
-              buttonLabel="Open insulin"
-            />
-          </Col>
-        </Row>
+      <Card className="border-0 shadow-sm">
+        <Card.Body className="p-3">
+          <div className="small text-uppercase text-muted fw-semibold mb-1">
+            Session
+          </div>
+          <h2 className="h5 mb-1">
+            {session.started ? "Session in progress" : "Meal session"}
+          </h2>
+          <p className="text-muted mb-3">
+            {session.started
+              ? "Resume your current session or review its details."
+              : "Start a new session when you need meal planning and live guidance."}
+          </p>
+          <div className="d-grid gap-2">
+            <Button
+              variant="dark"
+              className="py-2 fw-semibold"
+              as={Link as any}
+              to="/wizard"
+            >
+              {session.started ? "Resume session" : "Start session"}
+            </Button>
+          </div>
+        </Card.Body>
+      </Card>
+      <br />
 
-        <Card className="border-0 shadow-sm">
-          <Card.Body className="p-3">
-            <div className="small text-uppercase text-muted fw-semibold mb-1">
-              Session
-            </div>
-            <h2 className="h5 mb-1">
-              {session.started ? "Session in progress" : "Meal session"}
-            </h2>
-            <p className="text-muted mb-3">
-              {session.started
-                ? "Resume your current session or review its details."
-                : "Start a new session when you need meal planning and live guidance."}
-            </p>
-            <div className="d-grid gap-2">
-              <Button
-                variant="dark"
-                className="py-2 fw-semibold"
-                as={Link as any}
-                to="/wizard"
-              >
-                {session.started ? "Resume session" : "Start session"}
-              </Button>
-            </div>
-          </Card.Body>
-        </Card>
-        <br />
-
-        {!dueForBasal && <BasalCard dueForBasal={dueForBasal} />}
-      </div>
-    </Container>
+      {!dueForBasal && <BasalCard dueForBasal={dueForBasal} />}
+    </PageLayout>
   );
 }
 

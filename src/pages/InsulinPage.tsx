@@ -20,6 +20,13 @@ import { TreatmentManager } from "../managers/treatmentManager";
 import InsulinVariantDropdown from "../components/InsulinVariantDropdown";
 import { getDailyBasal, getFastingVelocity } from "../lib/basal";
 import LastBolusMessage from "../components/LastBolusMessage";
+import {
+  MetricGrid,
+  MetricPill,
+  PageActions,
+  PageHeader,
+  PageLayout,
+} from "../components/PageLayout";
 
 export default function InsulinPage() {
   const navigate = useNavigate();
@@ -161,10 +168,22 @@ export default function InsulinPage() {
   }, []);
 
   return (
-    <div>
-      <h1>Insulin Dosing</h1>
+    <PageLayout>
+      <PageHeader
+        eyebrow="Treatment"
+        title="Insulin dosing"
+        subtitle={
+          isBolus
+            ? "Review the suggested meal dose, confirm current glucose if needed, and mark insulin cleanly."
+            : "Use this page for quick correction dosing without the extra noise."
+        }
+      />
+
       {isBolus && (
         <Card>
+          <div className="small text-uppercase text-muted fw-semibold mb-2">
+            Session summary
+          </div>
           <TemplateSummary
             template={template}
             session={session}
@@ -179,12 +198,27 @@ export default function InsulinPage() {
       )}
 
       <Card>
-        <LastBolusMessage />
+        <div className="small text-uppercase text-muted fw-semibold mb-2">
+          Recommendation
+        </div>
+        <MetricGrid>
+          <MetricPill
+            label="Mode"
+            value={isBolus ? "Meal or follow-up bolus" : "Correction only"}
+          />
+          <MetricPill
+            label="Suggested dose"
+            value={correctionIsDisplayed ? displayedRange : `${roundByHalf(displayedInsulin)}u`}
+          />
+        </MetricGrid>
         <hr />
-        Take {correctionIsDisplayed && displayedRange}
+        <LastBolusMessage />
       </Card>
 
       <Card>
+        <div className="small text-uppercase text-muted fw-semibold mb-2">
+          Mark insulin
+        </div>
         {!isFirstPostMealInjection && (
           <BloodSugarInput
             initialGlucose={currentGlucose}
@@ -229,18 +263,17 @@ export default function InsulinPage() {
           />
         </div>
       </Card>
-      <div className="d-flex justify-content-between">
+
+      <PageActions inline>
         {isBolus && (
           <Button variant="secondary" onClick={goBack}>
             Go Back
           </Button>
         )}
-        <div className="ms-auto">
-          <Button variant="primary" onClick={onMark}>
-            Mark Insulin
-          </Button>
-        </div>
-      </div>
-    </div>
+        <Button variant="primary" onClick={onMark}>
+          Mark Insulin
+        </Button>
+      </PageActions>
+    </PageLayout>
   );
 }

@@ -7,6 +7,11 @@ import RemoteReadings from "../../lib/remote/readings";
 import { PreferencesStore } from "../../storage/preferencesStore";
 import WizardManager from "../../managers/wizardManager";
 import { WizardPage } from "../../models/types/wizardPage";
+import {
+  PageActions,
+  PageHeader,
+  PageLayout,
+} from "../../components/PageLayout";
 
 export default function WizardFinalBGPage() {
   const [bloodSugar, setBloodSugar] = useState(PreferencesStore.targetBG.value);
@@ -31,13 +36,12 @@ export default function WizardFinalBGPage() {
     }
   }
   return (
-    <>
-      <h1>Final Blood Sugar</h1>
-      <p>
-        Before ending the session, it's useful to have an accurate final blood
-        glucose. You can use a blood sugar meter to get it, or you can simply
-        let the app to infer it from your CGM.
-      </p>
+    <PageLayout>
+      <PageHeader
+        eyebrow="Wizard"
+        title="Final blood sugar"
+        subtitle="Capture the closing BG so the session stores a cleaner result for later review."
+      />
       <Card>
         <BloodSugarInput
           initialGlucose={bloodSugar}
@@ -46,14 +50,14 @@ export default function WizardFinalBGPage() {
           showAutoButton={false}
         />
       </Card>
-      <div style={{ display: "flex", justifyContent: "space-between" }}>
+      <PageActions inline>
         <Button variant="secondary" onClick={goBack}>
           Go Back
         </Button>
         <Button variant="primary" onClick={conclude}>
           Conclude Session
         </Button>
-      </div>
-    </>
+      </PageActions>
+    </PageLayout>
   );
 }

@@ -1,9 +1,14 @@
 import { useNavigate } from "react-router";
 import TemplateNameSearch from "../../components/TemplateNameSearch";
 import Card from "../../components/Card";
-import { Button } from "react-bootstrap";
 import WizardManager from "../../managers/wizardManager";
 import { WizardStore } from "../../storage/wizardStore";
+import {
+  ActionCard,
+  ActionGrid,
+  PageHeader,
+  PageLayout,
+} from "../../components/PageLayout";
 
 export default function WizardSelectionPage() {
   const navigate = useNavigate();
@@ -37,9 +42,12 @@ export default function WizardSelectionPage() {
   }
 
   return (
-    <div className="wizard-page">
-      <h2>Get Started With a Template</h2>
-      <p>Select a template from the list below or add a new one.</p>
+    <PageLayout>
+      <PageHeader
+        eyebrow="Wizard"
+        title="Choose a meal template"
+        subtitle="Reuse a known template for speed, or create a fresh one when you want a new baseline."
+      />
       <Card>
         <TemplateNameSearch
           templates={WizardStore.templates.value}
@@ -47,14 +55,26 @@ export default function WizardSelectionPage() {
           onDelete={(name: string) => WizardManager.deleteTemplate(name)}
         />
       </Card>
-      <div className="pt-3 d-flex justify-content-end">
-        <Button variant="danger" onClick={skip} className="me-auto">
-          Skip
-        </Button>
-        <Button variant="primary" onClick={addTemplate}>
-          Create New Template
-        </Button>
-      </div>
-    </div>
+
+      <ActionGrid>
+        <ActionCard
+          icon="bi-plus-circle"
+          eyebrow="Template"
+          title="Create a new template"
+          body="Start with a fresh template when this meal pattern doesn’t match an existing one."
+          buttonLabel="Create template"
+          onClick={addTemplate}
+        />
+        <ActionCard
+          icon="bi-arrow-right-circle"
+          eyebrow="Quick Start"
+          title="Start without naming"
+          body="Skip template naming and begin a one-off session immediately."
+          buttonLabel="Skip template"
+          buttonVariant="danger"
+          onClick={skip}
+        />
+      </ActionGrid>
+    </PageLayout>
   );
 }

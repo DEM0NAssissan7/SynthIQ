@@ -5,133 +5,162 @@ import type MealTemplate from "../models/mealTemplate";
 import type Session from "../models/session";
 import { WizardStore } from "../storage/wizardStore";
 import { useState } from "react";
-import { PrivateStore } from "../storage/privateStore";
 import { BasalStore } from "../storage/basalStore";
+import {
+  EmptyState,
+  MetricGrid,
+  MetricPill,
+  PageHeader,
+  PageLayout,
+} from "../components/PageLayout";
 
 function getCSV(templates: MealTemplate[], liverOutput: number): string {
   let out =
     "Template Name,Date,Carbs,Protein,Total Insulin Taken,# Insulin Doses,Rescue Doses Taken,InitialBG,FinalBG,Control Score (lower is better),Theoretical Meal Rise (mg/dL),Fasting Velocity (mg/dL per hour),Basal Units per Day (u/day),Sensitivity Index,Invalid\n";
-  for (let t of templates) {
-    for (let s of t.sessions) {
+  for (const t of templates) {
+    for (const s of t.sessions) {
       out += `${t.name},${getFullPrettyDate(s.timestamp)},${s.carbs},${s.protein},${s.length},${s.insulin},${s.insulins.length},${s.glucose},${s.initialGlucose},${s.finalBG},${s.score},${s.theoreticalMealRise},${s.fastingVelocity},${s.dailyBasal},${s.getSensitivityIndex(liverOutput)},${s.isInvalid}\n`;
     }
   }
   return out;
 }
-export default function HistoryPage() {
-  const liverOutput = BasalStore.estimatedLiverOutput.value ?? 0;
+
+function SessionCard({
+  session,
+  liverOutput,
+}: {
+  session: Session;
+  liverOutput: number;
+}) {
+  const [, setRerenderFlag] = useState(false);
+
+  const backgroundClass = session.isInvalid
+    ? session.isGarbage
+      ? "bg-danger-subtle"
+      : "bg-warning-subtle"
+    : "";
+
   return (
-    <>
-      <div style={{ marginBottom: "2rem" }}>
-        <Button
-          variant="outline-primary"
-          onClick={() => {
-            const csv = getCSV(WizardStore.templates.value, liverOutput);
-            const blob = new Blob([csv], { type: "text/csv" });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = "history.csv";
-            a.click();
-            window.URL.revokeObjectURL(url);
+    <Card className={backgroundClass}>
+      <div className="d-flex justify-content-between align-items-start gap-3 mb-3">
+        <div>
+          <div className="fw-semibold">{getFullPrettyDate(session.timestamp)}</div>
+          <div className="small text-muted">UUID: {session.uuid}</div>
+        </div>
+        <ToggleButton
+          id={`toggle-check-${session.uuid}`}
+          type="checkbox"
+          variant="outline-danger"
+          checked={session.isGarbage}
+          value="1"
+          size="sm"
+          onChange={(e) => {
+            session.isGarbage = e.currentTarget.checked;
+            WizardStore.templates.write();
+            setRerenderFlag((f) => !f);
           }}
         >
-          Export to CSV
-        </Button>
+          Garbage
+        </ToggleButton>
       </div>
-      {WizardStore.templates.value.map((template: MealTemplate, i) => (
-        <Card key={i}>
-          <h1>{template.name}</h1>
-          <table style={{ width: "100%", marginBottom: "1rem" }}>
-            <thead>
-              <tr>
-                <th>UUID</th>
-                <th>Time</th>
-                <th>Length</th>
-                <th>Carbs (g)</th>
-                <th>Protein (g)</th>
-                <th>Insulin [correction] (u)</th>
-                <th>BG info [delta] (mg/dL)</th>
-                <th>Glucose (g)</th>
-                <th>Score</th>
-                <th>Theoretical Meal Rise (mg/dL)</th>
-                <th>Sensitivity Index</th>
-              </tr>
-            </thead>
-            {[...template.sessions].reverse().map((session: Session) => {
-              if (session.meals.length < 1) return <></>;
-              const [, setRerenderFlag] = useState(false);
-              if (PrivateStore.debugLogs.value)
-                console.log(
-                  template.name,
-                  session,
-                  session.optimalMealInsulins,
-                );
-              return (
-                <tbody
-                  style={
-                    session.isInvalid
-                      ? session.isGarbage
-                        ? { backgroundColor: "rgba(255, 0, 0, 0.2)" }
-                        : { backgroundColor: "rgba(229, 255, 0, 0.2)" }
-                      : undefined
-                  }
-                >
-                  <tr>
-                    <td>{session.uuid}</td>
-                    <td>{`${getFullPrettyDate(session.timestamp)}`}</td>
-                    <td>{session.length.toFixed(1)}</td>
-                    <td>{session.carbs.toFixed()}</td>
-                    <td>{session.protein.toFixed()}</td>
-                    <td>
-                      {session.insulin}{" "}
-                      {session.correctionInsulin > 0 &&
-                        `[${session.correctionInsulin.toFixed(1)}
-                    ]`}
-                    </td>
-                    <td>
-                      {session.initialGlucose} {"->"} {session.finalBG}{" "}
-                      <b>
-                        [{session.deltaGlucose > 0 ? "+" : ""}
-                        {session.deltaGlucose}]
-                      </b>
-                    </td>
-                    <td>{session.glucose}</td>
-                    <td>{session.score.toFixed(0)}</td>
-                    <td>{session.theoreticalMealRise.toFixed(0)}</td>
-                    <td>
-                      {session.getSensitivityIndex(liverOutput)?.toFixed(1)}
-                    </td>
-                    <td>
-                      <ToggleButton
-                        id={`toggle-check-${session.uuid}`}
-                        type="checkbox"
-                        variant="outline-danger"
-                        checked={session.isGarbage}
-                        value="1"
-                        size="sm"
-                        style={{
-                          padding: "2px 6px",
-                          fontSize: "0.75rem",
-                          lineHeight: "1",
-                        }}
-                        onChange={(e) => {
-                          session.isGarbage = e.currentTarget.checked;
-                          WizardStore.templates.write();
-                          // Trigger rerender
-                          setRerenderFlag((f) => !f);
-                        }}
-                      >
-                        Garbage
-                      </ToggleButton>
-                    </td>
-                  </tr>
-                </tbody>
-              );
-            })}
-          </table>
-        </Card>
-      ))}
-    </>
+
+      <MetricGrid>
+        <MetricPill label="Length" value={`${session.length.toFixed(1)} hr`} />
+        <MetricPill label="Score" value={session.score.toFixed(0)} />
+        <MetricPill label="Carbs" value={`${session.carbs.toFixed()}g`} />
+        <MetricPill label="Protein" value={`${session.protein.toFixed()}g`} />
+        <MetricPill
+          label="Insulin"
+          value={`${session.insulin}u${session.correctionInsulin > 0 ? ` [${session.correctionInsulin.toFixed(1)}]` : ""}`}
+        />
+        <MetricPill label="Glucose" value={`${session.glucose}`} />
+        <MetricPill
+          label="Blood sugar"
+          value={`${session.initialGlucose} -> ${session.finalBG}`}
+        />
+        <MetricPill
+          label="Delta"
+          value={`${session.deltaGlucose > 0 ? "+" : ""}${session.deltaGlucose}`}
+        />
+        <MetricPill
+          label="Meal rise"
+          value={`${session.theoreticalMealRise.toFixed(0)} mg/dL`}
+        />
+        <MetricPill
+          label="Sensitivity"
+          value={session.getSensitivityIndex(liverOutput)?.toFixed(1) ?? "n/a"}
+        />
+      </MetricGrid>
+    </Card>
+  );
+}
+
+export default function HistoryPage() {
+  const liverOutput = BasalStore.estimatedLiverOutput.value ?? 0;
+  const templates = WizardStore.templates.value;
+
+  return (
+    <PageLayout maxWidth="42rem">
+      <PageHeader
+        eyebrow="Data"
+        title="History"
+        subtitle="Review past sessions in a mobile-friendly format or export everything as CSV."
+        actions={
+          <div className="d-grid">
+            <Button
+              variant="outline-primary"
+              onClick={() => {
+                const csv = getCSV(templates, liverOutput);
+                const blob = new Blob([csv], { type: "text/csv" });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "history.csv";
+                a.click();
+                window.URL.revokeObjectURL(url);
+              }}
+            >
+              Export to CSV
+            </Button>
+          </div>
+        }
+      />
+
+      {templates.length === 0 && (
+        <EmptyState>No saved meal templates or sessions yet.</EmptyState>
+      )}
+
+      {templates.map((template: MealTemplate, i) => {
+        const sessions = [...template.sessions]
+          .reverse()
+          .filter((session) => session.meals.length >= 1);
+
+        return (
+          <Card key={i}>
+            <div className="d-flex justify-content-between align-items-start gap-3 mb-3">
+              <div>
+                <h2 className="h5 mb-1">{template.name}</h2>
+                <div className="small text-muted">
+                  {sessions.length} stored session{sessions.length === 1 ? "" : "s"}
+                </div>
+              </div>
+            </div>
+            {sessions.length === 0 ? (
+              <EmptyState>No completed sessions stored for this template.</EmptyState>
+            ) : (
+              <div className="d-grid gap-3">
+                {sessions.map((session) => (
+                  <SessionCard
+                    key={session.uuid}
+                    session={session}
+                    liverOutput={liverOutput}
+                  />
+                ))}
+              </div>
+            )}
+          </Card>
+        );
+      })}
+    </PageLayout>
   );
 }

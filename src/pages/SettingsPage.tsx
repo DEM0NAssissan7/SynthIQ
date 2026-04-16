@@ -7,7 +7,7 @@ import {
   ToggleButton,
 } from "react-bootstrap";
 import Card from "../components/Card";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, type ChangeEvent, type ReactNode } from "react";
 import RemoteStorage from "../lib/remote/storage";
 import type { KeyInterface } from "../storage/storageNode";
 import { PrivateStore } from "../storage/privateStore";
@@ -19,6 +19,7 @@ import StorageBackends from "../registries/storageBackends";
 import { BasalStore } from "../storage/basalStore";
 import { MasterState } from "../models/types/masterState";
 import { downloadData, importData } from "../lib/dataTransfer";
+import { PageHeader, PageLayout } from "../components/PageLayout";
 
 interface Setting {
   title: string;
@@ -69,11 +70,31 @@ function ToggleSetting({ title, keyInterface }: ToggleSettingParams) {
         type="switch"
         label={title}
         checked={val}
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+        onChange={(e: ChangeEvent<HTMLInputElement>) =>
           setVal(e.target.checked)
         }
       />
     </Form.Group>
+  );
+}
+
+function SettingsSection({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  children: ReactNode;
+}) {
+  return (
+    <Card>
+      <div className="small text-uppercase text-muted fw-semibold mb-1">
+        {title}
+      </div>
+      {subtitle && <p className="text-muted mb-3">{subtitle}</p>}
+      {children}
+    </Card>
   );
 }
 
@@ -92,7 +113,7 @@ export default function SettingsPage() {
     });
   }
 
-  async function handleImportData(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleImportData(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -170,8 +191,16 @@ export default function SettingsPage() {
     setSelectedIndex(value.valueOf());
   }
   return (
-    <>
-      <Card>
+    <PageLayout maxWidth="42rem">
+      <PageHeader
+        eyebrow="Settings"
+        title="Configuration"
+        subtitle="Keep system behavior, sync mode, basal settings, and data management in cleaner grouped sections."
+      />
+      <SettingsSection
+        title="Data backup"
+        subtitle="Export or import a full local backup."
+      >
         <div className="d-flex flex-wrap gap-2">
           <Button onClick={handleDownloadAllData} variant="primary">
             Download Data
@@ -195,8 +224,11 @@ export default function SettingsPage() {
             {importMessage.text}
           </Alert>
         )}
-      </Card>
-      <Card>
+      </SettingsSection>
+      <SettingsSection
+        title="Remote storage"
+        subtitle="Manually pull, push, or clear persisted data."
+      >
         <div className="d-flex flex-wrap gap-2">
           <Button onClick={downloadStorage} variant="primary">
             Download From Backend
@@ -208,8 +240,8 @@ export default function SettingsPage() {
             Clear All Data
           </Button>
         </div>
-      </Card>
-      <Card>
+      </SettingsSection>
+      <SettingsSection title="Glucose thresholds">
         <NumberSetting
           keyInterface={PreferencesStore.highBG}
           title="High Blood Sugar Threshold"
@@ -240,9 +272,12 @@ export default function SettingsPage() {
           iconClass="bi bi-capsule"
           unit="mg/dL"
         />
-      </Card>
-      <Card>
-        <ButtonGroup>
+      </SettingsSection>
+      <SettingsSection
+        title="Sync mode"
+        subtitle="Choose how this client behaves when syncing with the wider system."
+      >
+        <ButtonGroup className="flex-wrap">
           {syncOptions.map((a, i) => (
             <ToggleButton
               key={i}
@@ -262,8 +297,8 @@ export default function SettingsPage() {
             </ToggleButton>
           ))}
         </ButtonGroup>
-      </Card>
-      <Card>
+      </SettingsSection>
+      <SettingsSection title="Metabolic calibration">
         <NumberSetting
           keyInterface={CalibrationStore.carbsEffect}
           title="Carbs Effect (per gram)"
@@ -276,8 +311,8 @@ export default function SettingsPage() {
           iconClass="bi bi-egg-fried"
           unit="mg/dL"
         />
-      </Card>
-      <Card>
+      </SettingsSection>
+      <SettingsSection title="Session timing">
         <NumberSetting
           keyInterface={BackendStore.cgmDelay}
           title="CGM Delay (in minutes)"
@@ -302,8 +337,8 @@ export default function SettingsPage() {
           iconClass="bi bi-clock"
           unit="days"
         />
-      </Card>
-      <Card>
+      </SettingsSection>
+      <SettingsSection title="Basal schedule">
         <NumberSetting
           keyInterface={HealthMonitorStore.basalShotsPerDay}
           title="Basal Injections Per Day"
@@ -316,8 +351,8 @@ export default function SettingsPage() {
           iconClass="bi bi-clock"
           unit=""
         />
-      </Card>
-      <Card>
+      </SettingsSection>
+      <SettingsSection title="Other timing">
         <NumberSetting
           keyInterface={BasalStore.minTimeSinceMeal}
           title="Meal Effective Time"
@@ -330,8 +365,8 @@ export default function SettingsPage() {
           iconClass="bi bi-clock"
           unit="mins"
         />
-      </Card>
-      <Card>
+      </SettingsSection>
+      <SettingsSection title="Application behavior">
         <ToggleSetting
           title="Enable Debug Logs"
           keyInterface={PrivateStore.debugLogs}
@@ -340,7 +375,7 @@ export default function SettingsPage() {
           title="Upload Treatment to Nightscout"
           keyInterface={PreferencesStore.uploadToBackend}
         />
-      </Card>
-    </>
+      </SettingsSection>
+    </PageLayout>
   );
 }

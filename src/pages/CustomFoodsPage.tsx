@@ -5,6 +5,7 @@ import Food from "../models/food";
 import { useMemo, useState, type BaseSyntheticEvent } from "react";
 import Unit, { getFoodUnitPrettyName } from "../models/unit";
 import { CustomStore } from "../storage/customStore";
+import { EmptyState, PageHeader, PageLayout } from "../components/PageLayout";
 
 export default function CustomFoodsPage() {
   const [customFoods] = CustomStore.foods.useState();
@@ -60,26 +61,26 @@ export default function CustomFoodsPage() {
   }
 
   return (
-    <>
-      <div className="container">
-        <h1>Custom Foods</h1>
+    <PageLayout>
+      <PageHeader
+        eyebrow="Customization"
+        title="Custom foods"
+        subtitle="Add your repeat foods here so meal building stays fast without losing macro detail."
+      />
         <Card>
           <Form onSubmit={handleFormSubmit}>
-            <div className="d-flex align-items-center gap-2">
-              <Form.Group controlId="food-amount" className="mb-0 flex-grow-1">
-                Name:{" "}
+            <div className="d-grid gap-3">
+              <Form.Group controlId="food-amount" className="mb-0">
+                <Form.Label>Name</Form.Label>
                 <Form.Control
                   type="text"
                   placeholder="e.g. Apple"
-                  className="text-center"
                   value={foodName}
                   onInput={(e: BaseSyntheticEvent) => {
                     setFoodName(e.target.value);
                   }}
                 />
-                <br />
-                <br />
-                Denomination:
+                <Form.Label className="mt-3">Denomination</Form.Label>
                 <Form.Select
                   value={unit}
                   onChange={(e: BaseSyntheticEvent) =>
@@ -90,68 +91,59 @@ export default function CustomFoodsPage() {
                   <option value={Unit.Food.HundredGrams}>per 100g</option>
                   <option value={Unit.Food.Unit}>per unit</option>
                 </Form.Select>
-                <br />
-                carbs / {prettyUnit}:
+                <Form.Label className="mt-3">Carbs / {prettyUnit}</Form.Label>
                 <Form.Control
                   type="number"
                   placeholder={`0g`}
-                  className="text-center"
                   value={carbsRate || ""}
                   onInput={(e: BaseSyntheticEvent) => {
                     const value = parseFloat(e.target.value) || 0;
                     setCarbsRate(value);
                   }}
                 />
-                <br />
-                fiber / {prettyUnit}:
+                <Form.Label className="mt-3">Fiber / {prettyUnit}</Form.Label>
                 <Form.Control
                   type="number"
                   placeholder={`0g`}
-                  className="text-center"
                   value={fiberRate || ""}
                   onInput={(e: BaseSyntheticEvent) => {
                     const value = parseFloat(e.target.value) || 0;
                     setFiberRate(value);
                   }}
                 />
-                <br />
-                protein / {prettyUnit}:
+                <Form.Label className="mt-3">Protein / {prettyUnit}</Form.Label>
                 <Form.Control
                   type="number"
                   placeholder={`0g`}
-                  className="text-center"
                   value={proteinRate || ""}
                   onInput={(e: BaseSyntheticEvent) => {
                     const value = parseFloat(e.target.value) || 0;
                     setProteinRate(value);
                   }}
                 />
-                <br />
-                fat / {prettyUnit}:
+                <Form.Label className="mt-3">Fat / {prettyUnit}</Form.Label>
                 <Form.Control
                   type="number"
                   placeholder={`0g`}
-                  className="text-center"
                   value={fatRate || ""}
                   onInput={(e: BaseSyntheticEvent) => {
                     const value = parseFloat(e.target.value) || 0;
                     setFatRate(value);
                   }}
                 />
-                <br />
-                rise(arbitrary) / {prettyUnit}:
+                <Form.Label className="mt-3">
+                  Rise (arbitrary) / {prettyUnit}
+                </Form.Label>
                 <Form.Control
                   type="number"
                   placeholder={`0mg/dL`}
-                  className="text-center"
                   value={rise || ""}
                   onInput={(e: BaseSyntheticEvent) => {
                     const value = parseFloat(e.target.value) || 0;
                     setRise(value);
                   }}
                 />
-                <br />
-                <div className="d-flex justify-content-end">
+                <div className="d-grid mt-3">
                   <Button variant="primary" onClick={add}>
                     Add
                   </Button>
@@ -162,12 +154,12 @@ export default function CustomFoodsPage() {
         </Card>
         <Card>
           {customFoods.length === 0 && (
-            <div className="text-muted">
-              No custom foods added yet. Use the form above to add new custom
-              foods.
-            </div>
+            <EmptyState>
+              No custom foods added yet. Use the form above to build your first
+              reusable food entry.
+            </EmptyState>
           )}
-          <ListGroup className="mt-3">
+          <ListGroup className="mt-3" variant="flush">
             {customFoods.map((food, i) => (
               <ListGroup.Item key={i} className="d-flex flex-column gap-3 p-3">
                 <FoodDisplay food={food} />
@@ -178,7 +170,6 @@ export default function CustomFoodsPage() {
             ))}
           </ListGroup>
         </Card>
-      </div>
-    </>
+    </PageLayout>
   );
 }

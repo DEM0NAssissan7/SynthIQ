@@ -96,7 +96,7 @@ function App() {
   return (
     <div>
       <TopBar />
-      <div style={{ padding: "20px" }}>
+      <div className="app-shell">
         <Routes>
           <Route
             path="/"

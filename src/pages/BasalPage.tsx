@@ -1,6 +1,13 @@
 import { Button, Form, InputGroup } from "react-bootstrap";
 import Card from "../components/Card";
 import {
+  MetricGrid,
+  MetricPill,
+  PageActions,
+  PageHeader,
+  PageLayout,
+} from "../components/PageLayout";
+import {
   basalInsulinVariant,
   dosingChangeComplete,
   getBasalSensitivity,
@@ -56,7 +63,7 @@ export default function BasalPage() {
   const firstShotHour = HealthMonitorStore.basalShotTime.value; // 8 => 8:00 AM, 16 => 4:00 PM
   const interval = 24 / shotsPerDay;
   function getTimes() {
-    let strings: string[] = [];
+    const strings: string[] = [];
     for (let i = 0; i < shotsPerDay; i++) {
       const hour = firstShotHour + i * interval;
       const suffix = hour < 12 || hour === 24 ? "AM" : "PM";
@@ -70,70 +77,83 @@ export default function BasalPage() {
   }
 
   return (
-    <>
+    <PageLayout>
+      <PageHeader
+        eyebrow="Treatment"
+        title="Basal injection"
+        subtitle="Keep schedule, recent history, and quick marking in one focused place."
+      />
+
       <Card>
-        You take{" "}
-        <b>
-          {unitsPerDay.toFixed(1)}u {basalInsulinVariant.name} in total
-        </b>{" "}
-        with {shotsPerDay} injection(s) per day at:
-        <br />
-        {getTimes().map((s: string) => {
-          return (
-            <>
-              {s}
-              <br />
-            </>
-          );
-        })}
+        <MetricGrid>
+          <MetricPill
+            label="Daily total"
+            value={`${unitsPerDay.toFixed(1)}u ${basalInsulinVariant.name}`}
+          />
+          <MetricPill label="Shots per day" value={shotsPerDay} />
+          <MetricPill
+            label="Last dose"
+            value={`${getPrettyTime(lastBasalTimestamp)} (${getHoursSince(
+              lastBasalTimestamp,
+            )}h ago)`}
+          />
+          <MetricPill label="Cycle status" value={changeIsComplete ? "Complete" : "In progress"} />
+        </MetricGrid>
         <hr />
-        Previous doses (newest first):
-        <br />
-        {basals.map((a: Insulin, _: number) => {
-          return (
+        <div className="small text-uppercase text-muted fw-semibold mb-2">
+          Schedule
+        </div>
+        <div className="d-flex flex-wrap gap-2">
+          {getTimes().map((time) => (
+            <span key={time} className="badge text-bg-light border px-3 py-2">
+              {time}
+            </span>
+          ))}
+        </div>
+      </Card>
+
+      <Card>
+        <div className="small text-uppercase text-muted fw-semibold mb-2">
+          Basal analysis
+        </div>
+        <MetricGrid>
+          <MetricPill
+            label="Fasting velocity"
+            value={`${fastingVelocity > 0 ? "+" : ""}${round(
+              fastingVelocity,
+              0,
+            )} mg/dL/hr`}
+          />
+          <MetricPill
+            label="Fasting data"
+            value={`${fastingTime.toFixed(1)} hours`}
+          />
+          {liverOutput !== null && sensitivityIndex !== null && (
             <>
-              <b>{a.value}u</b> {`(${getPrettyTime(a.timestamp)})`}
-              <br />
+              <MetricPill
+                label="Liver output"
+                value={`${liverOutput.toFixed(1)} mg/dL/hr`}
+              />
+              <MetricPill
+                label="Sensitivity"
+                value={`${(sensitivityIndex / 42).toFixed(1)} mg/dL/hr/U`}
+              />
             </>
-          );
-        })}
-        <hr />
-        Last dose taken at {getPrettyTime(lastBasalTimestamp)},{" "}
-        {getHoursSince(lastBasalTimestamp)} hours ago
+          )}
+        </MetricGrid>
       </Card>
+
       <Card>
-        You fasting blood glucose rate is around{" "}
-        <b>
-          {fastingVelocity > 0 && "+"}
-          {round(fastingVelocity, 0)}mg/dL per hour
-        </b>
-        <br />
-        Collected <b>{fastingTime.toFixed(1)} hours</b> of fasting
-        {liverOutput !== null && sensitivityIndex !== null && (
-          <>
-            <hr />
-            Estimated liver output:{" "}
-            <b>{liverOutput.toFixed(1)} mg/dL per hour</b>
-            <br />
-            Sensitivity Index: <b>{sensitivityIndex.toFixed(0)}</b>
-            <br />
-            Your estimated basal insulin sensitivity is{" "}
-            <b>{(sensitivityIndex / 42).toFixed(1)} mg/dL / hr per unit</b>
-            <hr />
-          </>
-        )}
-        {changeIsComplete
-          ? `Current dosing cycle is complete`
-          : `Current dosing cycle is not complete`}
-      </Card>
-      <Card>
+        <div className="small text-uppercase text-muted fw-semibold mb-2">
+          Quick mark
+        </div>
         <InputGroup className="mb-3">
           <InputGroup.Text id="basic-addon1">
             <i className="bi bi-eyedropper"></i>
           </InputGroup.Text>
           <Form.Control
-            placeholder={`${lastShot.toString()}`}
-            aria-label="URL"
+            placeholder={lastShot.toString()}
+            aria-label="Basal dose"
             type="number"
             aria-describedby="basic-addon1"
             onChange={(e: any) => {
@@ -144,21 +164,35 @@ export default function BasalPage() {
           />
           <InputGroup.Text id="basic-addon1">u</InputGroup.Text>
         </InputGroup>
-        <div style={{ display: "flex", justifyContent: "center" }}>
+        <PageActions inline>
           <Button
             variant="outline-primary"
-            style={{ minWidth: "120px" }}
             onClick={() => markBasalInjection(lastShot)}
           >
             {lastShot}u
           </Button>
+          <Button variant="primary" onClick={onMark}>
+            Mark basal
+          </Button>
+        </PageActions>
+      </Card>
+
+      <Card>
+        <div className="small text-uppercase text-muted fw-semibold mb-2">
+          Previous doses
+        </div>
+        <div className="small">
+          {basals.map((a: Insulin, index: number) => (
+            <div
+              key={`${a.timestamp.getTime()}-${index}`}
+              className="d-flex justify-content-between py-2 border-bottom"
+            >
+              <span className="fw-semibold">{a.value}u</span>
+              <span className="text-muted">{getPrettyTime(a.timestamp)}</span>
+            </div>
+          ))}
         </div>
       </Card>
-      <div style={{ display: "flex", justifyContent: "flex-end" }}>
-        <Button variant="primary" onClick={onMark}>
-          Mark Basal
-        </Button>
-      </div>
-    </>
+    </PageLayout>
   );
 }

@@ -5,6 +5,12 @@ import WizardManager from "../../managers/wizardManager";
 import TemplateSummary from "../../components/TemplateSummary";
 import { WizardStore } from "../../storage/wizardStore";
 import { WizardPage } from "../../models/types/wizardPage";
+import {
+  ActionCard,
+  ActionGrid,
+  PageHeader,
+  PageLayout,
+} from "../../components/PageLayout";
 
 export default function WizardHubPage() {
   const [session] = WizardStore.session.useState();
@@ -43,36 +49,83 @@ export default function WizardHubPage() {
   }
 
   return (
-    <>
-      {" "}
+    <PageLayout>
+      <PageHeader
+        eyebrow="Wizard"
+        title="Session hub"
+        subtitle="Keep the current session readable while keeping glucose, activity, meal, and insulin actions close at hand."
+      />
       <Card>
         <TemplateSummary session={session} template={template} />
       </Card>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          gap: "40px",
-          marginTop: "20px",
-        }}
-      >
-        {/* LEFT COLUMN */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "10px",
-          }}
-        >
-          <Button variant="secondary" onClick={startNew}>
-            End Session
-          </Button>
-          <Button variant="secondary" onClick={editSession}>
-            Edit Session
-          </Button>
-          <Button variant="danger" onClick={cancelSession}>
-            Cancel Session
-          </Button>
+      <ActionGrid>
+        <ActionCard
+          icon="bi-life-preserver"
+          eyebrow="Rescue"
+          title="Take glucose"
+          body="Jump straight to rescue treatment without leaving the session context behind."
+          buttonLabel="Open rescue"
+          onClick={takeGlucose}
+        />
+        <ActionCard
+          icon="bi-person-walking"
+          eyebrow="Activity"
+          title="Start activity"
+          body="Log an activity alongside the session so the effects stay captured together."
+          buttonLabel="Open activity"
+          onClick={doActivity}
+        />
+        <ActionCard
+          icon="bi-fork-knife"
+          eyebrow="Meal"
+          title={session.mealMarked ? "Add another meal" : "Mark meal"}
+          body={
+            session.mealMarked
+              ? "Add another meal event while keeping the existing session running."
+              : "Build and mark the meal for this session."
+          }
+          buttonLabel={session.mealMarked ? "Add meal" : "Open meal"}
+          buttonVariant={session.mealMarked ? "danger" : "primary"}
+          onClick={addMeal}
+        />
+        <ActionCard
+          icon="bi-droplet-half"
+          eyebrow="Insulin"
+          title={session.insulinMarked ? "Add more insulin" : "Mark insulin"}
+          body={
+            session.insulinMarked
+              ? "Record an additional insulin dose without interrupting the current session."
+              : "Open insulin dosing for the session."
+          }
+          buttonLabel={session.insulinMarked ? "Add insulin" : "Open insulin"}
+          buttonVariant={session.insulinMarked ? "danger" : "primary"}
+          onClick={takeInsulin}
+        />
+        <ActionCard
+          icon="bi-pencil-square"
+          eyebrow="Edit"
+          title="Edit session"
+          body="Adjust stored foods, treatments, or glucose details for the current session."
+          buttonLabel="Open editor"
+          buttonVariant="secondary"
+          onClick={editSession}
+        />
+        <ActionCard
+          icon="bi-check2-circle"
+          eyebrow="Finish"
+          title="End session"
+          body="Wrap up the session with a final blood sugar and save the result."
+          buttonLabel="Finish session"
+          buttonVariant="secondary"
+          onClick={startNew}
+        />
+      </ActionGrid>
+
+      <Card>
+        <div className="small text-uppercase text-muted fw-semibold mb-2">
+          Session controls
+        </div>
+        <div className="d-grid gap-2">
           <ToggleButton
             id="toggle-check"
             type="checkbox"
@@ -83,37 +136,11 @@ export default function WizardHubPage() {
           >
             Exclude Session
           </ToggleButton>
-        </div>
-
-        {/* RIGHT COLUMN */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "10px",
-            alignItems: "flex-end",
-          }}
-        >
-          <Button variant="primary" onClick={takeGlucose}>
-            Take Glucose
-          </Button>
-          <Button variant="primary" onClick={doActivity}>
-            Start Activity
-          </Button>
-          <Button
-            variant={session.mealMarked ? "danger" : "primary"}
-            onClick={addMeal}
-          >
-            Eat {session.mealMarked && "Additional"} Meal
-          </Button>
-          <Button
-            variant={session.insulinMarked ? "danger" : "primary"}
-            onClick={takeInsulin}
-          >
-            Take {session.insulinMarked && "Additional"} Insulin
+          <Button variant="danger" onClick={cancelSession}>
+            Cancel Session
           </Button>
         </div>
-      </div>
-    </>
+      </Card>
+    </PageLayout>
   );
 }

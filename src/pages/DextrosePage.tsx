@@ -4,6 +4,12 @@ import { round } from "../lib/util";
 import type { KeyInterface } from "../storage/storageNode";
 import { DextroseStore } from "../storage/dextroseStore";
 import { useMemo } from "react";
+import {
+  MetricGrid,
+  MetricPill,
+  PageHeader,
+  PageLayout,
+} from "../components/PageLayout";
 
 interface InputBoxParams {
   keyInterface: KeyInterface<number>;
@@ -59,10 +65,16 @@ export default function DextrosePage() {
   }, [totalSolution, powderMass]);
 
   return (
-    <>
-      <h1>Dextrose Mixing</h1>
+    <PageLayout>
+      <PageHeader
+        eyebrow="Utility"
+        title="Dextrose mixing"
+        subtitle="Dial in powder ratios and final concentration without juggling the numbers by hand."
+      />
       <Card>
-        <h3>Powder Concentration</h3>
+        <div className="small text-uppercase text-muted fw-semibold mb-2">
+          Powder concentration
+        </div>
         <InputBox
           keyInterface={DextroseStore.powderGlucoseContent}
           unit="g"
@@ -72,7 +84,9 @@ export default function DextrosePage() {
         dextrose powder
       </Card>
       <Card>
-        <h3></h3>
+        <div className="small text-uppercase text-muted fw-semibold mb-2">
+          Target solution
+        </div>
         Total solution:{" "}
         <InputBox keyInterface={DextroseStore.totalSolution} unit="ml" />
         <br />
@@ -87,9 +101,20 @@ export default function DextrosePage() {
         solution
       </Card>
       <Card>
-        Mix <b>{round(powderMass, 0)}g</b> of dextrose powder with{" "}
-        <b>{round(waterVolume, 0)}ml</b> of water
+        <div className="small text-uppercase text-muted fw-semibold mb-2">
+          Mix result
+        </div>
+        <MetricGrid>
+          <MetricPill
+            label="Powder needed"
+            value={`${round(powderMass, 0)}g`}
+          />
+          <MetricPill
+            label="Water needed"
+            value={`${round(waterVolume, 0)}ml`}
+          />
+        </MetricGrid>
       </Card>
-    </>
+    </PageLayout>
   );
 }

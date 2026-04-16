@@ -7,6 +7,7 @@ import { InsulinExpirationManager } from "../managers/expirationManager";
 import { InsulinExpiration } from "../models/insulinExpiration";
 import InsulinVariantDropdown from "../components/InsulinVariantDropdown";
 import { InsulinVariantManager } from "../managers/insulinVariantManager";
+import { EmptyState, PageHeader, PageLayout } from "../components/PageLayout";
 
 export default function ExpirationPage() {
   const [expirations] = ExpirationStore.expirations.useState();
@@ -49,24 +50,27 @@ export default function ExpirationPage() {
   }
 
   return (
-    <>
-      <div className="container">
-        <h1>Insulin Expirations</h1>
+    <PageLayout>
+      <PageHeader
+        eyebrow="Utility"
+        title="Insulin expirations"
+        subtitle="Track opened insulin cleanly so replacement reminders stay visible without clutter."
+      />
         <Card>
           <Form onSubmit={handleFormSubmit}>
-            <div className="d-flex align-items-center gap-2">
-              <Form.Group controlId="food-amount" className="mb-0 flex-grow-1">
-                Label{" "}
+            <Form.Group controlId="food-amount" className="mb-0">
+              <Form.Label>Label</Form.Label>
                 <Form.Control
                   type="text"
                   placeholder="e.g. Fridge"
-                  className="text-center"
                   value={label}
                   onInput={(e: BaseSyntheticEvent) => {
                     setLabel(`${e.target.value}`);
                   }}
                 />
-                <br />
+                <div className="mt-3">
+                  <Form.Label>Variant</Form.Label>
+                </div>
                 <ListGroup>
                   <InsulinVariantDropdown
                     variant={variant}
@@ -74,9 +78,7 @@ export default function ExpirationPage() {
                     warnBasal={false}
                   />
                 </ListGroup>
-                <br />
-                <br />
-                <div className="d-flex justify-content-end">
+                <div className="d-grid mt-3">
                   <Button
                     variant={isValid ? "primary" : "outline-primary"}
                     onClick={add}
@@ -85,21 +87,27 @@ export default function ExpirationPage() {
                     Add
                   </Button>
                 </div>
-              </Form.Group>
-            </div>
+            </Form.Group>
           </Form>
         </Card>
         <Card>
-          <ListGroup className="mt-3">
+          {expirations.length === 0 && (
+            <EmptyState>No tracked insulin expirations yet.</EmptyState>
+          )}
+          <ListGroup className="mt-3" variant="flush">
             {expirations.map((e, i) => (
               <ListGroup.Item
                 key={i}
-                className="d-flex justify-content-between align-items-center py-2"
+                className="d-flex justify-content-between align-items-start gap-3 py-3"
               >
-                <span className="fw-semibold me-4">{e.fullName}</span>
+                <div>
+                  <div className="fw-semibold">{e.fullName}</div>
+                  <div className="small text-muted">
+                    {e.daysSinceOpened.toFixed()} days since opened
+                  </div>
+                </div>
 
-                <div className="d-flex align-items-center flex-wrap gap-3">
-                  {/* Life */}
+                <div className="d-flex align-items-center flex-wrap justify-content-end gap-3">
                   {e.daysLeft > 0 ? (
                     <label className="m-0 d-flex align-items-center gap-1 small">
                       {e.daysLeft.toFixed()}
@@ -115,11 +123,6 @@ export default function ExpirationPage() {
                       </span>
                     </label>
                   )}
-
-                  <label className="m-0 d-flex align-items-center gap-1 small">
-                    {e.daysSinceOpened.toFixed()}
-                    <span className="text-muted">days since opened</span>
-                  </label>
 
                   <div className="w-100 d-flex justify-content-end mt-2 gap-2">
                     <Button
@@ -142,7 +145,6 @@ export default function ExpirationPage() {
             ))}
           </ListGroup>
         </Card>
-      </div>
-    </>
+    </PageLayout>
   );
 }

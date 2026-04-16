@@ -15,6 +15,11 @@ import WizardManager from "../../managers/wizardManager";
 import { WizardPage } from "../../models/types/wizardPage";
 import { PreferencesStore } from "../../storage/preferencesStore";
 import Meal from "../../models/events/meal";
+import {
+  PageActions,
+  PageHeader,
+  PageLayout,
+} from "../../components/PageLayout";
 
 export default function WizardEditPage() {
   const [session] = WizardStore.session.useState();
@@ -33,8 +38,12 @@ export default function WizardEditPage() {
     // session.initialGlucose = a;
   }
   return (
-    <>
-      <h1>Edit Session Events</h1>
+    <PageLayout>
+      <PageHeader
+        eyebrow="Wizard"
+        title="Edit session"
+        subtitle="Adjust meal events, insulin, glucose, and the stored starting BG without losing the session context."
+      />
       <Card>
         <TemplateSummary template={template} session={session} />
       </Card>
@@ -92,11 +101,11 @@ export default function WizardEditPage() {
         <GlucoseManager session={session} />
       </Card>
 
-      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+      <PageActions>
         <Button variant="primary" onClick={finishEdit}>
           Done
         </Button>
-      </div>
-    </>
+      </PageActions>
+    </PageLayout>
   );
 }

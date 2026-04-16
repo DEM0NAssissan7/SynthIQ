@@ -6,6 +6,7 @@ import { WizardStore } from "../../storage/wizardStore";
 import { Button } from "react-bootstrap";
 import { WizardPage } from "../../models/types/wizardPage";
 import { getDailyBasal, getFastingVelocity } from "../../lib/basal";
+import { PageActions, PageHeader, PageLayout } from "../../components/PageLayout";
 
 export default function WizardSessionSelectPage() {
   const navigate = useNavigate();
@@ -39,7 +40,12 @@ export default function WizardSessionSelectPage() {
     WizardManager.moveToPage(WizardPage.Select, navigate);
   }
   return (
-    <>
+    <PageLayout>
+      <PageHeader
+        eyebrow="Wizard"
+        title="Choose a prior session"
+        subtitle="Select the session shape that best matches this moment so the wizard can start from something useful."
+      />
       <SessionSelection
         onselect={chooseSession}
         session={latestSession}
@@ -74,9 +80,11 @@ export default function WizardSessionSelectPage() {
         session={bestSession}
         title="Optimal Score Session"
       />
-      <Button onClick={goBack} variant={"secondary  "}>
-        Go Back
-      </Button>
-    </>
+      <PageActions>
+        <Button onClick={goBack} variant="secondary">
+          Go Back
+        </Button>
+      </PageActions>
+    </PageLayout>
   );
 }

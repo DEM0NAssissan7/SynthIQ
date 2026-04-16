@@ -7,6 +7,11 @@ import { Button } from "react-bootstrap";
 import { ActivityPage } from "../../models/types/activityPage";
 import BloodSugarInput from "../../components/BloodSugarInput";
 import { useState } from "react";
+import {
+  PageActions,
+  PageHeader,
+  PageLayout,
+} from "../../components/PageLayout";
 
 export default function ActivityStartPage() {
   const [currentBG, setCurrentBG] = useState<number | null>(null);
@@ -29,7 +34,12 @@ export default function ActivityStartPage() {
     ActivityManager.navigateTo(navigate, ActivityPage.Select);
   }
   return (
-    <>
+    <PageLayout>
+      <PageHeader
+        eyebrow="Activity"
+        title="Start activity"
+        subtitle="Confirm the starting glucose and review the projected activity effect before you begin."
+      />
       <Card>
         <ActivitySummary
           activity={activity}
@@ -43,7 +53,8 @@ export default function ActivityStartPage() {
           setInitialGlucose={setCurrentBG}
         />
       </Card>
-      <div className="d-flex justify-content-between align-items-center mt-3">
+
+      <PageActions inline>
         {!activity.started && (
           <Button onClick={goToSelect} variant="secondary">
             Go Back
@@ -52,7 +63,7 @@ export default function ActivityStartPage() {
         <Button variant="primary" onClick={start}>
           Start Activity
         </Button>
-      </div>
-    </>
+      </PageActions>
+    </PageLayout>
   );
 }

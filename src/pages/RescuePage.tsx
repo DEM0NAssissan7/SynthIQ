@@ -28,6 +28,13 @@ import { RescueVariantStore } from "../storage/rescueVariantStore";
 import { useNow } from "../state/useNow";
 import { TreatmentManager } from "../managers/treatmentManager";
 import LastBolusMessage from "../components/LastBolusMessage";
+import {
+  MetricGrid,
+  MetricPill,
+  PageActions,
+  PageHeader,
+  PageLayout,
+} from "../components/PageLayout";
 
 export default function RescuePage() {
   const [session] = WizardStore.session.useState();
@@ -87,8 +94,13 @@ export default function RescuePage() {
   const [showTemplate, setShowTemplate] = useState(false);
 
   return (
-    <>
-      <h1>Low Correction</h1>
+    <PageLayout>
+      <PageHeader
+        eyebrow="Treatment"
+        title="Low correction"
+        subtitle="Keep rescue corrections immediate while still showing the context you need."
+      />
+
       {session.started && (
         <Card>
           <ToggleButton
@@ -107,10 +119,28 @@ export default function RescuePage() {
         </Card>
       )}
       <Card>
-        <HealthMonitorMessage />
+        <div className="small text-uppercase text-muted fw-semibold mb-2">
+          Recommendation
+        </div>
+        <MetricGrid>
+          <MetricPill label="Variant" value={variant.name} />
+          <MetricPill
+            label="Intelligent correction"
+            value={`${intelligentCorrection}${variant.unitLetter}`}
+          />
+          <MetricPill
+            label="Base correction"
+            value={`${correction}${variant.unitLetter}`}
+          />
+          <MetricPill label="Current BG" value={`${currentBG} mg/dL`} />
+        </MetricGrid>
         <hr />
-        <LastBolusMessage />
-        <hr />
+        <div className="mb-3">
+          <HealthMonitorMessage />
+        </div>
+        <div className="mb-3">
+          <LastBolusMessage />
+        </div>
         <GlucoseSuggestion
           intelligentCorrection={intelligentCorrection}
           baseCorrection={correction}
@@ -118,6 +148,9 @@ export default function RescuePage() {
         />
       </Card>
       <Card>
+        <div className="small text-uppercase text-muted fw-semibold mb-2">
+          Mark rescue
+        </div>
         <BloodSugarInput
           initialGlucose={currentBG}
           setInitialGlucose={setCurrentBG}
@@ -166,18 +199,17 @@ export default function RescuePage() {
           />
         </div>
       </Card>
-      <div style={{ display: "flex", justifyContent: "space-between" }}>
+
+      <PageActions inline>
         {session.started && (
           <Button variant="secondary" onClick={goBack}>
             Go To Wizard
           </Button>
         )}
-        <div style={{ marginLeft: "auto" }}>
-          <Button variant="primary" onClick={onMark}>
-            Mark Glucose
-          </Button>
-        </div>
-      </div>
-    </>
+        <Button variant="primary" onClick={onMark}>
+          Mark Glucose
+        </Button>
+      </PageActions>
+    </PageLayout>
   );
 }
