@@ -547,19 +547,10 @@ export default class MealTemplate extends Subscribable implements Template {
     if (!bestCluster) return null;
 
     // Then we find the session within that cluster that has the most accurate dosing strategy
-    function findTypicalSession(cluster: Cluster) {
-      let session: Session = cluster.sessions[0];
-      let bestDistance = Infinity;
-      cluster.vectors.forEach((vector, i) => {
-        const distance = findDistance(vector, cluster.centroid, cluster.scales);
-        if (distance < bestDistance) {
-          bestDistance = distance;
-          session = cluster.sessions[i];
-        }
-      });
-      return session;
+    function findMostSimilarSession(cluster: Cluster) {
+      return getSimilarSessionsDistances(meal, cluster.sessions)[0][0];
     }
-    return findTypicalSession(bestCluster);
+    return findMostSimilarSession(bestCluster);
   }
 
   // Dosing helpers
