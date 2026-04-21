@@ -618,7 +618,7 @@ export default class MealTemplate extends Subscribable implements Template {
     }
 
     // Now we analyze the original session and create partial ratios for each food
-    const approxMealEffect = metaMealFoods.reduce(
+    const profileMealEffect = metaMealFoods.reduce(
       (n, m) => n + (m.carbs * carbsEffect + m.protein * proteinEffect),
       0,
     );
@@ -628,7 +628,7 @@ export default class MealTemplate extends Subscribable implements Template {
     };
     const sessionMealRise = session.mealRise;
     const foodScalingFactor =
-      approxMealEffect > 0 ? sessionMealRise / approxMealEffect : 1;
+      profileMealEffect > 0 ? sessionMealRise / profileMealEffect : 1;
     const foodRatioMap = new Map<string, FoodRatio>();
     metaMealFoods.forEach((food) => {
       if (food.amount <= 0) return; // Skip invalid numbers
