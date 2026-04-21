@@ -618,8 +618,8 @@ export default class MealTemplate extends Subscribable implements Template {
     }
 
     // Now we analyze the original session and create partial ratios for each food
-    const profileMealEffect = metaMealFoods.reduce(
-      (n, m) => n + (m.carbs * carbsEffect + m.protein * proteinEffect),
+    const profileMealRise = metaMealFoods.reduce(
+      (n, m) => n + (m.netCarbs * carbsEffect + m.protein * proteinEffect),
       0,
     );
     type FoodRatio = {
@@ -628,7 +628,7 @@ export default class MealTemplate extends Subscribable implements Template {
     };
     const sessionMealRise = session.mealRise;
     const foodScalingFactor =
-      profileMealEffect > 0 ? sessionMealRise / profileMealEffect : 1;
+      profileMealRise > 0 ? sessionMealRise / profileMealRise : 1;
     const foodRatioMap = new Map<string, FoodRatio>();
     metaMealFoods.forEach((food) => {
       if (food.amount <= 0) return; // Skip invalid numbers
@@ -638,7 +638,6 @@ export default class MealTemplate extends Subscribable implements Template {
         carbsRatio: (profileCarbsEffect * foodScalingFactor) / food.amount,
         proteinRatio: (profileProteinEffect * foodScalingFactor) / food.amount,
       };
-      console.log(food.name, ratio);
       foodRatioMap.set(food.name, ratio);
     });
 
@@ -658,7 +657,6 @@ export default class MealTemplate extends Subscribable implements Template {
       deltaCarbsRise += food.netCarbs * carbsEffect;
       deltaProteinRise += food.protein * proteinEffect;
     });
-    console.log(foodsDelta, deltaCarbsRise, deltaProteinRise);
 
     // Now modify the insulins
     const insulins = session.optimalMealInsulins.map(
