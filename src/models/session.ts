@@ -82,6 +82,12 @@ export default class Session extends Subscribable {
   get mealMarked(): boolean {
     return this.meals.length !== 0;
   }
+  get metaMeal(): Meal {
+    // This is a meal that is a simplified combination of all the meals we have
+    let meal = new Meal(this.firstMealTimestamp);
+    this.meals.forEach((m) => meal.foods.push(...m.foods));
+    return Meal.deserialize(Meal.serialize(meal)); // Return a deep copy
+  }
   get carbs(): number {
     let carbs = 0;
     this.meals.forEach((a: Meal) => (carbs += a.carbs));

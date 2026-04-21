@@ -102,11 +102,7 @@ export default function InsulinPage() {
   const correctionInsulin = useMemo(() => {
     return currentGlucose ? getCorrectionInsulin(currentGlucose, variant) : 0;
   }, [currentGlucose, variant]);
-  const vectorizedInsulins = template.vectorizeInsulin(
-    meal.carbs,
-    meal.protein,
-    baseSession,
-  );
+  const vectorizedInsulins = template.vectorizeInsulin(meal, baseSession);
   const shotIndex = session.insulins.length;
   const overshootInsulinOffset =
     shotIndex < vectorizedInsulins.length
@@ -208,7 +204,11 @@ export default function InsulinPage() {
           />
           <MetricPill
             label="Suggested dose"
-            value={correctionIsDisplayed ? displayedRange : `${roundByHalf(displayedInsulin)}u`}
+            value={
+              correctionIsDisplayed
+                ? displayedRange
+                : `${roundByHalf(displayedInsulin)}u`
+            }
           />
         </MetricGrid>
         <hr />

@@ -53,7 +53,7 @@ export default function TemplateMealSummary({
 
   const insulinAdjustment = session ? session.insulinAdjustment : 0;
   const insulinOffset = session
-    ? template.getMealInsulinOffset(session, meal.carbs, meal.protein)
+    ? template.getMealInsulinOffset(session, meal)
     : 0;
   const profileCarbInsulin = template.getProfileInsulin(
     meal.carbs,
@@ -67,11 +67,7 @@ export default function TemplateMealSummary({
   );
   const profileInsulin = profileCarbInsulin + profileProteinInsulin;
   const insulins = (() => {
-    const vectorizedInsulin = template.vectorizeInsulin(
-      meal.carbs,
-      meal.protein,
-      session,
-    );
+    const vectorizedInsulin = template.vectorizeInsulin(meal, session);
     // Fall back to profile
     if (!vectorizedInsulin || template.isFirstTime)
       return [
