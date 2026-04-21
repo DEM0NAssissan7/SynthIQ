@@ -1,3 +1,4 @@
+import { CardSubtitle } from "react-bootstrap";
 import { getBasalSensitivity } from "../lib/basal";
 import {
   getSimilarSessionsDistances,
@@ -586,89 +587,28 @@ export default class MealTemplate extends Subscribable implements Template {
     return (carbsRise + proteinRise) / variant.effect;
   }
   getInsulinOffsets(session: Session, meal: Meal) {
-    // This is the insulin offset in direct relation to the optimal meal insulins
     const carbsEffect = CalibrationStore.carbsEffect.value;
     const proteinEffect = CalibrationStore.proteinEffect.value;
 
-    const summedFoods = meal.summedFoods;
-    const metaMealFoods = session.metaMeal.summedFoods;
-    const foodsDelta: Food[] = [];
+    const sessionMeal = session.metaMeal;
+    const profileRise =
+      sessionMeal.carbs * carbsEffect + sessionMeal.protein * proteinEffect;
+    const actualRise = session.mealRise;
+    const profileError = profileRise > 0 ? actualRise / profileRise : 1; // The ratio of how "off" the profile was
 
-    // Create the foods delta vector (1st pass)
-    summedFoods.forEach((food) => {
-      const foodDelta = Food.deserialize(Food.serialize(food));
-      foodDelta.amount = food.amount;
-      metaMealFoods.forEach((f) => {
-        if (f.name !== food.name) return;
-        foodDelta.amount -= f.amount;
-      });
-      foodsDelta.push(foodDelta);
-    });
-
-    // 2nd pass: find the foods that were in the original session but NOT in the victim
-    for (const originalFood of metaMealFoods) {
-      const existsInNewMeal = summedFoods.some(
-        (f) => f.name === originalFood.name,
-      );
-      if (existsInNewMeal) continue;
-
-      const foodDelta = Food.deserialize(Food.serialize(originalFood));
-      foodDelta.amount = -originalFood.amount;
-      foodsDelta.push(foodDelta);
-    }
-
-    // Now we analyze the original session and create partial ratios for each food
-    const profileMealRise = metaMealFoods.reduce(
-      (n, m) => n + (m.netCarbs * carbsEffect + m.protein * proteinEffect),
-      0,
-    );
-    type FoodRatio = {
-      carbsRatio: number; // carbs mg/dL rise per item
-      proteinRatio: number; // protein mg/dL rise per item
-    };
-    const sessionMealRise = session.mealRise;
-    const foodScalingFactor =
-      profileMealRise > 0 ? sessionMealRise / profileMealRise : 1;
-    const foodRatioMap = new Map<string, FoodRatio>();
-    metaMealFoods.forEach((food) => {
-      if (food.amount <= 0) return; // Skip invalid numbers
-      const profileCarbsEffect = food.netCarbs * carbsEffect;
-      const profileProteinEffect = food.protein * proteinEffect;
-      const ratio: FoodRatio = {
-        carbsRatio: (profileCarbsEffect * foodScalingFactor) / food.amount,
-        proteinRatio: (profileProteinEffect * foodScalingFactor) / food.amount,
-      };
-      foodRatioMap.set(food.name, ratio);
-    });
-
-    // Now we determine the delta inferred rises using the ratios we derived
-    let deltaCarbsRise = 0;
-    let deltaProteinRise = 0;
-    foodsDelta.forEach((food) => {
-      const deltaAmount = food.amount;
-      const ratio = foodRatioMap.get(food.name);
-      if (ratio) {
-        // If we have a inferred effect / amount ratio
-        deltaCarbsRise += deltaAmount * ratio.carbsRatio;
-        deltaProteinRise += deltaAmount * ratio.proteinRatio;
-        return;
-      }
-      // If we don't have an inferred ratio, just yolo using the profile alone
-      deltaCarbsRise += food.netCarbs * carbsEffect;
-      deltaProteinRise += food.protein * proteinEffect;
-    });
-
-    // Now modify the insulins
     const insulins = session.optimalMealInsulins.map(
       (i) => new Insulin(0, i.timestamp, i.variant),
     );
-    insulins[0].value += deltaCarbsRise / insulins[0].variant.effect; // Add extra carbs offset to first shot, as they typically only act on first shot timeframe
+    if (insulins.length === 0) return []; // Safety
+    const carbsRise =
+      (meal.carbs - sessionMeal.carbs) * carbsEffect * profileError;
+    insulins[0].value += carbsRise / insulins[0].variant.effect; // Add extra carbs offset to first shot, as they typically only act on first shot timeframe
 
-    const extraProteinRisePerShot = deltaProteinRise / insulins.length;
-    insulins.forEach(
-      (i) => (i.value += extraProteinRisePerShot / i.variant.effect),
-    ); // Distribute protein between all shots
-
+    const proteinRisePerShot =
+      ((meal.protein - sessionMeal.protein) / insulins.length) *
+      proteinEffect *
+      profileError;
+    insulins.forEach((i) => (i.value += proteinRisePerShot / i.variant.effect)); // Distribute protein between all shots
     return insulins;
   }
   getMealInsulinOffset(session: Session, meal: Meal) {
