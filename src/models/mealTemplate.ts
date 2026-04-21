@@ -1,4 +1,3 @@
-import { CardSubtitle } from "react-bootstrap";
 import { getBasalSensitivity } from "../lib/basal";
 import {
   getSimilarSessionsDistances,
@@ -14,7 +13,6 @@ import { PreferencesStore } from "../storage/preferencesStore";
 import { PrivateStore } from "../storage/privateStore";
 import Insulin from "./events/insulin";
 import type Meal from "./events/meal";
-import Food from "./food";
 import Session from "./session";
 import Subscribable from "./subscribable";
 import type { Template } from "./types/interfaces";
