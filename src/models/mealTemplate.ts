@@ -591,21 +591,27 @@ export default class MealTemplate extends Subscribable implements Template {
     const sessionMeal = session.metaMeal;
     const profileRise =
       sessionMeal.carbs * carbsEffect + sessionMeal.protein * proteinEffect;
-    const actualRise = session.mealRise;
-    const profileError = profileRise > 0 ? actualRise / profileRise : 1; // The ratio of how "off" the profile was
 
-    const insulins = session.optimalMealInsulins.map(
+    const optimalMealInsulins = session.optimalMealInsulins;
+    const optimalMealInsulinsEffect = optimalMealInsulins.reduce(
+      (n, i) => n + i.value * i.variant.effect,
+      0,
+    ); // We get the perceived effect of the insulins only because we are going to be applying to heterogenous effects between shots
+    const profileScale =
+      profileRise > 0 ? optimalMealInsulinsEffect / profileRise : 1; // Slope for profile
+
+    const insulins = optimalMealInsulins.map(
       (i) => new Insulin(0, i.timestamp, i.variant),
     );
     if (insulins.length === 0) return []; // Safety
     const carbsRise =
-      (meal.carbs - sessionMeal.carbs) * carbsEffect * profileError;
+      (meal.carbs - sessionMeal.carbs) * carbsEffect * profileScale;
     insulins[0].value += carbsRise / insulins[0].variant.effect; // Add extra carbs offset to first shot, as they typically only act on first shot timeframe
 
     const proteinRisePerShot =
       ((meal.protein - sessionMeal.protein) / insulins.length) *
       proteinEffect *
-      profileError;
+      profileScale;
     insulins.forEach((i) => (i.value += proteinRisePerShot / i.variant.effect)); // Distribute protein between all shots
     return insulins;
   }
