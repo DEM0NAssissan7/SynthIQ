@@ -12,7 +12,7 @@ import { CalibrationStore } from "../storage/calibrationStore";
 import { PreferencesStore } from "../storage/preferencesStore";
 import { PrivateStore } from "../storage/privateStore";
 import Insulin from "./events/insulin";
-import type Meal from "./events/meal";
+import Meal from "./events/meal";
 import Session from "./session";
 import Subscribable from "./subscribable";
 import type { Template } from "./types/interfaces";
@@ -600,18 +600,59 @@ export default class MealTemplate extends Subscribable implements Template {
     const profileScale =
       profileRise > 0 ? optimalMealInsulinsEffect / profileRise : 1; // Slope for profile
 
+    // Separate out the rises partialy for foods we know vs. ones we don't
+    const summedFoods = meal.summedFoods;
+    let uncommonCarbs = 0;
+    let uncommonProtein = 0;
+    for (let food of summedFoods) {
+      if (sessionMeal.hasFood(food)) continue;
+      // This food is new/unseen in the session meal
+      uncommonCarbs += food.netCarbs;
+      uncommonProtein += food.protein;
+    }
+
     const insulins = optimalMealInsulins.map(
       (i) => new Insulin(0, i.timestamp, i.variant),
     );
     if (insulins.length === 0) return []; // Safety
-    const carbsRise =
-      (meal.carbs - sessionMeal.carbs) * carbsEffect * profileScale;
+    /**
+     * Factor used to "unscale" nutrients from foods NOT present in the original session.
+     *
+     * Goal:
+     * - Foods that existed in sessionMeal → scaled by profileScale (session-calibrated)
+     * - New foods (uncommon)              → use raw profile (NO scaling)
+     *
+     * Problem:
+     * We multiply the entire delta by profileScale later, which would incorrectly
+     * scale new foods as well.
+     *
+     * Solution:
+     * Pre-adjust uncommonCarbs / uncommonProtein so that after applying profileScale,
+     * they end up effectively unscaled.
+     *
+     * Algebra (s = profileScale):
+     * (delta + uncommon * (1/s - 1)) * s
+     * = delta*s + uncommon
+     *
+     * → Known food deltas are scaled
+     * → Uncommon foods remain unscaled
+     *
+     * Sanity check:
+     * If only uncommon foods exist:
+     * (x + x*(1/s - 1)) * s = (x + x/s - x) * s = (x/s) * s = x
+     */
+    const uncommonFactor = 1 / profileScale - 1;
+    let carbsRise =
+      (meal.carbs - sessionMeal.carbs + uncommonCarbs * uncommonFactor) *
+      carbsEffect *
+      profileScale;
     insulins[0].value += carbsRise / insulins[0].variant.effect; // Add extra carbs offset to first shot, as they typically only act on first shot timeframe
 
-    const proteinRisePerShot =
-      ((meal.protein - sessionMeal.protein) / insulins.length) *
+    const proteinRise =
+      (meal.protein - sessionMeal.protein + uncommonProtein * uncommonFactor) *
       proteinEffect *
       profileScale;
+    const proteinRisePerShot = proteinRise / insulins.length;
     insulins.forEach((i) => (i.value += proteinRisePerShot / i.variant.effect)); // Distribute protein between all shots
     return insulins;
   }
