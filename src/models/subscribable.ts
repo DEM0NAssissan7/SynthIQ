@@ -17,6 +17,7 @@ export default class Subscribable {
   }
 
   addChildSubscribable(s: Subscribable) {
+    if (this.childSubscriptions.has(s)) return; // Don't subscribe twice
     const unsubscribe = s.subscribe(() => this.notify());
     this.childSubscriptions.set(s, unsubscribe);
   }
