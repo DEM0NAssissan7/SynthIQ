@@ -7,7 +7,7 @@ export default class Subscribable {
   // Subscriptions
   subscribe(callback: GeneralSubscriptionCallback) {
     this.subscriptions.push(callback);
-    return () => this.unsubscribe(callback); // return explicit reference to
+    return () => this.unsubscribe(callback); // return explicit reference to unsubscriber
   }
   unsubscribe(callback: GeneralSubscriptionCallback) {
     this.subscriptions = this.subscriptions.filter((sub) => sub !== callback);
