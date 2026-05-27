@@ -48,23 +48,12 @@ export default class WizardManager {
 
   // Meal
   static markMeal() {
-    const session: Session = WizardStore.session.value;
-
-    // If the session already has meals or insulins, auto-close it and roll over
-    if (session.started) {
-      // Finalize current session by saving it to the template
-      this.addSessionToTemplate(session);
-      this.replaceTemplateToArray();
-      // Start a fresh session but keep the same template context
-      this.resetSession();
-    }
-
     const meal: Meal = WizardStore.meal.value;
-    const newSession: Session = WizardStore.session.value;
+    const session: Session = WizardStore.session.value;
     const timestamp = new Date();
 
     meal.timestamp = timestamp;
-    newSession.addMeal(meal);
+    session.addMeal(meal);
     this.resetMeal(); // Reset the meal to make room for additional
 
     // TODO: Use date selector
