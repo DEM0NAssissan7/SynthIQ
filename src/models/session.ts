@@ -16,16 +16,16 @@ import type { Deserializer, JSONObject, Serializer } from "./types/types";
 import { PreferencesStore } from "../storage/preferencesStore";
 import Activity from "./events/activity";
 import type { InsulinVariant } from "./types/insulinVariant";
-import { InsulinVariantManager } from "../managers/insulinVariantManager";
 import type { RescueVariant } from "./types/rescueVariant";
 import { getBasalSensitivity } from "../lib/basal";
+import { InsulinVariantStore } from "../storage/insulinVariantStore";
+import { RescueVariantStore } from "../storage/rescueVariantStore";
+import { useVariantGetters } from "../lib/helpers/useVariantGetters";
 
 type TreatmentWindow = {
   snapshot: Snapshot;
   initialBG: number;
-  insulin: Insulin;
-  optimalVariant: InsulinVariant;
-  glucose: number;
+  insulins: Insulin[];
   glucoses: Glucose[];
   glucoseEffect: number;
   finalBG: number;
@@ -81,6 +81,12 @@ export default class Session extends Subscribable {
   }
   get mealMarked(): boolean {
     return this.meals.length !== 0;
+  }
+  get metaMeal(): Meal {
+    // This is a meal that is a simplified combination of all the meals we have
+    let meal = new Meal(this.firstMealTimestamp);
+    this.meals.forEach((m) => meal.foods.push(...m.foods));
+    return Meal.deserialize(Meal.serialize(meal)); // Return a deep copy
   }
   get carbs(): number {
     let carbs = 0;
@@ -251,34 +257,33 @@ export default class Session extends Subscribable {
      * because this function only wants to return the optimal MEAL insulin, not cumUlative.
      */
 
-    const snapshots = this.snapshots;
-    const insulins = this.insulins;
+    const snapshots: Snapshot[] = this.snapshots;
     const glucoses = this.glucoses;
 
     if (!this.initialGlucose)
       throw new Error(`Cannot get windows: no initial BG`);
+    if (this.insulins.length === 0) return [];
 
     // Treatment windows creation
     let windows: TreatmentWindow[] = [];
-    if (insulins.length === 0) return [];
     for (let i = 0; i < snapshots.length; i++) {
       const snapshot = snapshots[i];
-      const insulin = insulins[i] ?? insulins[i - 1];
+      const timeA = snapshot.startTime;
+      const timeB = snapshot.endTime;
+
+      const insulins = this.insulins.map((i) =>
+        Insulin.deserialize(Insulin.serialize(i)),
+      );
       if (!snapshot.finalBG || !snapshot.initialBG)
         throw new Error(`Cannot get windows: no final or inital BG`);
       // Find optimal variant
-      let optimalVariant = InsulinVariantManager.getOptimalVariant(
-        snapshot.length,
-        insulin.variant,
-      );
+      insulins.forEach((i) => (i.value = i.batemanIntegral(timeA, timeB)));
       const window: TreatmentWindow = {
         snapshot: snapshot,
         initialBG: snapshot.initialBG.sugar,
-        insulin: Insulin.deserialize(Insulin.serialize(insulin)),
-        optimalVariant: optimalVariant,
+        insulins: insulins,
         finalBG: snapshot.finalBG.sugar,
         length: snapshot.length,
-        glucose: 0,
         glucoses: [],
         glucoseEffect: 0,
       };
@@ -293,32 +298,7 @@ export default class Session extends Subscribable {
         ) {
           // If the glucose was taken during this window
           window.glucoses.push(Glucose.deserialize(Glucose.serialize(glucose)));
-          window.glucose += glucose.value;
           window.glucoseEffect += glucose.value * glucose.variant.effect;
-        }
-      }
-
-      // If we have a dose close (enough) to the last window's, we combine them together
-      if (windows.length > 0) {
-        const lastWindow = windows[windows.length - 1];
-        // If our insulin was within an hour of the first one
-        if (
-          getHourDiff(window.insulin.timestamp, lastWindow.insulin.timestamp) <
-            1 &&
-          window.insulin.variant.name === lastWindow.insulin.variant.name // the same kind of insulin
-        ) {
-          lastWindow.snapshot.absorb(window.snapshot);
-          lastWindow.insulin.value += window.insulin.value;
-          lastWindow.finalBG = window.finalBG;
-          lastWindow.glucose += window.glucose;
-          lastWindow.glucoses.push(...window.glucoses);
-          lastWindow.glucoseEffect += window.glucoseEffect;
-          lastWindow.length += window.length;
-          lastWindow.optimalVariant = InsulinVariantManager.getOptimalVariant(
-            lastWindow.length,
-            lastWindow.insulin.variant,
-          );
-          continue;
         }
       }
 
@@ -326,79 +306,55 @@ export default class Session extends Subscribable {
     }
     return windows;
   }
-  get optimalMealInsulins(): Insulin[] {
-    const windows: TreatmentWindow[] = this.windows;
-    let resultInsulins: Insulin[] = [];
-    const defaultInsulinVariant = InsulinVariantManager.getDefault();
+  getOptimalMealInsulins(
+    insulinVariants: InsulinVariant[],
+    rescueVariants: RescueVariant[],
+  ): Insulin[] {
+    const { getInsulinVariant, getRescueVariant } = useVariantGetters(
+      insulinVariants,
+      rescueVariants,
+    );
+
+    const windows = this.windows;
+    if (windows.length === 0) return [];
+
+    let doseAdjustments = this.insulins.map(() => 0);
     for (let window of windows) {
-      const insulin = Insulin.deserialize(Insulin.serialize(window.insulin));
-      const glucoseRise = window.glucoseEffect;
-      const initialBG = window.initialBG;
-      const finalBG = window.finalBG;
-      const minBG = window.snapshot.minBG?.sugar ?? Infinity;
-      const minBGRange = 10; // mg/dL
-
-      /** Determine if there was a delayed rise and there was an overdose */
-      if (
-        (finalBG > initialBG || finalBG > PreferencesStore.highBG.value) &&
-        minBG < PreferencesStore.lowBG.value + minBGRange &&
-        glucoseRise > 0
-      ) {
-        // This assumes that the glucose taken to correct for lows was the correct amount and did not lead to BG too high
-        const overdoseAmount = glucoseRise / insulin.variant.effect;
-
-        // We correct for whatever overdose happened in that window
-        resultInsulins.push(
-          new Insulin(
-            insulin.value - overdoseAmount,
-            insulin.timestamp,
-            insulin.variant,
-          ),
-        );
-
-        // Now, we make a new dose for that delayed rise assuming that glucose taken was correct and
-        // the last glucose taken marks the beginning of the rise
-        const delayedRise = finalBG - PreferencesStore.targetBG.value;
-        const delayedRiseInsulin = delayedRise / defaultInsulinVariant.effect;
-        const lastGlucoseTimestamp =
-          window.glucoses[window.glucoses.length - 1].timestamp;
-        resultInsulins.push(
-          new Insulin(
-            delayedRiseInsulin,
-            lastGlucoseTimestamp,
-            defaultInsulinVariant,
-          ),
-        );
-        continue;
-      }
-
-      /**
-       * In the case of a normal overdose/underdose
-       * */
-      const theoreticalFinalBG = window.finalBG - glucoseRise; // Avoid blaming rescues for a rise in BG
-      const deltaBG = theoreticalFinalBG - window.initialBG; // Try to keep things as flat as possible
-
-      const correction = deltaBG / insulin.variant.effect;
-      resultInsulins.push(
-        new Insulin(
-          insulin.value + correction,
-          insulin.timestamp,
-          insulin.variant,
-        ),
+      const insulins = window.insulins;
+      const totalInsulinEffect = insulins.reduce(
+        (n, i) => i.value * getInsulinVariant(i.variant).effect + n,
+        0,
       );
+      if (!totalInsulinEffect) continue;
+
+      const glucoseEffect = window.glucoses.reduce(
+        (n, g) => g.value * getRescueVariant(g.variant).effect + n,
+        0,
+      );
+
+      const theoreticalFinalBG = window.finalBG - glucoseEffect;
+      const deltaBG = theoreticalFinalBG - window.initialBG;
+      const messyCumulativeDeltaBG = deltaBG / totalInsulinEffect;
+      // Index alignment between window.insulins and this.insulin is guaranteed
+      window.insulins.forEach((partialInsulin, i) => {
+        const correctionFragment =
+          partialInsulin.value * messyCumulativeDeltaBG;
+        doseAdjustments[i] += correctionFragment;
+      }); // Add correction fragment to overall dose adjustment
     }
-    for (let i = 0; i < resultInsulins.length - 2; i++) {
-      let j = i + 1;
-      let previousInsulin = resultInsulins[i];
-      let currentInsulin = resultInsulins[j];
-      if (currentInsulin.value < 0) {
-        previousInsulin.value += currentInsulin.value;
-        resultInsulins.splice(j, 1);
-        i--;
-        continue;
-      }
-    }
-    return resultInsulins;
+
+    // We take the original dose plus correction adjustment
+    return this.insulins.map((original, i) => {
+      const result = Insulin.deserialize(Insulin.serialize(original));
+      result.value += doseAdjustments[i];
+      return result;
+    });
+  }
+  get optimalMealInsulins(): Insulin[] {
+    return this.getOptimalMealInsulins(
+      InsulinVariantStore.variants.value,
+      RescueVariantStore.variants.value,
+    );
   }
 
   get optimalMealInsulin(): number {
@@ -440,12 +396,35 @@ export default class Session extends Subscribable {
     return this.insulins.length !== 0;
   }
   get insulin(): number {
-    let insulin = 0;
-    this.insulins.forEach((a: Insulin) => (insulin += a.value));
-    return insulin;
+    return this.insulins.reduce((n, i) => i.value + n, 0);
   }
   get mealInsulin(): number {
     return this.insulin - this.correctionInsulin;
+  }
+  getTheoreticalMealRise(
+    insulinVariants: InsulinVariant[],
+    rescueVariants: RescueVariant[],
+  ): number {
+    const { getInsulinVariant } = useVariantGetters(
+      insulinVariants,
+      rescueVariants,
+    );
+    const optimalMealInsulins = this.getOptimalMealInsulins(
+      insulinVariants,
+      rescueVariants,
+    );
+    const rise = optimalMealInsulins.reduce(
+      (n, insulin) =>
+        insulin.value * getInsulinVariant(insulin.variant).effect + n,
+      0,
+    );
+    return rise;
+  }
+  get theoreticalMealRise(): number {
+    return this.getTheoreticalMealRise(
+      InsulinVariantStore.variants.value,
+      RescueVariantStore.variants.value,
+    );
   }
   get firstInsulinTimestamp(): Date {
     if (this.insulins.length === 0) return this.timestamp;

@@ -15,7 +15,6 @@
  *
  */
 
-import type { NavigateFunction } from "react-router";
 import HealthMonitorStatus from "../models/types/healthMonitorStatus";
 import SugarReading, {
   getReadingFromNightscout,
@@ -40,7 +39,7 @@ export async function populateReadingCache() {
   const rawReadings = await RemoteReadings.getLatestReadings(readingsCacheSize);
   if (rawReadings) {
     let readings = rawReadings.map((r: any) =>
-      getReadingFromNightscout(r)
+      getReadingFromNightscout(r),
     ) as SugarReading[];
     HealthMonitorStore.readingsCache.value = readings;
     HealthMonitorStore.currentBG.value = readings[0].sugar;
@@ -73,7 +72,7 @@ export function timeToCritical() {
 export function markGlucose(
   grams: number,
   variant: RescueVariant,
-  timestamp = new Date()
+  timestamp = new Date(),
 ) {
   HealthMonitorStore.lastRescue.value = new Glucose(grams, timestamp, variant);
 }
@@ -81,7 +80,7 @@ export function markGlucose(
 export function getLastRescueMinutes() {
   const minuteDiff = round(
     getMinuteDiff(new Date(), HealthMonitorStore.lastRescue.value.timestamp),
-    0
+    0,
   );
   return minuteDiff;
 }
@@ -103,12 +102,24 @@ export function getLatestBasalTimestamp() {
 export function markBolus(
   units: number,
   variant: InsulinVariant,
-  timestamp = new Date()
+  timestamp = new Date(),
 ) {
-  HealthMonitorStore.lastBolus.value = new Insulin(units, timestamp, variant);
+  HealthMonitorStore.recentBoluses.value = [
+    ...HealthMonitorStore.recentBoluses.value,
+    new Insulin(units, timestamp, variant),
+  ];
+}
+export function cleanInactivePreviousBoluses() {
+  const recentBoluses = HealthMonitorStore.recentBoluses.value;
+  // Filter by only currently active boluses
+  HealthMonitorStore.recentBoluses.value = recentBoluses.filter(
+    (insulin) => insulin.isActive,
+  );
 }
 export function getLatestBolus() {
-  return HealthMonitorStore.lastBolus.value;
+  const recentBoluses = HealthMonitorStore.recentBoluses.value;
+  if (recentBoluses.length === 0) return null;
+  return recentBoluses[recentBoluses.length - 1];
 }
 export function getTimeSinceLastBolus() {
   const now = new Date();
@@ -185,10 +196,8 @@ export async function updateHealthMonitorStatus() {
       }
     }
 
-    if (
-      currentBG > PreferencesStore.highBG.value &&
-      getTimeSinceLastBolus() > getLatestBolus().variant.duration
-    ) {
+    const latestBolus = getLatestBolus();
+    if (currentBG > PreferencesStore.highBG.value && latestBolus === null) {
       HealthMonitorStore.statusCache.value = HealthMonitorStatus.High;
       return;
     }
@@ -202,24 +211,6 @@ export async function updateHealthMonitorStatus() {
     if (InsulinExpirationManager.getExpired().length) {
       HealthMonitorStore.statusCache.value = HealthMonitorStatus.InsulinExpired;
       return;
-    }
-  }
-}
-export async function smartMonitor(navigate: NavigateFunction) {
-  const status = HealthMonitorStore.statusCache.value;
-  if (status !== null) {
-    switch (status) {
-      case HealthMonitorStatus.Nominal:
-        break;
-      case HealthMonitorStatus.Falling:
-      case HealthMonitorStatus.Low:
-        navigate("/rescue");
-        break;
-      case HealthMonitorStatus.High:
-        navigate("/insulin");
-        break;
-      default:
-        break;
     }
   }
 }

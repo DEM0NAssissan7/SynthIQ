@@ -1,16 +1,27 @@
-import { InputGroup, Form, Button, Toast } from "react-bootstrap";
+import { Alert, Badge, Button, Form, InputGroup, Toast } from "react-bootstrap";
 import { useNavigate } from "react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Backend from "../lib/remote/backend";
 import { BackendStore } from "../storage/backendStore";
 import { PrivateStore } from "../storage/privateStore";
+import { PageActions, PageHeader, PageLayout } from "../components/PageLayout";
 
 const autoHideTime = 4000;
+
+enum NightscoutAuthLevel {
+  Unchecked,
+  Invalid,
+  Read,
+  Write,
+}
 
 function SetupPage() {
   // This is usually a bad thing, but we are just pulling the current values to give the user a view on what he currently has, to allow him to change it
   const [url, setUrl] = BackendStore.url.useState();
   const [apiSecret, setApiSecret] = PrivateStore.apiSecret.useState();
+  const [nightscoutAuthLevel, setNightscoutAuthLevel] = useState(
+    NightscoutAuthLevel.Unchecked,
+  );
 
   const navigate = useNavigate();
   function advance() {
@@ -38,6 +49,52 @@ function SetupPage() {
     setErrorMessage(message);
   }
 
+  async function refreshAuthStatus() {
+    if (!url) {
+      setNightscoutAuthLevel(NightscoutAuthLevel.Invalid);
+      return;
+    }
+    await Backend.verifyAuth()
+      .then((a) => {
+        if (a.message.canWrite) {
+          setNightscoutAuthLevel(NightscoutAuthLevel.Write);
+          return;
+        }
+        if (a.message.canRead) {
+          setNightscoutAuthLevel(NightscoutAuthLevel.Read);
+          return;
+        }
+        setNightscoutAuthLevel(NightscoutAuthLevel.Invalid);
+      })
+      .catch((e) => {
+        console.error(e);
+        setNightscoutAuthLevel(NightscoutAuthLevel.Invalid);
+      });
+  }
+
+  useEffect(() => {
+    if (!BackendStore.url.value) {
+      setNightscoutAuthLevel(NightscoutAuthLevel.Invalid);
+      return;
+    }
+    Backend.verifyAuth()
+      .then((a) => {
+        if (a.message.canWrite) {
+          setNightscoutAuthLevel(NightscoutAuthLevel.Write);
+          return;
+        }
+        if (a.message.canRead) {
+          setNightscoutAuthLevel(NightscoutAuthLevel.Read);
+          return;
+        }
+        setNightscoutAuthLevel(NightscoutAuthLevel.Invalid);
+      })
+      .catch((e) => {
+        console.error(e);
+        setNightscoutAuthLevel(NightscoutAuthLevel.Invalid);
+      });
+  }, []);
+
   async function attemptContinue() {
     if (!url) {
       errorMsg("Please input a URL");
@@ -55,6 +112,7 @@ function SetupPage() {
         console.error(e);
         errorMsg(`Could not connect to nightscout: ${e}`);
       });
+    await refreshAuthStatus();
   }
 
   async function testAuth() {
@@ -77,36 +135,96 @@ function SetupPage() {
         console.error(e);
         errorMsg(`Could not connect to nightscout: ${e}`);
       });
+    await refreshAuthStatus();
   }
 
   return (
-    <>
-      <InputGroup className="mb-3">
-        <InputGroup.Text>
-          {/* Globe icon */}
-          <i className="bi bi-globe"></i>
-        </InputGroup.Text>
-        <Form.Control
-          type="text"
-          placeholder={url || "Enter your nightscout server URL"}
-          aria-label="URL"
-          aria-describedby="basic-addon1"
-          onChange={(e) => setUrl(e.target.value)}
-        />
-      </InputGroup>
-      <InputGroup className="mb-3">
-        <InputGroup.Text>
-          {/* Key icon */}
-          <i className="bi bi-key"></i>
-        </InputGroup.Text>
-        <Form.Control
-          type="text"
-          placeholder={apiSecret || "Enter your API key"}
-          aria-label="API Key"
-          aria-describedby="basic-addon2"
-          onChange={(e) => setApiSecret(e.target.value)}
-        />
-      </InputGroup>
+    <PageLayout>
+      <PageHeader
+        eyebrow="Setup"
+        title="Nightscout connection"
+        subtitle="Connect SynthIQ to Nightscout, review authorization status, and continue once the link is healthy enough for your workflow."
+      />
+
+      <Alert variant="light" className="border shadow-sm">
+        <div className="d-flex justify-content-between align-items-start gap-3">
+          <div>
+            <div className="small text-uppercase text-muted fw-semibold mb-1">
+              Nightscout
+            </div>
+            <div className="fw-semibold mb-1">Connection status</div>
+            {nightscoutAuthLevel === NightscoutAuthLevel.Write && (
+              <div className="text-muted">
+                Nightscout is connected with read and write access.
+              </div>
+            )}
+            {nightscoutAuthLevel === NightscoutAuthLevel.Read && (
+              <div className="text-muted">
+                Nightscout is reachable, but this client is missing write access.
+              </div>
+            )}
+            {nightscoutAuthLevel === NightscoutAuthLevel.Invalid && (
+              <div className="text-muted">
+                Nightscout is not configured correctly yet or the server is not responding.
+              </div>
+            )}
+            {nightscoutAuthLevel === NightscoutAuthLevel.Unchecked && (
+              <div className="text-muted">
+                Checking the saved Nightscout configuration now.
+              </div>
+            )}
+          </div>
+          <Badge
+            bg={
+              nightscoutAuthLevel === NightscoutAuthLevel.Write
+                ? "success"
+                : nightscoutAuthLevel === NightscoutAuthLevel.Read
+                  ? "warning"
+                  : nightscoutAuthLevel === NightscoutAuthLevel.Unchecked
+                    ? "secondary"
+                    : "danger"
+            }
+          >
+            {nightscoutAuthLevel === NightscoutAuthLevel.Write
+              ? "Ready"
+              : nightscoutAuthLevel === NightscoutAuthLevel.Read
+                ? "Read Only"
+                : nightscoutAuthLevel === NightscoutAuthLevel.Unchecked
+                  ? "Checking"
+                  : "Needs Setup"}
+          </Badge>
+        </div>
+      </Alert>
+      <div className="card app-card border-0 shadow-sm mb-3">
+        <div className="card-body">
+          <Form.Label>Nightscout URL</Form.Label>
+          <InputGroup className="mb-3">
+            <InputGroup.Text>
+              <i className="bi bi-globe"></i>
+            </InputGroup.Text>
+            <Form.Control
+              type="text"
+              placeholder={url || "Enter your nightscout server URL"}
+              aria-label="URL"
+              aria-describedby="basic-addon1"
+              onChange={(e) => setUrl(e.target.value)}
+            />
+          </InputGroup>
+          <Form.Label>API key</Form.Label>
+          <InputGroup className="mb-0">
+            <InputGroup.Text>
+              <i className="bi bi-key"></i>
+            </InputGroup.Text>
+            <Form.Control
+              type="text"
+              placeholder={apiSecret || "Enter your API key"}
+              aria-label="API Key"
+              aria-describedby="basic-addon2"
+              onChange={(e) => setApiSecret(e.target.value)}
+            />
+          </InputGroup>
+        </div>
+      </div>
       <Toast
         show={!errorMsgHidden}
         bg="danger"
@@ -119,7 +237,7 @@ function SetupPage() {
         </Toast.Header>
         <Toast.Body className="text-white">{errorMessage}</Toast.Body>
       </Toast>
-      <div className="d-flex gap-2 mt-3">
+      <PageActions>
         <Button variant="danger" onClick={promptAdvance}>
           Skip
         </Button>
@@ -129,8 +247,8 @@ function SetupPage() {
         <Button variant="primary" onClick={testAuth}>
           Continue
         </Button>
-      </div>
-    </>
+      </PageActions>
+    </PageLayout>
   );
 }
 

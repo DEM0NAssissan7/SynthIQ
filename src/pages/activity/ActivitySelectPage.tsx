@@ -1,11 +1,16 @@
 import { useNavigate } from "react-router";
 import TemplateNameSearch from "../../components/TemplateNameSearch";
 import Card from "../../components/Card";
-import { Button } from "react-bootstrap";
 import { ActivityStore } from "../../storage/activityStore";
 import { ActivityManager } from "../../managers/activityManager";
 import { ActivityPage } from "../../models/types/activityPage";
 import { WizardStore } from "../../storage/wizardStore";
+import {
+  ActionCard,
+  ActionGrid,
+  PageHeader,
+  PageLayout,
+} from "../../components/PageLayout";
 
 export default function ActivitySelectPage() {
   const navigate = useNavigate();
@@ -35,9 +40,12 @@ export default function ActivitySelectPage() {
   }
 
   return (
-    <div className="wizard-page">
-      <h2>Get Started With an Activity Template</h2>
-      <p>Select a template from the list below or add a new one.</p>
+    <PageLayout>
+      <PageHeader
+        eyebrow="Activity"
+        title="Choose an activity template"
+        subtitle="Pick a saved template or create a new one so activity tracking starts with the right baseline."
+      />
       <Card>
         <TemplateNameSearch
           onInput={(name: string) => advance(name)}
@@ -45,20 +53,27 @@ export default function ActivitySelectPage() {
           templates={ActivityStore.templates.value}
         />
       </Card>
-      <div className="pt-3 d-flex justify-content-end gap-2">
-        <div className="d-flex justify-content-between w-100">
-          {WizardStore.session.value.started && (
-            <Button variant="secondary" onClick={backToHub}>
-              Back To Hub
-            </Button>
-          )}
-          <div className="ms-auto">
-            <Button variant="primary" onClick={addTemplate}>
-              Create New Template
-            </Button>
-          </div>
-        </div>
-      </div>
-    </div>
+      <ActionGrid>
+        <ActionCard
+          icon="bi-plus-circle"
+          eyebrow="Template"
+          title="Create a new activity template"
+          body="Save a new activity pattern when the existing templates don’t fit what you’re about to do."
+          buttonLabel="Create template"
+          onClick={addTemplate}
+        />
+        {WizardStore.session.value.started && (
+          <ActionCard
+            icon="bi-arrow-left-circle"
+            eyebrow="Session"
+            title="Return to session hub"
+            body="Go back to the meal session without starting a new activity flow yet."
+            buttonLabel="Back to hub"
+            buttonVariant="secondary"
+            onClick={backToHub}
+          />
+        )}
+      </ActionGrid>
+    </PageLayout>
   );
 }

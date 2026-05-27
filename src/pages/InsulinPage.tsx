@@ -15,12 +15,18 @@ import { WizardPage } from "../models/types/wizardPage";
 import { PreferencesStore } from "../storage/preferencesStore";
 import { InsulinVariantManager } from "../managers/insulinVariantManager";
 import { NumberOptionSelector } from "../components/NumberOptionSelector";
-import Insulin from "../models/events/insulin";
 import { useNow } from "../state/useNow";
 import { TreatmentManager } from "../managers/treatmentManager";
 import InsulinVariantDropdown from "../components/InsulinVariantDropdown";
 import { getDailyBasal, getFastingVelocity } from "../lib/basal";
 import LastBolusMessage from "../components/LastBolusMessage";
+import {
+  MetricGrid,
+  MetricPill,
+  PageActions,
+  PageHeader,
+  PageLayout,
+} from "../components/PageLayout";
 
 export default function InsulinPage() {
   const navigate = useNavigate();
@@ -38,13 +44,11 @@ export default function InsulinPage() {
   const now = useNow();
   const meal = session.mealMarked ? session.latestMeal : WizardStore.meal.value;
   const [template] = WizardStore.template.useState();
-  const [variant, setVariant] = useState(InsulinVariantManager.getDefault());
-
-  const suggestedInsulin = template.getProfileInsulin(
-    meal.carbs,
-    meal.protein,
-    variant,
+  const baseSession = useMemo(
+    () => template.getBaseSession(meal),
+    [template, meal],
   );
+  const [variant, setVariant] = useState(InsulinVariantManager.getDefault());
 
   // Inputted Insulin
   const [insulinTaken, setInsulinTaken] = useState(0);
@@ -98,13 +102,7 @@ export default function InsulinPage() {
   const correctionInsulin = useMemo(() => {
     return currentGlucose ? getCorrectionInsulin(currentGlucose, variant) : 0;
   }, [currentGlucose, variant]);
-  const vectorizedInsulins = template.vectorizeInsulin(
-    meal.carbs,
-    meal.protein,
-    session.timestamp,
-    session.fastingVelocity ?? getFastingVelocity(),
-    session.dailyBasal ?? getDailyBasal(),
-  ) ?? [new Insulin(suggestedInsulin, now, InsulinVariantManager.getDefault())];
+  const vectorizedInsulins = template.vectorizeInsulin(meal, baseSession);
   const shotIndex = session.insulins.length;
   const overshootInsulinOffset =
     shotIndex < vectorizedInsulins.length
@@ -166,10 +164,22 @@ export default function InsulinPage() {
   }, []);
 
   return (
-    <div>
-      <h1>Insulin Dosing</h1>
+    <PageLayout>
+      <PageHeader
+        eyebrow="Treatment"
+        title="Insulin dosing"
+        subtitle={
+          isBolus
+            ? "Review the suggested meal dose, confirm current glucose if needed, and mark insulin cleanly."
+            : "Use this page for quick correction dosing without the extra noise."
+        }
+      />
+
       {isBolus && (
         <Card>
+          <div className="small text-uppercase text-muted fw-semibold mb-2">
+            Session summary
+          </div>
           <TemplateSummary
             template={template}
             session={session}
@@ -184,12 +194,31 @@ export default function InsulinPage() {
       )}
 
       <Card>
-        <LastBolusMessage />
+        <div className="small text-uppercase text-muted fw-semibold mb-2">
+          Recommendation
+        </div>
+        <MetricGrid>
+          <MetricPill
+            label="Mode"
+            value={isBolus ? "Meal or follow-up bolus" : "Correction only"}
+          />
+          <MetricPill
+            label="Suggested dose"
+            value={
+              correctionIsDisplayed
+                ? displayedRange
+                : `${roundByHalf(displayedInsulin)}u`
+            }
+          />
+        </MetricGrid>
         <hr />
-        Take {correctionIsDisplayed && displayedRange}
+        <LastBolusMessage />
       </Card>
 
       <Card>
+        <div className="small text-uppercase text-muted fw-semibold mb-2">
+          Mark insulin
+        </div>
         {!isFirstPostMealInjection && (
           <BloodSugarInput
             initialGlucose={currentGlucose}
@@ -234,18 +263,17 @@ export default function InsulinPage() {
           />
         </div>
       </Card>
-      <div className="d-flex justify-content-between">
+
+      <PageActions inline>
         {isBolus && (
           <Button variant="secondary" onClick={goBack}>
             Go Back
           </Button>
         )}
-        <div className="ms-auto">
-          <Button variant="primary" onClick={onMark}>
-            Mark Insulin
-          </Button>
-        </div>
-      </div>
-    </div>
+        <Button variant="primary" onClick={onMark}>
+          Mark Insulin
+        </Button>
+      </PageActions>
+    </PageLayout>
   );
 }

@@ -37,7 +37,7 @@ export namespace WizardStore {
   // State tracking for insulin page
   export const isBolus = node.add("isBolus", false);
 
-  // Session
+  // Active Session
   export const session = node.add<Session>(
     "session",
     new Session(),

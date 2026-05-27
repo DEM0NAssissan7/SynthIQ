@@ -14,13 +14,14 @@ export namespace InsulinVariantManager {
   }
   export function createVariant(
     name: string,
-    duration: number,
     effect: number,
-    daysLife: number
+    daysLife: number,
+    ka: number,
+    ke: number,
   ) {
     if (hasDuplicate(name))
       throw new Error(`Cannot create insulin '${name}': already exists`);
-    const variant = new InsulinVariant(name, duration, effect, daysLife);
+    const variant = new InsulinVariant(name, effect, daysLife, ka, ke);
     InsulinVariantStore.variants.value = [
       ...InsulinVariantStore.variants.value,
       variant,
@@ -45,7 +46,7 @@ export namespace InsulinVariantManager {
   }
   export function getOptimalVariant(
     hours: number,
-    originalVariant?: InsulinVariant
+    originalVariant?: InsulinVariant,
   ): InsulinVariant {
     let optimalVariant = originalVariant ?? getDefault();
     const variants = InsulinVariantStore.variants.value;

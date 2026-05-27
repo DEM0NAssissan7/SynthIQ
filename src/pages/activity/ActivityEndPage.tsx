@@ -6,6 +6,11 @@ import ActivitySummary from "../../components/ActivitySummary";
 import { Button } from "react-bootstrap";
 import BloodSugarInput from "../../components/BloodSugarInput";
 import { useState } from "react";
+import {
+  PageActions,
+  PageHeader,
+  PageLayout,
+} from "../../components/PageLayout";
 
 export default function ActivityEndPage() {
   const [currentBG, setCurrentBG] = useState<number | null>(null);
@@ -37,7 +42,12 @@ export default function ActivityEndPage() {
     navigate("/rescue");
   }
   return (
-    <>
+    <PageLayout>
+      <PageHeader
+        eyebrow="Activity"
+        title="Finish activity"
+        subtitle="Wrap up the activity with a clean final glucose entry, or jump to rescue treatment if you need it."
+      />
       <Card>
         <ActivitySummary
           activity={activity}
@@ -51,7 +61,8 @@ export default function ActivityEndPage() {
           setInitialGlucose={setCurrentBG}
         />
       </Card>
-      <div className="d-flex justify-content-between align-items-center mt-3">
+
+      <PageActions>
         <Button variant="danger" onClick={cancel}>
           Cancel Activity
         </Button>
@@ -61,7 +72,7 @@ export default function ActivityEndPage() {
         <Button variant="primary" onClick={end}>
           End Activity
         </Button>
-      </div>
-    </>
+      </PageActions>
+    </PageLayout>
   );
 }

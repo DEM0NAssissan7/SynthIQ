@@ -13,6 +13,11 @@ import { WizardPage } from "../../models/types/wizardPage";
 import { PreferencesStore } from "../../storage/preferencesStore";
 import { useNow } from "../../state/useNow";
 import { getDailyBasal, getFastingVelocity } from "../../lib/basal";
+import {
+  PageActions,
+  PageHeader,
+  PageLayout,
+} from "../../components/PageLayout";
 
 export default function WizardMealPage() {
   const [template] = WizardStore.template.useState();
@@ -25,9 +30,8 @@ export default function WizardMealPage() {
     WizardManager.moveToPage(WizardPage.Hub, navigate);
   }
   function goToSelect() {
-    if (template.isFirstTime)
-      WizardManager.moveToPage(WizardPage.Select, navigate);
-    else WizardManager.moveToPage(WizardPage.SelectSession, navigate);
+    WizardManager.moveToPage(WizardPage.Select, navigate);
+    return;
   }
   function beginEating() {
     if (!initialGlucose && !session.insulinMarked) {
@@ -60,8 +64,12 @@ export default function WizardMealPage() {
   }, [meal, now]);
 
   return (
-    <>
-      <h1 className="mb-3">Meal Creation</h1>
+    <PageLayout>
+      <PageHeader
+        eyebrow="Wizard"
+        title="Meal creation"
+        subtitle="Build the meal cleanly, review the predicted session impact, and keep the next action obvious."
+      />
 
       <Card>
         <FoodSearchDisplay meal={meal} />
@@ -100,7 +108,7 @@ export default function WizardMealPage() {
           )}
         </ListGroup>
       </Card>
-      <div className="d-flex justify-content-between align-items-center mt-3">
+      <PageActions>
         {!session.started && (
           <Button onClick={goToSelect} variant="secondary">
             Go Back
@@ -119,7 +127,7 @@ export default function WizardMealPage() {
         <Button variant="primary" onClick={beginEating}>
           Begin Eating
         </Button>
-      </div>
-    </>
+      </PageActions>
+    </PageLayout>
   );
 }

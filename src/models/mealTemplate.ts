@@ -1,4 +1,8 @@
 import { getBasalSensitivity } from "../lib/basal";
+import {
+  getSimilarSessionsDistances,
+  type SessionAndScore,
+} from "../lib/helpers/getSimilarSessionsDistances";
 import { sessionsWeightedAverage } from "../lib/templateHelpers";
 import { timeOfDayOffset } from "../lib/timing";
 import { clamp, MathUtil } from "../lib/util";
@@ -6,7 +10,9 @@ import { InsulinVariantManager } from "../managers/insulinVariantManager";
 import { BasalStore } from "../storage/basalStore";
 import { CalibrationStore } from "../storage/calibrationStore";
 import { PreferencesStore } from "../storage/preferencesStore";
+import { PrivateStore } from "../storage/privateStore";
 import Insulin from "./events/insulin";
+import Meal from "./events/meal";
 import Session from "./session";
 import Subscribable from "./subscribable";
 import type { Template } from "./types/interfaces";
@@ -65,26 +71,30 @@ export default class MealTemplate extends Subscribable implements Template {
   get typicalSession(): Session {
     if (this.sessions.length === 0)
       throw new Error(`There are no sessions in this template!`);
-    const sessions = this.validSessions;
-    let typicalCarbs = MathUtil.mode(sessions.map(s => s.carbs));
-    let typicalProtein = MathUtil.mode(sessions.map(s => s.protein));
-    let typicalNumFoods = MathUtil.mode(sessions.map(s => s.firstMeal.foods.length));
+    const validSessions = this.validSessions;
+    let typicalCarbs = MathUtil.mode(validSessions.map((s) => s.carbs));
+    let typicalProtein = MathUtil.mode(validSessions.map((s) => s.protein));
+    let typicalNumFoods = MathUtil.mode(
+      validSessions.map((s) => s.firstMeal.foods.length),
+    );
 
     let typicalSessions: Session[] = [];
     let minDeviation = Infinity;
-    sessions.forEach((s) => {
+    this.freshOrValidSessions.forEach((s) => {
       // Ecludian distance
-      const deviation = (s.carbs - typicalCarbs) ** 2 + (s.protein - typicalProtein) ** 2 + (typicalNumFoods - s.firstMeal.foods.length) ** 2;
-      if(deviation < minDeviation) {
+      const deviation =
+        (s.carbs - typicalCarbs) ** 2 +
+        (s.protein - typicalProtein) ** 2 +
+        (typicalNumFoods - s.firstMeal.foods.length) ** 2;
+      if (deviation < minDeviation) {
         typicalSessions = [];
         minDeviation = deviation;
       }
-      if(deviation === minDeviation) {
+      if (deviation === minDeviation) {
         typicalSessions.push(s);
       }
-    })
-    if(typicalSessions.length === 0)
-      throw new Error(`Unknown error.`)
+    });
+    if (typicalSessions.length === 0) throw new Error(`Unknown error.`);
     // Among the most typical, yeild the most well-controlled
     typicalSessions.sort((a, b) => a.score - b.score);
     return typicalSessions[0];
@@ -93,17 +103,17 @@ export default class MealTemplate extends Subscribable implements Template {
     if (this.sessions.length === 0)
       throw new Error(`There are no sessions in this template!`);
     const sessions = this.validSessions.filter((s) => s.age < 5); // All sessions within the last 5 days
-    if(!sessions.length) return this.typicalSession;
+    if (!sessions.length) return this.typicalSession;
     let bestSession: Session | null = null;
     let minScore = Infinity;
     sessions.forEach((s) => {
       const score = s.score; // Cache score in a variable to prevent running the getter again
-      if(score < minScore) {
+      if (score < minScore) {
         minScore = score;
         bestSession = s;
       }
-    })
-    if(!bestSession) throw new Error(`Unknown error.`);
+    });
+    if (!bestSession) throw new Error(`Unknown error.`);
     return bestSession;
   }
 
@@ -164,8 +174,6 @@ export default class MealTemplate extends Subscribable implements Template {
 
   // Meal Vectorization
   vectorizer(
-    carbs: number,
-    protein: number,
     timestamp: Date,
     fastingVelocity: number,
     dailyBasal: number,
@@ -203,12 +211,6 @@ export default class MealTemplate extends Subscribable implements Template {
     };
 
     // Query-centered per-axis scales = median/mean absolute differences (safe-guarded)
-    const carbsScale = getSafeScale(
-      sessions.map((s) => Math.abs(carbs - s.carbs)),
-    );
-    const proteinScale = getSafeScale(
-      sessions.map((s) => Math.abs(protein - s.protein)),
-    );
     const timeOfDayScale = getSafeScale(
       sessions.map((s) => Math.abs(timeOfDayOffset(timestamp, s.timestamp))),
     );
@@ -227,14 +229,12 @@ export default class MealTemplate extends Subscribable implements Template {
     );
 
     // Get the closest X sessions
-    let sessionDistances: [Session, number][] = [];
+    let sessionDistances: SessionAndScore[] = [];
     for (let s of sessions) {
       if (!s.initialGlucose) continue;
       sessionDistances.push([
         s,
-        ((carbs - s.carbs) / carbsScale) ** 2 +
-          ((protein - s.protein) / proteinScale) ** 2 +
-          (timeOfDayOffset(timestamp, s.timestamp) / timeOfDayScale) ** 2 + // Squared ecludian distance
+        (timeOfDayOffset(timestamp, s.timestamp) / timeOfDayScale) ** 2 + // Squared euclidean distance
           ((sensitivityIndex -
             (s.getSensitivityIndex(estimatedLiverOutput) ?? 0)) /
             sensitivityIndexScale) **
@@ -273,15 +273,11 @@ export default class MealTemplate extends Subscribable implements Template {
     return result.sort((a, b) => a.age - b.age);
   }
   getClosestSession(
-    carbs: number,
-    protein: number,
     timestamp: Date,
     fastingVelocity: number,
     dailyBasal: number,
   ): Session | null {
     const closestSessions = this.vectorizer(
-      carbs,
-      protein,
       timestamp,
       fastingVelocity,
       dailyBasal,
@@ -290,15 +286,11 @@ export default class MealTemplate extends Subscribable implements Template {
     return closestSessions[0];
   }
   getOptimalSession(
-    carbs: number,
-    protein: number,
     timestamp: Date,
     fastingVelocity: number,
     dailyBasal: number,
   ): Session | null {
     const closestSessions = this.vectorizer(
-      carbs,
-      protein,
       timestamp,
       fastingVelocity,
       dailyBasal,
@@ -312,29 +304,272 @@ export default class MealTemplate extends Subscribable implements Template {
       return MADA - MADB;
     })[0];
   }
+  getSimilarSessionsDistances(meal: Meal): SessionAndScore[] | null {
+    if (this.isFirstTime) return null;
+
+    const sessions = this.freshOrValidSessions.filter(
+      (s) => s.meals.length === 1,
+    );
+    if (sessions.length === 0) return null;
+    return getSimilarSessionsDistances(meal, sessions);
+  }
+  getBaseSession(meal: Meal): Session | null {
+    let sessionsDistances = this.getSimilarSessionsDistances(meal);
+    if (!sessionsDistances) return null;
+    if (sessionsDistances.length === 0) return null;
+    if (sessionsDistances.length === 1) return sessionsDistances[0][0];
+
+    const distances = sessionsDistances.map((x) => x[1]);
+    const q1 = MathUtil.Q1(distances);
+    const iqr = MathUtil.IQR(distances);
+
+    // Tighter = q1 + 1.0 * iqr
+    // Looser = q1 + 1.5 * iqr
+    const cutoff = q1 + 1.0 * iqr;
+
+    const groupedSessions = sessionsDistances
+      .filter(([, d]) => d <= cutoff)
+      .map(([s]) => s);
+
+    if (groupedSessions.length === 0) {
+      return sessionsDistances[0]![0];
+    }
+
+    // Cluster together sessions with similar dosing strategies
+    let structuredSessions: Session[][] = [];
+    // First pass: We group together sessions that have the same variants and # of shots
+    function sameStructure(a: Session, b: Session): boolean {
+      if (a.insulins.length !== b.insulins.length) return false;
+
+      for (let i = 0; i < a.insulins.length; i++) {
+        const i1 = a.insulins[i];
+        const i2 = b.insulins[i];
+        if (!i1 || !i2) return false;
+        if (i1.variant.name !== i2.variant.name) return false;
+      }
+
+      return true;
+    }
+    for (const session of groupedSessions) {
+      // Go through all sessions
+      let isNew = true;
+      for (const cluster of structuredSessions) {
+        let identical = true; // Tracks if we are identical to this cluster
+        const s = cluster[0]; // We choose the first element of the cluster because they would all be the same
+        if (!s) {
+          identical = false;
+        } else {
+          identical = sameStructure(s, session);
+        }
+        if (identical) {
+          cluster.push(session);
+          isNew = false;
+          break;
+        }
+      }
+      if (isNew) {
+        structuredSessions.push([session]);
+      }
+    }
+
+    /**
+     * Second pass: now that we have the identically structured sessions, we can cluster numerically
+     */
+    function findDistance(a: number[], b: number[], scales: number[]) {
+      let distance = 0;
+      if (a.length !== b.length || b.length !== scales.length)
+        throw new Error(
+          `Cannot find distance between differently sized vectors`,
+        );
+      for (let i = 0; i < a.length; i++) {
+        distance += Math.abs(a[i] - b[i]) / scales[i];
+      }
+      return distance;
+    }
+    type Dose = {
+      dose: number;
+      time: number;
+      effectRatio: number;
+    };
+    type Strategy = Dose[];
+    function flattenStrategy(strategy: Strategy): number[] {
+      const vector: number[] = [];
+      for (const d of strategy) {
+        vector.push(d.dose);
+        vector.push(d.time);
+        vector.push(d.effectRatio);
+      }
+      return vector;
+    }
+    function computeThresholdFromDistances(distances: number[]): number {
+      if (distances.length === 0) return Infinity;
+      if (distances.length === 1) return distances[0];
+
+      const q1 = MathUtil.Q1(distances);
+      const iqr = MathUtil.IQR(distances);
+
+      return q1 + 1.0 * iqr;
+    }
+    function averageVectors(vectors: number[][]): number[] {
+      const length = vectors[0].length;
+      const avg = new Array(length).fill(0);
+
+      for (const v of vectors) {
+        for (let i = 0; i < length; i++) {
+          avg[i] += v[i];
+        }
+      }
+
+      for (let i = 0; i < length; i++) {
+        avg[i] /= vectors.length;
+      }
+
+      return avg;
+    }
+    type Cluster = {
+      sessions: Session[];
+      score: number;
+      vectors: number[][];
+      centroid: number[];
+      scales: number[];
+    };
+    function clusterStrategies(
+      sessions: Session[],
+      strategies: Strategy[],
+      threshold: number,
+      scales: number[],
+    ): Cluster[] {
+      const vectors = strategies.map(flattenStrategy);
+
+      const clusters: Cluster[] = [];
+
+      for (let i = 0; i < sessions.length; i++) {
+        const session = sessions[i];
+        const vector = vectors[i];
+
+        let bestCluster: Cluster | null = null;
+        let bestDistance = Infinity;
+
+        // Find closest cluster
+        for (const cluster of clusters) {
+          const dist = findDistance(vector, cluster.centroid, scales);
+
+          if (dist < bestDistance) {
+            bestDistance = dist;
+            bestCluster = cluster;
+          }
+        }
+
+        // Decide: join or create new
+        if (bestCluster && bestDistance <= threshold) {
+          bestCluster.sessions.push(session);
+          bestCluster.vectors.push(vector);
+          bestCluster.centroid = averageVectors(bestCluster.vectors);
+        } else {
+          clusters.push({
+            sessions: [session],
+            vectors: [vector],
+            centroid: vector.slice(),
+            score: NaN,
+            scales: scales,
+          });
+        }
+      }
+
+      return clusters;
+    }
+    let clusters: Cluster[] = [];
+    structuredSessions.forEach((sessions) => {
+      // Compile all strategies into a set of vectors
+      let numInsulins = 0;
+      const strategies: Strategy[] = sessions.map((s): Strategy => {
+        const totalInsulinEffect = s.insulinEffect;
+        let doses: Dose[] = [];
+        s.insulins.forEach((insulin) => {
+          const dose: Dose = {
+            dose: insulin.value,
+            time: s.getN(insulin.timestamp),
+            effectRatio:
+              totalInsulinEffect > 0
+                ? (insulin.value * insulin.variant.effect) / totalInsulinEffect
+                : 0,
+          };
+          doses.push(dose);
+        });
+        numInsulins = s.insulins.length;
+        return doses;
+      });
+
+      // Now we build the scales vector
+      let scales: number[] = [];
+      const vectors = strategies.map(flattenStrategy);
+      for (let i = 0; i < numInsulins * 3; i++) {
+        let nums: number[] = vectors.map((s) => s[i]);
+        const epsilon = 1e-6;
+        const scale = MathUtil.IQR(nums);
+        scales.push(scale !== 0 ? scale : epsilon);
+      }
+
+      // Find the distributions of each thing relative to another
+      const distances: number[] = [];
+      for (let i = 0; i < vectors.length; i++) {
+        for (let j = i + 1; j < vectors.length; j++) {
+          distances.push(findDistance(vectors[i], vectors[j], scales));
+        }
+      }
+
+      // Compute threshold from distribution
+      const threshold = computeThresholdFromDistances(distances);
+
+      // Now cluster using that threshold
+      const subclusters = clusterStrategies(
+        sessions,
+        strategies,
+        threshold,
+        scales,
+      );
+      clusters.push(...subclusters);
+    });
+
+    // Filter out clusters that have only one session unless that's all we got
+    if (PrivateStore.debugLogs.value) console.log(clusters);
+    const filteredClusters = clusters.filter((c) => c.sessions.length > 1);
+    if (filteredClusters.length > 1) clusters = filteredClusters; // We need to have multiple because in the case we only have 1, we probably don't have enough data
+
+    // Now that we finally have our clusters, we look at the best scoring cluster of sessions
+    clusters.forEach((cluster) => {
+      // First calculate the score
+      cluster.score = MathUtil.median(cluster.sessions.map((s) => s.score));
+    });
+    // Now find the lowest (best) scoring cluster
+    if (clusters.length === 0) return null;
+    const bestCluster = clusters.sort((a, b) => a.score - b.score)[0];
+    if (!bestCluster) return null;
+
+    // Then we find the session within that cluster that has the most accurate dosing strategy
+    function findMostSimilarSession(cluster: Cluster) {
+      return getSimilarSessionsDistances(meal, cluster.sessions)[0][0];
+    }
+    return findMostSimilarSession(bestCluster);
+  }
 
   // Dosing helpers
-  vectorizeInsulin(
-    carbs: number,
-    protein: number,
-    timeOfDay: Date,
-    fastingVelocity: number,
-    dailyBasal: number,
-  ): Insulin[] | null {
-    const session = this.getOptimalSession(
-      carbs,
-      protein,
-      timeOfDay,
-      fastingVelocity,
-      dailyBasal,
-    );
-    if (!session) return null;
-    if (session.insulins.length === 0) return null;
-
+  vectorizeInsulin(meal: Meal, session: Session | null): Insulin[] {
+    // If session is null
+    if (!session) {
+      const defaultVariant = InsulinVariantManager.getDefault();
+      const profileInsulin = this.getProfileInsulin(
+        meal.carbs,
+        meal.protein,
+        defaultVariant,
+      );
+      return [new Insulin(profileInsulin, new Date(), defaultVariant)];
+    }
+    // Otherwise, magic
     let insulins = session.optimalMealInsulins.map(
       (i) => new Insulin(i.value, i.timestamp, i.variant),
     );
-    const offsets = this.getInsulinOffsets(session, carbs, protein);
+    const offsets = this.getInsulinOffsets(session, meal);
     for (let i = 0; i < insulins.length; i++) {
       insulins[i].value += offsets[i].value;
     }
@@ -349,25 +584,81 @@ export default class MealTemplate extends Subscribable implements Template {
     const proteinRise = protein * CalibrationStore.proteinEffect.value;
     return (carbsRise + proteinRise) / variant.effect;
   }
-  getInsulinOffsets(session: Session, carbs: number, protein: number) {
-    const insulins = session.optimalMealInsulins.map(
+  getInsulinOffsets(session: Session, meal: Meal) {
+    const carbsEffect = CalibrationStore.carbsEffect.value;
+    const proteinEffect = CalibrationStore.proteinEffect.value;
+
+    const sessionMeal = session.metaMeal;
+    const profileRise =
+      sessionMeal.carbs * carbsEffect + sessionMeal.protein * proteinEffect;
+
+    const optimalMealInsulins = session.optimalMealInsulins;
+    const optimalMealInsulinsEffect = optimalMealInsulins.reduce(
+      (n, i) => n + i.value * i.variant.effect,
+      0,
+    ); // We get the perceived effect of the insulins only because we are going to be applying to heterogenous effects between shots
+    const profileScale =
+      profileRise > 0 ? optimalMealInsulinsEffect / profileRise : 1; // Slope for profile
+
+    // Separate out the rises partialy for foods we know vs. ones we don't
+    const summedFoods = meal.summedFoods;
+    let uncommonCarbs = 0;
+    let uncommonProtein = 0;
+    for (let food of summedFoods) {
+      if (sessionMeal.hasFood(food)) continue;
+      // This food is new/unseen in the session meal
+      uncommonCarbs += food.netCarbs;
+      uncommonProtein += food.protein;
+    }
+
+    const insulins = optimalMealInsulins.map(
       (i) => new Insulin(0, i.timestamp, i.variant),
     );
-    const extraCarbsRise =
-      (carbs - session.carbs) * CalibrationStore.carbsEffect.value;
-    insulins[0].value += extraCarbsRise / insulins[0].variant.effect; // Add extra carbs offset to first shot, as they typically only act on first shot timeframe
+    if (insulins.length === 0) return []; // Safety
+    /**
+     * Factor used to "unscale" nutrients from foods NOT present in the original session.
+     *
+     * Goal:
+     * - Foods that existed in sessionMeal → scaled by profileScale (session-calibrated)
+     * - New foods (uncommon)              → use raw profile (NO scaling)
+     *
+     * Problem:
+     * We multiply the entire delta by profileScale later, which would incorrectly
+     * scale new foods as well.
+     *
+     * Solution:
+     * Pre-adjust uncommonCarbs / uncommonProtein so that after applying profileScale,
+     * they end up effectively unscaled.
+     *
+     * Algebra (s = profileScale):
+     * (delta + uncommon * (1/s - 1)) * s
+     * = delta*s + uncommon
+     *
+     * → Known food deltas are scaled
+     * → Uncommon foods remain unscaled
+     *
+     * Sanity check:
+     * If only uncommon foods exist:
+     * (x + x*(1/s - 1)) * s = (x + x/s - x) * s = (x/s) * s = x
+     */
+    const uncommonFactor = 1 / profileScale - 1;
+    let carbsRise =
+      (meal.carbs - sessionMeal.carbs + uncommonCarbs * uncommonFactor) *
+      carbsEffect *
+      profileScale;
+    insulins[0].value += carbsRise / insulins[0].variant.effect; // Add extra carbs offset to first shot, as they typically only act on first shot timeframe
 
-    const extraProteinRisePerShot =
-      ((protein - session.protein) / insulins.length) *
-      CalibrationStore.proteinEffect.value;
-    insulins.forEach(
-      (i) => (i.value += extraProteinRisePerShot / i.variant.effect),
-    ); // Distribute protein between all shots
+    const proteinRise =
+      (meal.protein - sessionMeal.protein + uncommonProtein * uncommonFactor) *
+      proteinEffect *
+      profileScale;
+    const proteinRisePerShot = proteinRise / insulins.length;
+    insulins.forEach((i) => (i.value += proteinRisePerShot / i.variant.effect)); // Distribute protein between all shots
     return insulins;
   }
-  getMealInsulinOffset(session: Session, carbs: number, protein: number) {
+  getMealInsulinOffset(session: Session, meal: Meal) {
     let insulin = 0;
-    const offsets = this.getInsulinOffsets(session, carbs, protein);
+    const offsets = this.getInsulinOffsets(session, meal);
     offsets.forEach((offset) => (insulin += offset.value));
     return insulin;
   }

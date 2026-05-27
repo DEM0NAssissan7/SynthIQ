@@ -34,7 +34,8 @@ export default class Snapshot extends Subscribable {
     if (doNotify) this.notify();
   }
   absorb(snapshot: Snapshot) {
-    snapshot.rawReadings.forEach((r) => this.addReading(r));
+    snapshot.rawReadings.forEach((r) => this.addReading(r, false));
+    this.notify();
   }
   get readings(): SugarReading[] {
     // This is for when we implement smoothing
@@ -177,6 +178,20 @@ export default class Snapshot extends Subscribable {
       ),
     );
     return deviations;
+  }
+
+  // Timestamp stuff
+  get startTime(): Date {
+    const timeSorted = this.timeSorted;
+    const reading = timeSorted[0];
+    if (!reading) throw new Error(`Cannot get start time: unknown error`);
+    return reading.timestamp;
+  }
+  get endTime(): Date {
+    const timeSorted = this.timeSorted;
+    const reading = timeSorted[timeSorted.length - 1];
+    if (!reading) throw new Error(`Cannot get end time: unknown error`);
+    return reading.timestamp;
   }
 
   // Serialization

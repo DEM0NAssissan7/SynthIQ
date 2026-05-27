@@ -2,6 +2,7 @@ import { useMemo, useState, type BaseSyntheticEvent } from "react";
 import { Button, Form, ListGroup } from "react-bootstrap";
 import { getFullPrettyDate } from "../lib/timing";
 import type { Template } from "../models/types/interfaces";
+import { EmptyState } from "./PageLayout";
 
 export default function TemplateNameSearch({
   onInput,
@@ -56,42 +57,35 @@ export default function TemplateNameSearch({
           <Form.Label>Template Search</Form.Label>
           <div className="input-group">
             <span className="input-group-text">
-              <i className="bi bi-search"></i>{" "}
+              <i className="bi bi-search"></i>
             </span>
             <Form.Control
               type="text"
               placeholder="Search templates..."
-              value={query} // controlled value
+              value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
           </div>
         </Form.Group>
       </Form>
 
-      <ListGroup>
+      <ListGroup variant="flush">
         {filteredTemplates.map((template: Template, i: number) => (
-          <ListGroup.Item key={i} className="d-flex flex-column gap-3 p-3">
-            <div className="d-flex justify-content-between align-items-center">
-              <span className="fw-bold">
-                {template.name}
-
-                <br />
-                <span className="text-muted">{template.size} sessions</span>
-              </span>
-              <span className="text-muted">
-                {getFullPrettyDate(template.timestamp)}
-                <br />
-                Score: {template.score.toFixed(0)}{" "}
-              </span>
+          <ListGroup.Item key={i} className="px-0 py-3 border-0 border-bottom">
+            <div className="d-flex justify-content-between align-items-start gap-3 mb-3">
+              <div>
+                <div className="fw-semibold">{template.name}</div>
+                <div className="text-muted small">{template.size} sessions</div>
+              </div>
+              <div className="text-end small text-muted">
+                <div>{getFullPrettyDate(template.timestamp)}</div>
+                <div>Score {template.score.toFixed(0)}</div>
+              </div>
             </div>
             <Form onSubmit={handleFormSubmit}>
-              <div className="d-flex align-items-center gap-2">
-                <Form.Group
-                  controlId="food-amount"
-                  className="mb-0 flex-grow-1"
-                ></Form.Group>
+              <div className="d-grid gap-2 d-sm-flex justify-content-sm-end">
                 <Button
-                  variant="danger"
+                  variant="outline-danger"
                   onClick={() => deleteTemplate(template.name)}
                 >
                   Delete
@@ -108,7 +102,9 @@ export default function TemplateNameSearch({
         ))}
 
         {filteredTemplates.length === 0 && query.length !== 0 && (
-          <ListGroup.Item className="text-muted">No matches</ListGroup.Item>
+          <ListGroup.Item className="px-0 border-0">
+            <EmptyState>No templates match that search.</EmptyState>
+          </ListGroup.Item>
         )}
       </ListGroup>
     </>

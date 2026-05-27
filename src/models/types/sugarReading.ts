@@ -5,11 +5,16 @@ export default class SugarReading {
   constructor(
     public sugar: number,
     public timestamp: Date,
-    public isCalibration: boolean = false
+    public isCalibration: boolean = false,
   ) {}
 
   static serialize: Serializer<SugarReading> = (r: SugarReading) => {
-    return [r.sugar, r.timestamp.getTime(), r.isCalibration ? 1 : 0];
+    const sugar = r.sugar;
+    const time = r.timestamp.getTime();
+    const calibration = r.isCalibration ? 1 : 0;
+    if (calibration === 1) return [sugar, time, calibration];
+    if (time !== 0) return [sugar, time];
+    return [sugar];
   };
   static deserialize: Deserializer<SugarReading> = (o) => {
     if (o.sugar) {
@@ -17,10 +22,13 @@ export default class SugarReading {
       return new SugarReading(
         o.sugar,
         new Date(o.timestamp),
-        o.isCalibration ? true : false
+        o.isCalibration ? true : false,
       );
     }
-    return new SugarReading(o[0], new Date(o[1]), o[2] ? true : false);
+    const sugar = o[0];
+    const date = o[1] ? new Date(o[1]) : new Date(0);
+    const calibration = o[2] ? true : false;
+    return new SugarReading(sugar, date, calibration);
   };
 }
 
@@ -33,6 +41,6 @@ export function getReadingFromNightscout(o: {
   return new SugarReading(
     round(o.mbg ?? o.sgv, 0),
     new Date(o.date),
-    isCalibration
+    isCalibration,
   );
 }

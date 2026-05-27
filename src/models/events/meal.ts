@@ -2,6 +2,7 @@ import Food from "../food";
 import MetaEvent from "./metaEvent";
 import type { Deserializer, Serializer } from "../types/types";
 import Unit from "../unit";
+import { simplifyFoods } from "../../lib/helpers/simplifyFoods";
 
 function createCarbsOffset() {
   return new Food("Carbs Offset", 1, 0, Unit.Food.Unit);
@@ -72,6 +73,33 @@ export default class Meal extends MetaEvent {
   get addedFoods() {
     return this.foods.slice(3);
   }
+  /**
+   * This returns an array of foods that is all foods consolidated
+   * into its name and its amounts
+   *
+   * E.g.
+   *
+   * if we have [Steak(360g), Steak(-10g)]
+   * This function will return [Steak(350g)]
+   */
+  get summedFoods() {
+    return simplifyFoods(this.foods);
+  }
+  isIdentical(meal: Meal) {
+    const myFoods = this.summedFoods;
+    const foods = meal.summedFoods;
+    for (let food of foods) {
+      let isIdentical = false;
+      for (let f of myFoods) {
+        if (f.amount !== food.amount) continue;
+        if (f.name !== food.name) continue;
+        isIdentical = true;
+        break;
+      }
+      if (!isIdentical) return false;
+    }
+    return true;
+  }
 
   // Metabolism
   get carbs(): number {
@@ -130,7 +158,7 @@ export default class Meal extends MetaEvent {
         a.unit,
         a.arbitraryRise,
         a.fatRate,
-        a.fiberRate
+        a.fiberRate,
       );
       f.amount = a.amount;
       this.foods.push(f);

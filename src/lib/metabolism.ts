@@ -9,19 +9,19 @@ import { WizardStore } from "../storage/wizardStore";
 export function getCorrectionInsulin(glucose: number, variant: InsulinVariant) {
   return Math.max(
     (glucose - PreferencesStore.targetBG.value) / variant.effect,
-    0
+    0,
   );
 }
 export function getOvercompensationInsulins(
   glucose: number,
-  variants: InsulinVariant[]
+  variants: InsulinVariant[],
 ): number[] {
   let insulins: number[] = [];
   const BGOffsetPerShot =
     Math.max(
       Math.min(glucose - PreferencesStore.targetBG.value, 0) +
         PreferencesStore.overshootOffset.value,
-      0
+      0,
     ) / variants.length;
   for (const v of variants) {
     const insulin = BGOffsetPerShot / v.effect;
@@ -34,7 +34,7 @@ export function getOvercompensationInsulins(
 export function getGlucoseCorrectionCaps(
   sugar: number,
   variant: RescueVariant,
-  allowNegative = false
+  allowNegative = false,
 ) {
   const correction = (PreferencesStore.targetBG.value - sugar) / variant.effect;
   if (allowNegative) return correction;
@@ -44,7 +44,7 @@ export function getIntelligentGlucoseCorrection(
   velocityHours: number,
   currentBG: number,
   actingMinutes: number,
-  variant: RescueVariant
+  variant: RescueVariant,
 ) {
   /**
    * We consider the current BG velocity to last another 30 minutes.
@@ -73,7 +73,7 @@ export function getApproximatedProfile() {
   let alphaCarbs = CalibrationStore.carbsEffect.value;
   let alphaProtein = CalibrationStore.proteinEffect.value;
 
-  const baseLearningRate = 0.0001;
+  const baseLearningRate = 0.00001;
 
   // Don't allow less than 3 valid sessions before making any conclusions
   for (let template of templates) {

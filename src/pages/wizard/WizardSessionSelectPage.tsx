@@ -5,6 +5,8 @@ import type Session from "../../models/session";
 import { WizardStore } from "../../storage/wizardStore";
 import { Button } from "react-bootstrap";
 import { WizardPage } from "../../models/types/wizardPage";
+import { getDailyBasal, getFastingVelocity } from "../../lib/basal";
+import { PageActions, PageHeader, PageLayout } from "../../components/PageLayout";
 
 export default function WizardSessionSelectPage() {
   const navigate = useNavigate();
@@ -14,6 +16,22 @@ export default function WizardSessionSelectPage() {
   const latestSession = template.latestSession;
   const typicalSession = template.typicalSession;
   const recommendedSession = template.recommendedSession;
+
+  const now = new Date();
+  const fastingVelocity = getFastingVelocity();
+  const dailyBasal = getDailyBasal();
+
+  const vectorizedClosestSession = template.getClosestSession(
+    now,
+    fastingVelocity,
+    dailyBasal,
+  );
+  const vectorizedOptimalSession = template.getOptimalSession(
+    now,
+    fastingVelocity,
+    dailyBasal,
+  );
+
   function chooseSession(session: Session) {
     WizardManager.selectSession(session);
     WizardManager.begin(navigate);
@@ -22,12 +40,36 @@ export default function WizardSessionSelectPage() {
     WizardManager.moveToPage(WizardPage.Select, navigate);
   }
   return (
-    <>
+    <PageLayout>
+      <PageHeader
+        eyebrow="Wizard"
+        title="Choose a prior session"
+        subtitle="Select the session shape that best matches this moment so the wizard can start from something useful."
+      />
+      <SessionSelection
+        onselect={chooseSession}
+        session={latestSession}
+        title="Last Session"
+      />
       <SessionSelection
         onselect={chooseSession}
         session={recommendedSession}
         title="Recommended Session"
       />
+      {vectorizedOptimalSession && (
+        <SessionSelection
+          onselect={chooseSession}
+          session={vectorizedOptimalSession}
+          title="Metabolic Match (Controlled)"
+        />
+      )}
+      {vectorizedClosestSession && (
+        <SessionSelection
+          onselect={chooseSession}
+          session={vectorizedClosestSession}
+          title="Metabolic Match (Recent)"
+        />
+      )}
       <SessionSelection
         onselect={chooseSession}
         session={typicalSession}
@@ -35,17 +77,14 @@ export default function WizardSessionSelectPage() {
       />
       <SessionSelection
         onselect={chooseSession}
-        session={latestSession}
-        title="Latest Session"
-      />
-      <SessionSelection
-        onselect={chooseSession}
         session={bestSession}
         title="Optimal Score Session"
       />
-      <Button onClick={goBack} variant={"secondary  "}>
-        Go Back
-      </Button>
-    </>
+      <PageActions>
+        <Button onClick={goBack} variant="secondary">
+          Go Back
+        </Button>
+      </PageActions>
+    </PageLayout>
   );
 }

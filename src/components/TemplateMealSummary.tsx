@@ -34,25 +34,14 @@ interface TemplateMealSummaryProps {
   template: MealTemplate;
   meal: Meal;
   currentBG: number;
-  fastingVelocity: number;
-  dailyBasal: number;
 }
 export default function TemplateMealSummary({
   template,
   meal,
   currentBG,
-  fastingVelocity,
-  dailyBasal,
 }: TemplateMealSummaryProps) {
   const now = useNow();
-  const time = meal.timestamp ?? now;
-  const session = template.getOptimalSession(
-    meal.carbs,
-    meal.protein,
-    time,
-    fastingVelocity,
-    dailyBasal,
-  );
+  const session = template.getBaseSession(meal);
   const defaultVariant = InsulinVariantManager.getDefault();
   const liverOutput = BasalStore.estimatedLiverOutput.value;
   if (PrivateStore.debugLogs.value) console.log(session);
@@ -64,7 +53,7 @@ export default function TemplateMealSummary({
 
   const insulinAdjustment = session ? session.insulinAdjustment : 0;
   const insulinOffset = session
-    ? template.getMealInsulinOffset(session, meal.carbs, meal.protein)
+    ? template.getMealInsulinOffset(session, meal)
     : 0;
   const profileCarbInsulin = template.getProfileInsulin(
     meal.carbs,
@@ -78,13 +67,7 @@ export default function TemplateMealSummary({
   );
   const profileInsulin = profileCarbInsulin + profileProteinInsulin;
   const insulins = (() => {
-    const vectorizedInsulin = template.vectorizeInsulin(
-      meal.carbs,
-      meal.protein,
-      time,
-      fastingVelocity,
-      dailyBasal,
-    );
+    const vectorizedInsulin = template.vectorizeInsulin(meal, session);
     // Fall back to profile
     if (!vectorizedInsulin || template.isFirstTime)
       return [
@@ -222,34 +205,50 @@ export default function TemplateMealSummary({
                 </>
               )}
               <hr />
-              {session.windows.map((window) => (
-                <>
-                  <b>{window.insulin.value.toFixed(1)}u</b>{" "}
-                  {window.insulin.variant.name}{" "}
-                  {getFormattedTime(
-                    round(
-                      Math.abs(session.getRelativeN(window.insulin.timestamp)) *
-                        60,
-                      1,
-                    ),
-                  )}{" "}
-                  {session.getRelativeN(window.insulin.timestamp) > 0
-                    ? "after"
-                    : "before"}
-                  eating <br />
-                  {`[${getFormattedTime(round(window.length * 60))}, ${
-                    window.initialBG
-                  }mg/dL -> ${window.finalBG}mg/dL]`}
-                  <br />
-                  <i>
-                    {window.glucose !== 0
-                      ? `(${window.glucose} low correction doses)`
-                      : ""}
-                  </i>
-                  <br />
-                  <br />
-                </>
-              ))}
+              {session.windows.map((window, i) => {
+                const windowInsulin = session.insulins[i];
+                return (
+                  <>
+                    → <b>{windowInsulin.value.toFixed(1)}u</b>{" "}
+                    {windowInsulin.variant.name} <i>[{i + 1}]</i> ⇒{" "}
+                    {getFormattedTime(
+                      round(
+                        Math.abs(
+                          session.getRelativeN(windowInsulin.timestamp),
+                        ) * 60,
+                        1,
+                      ),
+                    )}{" "}
+                    {session.getRelativeN(windowInsulin.timestamp) > 0
+                      ? "after"
+                      : "before"}
+                    eating <br />
+                    <i>Actual Absorbed (approx):</i>
+                    <br />
+                    {window.insulins.map((insulin, _i) => {
+                      if (round(insulin.value, 1) === 0) return;
+                      return (
+                        <>
+                          <b>{insulin.value.toFixed(1)}u</b>{" "}
+                          {insulin.variant.name} <i>[{_i + 1}]</i>
+                          <br />
+                        </>
+                      );
+                    })}
+                    {`[${getFormattedTime(round(window.length * 60))}, ${
+                      window.initialBG
+                    }mg/dL -> ${window.finalBG}mg/dL]`}
+                    <br />
+                    <i>
+                      {window.glucoses.length !== 0
+                        ? `(${window.glucoses.reduce((sum, g) => sum + g.value, 0)} low correction doses)`
+                        : ""}
+                    </i>
+                    <br />
+                    <br />
+                  </>
+                );
+              })}
             </>
           )}
           <hr />

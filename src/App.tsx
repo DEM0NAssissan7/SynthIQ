@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate, useNavigate } from "react-router";
+import { Routes, Route } from "react-router";
 import TopBar from "./components/TopBar";
 import HubPage from "./pages/HubPage";
 import SettingsPage from "./pages/SettingsPage";
@@ -15,7 +15,10 @@ import WizardSelectionPage from "./pages/wizard/WizardSelectionPage";
 import WizardFinalBGPage from "./pages/wizard/WizardFinalBGPage";
 import WizardEditPage from "./pages/wizard/WizardEditPage";
 import RescuePage from "./pages/RescuePage";
-import { smartMonitor, updateHealthMonitorStatus } from "./lib/healthMonitor";
+import {
+  cleanInactivePreviousBoluses,
+  updateHealthMonitorStatus,
+} from "./lib/healthMonitor";
 import Backend from "./lib/remote/backend";
 import RemoteStorage from "./lib/remote/storage";
 import BasalPage from "./pages/BasalPage";
@@ -49,11 +52,13 @@ function App() {
       console.log(node);
     }
   }
-  const navigate = useNavigate();
   const now = useNow(60);
   useEffect(() => {
     // Update health monitor status cache
     updateHealthMonitorStatus();
+
+    // Clean up inactive boluses
+    cleanInactivePreviousBoluses();
 
     (async () => {
       // Upload stored inbox on terminal side
@@ -77,7 +82,7 @@ function App() {
   );
   useEffect(() => {
     // Execute health monitor navigator
-    smartMonitor(navigate);
+    //smartMonitor(navigate);
   }, [redirectTimer]);
 
   if (PrivateStore.debugLogs.value) {
@@ -89,24 +94,9 @@ function App() {
   return (
     <div>
       <TopBar />
-      <div style={{ padding: "20px" }}>
+      <div className="app-shell">
         <Routes>
-          <Route
-            path="/"
-            element={
-              Backend.urlIsValid() || BackendStore.skipSetup.value ? (
-                ActivityStore.activity.value.started ? (
-                  <Navigate to="/activity" replace />
-                ) : WizardStore.session.value.started ? (
-                  <Navigate to="/wizard" replace />
-                ) : (
-                  <Navigate to="/hub" replace />
-                )
-              ) : (
-                <Navigate to="/setup" replace />
-              )
-            }
-          />
+          <Route path="/" element={<HubPage />} />
           <Route path="/hub" element={<HubPage />} />
           <Route path="/setup" element={<SetupPage />} />
           <Route path="/settings" element={<SettingsPage />} />

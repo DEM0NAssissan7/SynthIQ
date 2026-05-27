@@ -1,6 +1,7 @@
 import { Button } from "react-bootstrap";
 import type Session from "../models/session";
 import Card from "./Card";
+import { MetricGrid, MetricPill } from "./PageLayout";
 
 interface SessionSelectionProps {
   session: Session;
@@ -15,28 +16,37 @@ export default function SessionSelection({
 }: SessionSelectionProps) {
   return (
     <Card>
-      <h3>{title}</h3>
-      <div className="d-flex justify-content-between align-items-center">
-        <span className="fw-bold">
-          <br />
-          <span className="text-muted">
-            {session.age.toFixed(0)} days ago
-            <br />
-            Score: {session.score.toFixed(0)}
-            <hr />
-          </span>
-          {session.firstMeal.addedFoods.map((f) => (
-            <>
+      <div className="small text-uppercase text-muted fw-semibold mb-1">
+        Session Option
+      </div>
+      <h2 className="h5 mb-3">{title}</h2>
+      <MetricGrid>
+        <MetricPill label="Age" value={`${session.age.toFixed(0)} days ago`} />
+        <MetricPill label="Score" value={session.score.toFixed(0)} />
+        <MetricPill
+          label="Insulin"
+          value={`${session.insulin}u taken`}
+        />
+        <MetricPill
+          label="Target"
+          value={`${session.optimalMealInsulin.toFixed(0)}u optimal`}
+        />
+      </MetricGrid>
+      <div className="mt-3">
+        <div className="small text-uppercase text-muted fw-semibold mb-2">
+          Meal Snapshot
+        </div>
+        <div className="small">
+          {session.firstMeal.addedFoods.map((f, index) => (
+            <div key={`${f.name}-${index}`} className="mb-1">
               {f.amount}
               {f.prettyUnit} {f.name}
-              <br />
-            </>
+            </div>
           ))}
-        </span>
+        </div>
       </div>
-      <br />
-      <div className="pt-3 d-flex justify-content-end">
-        <Button onClick={() => onselect(session)} variant={"primary"}>
+      <div className="d-grid mt-3">
+        <Button onClick={() => onselect(session)} variant="primary">
           Select
         </Button>
       </div>
