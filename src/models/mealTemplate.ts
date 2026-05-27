@@ -36,23 +36,19 @@ export default class MealTemplate extends Subscribable implements Template {
   get isFirstTime(): boolean {
     return this.sessions.length === 0;
   }
-  get latestSession(): Session {
-    if (this.sessions.length === 0)
-      throw new Error(`There are no sessions in this template!`);
+  get latestSession(): Session | null {
+    if (this.sessions.length === 0) return null;
     let session: Session | null = null;
     for (let i = this.sessions.length - 1; i >= 0; i--) {
       const _session = this.sessions[i];
-      if (session && _session.isInvalid) continue;
+      if (_session && _session.isInvalid) continue;
       session = _session;
       break;
     }
-    if (!session)
-      throw new Error(`Cannot retrieve latest session: unknown error`);
     return session;
   }
-  get bestSession(): Session {
-    if (this.sessions.length === 0)
-      throw new Error(`There are no sessions in this template!`);
+  get bestSession(): Session | null {
+    if (this.sessions.length === 0) return null;
     const sessions = this.freshOrValidSessions;
     let session: Session | null = null;
     sessions.forEach((s) => {
@@ -64,14 +60,12 @@ export default class MealTemplate extends Subscribable implements Template {
         session = s;
       }
     });
-    if (!session)
-      throw new Error(`Cannot retrieve best session: unknown error`);
     return session;
   }
-  get typicalSession(): Session {
-    if (this.sessions.length === 0)
-      throw new Error(`There are no sessions in this template!`);
+  get typicalSession(): Session | null {
+    if (this.sessions.length === 0) return null;
     const validSessions = this.validSessions;
+    if (validSessions.length === 0) return null;
     let typicalCarbs = MathUtil.mode(validSessions.map((s) => s.carbs));
     let typicalProtein = MathUtil.mode(validSessions.map((s) => s.protein));
     let typicalNumFoods = MathUtil.mode(
@@ -81,7 +75,7 @@ export default class MealTemplate extends Subscribable implements Template {
     let typicalSessions: Session[] = [];
     let minDeviation = Infinity;
     this.freshOrValidSessions.forEach((s) => {
-      // Ecludian distance
+      // Euclidean distance
       const deviation =
         (s.carbs - typicalCarbs) ** 2 +
         (s.protein - typicalProtein) ** 2 +
@@ -94,14 +88,13 @@ export default class MealTemplate extends Subscribable implements Template {
         typicalSessions.push(s);
       }
     });
-    if (typicalSessions.length === 0) throw new Error(`Unknown error.`);
-    // Among the most typical, yeild the most well-controlled
+    if (typicalSessions.length === 0) return null;
+    // Among the most typical, yield the most well-controlled
     typicalSessions.sort((a, b) => a.score - b.score);
     return typicalSessions[0];
   }
-  get recommendedSession(): Session {
-    if (this.sessions.length === 0)
-      throw new Error(`There are no sessions in this template!`);
+  get recommendedSession(): Session | null {
+    if (this.sessions.length === 0) return null;
     const sessions = this.validSessions.filter((s) => s.age < 5); // All sessions within the last 5 days
     if (!sessions.length) return this.typicalSession;
     let bestSession: Session | null = null;
@@ -113,22 +106,24 @@ export default class MealTemplate extends Subscribable implements Template {
         bestSession = s;
       }
     });
-    if (!bestSession) throw new Error(`Unknown error.`);
     return bestSession;
   }
 
   // Nutrition Information
   get carbs(): number {
     if (this.isFirstTime) return 0;
-    return this.latestSession.carbs;
+    const session = this.latestSession;
+    return session ? session.carbs : 0;
   }
   get protein(): number {
     if (this.isFirstTime) return 0;
-    return this.latestSession.protein;
+    const session = this.latestSession;
+    return session ? session.protein : 0;
   }
   get fat(): number {
     if (this.isFirstTime) return 0;
-    return this.latestSession.fat;
+    const session = this.latestSession;
+    return session ? session.fat : 0;
   }
 
   // Control info
@@ -160,7 +155,8 @@ export default class MealTemplate extends Subscribable implements Template {
   /** This gies you the meal dose insulin taken last, not accounting for correction */
   get previousInsulin(): number {
     if (this.isFirstTime) return 0;
-    return this.latestSession.mealInsulin;
+    const session = this.latestSession;
+    return session ? session.mealInsulin : 0;
   }
   get insulinTiming(): number {
     if (this.isFirstTime) return 0;

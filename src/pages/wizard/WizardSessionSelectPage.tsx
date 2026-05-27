@@ -46,16 +46,20 @@ export default function WizardSessionSelectPage() {
         title="Choose a prior session"
         subtitle="Select the session shape that best matches this moment so the wizard can start from something useful."
       />
-      <SessionSelection
-        onselect={chooseSession}
-        session={latestSession}
-        title="Last Session"
-      />
-      <SessionSelection
-        onselect={chooseSession}
-        session={recommendedSession}
-        title="Recommended Session"
-      />
+      {latestSession && (
+        <SessionSelection
+          onselect={chooseSession}
+          session={latestSession}
+          title="Last Session"
+        />
+      )}
+      {recommendedSession && (
+        <SessionSelection
+          onselect={chooseSession}
+          session={recommendedSession}
+          title="Recommended Session"
+        />
+      )}
       {vectorizedOptimalSession && (
         <SessionSelection
           onselect={chooseSession}
@@ -70,16 +74,25 @@ export default function WizardSessionSelectPage() {
           title="Metabolic Match (Recent)"
         />
       )}
-      <SessionSelection
-        onselect={chooseSession}
-        session={typicalSession}
-        title="Typical Session"
-      />
-      <SessionSelection
-        onselect={chooseSession}
-        session={bestSession}
-        title="Optimal Score Session"
-      />
+      {typicalSession && (
+        <SessionSelection
+          onselect={chooseSession}
+          session={typicalSession}
+          title="Typical Session"
+        />
+      )}
+      {bestSession && (
+        <SessionSelection
+          onselect={chooseSession}
+          session={bestSession}
+          title="Optimal Score Session"
+        />
+      )}
+      {!latestSession && !recommendedSession && !typicalSession && !bestSession && (
+        <div className="alert alert-info">
+          No prior sessions available for this template. Start fresh!
+        </div>
+      )}
       <PageActions>
         <Button onClick={goBack} variant="secondary">
           Go Back
