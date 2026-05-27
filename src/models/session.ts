@@ -388,8 +388,18 @@ export default class Session extends Subscribable {
     return insulin;
   }
   removeInsulin(insulin: Insulin) {
-    this.insulins = this.insulins.filter((i) => i !== insulin);
+    const index = this.insulins.indexOf(insulin);
+    if (index === -1) return; // Already gone
+    this.insulins.splice(index, 1);
     this.removeChildSubscribable(insulin);
+    // Remove the corresponding snapshot to keep arrays in sync
+    // Snapshot[0] is the base snapshot; each insulin after the first creates a snapshot
+    // So insulin[n] maps to snapshot[n] for n >= 1
+    if (index >= 1 && index < this.snapshots.length) {
+      const snapshot = this.snapshots[index];
+      this.removeChildSubscribable(snapshot);
+      this.snapshots.splice(index, 1);
+    }
     this.notify();
   }
   get insulinMarked(): boolean {
