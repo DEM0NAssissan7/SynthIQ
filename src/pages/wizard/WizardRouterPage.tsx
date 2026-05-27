@@ -9,7 +9,7 @@ function WizardRouterPage() {
 
   useEffect(() => {
     WizardManager.moveToCurrentPage(navigate);
-  });
+  }, [navigate]);
   return <></>;
 }
 

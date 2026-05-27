@@ -7,6 +7,6 @@ export default function () {
   useEffect(() => {
     WizardStore.isBolus.value = true;
     navigate("/insulin");
-  });
+  }, [navigate]);
   return <></>;
 }
