@@ -146,7 +146,7 @@ export default class Snapshot extends Subscribable {
     const targetBG = PreferencesStore.targetBG.value;
     const lowThreshold = PreferencesStore.lowBG.value;
     if (!this.initialBG || !this.peakBG || !this.minBG || !this.finalBG)
-      throw new Error(`Cannot get glucose score from incomplete session`);
+      return []; // Graceful fallback instead of throwing
 
     let deviations = [];
     const wentLow = this.minBG.sugar < lowThreshold;

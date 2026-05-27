@@ -187,15 +187,9 @@ export default class Session extends Subscribable {
   // Profile-based stuff
   get mealRise(): number {
     const finalBG = this.finalBG;
-    if (!finalBG)
-      throw new Error(
-        `Cannot get insulin dosing: there is no final blood glucose`,
-      );
+    if (!finalBG) return 0;
     const initialGlucose = this.initialGlucose;
-    if (!initialGlucose)
-      throw new Error(
-        `Cannot get insulin dosing: there is no initial blood glucose`,
-      );
+    if (!initialGlucose) return 0;
 
     const totalDeltaBG = finalBG - initialGlucose;
     const glucoseDeltaBG = this.glucoseEffect;
@@ -260,8 +254,7 @@ export default class Session extends Subscribable {
     const snapshots: Snapshot[] = this.snapshots;
     const glucoses = this.glucoses;
 
-    if (!this.initialGlucose)
-      throw new Error(`Cannot get windows: no initial BG`);
+    if (!this.initialGlucose) return [];
     if (this.insulins.length === 0) return [];
 
     // Treatment windows creation
@@ -546,8 +539,7 @@ export default class Session extends Subscribable {
   }
 
   get length(): number {
-    if (!this.endTimestamp)
-      throw new Error(`Cannot give length - there is no end timestamp!`);
+    if (!this.endTimestamp) return 0;
     return this.getN(this.endTimestamp);
   }
   get expired(): boolean {
@@ -555,10 +547,7 @@ export default class Session extends Subscribable {
   }
 
   getObservedReadings() {
-    if (!this.endTimestamp)
-      throw new Error(
-        `Cannot give total readings - there is no end timestamp!`,
-      );
+    if (!this.endTimestamp) return Promise.resolve([]);
     return RemoteReadings.getReadings(this.timestamp, this.endTimestamp);
   }
 
@@ -572,8 +561,7 @@ export default class Session extends Subscribable {
 
   // Basal
   get fastingRise(): number {
-    if (!this.endTimestamp)
-      throw new Error(`Cannot get fasting rise: no end timestamp`);
+    if (!this.endTimestamp) return 0;
     return this.fastingVelocity ? this.fastingVelocity * this.length : 0;
   }
   getSensitivityIndex(liverOutput: number) {
