@@ -1,7 +1,6 @@
 import { Button, ToggleButton } from "react-bootstrap";
 import Card from "../../components/Card";
 import { useNavigate } from "react-router";
-import { useEffect } from "react";
 import WizardManager from "../../managers/wizardManager";
 import TemplateSummary from "../../components/TemplateSummary";
 import { WizardStore } from "../../storage/wizardStore";
@@ -16,45 +15,6 @@ import {
 export default function WizardHubPage() {
   const [session] = WizardStore.session.useState();
   const [template] = WizardStore.template.useState();
-  const [insulinDueFlag, setInsulinDueFlag] = WizardStore.insulinDueFlag.useState();
-
-  const navigate = useNavigate();
-
-  // Auto-nav to insulin page 30-60 min after meal start if no insulin taken yet
-  useEffect(() => {
-    if (
-      session.mealMarked &&
-      !session.insulinMarked &&
-      !insulinDueFlag
-    ) {
-      // Mark flag immediately so this only fires once
-      setInsulinDueFlag(true);
-      WizardStore.insulinDueFlag.value = true;
-
-      // Calculate time since meal: 30-60 minute window
-      const msSinceMeal = Date.now() - session.firstMealTimestamp.getTime();
-      const minSinceMeal = msSinceMeal / 60000;
-      const waitMs = Math.max(0, 30 * 60000 - msSinceMeal); // Wait at least 30 min from meal
-
-      // If it's already been 30+ minutes, navigate immediately
-      if (minSinceMeal >= 30) {
-        WizardManager.moveToPage(WizardPage.Insulin, navigate);
-        return;
-      }
-
-      // Otherwise schedule it between the 30-60 minute mark
-      const timer = setTimeout(() => {
-        if (
-          WizardStore.session.value.mealMarked &&
-          !WizardStore.session.value.insulinMarked
-        ) {
-          WizardManager.moveToPage(WizardPage.Insulin, navigate);
-        }
-      }, waitMs);
-
-      return () => clearTimeout(timer);
-    }
-  }, [session.mealMarked, session.insulinMarked, insulinDueFlag, navigate, setInsulinDueFlag]);
 
   // Garbage
   function setGarbage(value: boolean) {
@@ -63,6 +23,8 @@ export default function WizardHubPage() {
         session.isGarbage = value;
     } else session.isGarbage = value;
   }
+
+  const navigate = useNavigate();
 
   function startNew() {
     WizardManager.moveToPage(WizardPage.FinalBG, navigate);
