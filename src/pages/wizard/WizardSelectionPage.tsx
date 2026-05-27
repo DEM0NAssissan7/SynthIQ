@@ -21,7 +21,13 @@ export default function WizardSelectionPage() {
     }
     try {
       const template = WizardManager.selectTemplate(name);
-      WizardManager.selectSession(template.latestSession);
+      const latestSession = template.latestSession;
+      if (!latestSession) {
+        // New template, no sessions yet — jump straight to meal
+        WizardManager.begin(navigate);
+        return;
+      }
+      WizardManager.selectSession(latestSession!);
       WizardManager.begin(navigate);
     } catch (e) {
       alert(`Template named ${name} encountered an error`);
@@ -35,9 +41,13 @@ export default function WizardSelectionPage() {
   }
   function addTemplate() {
     const name = prompt("Template name:");
-    if (name) {
-      WizardManager.createTemplate(name);
-      advance(name);
+    if (name && name.trim()) {
+      try {
+        WizardManager.createTemplate(name.trim());
+        advance(name.trim());
+      } catch (e: any) {
+        alert(e.message || "Failed to create template");
+      }
     }
   }
 

@@ -48,12 +48,23 @@ export default class WizardManager {
 
   // Meal
   static markMeal() {
-    const meal: Meal = WizardStore.meal.value;
     const session: Session = WizardStore.session.value;
+
+    // If the session already has meals or insulins, auto-close it and roll over
+    if (session.started) {
+      // Finalize current session by saving it to the template
+      this.addSessionToTemplate(session);
+      this.replaceTemplateToArray();
+      // Start a fresh session but keep the same template context
+      this.resetSession();
+    }
+
+    const meal: Meal = WizardStore.meal.value;
+    const newSession: Session = WizardStore.session.value;
     const timestamp = new Date();
 
     meal.timestamp = timestamp;
-    session.addMeal(meal);
+    newSession.addMeal(meal);
     this.resetMeal(); // Reset the meal to make room for additional
 
     // TODO: Use date selector
@@ -133,14 +144,22 @@ export default class WizardManager {
     return template;
   }
   static createTemplate(name: string) {
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      throw new Error("Template name cannot be empty");
+    }
+    // Check if template already exists — if so, just select it
     try {
-      this.selectTemplate(name);
-    } catch (e) {
-      const template = new MealTemplate(name);
+      const existing = this.getTemplateByName(trimmedName);
+      this.selectTemplate(trimmedName);
+      return existing;
+    } catch {
+      // Template doesn't exist, create it
+      const template = new MealTemplate(trimmedName);
       WizardStore.templates.value.push(template);
       WizardStore.templates.write();
-      this.selectTemplate(name);
-      return;
+      this.selectTemplate(trimmedName);
+      return template;
     }
   }
   static deleteTemplate(name: string) {
