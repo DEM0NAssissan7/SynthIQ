@@ -36,6 +36,8 @@ export namespace WizardStore {
 
   // State tracking for insulin page
   export const isBolus = node.add("isBolus", false);
+  // One-time flag: auto-nav to insulin page has been triggered for this session
+  export const insulinDueFlag = node.add("insulinDueFlag", false);
 
   // Active Session
   export const session = node.add<Session>(
