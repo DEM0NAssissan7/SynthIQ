@@ -21,8 +21,14 @@ function compressValue(value: JSONValue): string {
   // If the JSON is tiny, compression can bloat it — skip.
   if (json.length < 256) return json;
   const deflated = pako.deflate(json, { level: 9 });
-  // Base64-encode the binary
-  const binary = String.fromCharCode(...deflated);
+  // Base64-encode the binary — chunked to avoid call-stack overflow on large arrays
+  let binary = "";
+  const chunkSize = 8192;
+  for (let i = 0; i < deflated.length; i += chunkSize) {
+    binary += String.fromCharCode(
+      ...deflated.subarray(i, Math.min(i + chunkSize, deflated.length)),
+    );
+  }
   const encoded = btoa(binary);
   // Only store compressed if it actually saved space
   if (encoded.length + COMPRESS_PREFIX.length >= json.length) return json;
