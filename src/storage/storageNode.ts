@@ -6,6 +6,38 @@ import type {
   SubscriptionCallback,
 } from "../models/types/types";
 import StorageBackends from "../registries/storageBackends";
+import pako from "pako";
+
+// Compression marker — JSON never starts with "~", so this is an unambiguous signal.
+// Values stored with this prefix are deflated + base64-encoded.
+const COMPRESS_PREFIX = "~z";
+
+function isCompressed(stored: string): boolean {
+  return stored.startsWith(COMPRESS_PREFIX);
+}
+
+function compressValue(value: JSONValue): string {
+  const json = JSON.stringify(value);
+  // If the JSON is tiny, compression can bloat it — skip.
+  if (json.length < 256) return json;
+  const deflated = pako.deflate(json, { level: 9 });
+  // Base64-encode the binary
+  const binary = String.fromCharCode(...deflated);
+  const encoded = btoa(binary);
+  // Only store compressed if it actually saved space
+  if (encoded.length + COMPRESS_PREFIX.length >= json.length) return json;
+  return COMPRESS_PREFIX + encoded;
+}
+
+function decompressValue(stored: string): JSONValue {
+  if (!isCompressed(stored)) return JSON.parse(stored);
+  const encoded = stored.slice(COMPRESS_PREFIX.length);
+  const binary = atob(encoded);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  const json = pako.inflate(bytes, { to: "string" });
+  return JSON.parse(json);
+}
 
 export interface KeyInterface<T> {
   get value(): T;
@@ -65,6 +97,8 @@ class StorageEntry {
 
   value: any;
   subscriptions: SubscriptionCallback<any>[] = [];
+  /** Tracks whether the last read was uncompressed old data — triggers re-compression */
+  private _needsCompressionMigration: boolean = false;
 
   constructor(
     id: string,
@@ -110,6 +144,11 @@ class StorageEntry {
     // Import value from storage
     try {
       this.import(val);
+      // One-time migration: if the stored data was uncompressed (pre-pako), re-write compressed
+      if (this._needsCompressionMigration) {
+        this._needsCompressionMigration = false;
+        this.write();
+      }
     } catch (e) {
       console.error(e);
       throw new Error(
@@ -139,16 +178,18 @@ class StorageEntry {
 
   // Storage API
   private writeToStorage(value: JSONValue) {
-    storageBackend.setItem(this.getStorageKey(), JSON.stringify(value));
+    storageBackend.setItem(this.getStorageKey(), compressValue(value));
   }
   private getFromStorage(): JSONValue {
     let retval: any;
-    retval = storageBackend.getItem(this.getStorageKey());
+    const raw = storageBackend.getItem(this.getStorageKey());
+    retval = raw;
     if (retval === null)
       throw new Error(
         `StorageEntry[${this.getStorageKey()}]: Failed to retrieve key`
       );
-    return JSON.parse(retval);
+    this._needsCompressionMigration = !isCompressed(retval);
+    return decompressValue(retval);
   }
   private getStorageKey() {
     return `${appID}.${this.nodeName}.${this.id}`;
