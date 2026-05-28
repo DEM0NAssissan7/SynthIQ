@@ -383,16 +383,47 @@ export default class Session extends Subscribable {
   removeInsulin(insulin: Insulin) {
     const index = this.insulins.indexOf(insulin);
     if (index === -1) return; // Already gone
-    this.insulins.splice(index, 1);
-    this.removeChildSubscribable(insulin);
-    // Remove the corresponding snapshot to keep arrays in sync
-    // Snapshot[0] is the base snapshot; each insulin after the first creates a snapshot
-    // So insulin[n] maps to snapshot[n] for n >= 1
-    if (index >= 1 && index < this.snapshots.length) {
-      const snapshot = this.snapshots[index];
-      this.removeChildSubscribable(snapshot);
+    /**
+     * Because of the physics of how snapshots work in the session, we need to modify
+     * the anatomy of the snapshots as well so that snapshot[i] -> insulin[i]
+     *
+     * If this anatomy/assumption fails, a lot of things go very bad
+     *
+     * To resolve, we merge snapshot windows when removing an insulin
+     *
+     * For example:
+     *
+     * | insulin 1 | insulin 2 | insulin 3 |
+     * | snapshot1 | snapshot2 | snapshot3 |
+     *
+     * If we remove insulin 2:
+     * | insulin 1             | insulin 3 |
+     * | snapshot1             | snapshot3 |
+     *
+     * Snapshot 1 absorbs snapshot 2 to successfully merge and maintain correct anatomy.
+     * So snapshot 1 is the "mother snapshot" in this case
+     *
+     * In the case we remove the last insulin:
+     *
+     * | insulin 2 | insulin 3 |
+     * | snapshot2 | snapshot3 |
+     *
+     * Snapshot 2 absorbs snapshot 1 to successfully derive the new anatomy
+     * Snapshot 2 is then considered the "mother snapshot"
+     */
+    const motherIndex = index !== 0 ? index - 1 : index + 1;
+    // Ensure that the absorption takes place with valid indeces
+    // This prevents an invalid action if we are removing the only insulin dose left
+    if (motherIndex < this.snapshots.length) {
+      this.snapshots[motherIndex].absorb(this.snapshots[index]);
+    }
+    // Prevent deleting the root snapshot - we always need a root snapshot
+    if (this.snapshots.length > 1) {
+      this.removeChildSubscribable(this.snapshots[index]); // Unsubscribe the snapshot properly
       this.snapshots.splice(index, 1);
     }
+    this.insulins.splice(index, 1);
+    this.removeChildSubscribable(insulin);
     this.notify();
   }
   get insulinMarked(): boolean {
