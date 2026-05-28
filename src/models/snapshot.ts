@@ -146,7 +146,7 @@ export default class Snapshot extends Subscribable {
     const targetBG = PreferencesStore.targetBG.value;
     const lowThreshold = PreferencesStore.lowBG.value;
     if (!this.initialBG || !this.peakBG || !this.minBG || !this.finalBG)
-      return []; // Graceful fallback instead of throwing
+      return [Infinity]; // Incompleteness sentinel — gives an impossibly bad score
 
     let deviations = [];
     const wentLow = this.minBG.sugar < lowThreshold;
