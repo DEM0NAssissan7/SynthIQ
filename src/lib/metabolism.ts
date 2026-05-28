@@ -85,6 +85,7 @@ export function getApproximatedProfile() {
       const predictedMealRise =
         alphaCarbs * session.carbs + alphaProtein * session.protein;
       const actualMealRise = session.mealRise;
+      if (Number.isNaN(actualMealRise)) continue;
       const error = predictedMealRise - actualMealRise;
 
       alphaCarbs -= eta * error * session.carbs;

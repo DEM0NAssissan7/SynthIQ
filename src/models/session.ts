@@ -187,9 +187,9 @@ export default class Session extends Subscribable {
   // Profile-based stuff
   get mealRise(): number {
     const finalBG = this.finalBG;
-    if (!finalBG) return 0;
+    if (!finalBG) return NaN;
     const initialGlucose = this.initialGlucose;
-    if (!initialGlucose) return 0;
+    if (!initialGlucose) return NaN;
 
     const totalDeltaBG = finalBG - initialGlucose;
     const glucoseDeltaBG = this.glucoseEffect;
