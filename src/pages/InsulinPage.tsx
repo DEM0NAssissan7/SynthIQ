@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Button, Form, InputGroup, ListGroup } from "react-bootstrap";
+import { Button, Form, InputGroup } from "react-bootstrap";
 import WizardManager from "../managers/wizardManager";
 import { roundByHalf } from "../lib/util";
 import { useNavigate } from "react-router";
@@ -120,7 +120,7 @@ export default function InsulinPage() {
     return rise / variant.effect;
   })();
 
-  const risenCorrectionInsulin = correctionInsulin + continuedRiseInsulin; // This is only for corrections, not bolus
+  const risenCorrectionInsulin = correctionInsulin + continuedRiseInsulin;
 
   const extraInsulin = correctionInsulin + overshootInsulinOffset;
   const displayedInsulin = (() => {
@@ -134,13 +134,12 @@ export default function InsulinPage() {
     const risenCorrection = Math.max(roundByHalf(risenCorrectionInsulin), 0);
     return correction === risenCorrection
       ? `${correction}`
-      : `${Math.min(risenCorrection, correction)}u - ${Math.max(
+      : `${Math.min(risenCorrection, correction)}u – ${Math.max(
           risenCorrection,
           correction,
         )}u`;
   })();
 
-  // A variable that changes once per minute
   function goBack() {
     WizardStore.isBolus.value = false;
     WizardManager.moveToPage(
@@ -177,9 +176,6 @@ export default function InsulinPage() {
 
       {isBolus && (
         <Card>
-          <div className="small text-uppercase text-muted fw-semibold mb-2">
-            Session summary
-          </div>
           <TemplateSummary
             template={template}
             session={session}
@@ -193,6 +189,15 @@ export default function InsulinPage() {
         </Card>
       )}
 
+      {/* Active insulin */}
+      <Card>
+        <div className="small text-uppercase text-muted fw-semibold mb-2">
+          Active insulin
+        </div>
+        <LastBolusMessage />
+      </Card>
+
+      {/* Recommendation */}
       <Card>
         <div className="small text-uppercase text-muted fw-semibold mb-2">
           Recommendation
@@ -211,10 +216,9 @@ export default function InsulinPage() {
             }
           />
         </MetricGrid>
-        <hr />
-        <LastBolusMessage />
       </Card>
 
+      {/* Mark insulin */}
       <Card>
         <div className="small text-uppercase text-muted fw-semibold mb-2">
           Mark insulin
@@ -226,9 +230,7 @@ export default function InsulinPage() {
             pullFromNightscout={!isBolus}
           />
         )}
-        <ListGroup>
-          <InsulinVariantDropdown setVariant={setVariant} variant={variant} />
-        </ListGroup>
+        <InsulinVariantDropdown setVariant={setVariant} variant={variant} />
         <InputGroup className="mb-3">
           <InputGroup.Text id="basic-addon1">
             <i className="bi bi-capsule"></i>
@@ -238,9 +240,7 @@ export default function InsulinPage() {
             placeholder={
               correctionIsDisplayed
                 ? roundByHalf(correctionInsulin).toFixed(1)
-                : `${roundByHalf(displayedInsulin)} ${
-                    extraInsulin ? `[${extraInsulin.toFixed(1)}]` : ``
-                  }`
+                : `${roundByHalf(displayedInsulin)}u`
             }
             aria-describedby="basic-addon1"
             onChange={(e: any) => {

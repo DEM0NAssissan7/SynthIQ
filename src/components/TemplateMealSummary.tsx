@@ -1,40 +1,19 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   getCorrectionInsulin,
   getOvercompensationInsulins,
 } from "../lib/metabolism";
 import { insulinDosingRecommendation } from "../lib/templateHelpers";
-import { round, roundByHalf } from "../lib/util";
+import { round } from "../lib/util";
 import type Meal from "../models/events/meal";
 import type MealTemplate from "../models/mealTemplate";
-import { Button } from "react-bootstrap";
 import Insulin from "../models/events/insulin";
-import React from "react";
 import { getFormattedTime, getFullPrettyDate } from "../lib/timing";
 import { InsulinVariantManager } from "../managers/insulinVariantManager";
 import { useNow } from "../state/useNow";
 import { PrivateStore } from "../storage/privateStore";
 import { BasalStore } from "../storage/basalStore";
 
-function getFactorDesc(num: number, unit: string, type: string) {
-  if (round(num, 1) === 0) return "";
-  return (
-    <>
-      <b>
-        {num > 0 && "+"}
-        {round(num, 1)}
-        {unit}
-      </b>{" "}
-      {type}
-      <br />
-    </>
-  );
-}
-interface TemplateMealSummaryProps {
-  template: MealTemplate;
-  meal: Meal;
-  currentBG: number;
-}
 export default function TemplateMealSummary({
   template,
   meal,
@@ -68,7 +47,6 @@ export default function TemplateMealSummary({
   const profileInsulin = profileCarbInsulin + profileProteinInsulin;
   const insulins = (() => {
     const vectorizedInsulin = template.vectorizeInsulin(meal, session);
-    // Fall back to profile
     if (!vectorizedInsulin || template.isFirstTime)
       return [
         new Insulin(profileInsulin, now, InsulinVariantManager.getDefault()),
@@ -80,184 +58,158 @@ export default function TemplateMealSummary({
     currentBG,
     insulins.map((i) => i.variant),
   );
-  const overshootInsulinOffset: number = (() => {
-    let total = 0;
-    for (let insulin of overcompensationInsulins) {
-      total += insulin;
-    }
-    return total;
-  })();
+  const overshootInsulinOffset = overcompensationInsulins.reduce(
+    (total, v) => total + v,
+    0,
+  );
 
   const isSingleBolus = insulins.length < 2;
 
-  const finalTiming = round(
-    (session ? session.getRelativeN(session.firstInsulinTimestamp) * 60 : 0) +
-      adjustments.timingAdjustment,
-    0,
-  );
-  function getTiming(index: number) {
-    if (!session) return 0;
-    if (insulins.length < 2) return finalTiming;
-    const insulin = insulins[index];
-    return round(session.getRelativeN(insulin.timestamp) * 60, 0);
-  }
-
-  const [showExtra, setShowExtra] = useState(false);
-  function toggleShowExtra() {
-    setShowExtra(!showExtra);
+  function getFactorDesc(num: number, unit: string, type: string) {
+    if (round(num, 1) === 0) return null;
+    return (
+      <div className="d-flex justify-content-between py-1 small">
+        <span className="text-muted">{type}</span>
+        <span className="fw-semibold">
+          {num > 0 && "+"}
+          {round(num, 1)}
+          {unit}
+        </span>
+      </div>
+    );
   }
 
   return (
     <>
-      <hr />
-      <b>{round(meal.totalCarbs, 0)}g</b> carbs
-      <br />
-      {meal.totalCarbs !== meal.carbs && (
-        <>
-          <b>{round(meal.carbs, 0)}g</b> net carbs
-          <br />
-        </>
-      )}
-      <b>{round(meal.protein, 0)}g</b> protein
-      <br />
-      <br />
-      {insulins.map((insulin: Insulin, i: number) => (
-        <React.Fragment key={i}>
-          {isSingleBolus ? `Take ` : `Shot ${i + 1}: `}
-          <b>
-            {roundByHalf(
-              insulin.value +
-                (i === 0 ? insulinCorrection : 0) +
-                overshootInsulinOffset / insulins.length, // We add just a bit more insulin to overshoot our target and scale it by the number of insulins
-            )}
-            u
-          </b>{" "}
-          of <i>{insulin.variant.name}</i>{" "}
-          {!template.isFirstTime && (
-            <>
-              <b>{getFormattedTime(Math.abs(getTiming(i)))}</b>{" "}
-              {getTiming(i) > 0 ? "after" : "before"} you start eating
-              <br />
-              <br />
-            </>
-          )}
-        </React.Fragment>
-      ))}
-      <br />
-      <br />
-      <Button
-        onClick={toggleShowExtra}
-        variant="secondary"
-        size="sm"
-        style={{ width: "100%" }}
-      >
-        {showExtra ? "Hide Extra Info" : "Show Extra Info"}
-      </Button>
-      <br />
-      {showExtra && (
-        <>
-          {" "}
-          <hr />
           {session && (
-            <>
-              <b>{session.mealInsulin.toFixed(1)}u</b> base
-              <br />
-              <br />
-            </>
+            <div className="d-flex justify-content-between py-1 small">
+              <span className="text-muted">Base meal insulin</span>
+              <span className="fw-semibold">{session.mealInsulin.toFixed(1)}u</span>
+            </div>
           )}
-          {getFactorDesc(insulinCorrection, "u", "correction")}
-          {getFactorDesc(insulinOffset, "u", "offset")}
-          {getFactorDesc(insulinAdjustment, " u", "adjustment")}
-          {getFactorDesc(overshootInsulinOffset, " u", "overcompensation")}
+          {getFactorDesc(insulinCorrection, "u", "Correction")}
+          {getFactorDesc(insulinOffset, "u", "Offset")}
+          {getFactorDesc(insulinAdjustment, "u", "Adjustment")}
+          {getFactorDesc(overshootInsulinOffset, "u", "Overcompensation")}
           {isSingleBolus &&
-            getFactorDesc(adjustments.timingAdjustment, " min", "adjustment")}
-          <hr />
-          <b>Profile:</b> This meal requires{" "}
-          <b>{round(profileInsulin + insulinCorrection, 1)}u</b> insulin (
-          {profileCarbInsulin.toFixed(1)}u carbs,{" "}
-          {profileProteinInsulin.toFixed(1)}u protein)
+            getFactorDesc(adjustments.timingAdjustment, "min", "Timing adjustment")}
+
+          {/* Dosing profile */}
+          <div className="small text-uppercase text-muted fw-semibold mb-2">
+            Dosing profile
+          </div>
+          <div className="d-flex justify-content-between py-1 small">
+            <span className="text-muted">Total recommended</span>
+            <span className="fw-semibold">
+              {round(profileInsulin + insulinCorrection, 1)}u
+            </span>
+          </div>
+          <div className="d-flex justify-content-between py-1 small">
+            <span className="text-muted">Carbs portion</span>
+            <span className="fw-semibold">{profileCarbInsulin.toFixed(1)}u</span>
+          </div>
+          <div className="d-flex justify-content-between py-1 small">
+            <span className="text-muted">Protein portion</span>
+            <span className="fw-semibold">{profileProteinInsulin.toFixed(1)}u</span>
+          </div>
+
+          {/* Base session */}
           {!template.isFirstTime && session && (
             <>
-              <hr />
-              <b>Base Session</b> <i>{getFullPrettyDate(session.timestamp)}</i>
-              <br />
-              {round(session.carbs, 0)}g carbs, {round(session.protein, 0)}g
-              protein
-              <br />
-              <i>
-                {session.initialGlucose}mg/dL {"->"} {session.finalBG}mg/dL
-              </i>{" "}
-              <br />
-              {session.peakGlucose}mg/dL {"-"} {session.minGlucose}mg/dL
-              <br />
-              Score: <b>{session.score.toFixed(0)}</b>
-              <br />
-              <i>{session.glucose} low correction doses</i>
-              {session.fastingVelocity && (
-                <>
-                  <br />
-                  Sensitivity Index:{" "}
-                  <b>
-                    {session.getSensitivityIndex(liverOutput ?? 0)?.toFixed(0)}
-                    mg/dL
-                  </b>{" "}
-                  per unit
-                </>
+              <hr className="my-2" />
+              <div className="small text-uppercase text-muted fw-semibold mb-2">
+                Reference session
+              </div>
+              <div className="d-flex justify-content-between py-1 small">
+                <span className="text-muted">Session date</span>
+                <span className="fw-semibold">{getFullPrettyDate(session.timestamp)}</span>
+              </div>
+              <div className="d-flex justify-content-between py-1 small">
+                <span className="text-muted">Macros</span>
+                <span className="fw-semibold">
+                  {round(session.carbs, 0)}g carbs, {round(session.protein, 0)}g protein
+                </span>
+              </div>
+              <div className="d-flex justify-content-between py-1 small">
+                <span className="text-muted">Blood sugar</span>
+                <span className="fw-semibold">
+                  {session.initialGlucose}mg/dL → {session.finalBG}mg/dL
+                </span>
+              </div>
+              <div className="d-flex justify-content-between py-1 small">
+                <span className="text-muted">Peak / Min</span>
+                <span className="fw-semibold">
+                  {session.peakGlucose}mg/dL / {session.minGlucose}mg/dL
+                </span>
+              </div>
+              <div className="d-flex justify-content-between py-1 small">
+                <span className="text-muted">Score</span>
+                <span className="fw-semibold">{session.score.toFixed(0)}</span>
+              </div>
+              {session.fastingVelocity && liverOutput && (
+                <div className="d-flex justify-content-between py-1 small">
+                  <span className="text-muted">Sensitivity</span>
+                  <span className="fw-semibold">
+                    {session.getSensitivityIndex(liverOutput)?.toFixed(0)} mg/dL per unit
+                  </span>
+                </div>
               )}
-              <hr />
+              <div className="d-flex justify-content-between py-1 small">
+                <span className="text-muted">Low corrections</span>
+                <span className="fw-semibold">{session.glucose}g total</span>
+              </div>
+
+              {/* Treatment windows */}
+              <hr className="my-2" />
+              <div className="small text-uppercase text-muted fw-semibold mb-2">
+                Treatment windows
+              </div>
               {session.windows.map((window, i) => {
                 const windowInsulin = session.insulins[i];
                 return (
-                  <>
-                    → <b>{windowInsulin.value.toFixed(1)}u</b>{" "}
-                    {windowInsulin.variant.name} <i>[{i + 1}]</i> ⇒{" "}
-                    {getFormattedTime(
-                      round(
-                        Math.abs(
-                          session.getRelativeN(windowInsulin.timestamp),
-                        ) * 60,
-                        1,
-                      ),
-                    )}{" "}
-                    {session.getRelativeN(windowInsulin.timestamp) > 0
-                      ? "after"
-                      : "before"}
-                    eating <br />
-                    <i>Actual Absorbed (approx):</i>
-                    <br />
-                    {window.insulins.map((insulin, _i) => {
-                      if (round(insulin.value, 1) === 0) return;
-                      return (
-                        <>
-                          <b>{insulin.value.toFixed(1)}u</b>{" "}
-                          {insulin.variant.name} <i>[{_i + 1}]</i>
-                          <br />
-                        </>
-                      );
-                    })}
-                    {`[${getFormattedTime(round(window.length * 60))}, ${
-                      window.initialBG
-                    }mg/dL -> ${window.finalBG}mg/dL]`}
-                    <br />
-                    <i>
-                      {window.glucoses.length !== 0
-                        ? `(${window.glucoses.reduce((sum, g) => sum + g.value, 0)} low correction doses)`
-                        : ""}
-                    </i>
-                    <br />
-                    <br />
-                  </>
+                  <div key={i} className="rounded-3 border p-2 mb-2 bg-body-tertiary small">
+                    <div className="d-flex justify-content-between mb-1">
+                      <span className="fw-semibold">Window {i + 1}</span>
+                      <span className="text-muted">
+                        {window.initialBG}mg/dL → {window.finalBG}mg/dL
+                      </span>
+                    </div>
+                    <div className="d-flex justify-content-between mb-1">
+                      <span>
+                        {windowInsulin.value.toFixed(1)}u {windowInsulin.variant.name}
+                      </span>
+                      <span className="text-muted">
+                        {getFormattedTime(Math.abs(session.getRelativeN(windowInsulin.timestamp) * 60))}{" "}
+                        {session.getRelativeN(windowInsulin.timestamp) > 0 ? "after" : "before"} meal
+                      </span>
+                    </div>
+                    <div className="text-muted">
+                      Absorbed: {window.insulins.map((ins, _i) => (
+                        <span key={_i}>
+                          {ins.value.toFixed(1)}u {ins.variant.name}
+                          {_i < window.insulins.length - 1 ? ", " : ""}
+                        </span>
+                      ))}
+                      {window.glucoses.length > 0 && (
+                        <span className="ms-2">
+                          ({window.glucoses.reduce((s, g) => s + g.value, 0)}g corrections)
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-muted">
+                      {getFormattedTime(Math.round(window.length * 60))} duration
+                    </div>
+                  </div>
                 );
               })}
             </>
           )}
-          <hr />
-          <b>{round(meal.fat, 0)}g</b> fat (approx)
-          <br />
-          <b>{round(meal.calories, 0)} kcal</b> (approx)
-          <br />
-        </>
-      )}
     </>
   );
+}
+
+interface TemplateMealSummaryProps {
+  template: MealTemplate;
+  meal: Meal;
+  currentBG: number;
 }

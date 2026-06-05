@@ -3,8 +3,6 @@ import {
   Button,
   Form,
   InputGroup,
-  ListGroup,
-  ToggleButton,
 } from "react-bootstrap";
 import { useNavigate } from "react-router";
 import BloodSugarInput from "../components/BloodSugarInput";
@@ -14,9 +12,8 @@ import {
 } from "../lib/metabolism";
 import { roundByHalf } from "../lib/util";
 import Card from "../components/Card";
-import GlucoseSuggestion from "../components/GlucoseSuggestion";
 import HealthMonitorMessage from "../components/HealthMonitorMessage";
-import { populateReadingCache, getBGVelocity } from "../lib/healthMonitor";
+import { populateReadingCache, getBGVelocity, getLastRescueMinutes } from "../lib/healthMonitor";
 import TemplateSummary from "../components/TemplateSummary";
 import { HealthMonitorStore } from "../storage/healthMonitorStore";
 import { WizardStore } from "../storage/wizardStore";
@@ -77,6 +74,14 @@ export default function RescuePage() {
     });
   }, [currentBG, variant, updated]);
 
+  const displayRange = correction === intelligentCorrection
+    ? `${correction}`
+    : `${Math.min(correction, intelligentCorrection)} – ${Math.max(correction, intelligentCorrection)}`;
+
+  const dropVelocity = getBGVelocity();
+  const dropRate = `${Math.round(Math.abs(dropVelocity) / 60)} pts/min`;
+  const lastRescueMinutes = getLastRescueMinutes();
+
   const navigate = useNavigate();
   function goBack() {
     navigate("/");
@@ -91,8 +96,6 @@ export default function RescuePage() {
     markGlucoseTaken(gramsTaken, variant);
   }
 
-  const [showTemplate, setShowTemplate] = useState(false);
-
   return (
     <PageLayout>
       <PageHeader
@@ -101,52 +104,51 @@ export default function RescuePage() {
         subtitle="Keep rescue corrections immediate while still showing the context you need."
       />
 
+      {/* Session summary (collapsible) */}
       {session.started && (
         <Card>
-          <ToggleButton
-            id="toggle-debug-logs"
-            type="checkbox"
-            variant={showTemplate ? "secondary" : "outline-secondary"}
-            checked={showTemplate}
-            value={showTemplate ? "1" : "0"}
-            onChange={() => setShowTemplate(!showTemplate)}
-          >
-            Show Session Summary
-          </ToggleButton>
-          {showTemplate && (
-            <TemplateSummary template={template} session={session} />
-          )}
+          <TemplateSummary template={template} session={session} />
         </Card>
       )}
+
+      {/* Active insulin */}
+      <Card>
+        <div className="small text-uppercase text-muted fw-semibold mb-2">
+          Active insulin
+        </div>
+        <LastBolusMessage />
+      </Card>
+
+      {/* Recommendation */}
       <Card>
         <div className="small text-uppercase text-muted fw-semibold mb-2">
           Recommendation
         </div>
         <MetricGrid>
-          <MetricPill label="Variant" value={variant.name} />
           <MetricPill
-            label="Intelligent correction"
-            value={`${intelligentCorrection}${variant.unitLetter}`}
+            label="Suggested dose"
+            value={`${displayRange} ${variant.unitLetter}`}
           />
           <MetricPill
-            label="Base correction"
-            value={`${correction}${variant.unitLetter}`}
+            label="Drop rate"
+            value={dropRate}
           />
-          <MetricPill label="Current BG" value={`${currentBG} mg/dL`} />
         </MetricGrid>
-        <hr />
-        <div className="mb-3">
-          <HealthMonitorMessage />
-        </div>
-        <div className="mb-3">
-          <LastBolusMessage />
-        </div>
-        <GlucoseSuggestion
-          intelligentCorrection={intelligentCorrection}
-          baseCorrection={correction}
-          unitName={variant.name}
-        />
+        <HealthMonitorMessage />
+        {HealthMonitorStore.lastRescue.value.value > 0 && lastRescueMinutes < 60 && (
+          <div className="rounded-3 border p-3 mt-3 bg-body-tertiary small">
+            <div className="d-flex justify-content-between align-items-center">
+              <span className="text-muted">Last rescue</span>
+              <span className="fw-semibold">
+                {HealthMonitorStore.lastRescue.value.value}{" "}
+                {variant.unitLetter} — {lastRescueMinutes} min ago
+              </span>
+            </div>
+          </div>
+        )}
       </Card>
+
+      {/* Mark rescue */}
       <Card>
         <div className="small text-uppercase text-muted fw-semibold mb-2">
           Mark rescue
@@ -156,21 +158,20 @@ export default function RescuePage() {
           setInitialGlucose={setCurrentBG}
           pullFromNightscout={true}
         />
-        <ListGroup>
-          <Form.Label>Variant</Form.Label>
-          <Form.Select
-            onChange={(e) => {
-              // You can handle insulin type selection here if needed
-              const v = RescueVariantManager.getVariant(e.target.value);
-              if (v) setVariant(v);
-            }}
-            className="mb-2"
-          >
-            {RescueVariantStore.variants.value.map((v) => (
-              <option value={v.name}>{v.name}</option>
-            ))}
-          </Form.Select>
-        </ListGroup>
+        <Form.Label className="text-muted small">Variant</Form.Label>
+        <Form.Select
+          onChange={(e) => {
+            const v = RescueVariantManager.getVariant(e.target.value);
+            if (v) setVariant(v);
+          }}
+          className="mb-3"
+        >
+          {RescueVariantStore.variants.value.map((v) => (
+            <option key={v.name} value={v.name}>
+              {v.name}
+            </option>
+          ))}
+        </Form.Select>
         <InputGroup className="mb-3">
           <InputGroup.Text id="basic-addon1">
             <i className="bi bi-capsule"></i>
@@ -203,7 +204,7 @@ export default function RescuePage() {
       <PageActions inline>
         {session.started && (
           <Button variant="secondary" onClick={goBack}>
-            Go To Wizard
+            Back to hub
           </Button>
         )}
         <Button variant="primary" onClick={onMark}>

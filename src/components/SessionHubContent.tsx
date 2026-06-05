@@ -2,6 +2,7 @@ import { Button, ToggleButton } from "react-bootstrap";
 import { useNavigate } from "react-router";
 import Card from "./Card";
 import TemplateSummary from "./TemplateSummary";
+import LastBolusMessage from "./LastBolusMessage";
 import { WizardStore } from "../storage/wizardStore";
 import WizardManager from "../managers/wizardManager";
 import { WizardPage } from "../models/types/wizardPage";
@@ -60,19 +61,6 @@ export default function SessionHubContent() {
           onClick={takeGlucose}
         />
         <ActionCard
-          icon="bi-fork-knife"
-          eyebrow="Meal"
-          title={session.mealMarked ? "Add another meal" : "Mark meal"}
-          body={
-            session.mealMarked
-              ? "Add another meal event while keeping the existing session running."
-              : "Build and mark the meal for this session."
-          }
-          buttonLabel={session.mealMarked ? "Add meal" : "Open meal"}
-          buttonVariant={session.mealMarked ? "danger" : "primary"}
-          onClick={addMeal}
-        />
-        <ActionCard
           icon="bi-droplet-half"
           eyebrow="Insulin"
           title={session.insulinMarked ? "Add more insulin" : "Mark insulin"}
@@ -103,6 +91,19 @@ export default function SessionHubContent() {
           onClick={editSession}
         />
         <ActionCard
+          icon="bi-fork-knife"
+          eyebrow="Meal"
+          title={session.mealMarked ? "Add another meal" : "Mark meal"}
+          body={
+            session.mealMarked
+              ? "Add another meal event while keeping the existing session running."
+              : "Build and mark the meal for this session."
+          }
+          buttonLabel={session.mealMarked ? "Add meal" : "Open meal"}
+          buttonVariant={session.mealMarked ? "danger" : "primary"}
+          onClick={addMeal}
+        />
+        <ActionCard
           icon="bi-check2-circle"
           eyebrow="Finish"
           title="End session"
@@ -112,6 +113,13 @@ export default function SessionHubContent() {
           onClick={startNew}
         />
       </ActionGrid>
+
+      <Card className="mt-4">
+        <div className="small text-uppercase text-muted fw-semibold mb-2">
+          Active insulin
+        </div>
+        <LastBolusMessage />
+      </Card>
 
       <Card className="mt-4">
         <div className="small text-uppercase text-muted fw-semibold mb-2">
