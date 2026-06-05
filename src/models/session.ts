@@ -487,8 +487,13 @@ export default class Session extends Subscribable {
     this.notify();
   }
   get glucose(): number {
+    let grams = 0;
+    this.glucoses.forEach((a: Glucose) => (grams += a.carbs));
+    return grams;
+  }
+  get glucoseDoses(): number {
     let glucose = 0;
-    this.glucoses.forEach((a: Glucose) => (glucose += a.value));
+    this.glucoses.forEach((a: Glucose) => (glucose += a.value || 0));
     return glucose;
   }
   get glucoseEffect(): number {
