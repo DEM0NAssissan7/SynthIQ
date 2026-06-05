@@ -15,6 +15,10 @@ export default class Glucose extends MetaEvent implements ScalarMetaEvent {
     return this._value;
   }
 
+  get carbs() {
+    return this.value * this.variant.carbs;
+  }
+
   constructor(value: number, timestamp: Date, variant: RescueVariant) {
     super(timestamp);
     this._value = value;

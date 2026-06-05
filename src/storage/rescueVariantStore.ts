@@ -7,7 +7,7 @@ export namespace RescueVariantStore {
 
   export const variants = node.add(
     "variants",
-    [new RescueVariant("grams carbs", 30, 5)],
+    [new RescueVariant("grams carbs", 30, 1, 5)],
     Serialization.getArraySerializer(RescueVariant.serialize),
     Serialization.getArrayDeserializer(RescueVariant.deserialize)
   );

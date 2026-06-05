@@ -10,6 +10,7 @@ export default function RescueVariantsPage() {
   const [variants] = RescueVariantStore.variants.useState();
 
   const [name, setName] = useState("");
+  const [carbs, setCarbs] = useState(0);
   const [effect, setEffect] = useState(0);
   const [duration, setDuration] = useState(0);
 
@@ -41,7 +42,11 @@ export default function RescueVariantsPage() {
       alert("Enter a valid effect");
       return;
     }
-    RescueVariantManager.createVariant(name, duration, effect);
+    if (!carbs) {
+      alert("Enter a valid carbs value");
+      return;
+    }
+    RescueVariantManager.createVariant(name, duration, carbs, effect);
     resetUIStates();
   }
 
@@ -84,6 +89,17 @@ export default function RescueVariantsPage() {
               onInput={(e: BaseSyntheticEvent) => {
                 const value = parseFloat(e.target.value) || 0;
                 setDuration(value);
+              }}
+            />
+
+            <Form.Label className="mt-3">Carbs (g per unit)</Form.Label>
+            <Form.Control
+              type="number"
+              placeholder="0"
+              value={carbs || ""}
+              onInput={(e: BaseSyntheticEvent) => {
+                const value = parseFloat(e.target.value) || 0;
+                setCarbs(value);
               }}
             />
 
@@ -143,6 +159,30 @@ export default function RescueVariantsPage() {
                     }}
                   />
                   <span className="text-muted">min</span>
+                </label>
+
+                <label className="m-0 d-flex align-items-center gap-1 small">
+                  <span className="text-muted">Carbs</span>
+                  <Form.Control
+                    type="number"
+                    inputMode="decimal"
+                    step="any"
+                    value={v.carbs || ""}
+                    aria-label="Carbs"
+                    style={{ maxWidth: "4rem" }}
+                    className="form-control-sm w-auto border-0 border-bottom rounded-0 shadow-none px-1 text-center"
+                    onChange={(e) => {
+                      const val =
+                        e.target.value === ""
+                          ? undefined
+                          : parseFloat(e.target.value);
+                      v.carbs = Number.isFinite(val as number)
+                        ? (val as number)
+                        : 0;
+                      RescueVariantManager.updateVariant(v);
+                    }}
+                  />
+                  <span className="text-muted">g per unit</span>
                 </label>
 
                 <label className="m-0 d-flex align-items-center gap-1 small">

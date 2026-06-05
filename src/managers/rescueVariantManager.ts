@@ -15,11 +15,12 @@ export namespace RescueVariantManager {
   export function createVariant(
     name: string,
     duration: number,
+    carbs: number,
     effect: number
   ) {
     if (hasDuplicate(name))
       throw new Error(`Cannot create insulin '${name}': already exists`);
-    const variant = new RescueVariant(name, duration, effect);
+    const variant = new RescueVariant(name, duration, carbs, effect);
     RescueVariantStore.variants.value = [
       ...RescueVariantStore.variants.value,
       variant,
