@@ -36,7 +36,7 @@ export default function ActivitySelectPage() {
     }
   }
   function backToHub() {
-    navigate("/wizard/hub");
+    navigate("/hub");
   }
 
   return (

@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router";
+import { Navigate, Route, Routes } from "react-router";
 import TopBar from "./components/TopBar";
 import HubPage from "./pages/HubPage";
 import SettingsPage from "./pages/SettingsPage";
@@ -9,7 +9,7 @@ import { useEffect } from "react";
 import CustomFoodsPage from "./pages/CustomFoodsPage";
 import DextrosePage from "./pages/DextrosePage";
 import StatisticsPage from "./pages/StatisticsPage";
-import WizardHubPage from "./pages/wizard/WizardHubPage";
+
 import WizardMealPage from "./pages/wizard/WizardMealPage";
 import WizardSelectionPage from "./pages/wizard/WizardSelectionPage";
 import WizardFinalBGPage from "./pages/wizard/WizardFinalBGPage";
@@ -120,7 +120,7 @@ function App() {
             path="/wizard/selectsession"
             element={<WizardSessionSelectPage />}
           />
-          <Route path="/wizard/hub" element={<WizardHubPage />} />
+          <Route path="/wizard/hub" element={<Navigate to="/hub" replace />} />
           <Route path="/wizard/meal" element={<WizardMealPage />} />
           <Route path="/wizard/insulin" element={<WizardInsulinRouter />} />
           <Route path="/wizard/edit" element={<WizardEditPage />} />

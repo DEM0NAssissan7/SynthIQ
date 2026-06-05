@@ -1,4 +1,4 @@
-import { Alert, Badge, Button, Card } from "react-bootstrap";
+import { Alert, Badge, Button, Card as BsCard } from "react-bootstrap";
 import { Link, useNavigate } from "react-router";
 import { basalIsDue, getLatestBolus } from "../lib/healthMonitor";
 import { getDailyBasalPerShot, getLastShot } from "../lib/basal";
@@ -17,6 +17,7 @@ import {
   PageLayout,
 } from "../components/PageLayout";
 import LastBolusMessage from "../components/LastBolusMessage";
+import SessionHubContent from "../components/SessionHubContent";
 
 function formatDose(value: number) {
   const rounded = round(value, 1);
@@ -60,10 +61,10 @@ function BasalCard({ dueForBasal }: BasalCardProps) {
   }
 
   return (
-    <Card
+    <BsCard
       className={`border-0 shadow-sm mb-3 ${dueForBasal ? "bg-primary-subtle" : ""}`}
     >
-      <Card.Body className="p-3">
+      <BsCard.Body className="p-3">
         <div className="d-flex justify-content-between align-items-start gap-3 mb-3">
           <div>
             <div className="small text-uppercase text-muted fw-semibold mb-1">
@@ -123,25 +124,18 @@ function BasalCard({ dueForBasal }: BasalCardProps) {
             Basal details
           </Button>
         </div>
-      </Card.Body>
-    </Card>
+      </BsCard.Body>
+    </BsCard>
   );
 }
 
-function HubPage() {
-  useNow(60);
-
-  const [session] = WizardStore.session.useState();
-
+function QuickTreatmentsContent() {
   const dueForBasal = basalIsDue();
   const latestBolus = getLatestBolus();
-
   const expiredInsulins = InsulinExpirationManager.getExpired();
 
   return (
-    <PageLayout maxWidth="32rem">
-      <PageHeader eyebrow="Hub" title="Quick treatments" />
-
+    <>
       {dueForBasal && <BasalCard dueForBasal={dueForBasal} />}
       {expiredInsulins.length > 0 && (
         <Alert
@@ -170,11 +164,11 @@ function HubPage() {
 
       <ActionGrid>
         {latestBolus !== null && (
-          <Card className={`h-100 border-0 shadow-sm app-action-card mb-3`}>
-            <Card.Body className="p-3">
+          <BsCard className="h-100 border-0 shadow-sm app-action-card mb-3">
+            <BsCard.Body className="p-3">
               <LastBolusMessage />
-            </Card.Body>
-          </Card>
+            </BsCard.Body>
+          </BsCard>
         )}
         <ActionCard
           icon="bi-droplet-half"
@@ -195,34 +189,57 @@ function HubPage() {
       </ActionGrid>
       <br />
 
-      <Card className="border-0 shadow-sm">
-        <Card.Body className="p-3">
+      <BsCard className="border-0 shadow-sm">
+        <BsCard.Body className="p-3">
           <div className="small text-uppercase text-muted fw-semibold mb-1">
             Session
           </div>
-          <h2 className="h5 mb-1">
-            {session.started ? "Session in progress" : "Meal session"}
-          </h2>
+          <h2 className="h5 mb-1">Meal session</h2>
           <p className="text-muted mb-3">
-            {session.started
-              ? "Resume your current session or review its details."
-              : "Start a new session when you need meal planning and live guidance."}
+            Start a new session when you need meal planning and live guidance.
           </p>
           <div className="d-grid gap-2">
             <Button
               variant="dark"
               className="py-2 fw-semibold"
               as={Link as any}
-              to={session.started ? "/wizard" : "/wizard/select"}
+              to="/wizard/select"
             >
-              {session.started ? "Resume session" : "Start session"}
+              Start session
             </Button>
           </div>
-        </Card.Body>
-      </Card>
+        </BsCard.Body>
+      </BsCard>
       <br />
 
       {!dueForBasal && <BasalCard dueForBasal={dueForBasal} />}
+    </>
+  );
+}
+
+function HubPage() {
+  useNow(60);
+
+  const [session] = WizardStore.session.useState();
+  const sessionActive = session.started;
+
+  return (
+    <PageLayout maxWidth="32rem">
+      {sessionActive ? (
+        <>
+          <PageHeader
+            eyebrow="Wizard"
+            title="Session hub"
+            subtitle="Keep the current session readable while keeping glucose, activity, meal, and insulin actions close at hand."
+          />
+          <SessionHubContent />
+        </>
+      ) : (
+        <>
+          <PageHeader eyebrow="Hub" title="Quick treatments" />
+          <QuickTreatmentsContent />
+        </>
+      )}
     </PageLayout>
   );
 }

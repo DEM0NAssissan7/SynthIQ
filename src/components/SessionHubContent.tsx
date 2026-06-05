@@ -1,30 +1,26 @@
 import { Button, ToggleButton } from "react-bootstrap";
-import Card from "../../components/Card";
 import { useNavigate } from "react-router";
-import WizardManager from "../../managers/wizardManager";
-import TemplateSummary from "../../components/TemplateSummary";
-import { WizardStore } from "../../storage/wizardStore";
-import { WizardPage } from "../../models/types/wizardPage";
+import Card from "./Card";
+import TemplateSummary from "./TemplateSummary";
+import { WizardStore } from "../storage/wizardStore";
+import WizardManager from "../managers/wizardManager";
+import { WizardPage } from "../models/types/wizardPage";
 import {
   ActionCard,
   ActionGrid,
-  PageHeader,
-  PageLayout,
-} from "../../components/PageLayout";
+} from "./PageLayout";
 
-export default function WizardHubPage() {
+export default function SessionHubContent() {
+  const navigate = useNavigate();
   const [session] = WizardStore.session.useState();
   const [template] = WizardStore.template.useState();
 
-  // Garbage
   function setGarbage(value: boolean) {
     if (value === true) {
       if (confirm("Do you want to mark this session as unreliable?"))
         session.isGarbage = value;
     } else session.isGarbage = value;
   }
-
-  const navigate = useNavigate();
 
   function startNew() {
     WizardManager.moveToPage(WizardPage.FinalBG, navigate);
@@ -49,15 +45,11 @@ export default function WizardHubPage() {
   }
 
   return (
-    <PageLayout>
-      <PageHeader
-        eyebrow="Wizard"
-        title="Session hub"
-        subtitle="Keep the current session readable while keeping glucose, activity, meal, and insulin actions close at hand."
-      />
+    <>
       <Card>
         <TemplateSummary session={session} template={template} />
       </Card>
+
       <ActionGrid>
         <ActionCard
           icon="bi-life-preserver"
@@ -66,14 +58,6 @@ export default function WizardHubPage() {
           body="Jump straight to rescue treatment without leaving the session context behind."
           buttonLabel="Open rescue"
           onClick={takeGlucose}
-        />
-        <ActionCard
-          icon="bi-person-walking"
-          eyebrow="Activity"
-          title="Start activity"
-          body="Log an activity alongside the session so the effects stay captured together."
-          buttonLabel="Open activity"
-          onClick={doActivity}
         />
         <ActionCard
           icon="bi-fork-knife"
@@ -102,6 +86,14 @@ export default function WizardHubPage() {
           onClick={takeInsulin}
         />
         <ActionCard
+          icon="bi-person-walking"
+          eyebrow="Activity"
+          title="Start activity"
+          body="Log an activity alongside the session so the effects stay captured together."
+          buttonLabel="Open activity"
+          onClick={doActivity}
+        />
+        <ActionCard
           icon="bi-pencil-square"
           eyebrow="Edit"
           title="Edit session"
@@ -121,7 +113,7 @@ export default function WizardHubPage() {
         />
       </ActionGrid>
 
-      <Card>
+      <Card className="mt-4">
         <div className="small text-uppercase text-muted fw-semibold mb-2">
           Session controls
         </div>
@@ -141,6 +133,6 @@ export default function WizardHubPage() {
           </Button>
         </div>
       </Card>
-    </PageLayout>
+    </>
   );
 }
