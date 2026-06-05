@@ -7,12 +7,24 @@ export namespace Bateman {
   export const completionConstant = 0.93;
   export function f(t: number, ka: number, ke: number) {
     if (t <= 0) return 0;
+    if (!Number.isFinite(ka) || !Number.isFinite(ke) || ka <= 0 || ke <= 0) return 0;
+    if (Math.abs(ka - ke) < 1e-12) {
+      // Equal-rate case: use the CDF G(t) = Γ(2, kt) → k²·t·exp(-kt)
+      const k = ka;
+      return k * k * t * Math.exp(-k * t);
+    }
     const A = (ka * ke) / (ke - ka);
     return A * (Math.exp(-ka * t) - Math.exp(-ke * t));
   }
 
   export function F(t: number, ka: number, ke: number) {
     if (t <= 0) return 0;
+    if (!Number.isFinite(ka) || !Number.isFinite(ke) || ka <= 0 || ke <= 0) return 0;
+    if (Math.abs(ka - ke) < 1e-12) {
+      // Equal-rate case: F(t) = 1 - (1 + kt)·exp(-kt)
+      const k = ka;
+      return 1 - (1 + k * t) * Math.exp(-k * t);
+    }
     const A = (ka * ke) / (ke - ka);
     return A * ((1 - Math.exp(-ka * t)) / ka - (1 - Math.exp(-ke * t)) / ke);
   }

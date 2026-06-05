@@ -172,6 +172,7 @@ export async function populateFastingVelocitiesCache() {
 
 export function getFastingVelocity() {
   const fastingVelocities = BasalStore.fastingVelocitiesCache.value;
+  if (fastingVelocities.length === 0) return 0; // No data — assume flat
   const averageVelocity = MathUtil.mean(fastingVelocities);
 
   // We account for correction glucose that had to be taken while fasting
@@ -226,6 +227,7 @@ export function markBasal(units: number, timestamp: Date) {
 export function getDailyBasal() {
   const doses: Insulin[] = BasalStore.basalDoses.value;
   const shotsPerDay = HealthMonitorStore.basalShotsPerDay.value;
+  if (doses.length < shotsPerDay) return 0; // Not enough data yet
   let sum = 0;
   let days = 0;
   for (let i = 0; i + shotsPerDay <= doses.length; i += shotsPerDay) {
