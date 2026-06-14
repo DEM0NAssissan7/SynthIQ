@@ -19,7 +19,7 @@ export const NumberOptionSelector: React.FC<NumberOptionSelectorProps> = ({
   highlightOriginal = true,
 }) => {
   const baseValue =
-    Math.max(value - rangeFromOrigin * increment, 0) +
+    Math.max(value - rangeFromOrigin * increment, increment) +
     rangeFromOrigin * increment;
 
   const options: number[] = [];
