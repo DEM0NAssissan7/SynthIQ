@@ -47,7 +47,7 @@ export namespace TreatmentManager {
     markGlucose(amount, v, timestamp);
     WizardManager.markGlucose(amount, v);
     ActivityManager.markGlucose(amount, v);
-    RemoteTreatments.markGlucose(amount, timestamp, variant);
+    RemoteTreatments.markGlucose(amount * v.carbs, timestamp, variant);
   }
   export function basal(amount: number, timestamp = new Date()) {
     if (PrivateStore.masterState.value === MasterState.TERMINAL) {

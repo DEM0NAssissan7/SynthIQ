@@ -72,13 +72,13 @@ class RemoteTreatments {
       timestamp,
     );
   }
-  static markGlucose(caps: number, timestamp: Date, variant: string): void {
+  static markGlucose(grams: number, timestamp: Date, variant: string): void {
     if (!PreferencesStore.uploadToBackend.value) return;
 
     Backend.post(
       "treatments",
       {
-        carbs: caps,
+        carbs: grams,
         eventType: glucoseEventType,
         notes: variant,
       },

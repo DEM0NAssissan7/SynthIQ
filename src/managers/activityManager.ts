@@ -71,8 +71,8 @@ export namespace ActivityManager {
   }
 
   // Subevents
-  export function markGlucose(grams: number, variant: RescueVariant) {
-    const glucose = new Glucose(grams, new Date(), variant);
+  export function markGlucose(amount: number, variant: RescueVariant) {
+    const glucose = new Glucose(amount, new Date(), variant);
     const activity = ActivityStore.activity.value;
 
     if (activity.started) {
