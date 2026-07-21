@@ -1,9 +1,5 @@
 import { useState, useMemo, useEffect, useReducer } from "react";
-import {
-  Button,
-  Form,
-  InputGroup,
-} from "react-bootstrap";
+import { Button, Form, InputGroup } from "react-bootstrap";
 import { useNavigate } from "react-router";
 import BloodSugarInput from "../components/BloodSugarInput";
 import {
@@ -13,7 +9,11 @@ import {
 import { roundByHalf } from "../lib/util";
 import Card from "../components/Card";
 import HealthMonitorMessage from "../components/HealthMonitorMessage";
-import { populateReadingCache, getBGVelocity, getLastRescueMinutes } from "../lib/healthMonitor";
+import {
+  populateReadingCache,
+  getBGVelocity,
+  getLastRescueMinutes,
+} from "../lib/healthMonitor";
 import TemplateSummary from "../components/TemplateSummary";
 import { HealthMonitorStore } from "../storage/healthMonitorStore";
 import { WizardStore } from "../storage/wizardStore";
@@ -74,9 +74,10 @@ export default function RescuePage() {
     });
   }, [currentBG, variant, updated]);
 
-  const displayRange = correction === intelligentCorrection
-    ? `${correction}`
-    : `${Math.min(correction, intelligentCorrection)} – ${Math.max(correction, intelligentCorrection)}`;
+  const displayRange =
+    correction === intelligentCorrection
+      ? `${correction}`
+      : `${Math.min(correction, intelligentCorrection)} - ${Math.max(correction, intelligentCorrection)}`;
 
   const dropVelocity = getBGVelocity();
   const dropRate = `${Math.round(Math.abs(dropVelocity) / 60)} pts/min`;
@@ -129,23 +130,21 @@ export default function RescuePage() {
             label="Suggested dose"
             value={`${displayRange} ${variant.unitLetter}`}
           />
-          <MetricPill
-            label="Drop rate"
-            value={dropRate}
-          />
+          <MetricPill label="Drop rate" value={dropRate} />
         </MetricGrid>
         <HealthMonitorMessage />
-        {HealthMonitorStore.lastRescue.value.value > 0 && lastRescueMinutes < 60 && (
-          <div className="rounded-3 border p-3 mt-3 bg-body-tertiary small">
-            <div className="d-flex justify-content-between align-items-center">
-              <span className="text-muted">Last rescue</span>
-              <span className="fw-semibold">
-                {HealthMonitorStore.lastRescue.value.value}{" "}
-                {variant.unitLetter} — {lastRescueMinutes} min ago
-              </span>
+        {HealthMonitorStore.lastRescue.value.value > 0 &&
+          lastRescueMinutes < 60 && (
+            <div className="rounded-3 border p-3 mt-3 bg-body-tertiary small">
+              <div className="d-flex justify-content-between align-items-center">
+                <span className="text-muted">Last rescue</span>
+                <span className="fw-semibold">
+                  {HealthMonitorStore.lastRescue.value.value}{" "}
+                  {variant.unitLetter} — {lastRescueMinutes} min ago
+                </span>
+              </div>
             </div>
-          </div>
-        )}
+          )}
       </Card>
 
       {/* Mark rescue */}
