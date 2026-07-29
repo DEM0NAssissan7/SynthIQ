@@ -59,6 +59,7 @@ function TopBar() {
 
   // Close on outside click
   useEffect(() => {
+    if (typeof document === "undefined") return;
     const handleClickOutside = (event: MouseEvent) => {
       if (
         topBarRef.current &&

@@ -85,7 +85,7 @@ function getNonFastingWindows(
   return nonFasting;
 }
 function getSessionWindows(): DateRange[] {
-  const hours = basalInsulinVariant.duration;
+  const hours = InsulinVariantManager.getBasalVariant().duration;
   let sessions = WizardManager.getAllSessions();
   sessions.sort(
     (a: any, b: any) => b.timestamp.getTime() - a.timestamp.getTime(),
@@ -146,7 +146,7 @@ function getFastingGlucoses(treatments: any[]): Glucose[] {
 }
 
 export async function populateFastingVelocitiesCache() {
-  const hours = basalInsulinVariant.duration;
+  const hours = InsulinVariantManager.getBasalVariant().duration;
   const now = new Date();
   const timestampA = getTimestampFromOffset(now, -hours);
   const timestampB = now;
@@ -202,9 +202,9 @@ export function getFastingLength() {
   return hours;
 }
 
-export const basalInsulinVariant = InsulinVariantManager.getBasalVariant();
 export function markBasal(units: number, timestamp: Date) {
-  const days = basalInsulinVariant.duration / 24;
+  const basalVariant = InsulinVariantManager.getBasalVariant();
+  const days = basalVariant.duration / 24;
   const shotsPerDay = HealthMonitorStore.basalShotsPerDay.value;
 
   // Detect if user has made changes to dosing pattern
@@ -218,7 +218,7 @@ export function markBasal(units: number, timestamp: Date) {
   // Add dose to the list of doses
   const doses: Insulin[] = BasalStore.basalDoses.value;
   const newBasalDoses = [
-    new Insulin(units, timestamp, basalInsulinVariant),
+    new Insulin(units, timestamp, basalVariant),
     ...doses,
   ];
   BasalStore.basalDoses.value = newBasalDoses.slice(0, days * shotsPerDay);
@@ -256,7 +256,7 @@ export function getLastShot(): number {
 export function dosingChangeComplete() {
   const shotsSinceChange = BasalStore.shotsSinceLastChange.value;
   const shotsPerDay = HealthMonitorStore.basalShotsPerDay.value;
-  const minDays = basalInsulinVariant.duration / 24;
+  const minDays = InsulinVariantManager.getBasalVariant().duration / 24;
 
   const minShots = shotsPerDay * minDays;
   return shotsSinceChange >= minShots;

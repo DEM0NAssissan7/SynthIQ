@@ -12,7 +12,7 @@ import { Inbox } from "../../models/messages/inbox";
 import { Mail } from "../../models/messages/mail";
 import { BackendStore } from "../../storage/backendStore";
 import { PrivateStore } from "../../storage/privateStore";
-import { basalInsulinVariant } from "../basal";
+import { InsulinVariantManager } from "../../managers/insulinVariantManager";
 import { RemoteProfile } from "./profile";
 
 export namespace RemoteInbox {
@@ -45,7 +45,7 @@ export namespace RemoteInbox {
     await addMail(mail);
   }
   export async function basal(i: Insulin) {
-    i.variant = basalInsulinVariant;
+    i.variant = InsulinVariantManager.getBasalVariant();
     insulin(i, false);
   }
   export async function actvitiy(a: Activity) {

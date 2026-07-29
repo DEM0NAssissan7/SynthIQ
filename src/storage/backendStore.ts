@@ -10,7 +10,7 @@ export namespace BackendStore {
     "queue",
     [],
     Serialization.getArraySerializer(RequestQueue.serialize),
-    Serialization.getArrayDeserializer(RequestQueue.deserialize)
+    Serialization.getArrayDeserializer(RequestQueue.deserialize),
   );
 
   export const profileID = node.add<number>("profileID", 0);
@@ -28,6 +28,6 @@ export namespace BackendStore {
     "inboxCache",
     new Inbox(),
     Inbox.serialize,
-    Inbox.deserialize
+    Inbox.deserialize,
   );
 }

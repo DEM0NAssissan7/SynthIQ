@@ -1,4 +1,4 @@
-import { basalInsulinVariant } from "../lib/basal";
+import { InsulinVariantManager } from "./insulinVariantManager";
 import { RemoteInbox } from "../lib/remote/inbox";
 import Glucose from "../models/events/glucose";
 import Insulin from "../models/events/insulin";
@@ -36,7 +36,11 @@ export namespace TerminalManager {
     await RemoteInbox.glucose(glucose);
   }
   export async function basal(amount: number, timestamp: Date) {
-    const insulin = new Insulin(amount, timestamp, basalInsulinVariant);
+    const insulin = new Insulin(
+      amount,
+      timestamp,
+      InsulinVariantManager.getBasalVariant(),
+    );
     await RemoteInbox.basal(insulin);
   }
 
@@ -55,7 +59,9 @@ export namespace TerminalManager {
       // Insulin
       const insulin = m.insulin;
       if (insulin) {
-        if (insulin.variant.name === basalInsulinVariant.name) {
+        if (
+          insulin.variant.name === InsulinVariantManager.getBasalVariant().name
+        ) {
           TreatmentManager.basal(insulin.value, insulin.timestamp);
         } else {
           TreatmentManager.insulin(

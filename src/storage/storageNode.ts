@@ -12,6 +12,54 @@ import pako from "pako";
 // Values stored with this prefix are deflated + base64-encoded.
 const COMPRESS_PREFIX = "~z";
 
+const chars =
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+
+function safeBtoa(input: string): string {
+  if (typeof btoa === "function") {
+    return btoa(input);
+  }
+  let str = String(input);
+  let output = "";
+  for (
+    let block = 0, charCode: number | undefined, i = 0, map = chars;
+    str.charAt(i | 0) || ((map = "="), i % 1);
+    output += map.charAt(63 & (block >> (8 - (i % 1) * 8)))
+  ) {
+    charCode = str.charCodeAt((i += 3 / 4));
+    if (charCode > 255) {
+      throw new Error(
+        "'btoa' failed: The string to be encoded contains characters outside of the Latin1 range.",
+      );
+    }
+    block = (block << 8) | charCode;
+  }
+  return output;
+}
+
+function safeAtob(input: string): string {
+  if (typeof atob === "function") {
+    return atob(input);
+  }
+  let str = String(input).replace(/[=]+$/, "");
+  let output = "";
+  if (str.length % 4 === 1) {
+    throw new Error(
+      "'atob' failed: The string to be decoded is not correctly encoded.",
+    );
+  }
+  for (
+    let bc = 0, bs: number | undefined, buffer: any, i = 0;
+    (buffer = str.charAt(i++));
+    ~buffer && ((bs = bc % 4 ? (bs as number) * 64 + buffer : buffer), bc++ % 4)
+      ? (output += String.fromCharCode(255 & ((bs as number) >> ((-2 * bc) & 6))))
+      : 0
+  ) {
+    buffer = chars.indexOf(buffer);
+  }
+  return output;
+}
+
 function isCompressed(stored: string): boolean {
   return stored.startsWith(COMPRESS_PREFIX);
 }
@@ -29,7 +77,7 @@ function compressValue(value: JSONValue): string {
       ...deflated.subarray(i, Math.min(i + chunkSize, deflated.length)),
     );
   }
-  const encoded = btoa(binary);
+  const encoded = safeBtoa(binary);
   // Only store compressed if it actually saved space
   if (encoded.length + COMPRESS_PREFIX.length >= json.length) return json;
   return COMPRESS_PREFIX + encoded;
@@ -38,7 +86,7 @@ function compressValue(value: JSONValue): string {
 function decompressValue(stored: string): JSONValue {
   if (!isCompressed(stored)) return JSON.parse(stored);
   const encoded = stored.slice(COMPRESS_PREFIX.length);
-  const binary = atob(encoded);
+  const binary = safeAtob(encoded);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
   const json = pako.inflate(bytes, { to: "string" });
@@ -83,7 +131,7 @@ function useStorageState<T>(entry: StorageEntry): [T, (v: T) => void] {
     (v: T) => {
       entry.set(v); // this will eventually call our subscriber
     },
-    [entry]
+    [entry],
   );
 
   return [valueRef.current as T, updateValue];
@@ -93,6 +141,10 @@ const defaultDeserializer: Deserializer<any> = (a: JSONValue) => a;
 const defaultSerializer: Serializer<any> = (a: JSONValue) => a;
 
 export let nodes: StorageNode[] = [];
+export let allNodes: StorageNode[] = [];
+export async function initializeNodes() {
+  await Promise.all(allNodes.map((node) => node.read()));
+}
 
 class StorageEntry {
   id: string;
@@ -100,6 +152,7 @@ class StorageEntry {
   private serializer: Serializer<any>;
   private deserializer: Deserializer<any>;
   private defaultValue: any;
+  private isLoaded: boolean = false;
 
   value: any;
   subscriptions: SubscriptionCallback<any>[] = [];
@@ -111,7 +164,7 @@ class StorageEntry {
     nodeName: string,
     defaultValue: any,
     serializer: Serializer<any>,
-    deserializer: Deserializer<any>
+    deserializer: Deserializer<any>,
   ) {
     this.id = id;
     this.nodeName = nodeName;
@@ -123,6 +176,10 @@ class StorageEntry {
 
   // Basic, fast, in-memory frontend
   get() {
+    if (!this.isLoaded)
+      throw new Error(
+        `Cannot get ${this.getStorageKey()}: value has not been loaded`,
+      );
     return this.value;
   }
   set(value: any) {
@@ -135,15 +192,16 @@ class StorageEntry {
   }
 
   // Storage Abstraction (through handlers and try/catch)
-  read() {
+  async read() {
     let val: JSONValue;
     try {
-      val = this.getFromStorage();
+      val = await this.getFromStorage();
     } catch {
       console.warn(
-        `StorageEntry: did not find an entry in storage for ${this.getStorageKey()}. Creating new entry...`
+        `StorageProvider: did not find an entry in storage for ${this.getStorageKey()}. Creating new entry...`,
       );
       this.write();
+      this.isLoaded = true;
       return;
     }
 
@@ -155,21 +213,22 @@ class StorageEntry {
         this._needsCompressionMigration = false;
         this.write();
       }
+      this.isLoaded = true;
     } catch (e) {
       console.error(e);
       throw new Error(
-        `StorageEntry[${this.getStorageKey()}]: Deserializer is invalid: ${e}`
+        `StorageProvider[${this.getStorageKey()}]: Deserializer is invalid: ${e}`,
       );
     }
   }
-  write() {
+  async write() {
     try {
-      this.writeToStorage(this.export());
+      await this.writeToStorage(this.export());
       this.notify();
     } catch (e) {
       console.error(e);
       throw new Error(
-        `StorageEntry[${this.getStorageKey()}]: Serializer is invalid: ${e}`
+        `StorageEntry[${this.getStorageKey()}]: Serializer is invalid: ${e}`,
       );
     }
   }
@@ -183,16 +242,16 @@ class StorageEntry {
   }
 
   // Storage API
-  private writeToStorage(value: JSONValue) {
-    storageBackend.setItem(this.getStorageKey(), compressValue(value));
+  private async writeToStorage(value: JSONValue) {
+    await storageBackend.setItem(this.getStorageKey(), compressValue(value));
   }
-  private getFromStorage(): JSONValue {
+  private async getFromStorage(): Promise<JSONValue> {
     let retval: any;
-    const raw = storageBackend.getItem(this.getStorageKey());
+    const raw = await storageBackend.getItem(this.getStorageKey());
     retval = raw;
     if (retval === null)
       throw new Error(
-        `StorageEntry[${this.getStorageKey()}]: Failed to retrieve key`
+        `StorageEntry[${this.getStorageKey()}]: Failed to retrieve key`,
       );
     this._needsCompressionMigration = !isCompressed(retval);
     return decompressValue(retval);
@@ -226,7 +285,7 @@ class StorageEntry {
   }
   unsubscribe(callback: SubscriptionCallback<any>) {
     this.subscriptions = this.subscriptions.filter(
-      (subscriber) => subscriber !== callback
+      (subscriber) => subscriber !== callback,
     );
   }
   private notify() {
@@ -235,7 +294,7 @@ class StorageEntry {
         callback(this.value);
       } catch (e: any) {
         console.error(
-          `StorageEntry[${this.getStorageKey()}]: Subscription callback failed.`
+          `StorageEntry[${this.getStorageKey()}]: Subscription callback failed.`,
         );
         throw new Error(e);
       }
@@ -248,6 +307,7 @@ class StorageNode {
   private entries: StorageEntry[] = [];
   constructor(name: string, skipRegister: boolean = false) {
     this.name = name;
+    allNodes.push(this);
     if (!skipRegister) nodes.push(this);
   }
 
@@ -256,7 +316,7 @@ class StorageNode {
     id: string,
     defaultValue: T,
     serializer: Serializer<T> = defaultSerializer,
-    deserializer: Deserializer<T> = defaultDeserializer
+    deserializer: Deserializer<T> = defaultDeserializer,
   ): KeyInterface<T> {
     try {
       return this.getEntryById(id).getKeyInterface<T>(); // Try to see if it already exists
@@ -266,12 +326,16 @@ class StorageNode {
         this.name,
         defaultValue,
         serializer,
-        deserializer
+        deserializer,
       );
-      entry.read(); // Automatically pull value from storage
       this.entries.push(entry);
       return entry.getKeyInterface<T>();
     }
+  }
+
+  // Async read
+  async read() {
+    await Promise.all(this.entries.map((e) => e.read()));
   }
 
   // Resetting
@@ -315,7 +379,7 @@ class StorageNode {
       if (entry.id === id) return entry;
     }
     throw new Error(
-      `StorageNode[${this.name}]: No entry with id '${id}' exists.`
+      `StorageNode[${this.name}]: No entry with id '${id}' exists.`,
     );
   }
 }

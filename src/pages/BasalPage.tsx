@@ -8,7 +8,6 @@ import {
   PageLayout,
 } from "../components/PageLayout";
 import {
-  basalInsulinVariant,
   dosingChangeComplete,
   getBasalSensitivity,
   getDailyBasal,
@@ -27,6 +26,7 @@ import { getLatestBasalTimestamp } from "../lib/healthMonitor";
 import type Insulin from "../models/events/insulin";
 import { useNow } from "../state/useNow";
 import { TreatmentManager } from "../managers/treatmentManager";
+import { InsulinVariantManager } from "../managers/insulinVariantManager";
 
 export default function BasalPage() {
   const now = useNow(60);
@@ -88,7 +88,7 @@ export default function BasalPage() {
         <MetricGrid>
           <MetricPill
             label="Daily total"
-            value={`${unitsPerDay.toFixed(1)}u ${basalInsulinVariant.name}`}
+            value={`${unitsPerDay.toFixed(1)}u ${InsulinVariantManager.getBasalVariant().name}`}
           />
           <MetricPill label="Shots per day" value={shotsPerDay} />
           <MetricPill

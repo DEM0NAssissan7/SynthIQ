@@ -1,51 +1,56 @@
-import {
-  KeyDoesNotExistError,
-  StorageBackendFailedError,
-} from "../models/types/errors";
+import { KeyDoesNotExistError } from "../models/types/errors";
 import type { StorageBackend } from "../models/types/interfaces/storageBackend";
+
+const memoryStorage = new Map<string, string>();
 
 namespace StorageBackends {
   export const webLocal: StorageBackend = {
     name: "localStorage",
-    getItem: (key: string) => {
+    getItem: async (key: string) => {
       if (typeof window !== "undefined" && window.localStorage) {
         const retval = localStorage.getItem(key);
         if (retval === null) throw new KeyDoesNotExistError();
         return retval;
       } else {
-        alert(`LocalStorage retrieval failed! Critical application error`);
-        throw new StorageBackendFailedError();
+        const val = memoryStorage.get(key);
+        if (val === undefined || val === null) throw new KeyDoesNotExistError();
+        return val;
       }
     },
-    setItem: (key: string, value: string) => {
+    setItem: async (key: string, value: string) => {
       if (typeof window !== "undefined" && window.localStorage) {
         localStorage.setItem(key, value);
       } else {
-        alert(`LocalStorage upload failed! Critical application error`);
-        throw new StorageBackendFailedError();
+        memoryStorage.set(key, value);
       }
     },
     get size(): number {
-      let total = 0;
-      for (let key in localStorage) {
-        if (!localStorage.hasOwnProperty(key)) {
-          continue;
+      if (typeof window !== "undefined" && window.localStorage) {
+        let total = 0;
+        for (let key in localStorage) {
+          if (!localStorage.hasOwnProperty(key)) {
+            continue;
+          }
+          total += (localStorage[key].length + key.length) * 2;
         }
-        total += (localStorage[key].length + key.length) * 2;
+        return total;
       }
-      return total;
+      return 0;
     },
     clear: () => {
       if (typeof window !== "undefined" && window.localStorage) {
         localStorage.clear();
       } else {
-        throw new StorageBackendFailedError();
+        memoryStorage.clear();
       }
     },
   };
 
   export function getDefault(): StorageBackend {
+    if (typeof window === "undefined" || !window.localStorage) {
+    }
     return StorageBackends.webLocal;
   }
 }
+
 export default StorageBackends;
