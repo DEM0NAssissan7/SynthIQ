@@ -1,0 +1,31 @@
+{
+  "expo": {
+    "name": "SynthIQ",
+    "slug": "synthiq",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./public/favicon.ico",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#0f172a"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0f172a"
+      },
+      "package": "com.synthiq.app",
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE"
+      ]
+    },
+    "web": {
+      "favicon": "./public/favicon.ico"
+    }
+  }
+}
