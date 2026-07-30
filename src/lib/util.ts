@@ -97,6 +97,11 @@ export class MathUtil {
   static percentError(accepted: number, observed: number) {
     return Math.abs((observed - accepted) / accepted) * 100;
   }
+  static percentDifference(v1: number, v2: number) {
+    const max = Math.max(v1, v2);
+    if (max === 0) return 0;
+    return (Math.abs(v1 - v2) / max) * 100;
+  }
   static absoluteDeviations(x: number, data: number[]): number[] {
     return data.map((x_i) => Math.abs(x_i - x));
   }
