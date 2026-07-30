@@ -25,13 +25,7 @@ function getCSV(templates: MealTemplate[], liverOutput: number): string {
   return out;
 }
 
-function SessionCard({
-  session,
-  liverOutput,
-}: {
-  session: Session;
-  liverOutput: number;
-}) {
+function SessionCard({ session }: { session: Session; liverOutput: number }) {
   const [, setRerenderFlag] = useState(false);
 
   const backgroundClass = session.isInvalid
@@ -44,7 +38,9 @@ function SessionCard({
     <Card className={backgroundClass}>
       <div className="d-flex justify-content-between align-items-start gap-3 mb-3">
         <div>
-          <div className="fw-semibold">{getFullPrettyDate(session.timestamp)}</div>
+          <div className="fw-semibold">
+            {getFullPrettyDate(session.timestamp)}
+          </div>
           <div className="small text-muted">UUID: {session.uuid}</div>
         </div>
         <ToggleButton
@@ -66,39 +62,50 @@ function SessionCard({
 
       <MetricGrid>
         <MetricPill label="Length" value={`${session.length.toFixed(1)} hr`} />
-        <MetricPill label="Score" value={session.score.toFixed(0)} />
+        <MetricPill
+          label="Calories"
+          value={session.calories.toFixed(0) ?? "n/a"}
+        />
         <MetricPill label="Carbs" value={`${session.carbs.toFixed()}g`} />
         <MetricPill label="Protein" value={`${session.protein.toFixed()}g`} />
+        <MetricPill label="Score" value={session.score.toFixed(0)} />
         <MetricPill
           label="Insulin"
           value={`${session.insulin}u${session.correctionInsulin > 0 ? ` [${session.correctionInsulin.toFixed(1)}]` : ""}`}
         />
+        <MetricPill label="Shots" value={`${session.insulins.length}`} />
         <MetricPill label="Glucose" value={`${session.glucose}`} />
         <MetricPill
           label="Blood sugar"
           value={`${session.initialGlucose} -> ${session.finalBG}`}
         />
         <MetricPill
-          label="Delta"
-          value={`${session.deltaGlucose > 0 ? "+" : ""}${session.deltaGlucose}`}
-        />
-        <MetricPill
           label="Meal rise"
           value={`${session.theoreticalMealRise.toFixed(0)} mg/dL`}
-        />
-        <MetricPill
-          label="Sensitivity"
-          value={session.getSensitivityIndex(liverOutput)?.toFixed(1) ?? "n/a"}
         />
       </MetricGrid>
     </Card>
   );
 }
 
+type SessionTemplatePair = [Session, MealTemplate];
+
 export default function HistoryPage() {
   const liverOutput = BasalStore.estimatedLiverOutput.value ?? 0;
   const templates = WizardStore.templates.value;
 
+  const sessionTemplatePairs: SessionTemplatePair[] = templates
+    .flatMap((template: MealTemplate) => {
+      const sessions = [...template.sessions]
+        .reverse()
+        .filter((session) => session.meals.length >= 1);
+
+      // Assert the pair as a fixed tuple
+      return sessions.map(
+        (session: Session): SessionTemplatePair => [session, template],
+      );
+    })
+    .sort((a, b) => b[0].timestamp.getTime() - a[0].timestamp.getTime());
   return (
     <PageLayout maxWidth="42rem">
       <PageHeader
@@ -130,34 +137,23 @@ export default function HistoryPage() {
         <EmptyState>No saved meal templates or sessions yet.</EmptyState>
       )}
 
-      {templates.map((template: MealTemplate, i) => {
-        const sessions = [...template.sessions]
-          .reverse()
-          .filter((session) => session.meals.length >= 1);
+      {sessionTemplatePairs.map((pair: SessionTemplatePair, i) => {
+        const [session, template] = pair;
 
         return (
           <Card key={i}>
             <div className="d-flex justify-content-between align-items-start gap-3 mb-3">
               <div>
                 <h2 className="h5 mb-1">{template.name}</h2>
-                <div className="small text-muted">
-                  {sessions.length} stored session{sessions.length === 1 ? "" : "s"}
-                </div>
               </div>
             </div>
-            {sessions.length === 0 ? (
-              <EmptyState>No completed sessions stored for this template.</EmptyState>
-            ) : (
-              <div className="d-grid gap-3">
-                {sessions.map((session) => (
-                  <SessionCard
-                    key={session.uuid}
-                    session={session}
-                    liverOutput={liverOutput}
-                  />
-                ))}
-              </div>
-            )}
+            <div className="d-grid gap-3">
+              <SessionCard
+                key={session.uuid}
+                session={session}
+                liverOutput={liverOutput}
+              />
+            </div>
           </Card>
         );
       })}
