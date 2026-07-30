@@ -13,6 +13,7 @@ import {
 import LastBolusMessage from "../components/LastBolusMessage";
 import SessionHubContent from "../components/SessionHubContent";
 import BasalCard from "../components/BasalCard";
+import { useMemo, useState } from "react";
 
 function QuickTreatmentsContent() {
   const latestBolus = getLatestBolus();
@@ -99,16 +100,21 @@ function QuickTreatmentsContent() {
 }
 
 function HubPage() {
-  useNow(60);
+  const now = useNow(60);
 
   const [session] = WizardStore.session.useState();
   const sessionActive = session.started;
 
-  const dueForBasal = basalIsDue();
+  const [dueForBasal, setDueForBasal] = useState(basalIsDue());
+  useMemo(() => {
+    setDueForBasal(basalIsDue());
+  }, [now]);
 
   return (
     <PageLayout maxWidth="32rem">
-      {dueForBasal && <BasalCard dueForBasal={dueForBasal} />}
+      {dueForBasal && (
+        <BasalCard dueForBasal={dueForBasal} setDueForBasal={setDueForBasal} />
+      )}
       {sessionActive ? (
         <>
           <PageHeader
@@ -124,7 +130,9 @@ function HubPage() {
           <QuickTreatmentsContent />
         </>
       )}
-      {!dueForBasal && <BasalCard dueForBasal={dueForBasal} />}
+      {!dueForBasal && (
+        <BasalCard dueForBasal={dueForBasal} setDueForBasal={setDueForBasal} />
+      )}
     </PageLayout>
   );
 }

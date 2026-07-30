@@ -14,8 +14,12 @@ function formatDose(value: number) {
 
 interface BasalCardProps {
   dueForBasal: boolean;
+  setDueForBasal: (due: boolean) => void;
 }
-export default function BasalCard({ dueForBasal }: BasalCardProps) {
+export default function BasalCard({
+  dueForBasal,
+  setDueForBasal,
+}: BasalCardProps) {
   const navigate = useNavigate();
 
   const [firstShotHour] = HealthMonitorStore.basalShotTime.useState();
@@ -45,6 +49,7 @@ export default function BasalCard({ dueForBasal }: BasalCardProps) {
       confirm(`Confirm that you have injected ${doseLabel}u of basal insulin`)
     ) {
       TreatmentManager.basal(typicalBasalDose, new Date());
+      setDueForBasal(false);
     }
   }
 
