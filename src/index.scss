@@ -13,15 +13,19 @@ $enable-shadows: true;
   --app-text-muted: #5d6a7b;
 }
 
+html,
+body,
+#root,
+div[data-reactroot] {
+  min-height: 100%;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
 body {
-  min-height: 100vh;
   background:
     radial-gradient(circle at top, #ffffff 0%, var(--app-bg-accent) 30%, var(--app-bg) 100%);
   color: var(--app-text);
-}
-
-#root {
-  min-height: 100vh;
 }
 
 .app-shell {

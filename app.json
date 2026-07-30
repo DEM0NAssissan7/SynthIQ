@@ -4,7 +4,7 @@
     "slug": "synthiq",
     "version": "0.1.0",
     "orientation": "portrait",
-    "icon": "./public/favicon.ico",
+    "icon": "./public/favicon.png",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
@@ -16,6 +16,7 @@
     },
     "android": {
       "adaptiveIcon": {
+        "foregroundImage": "./public/favicon.png",
         "backgroundColor": "#0f172a"
       },
       "package": "com.synthiq.app",
@@ -25,7 +26,12 @@
       ]
     },
     "web": {
-      "favicon": "./public/favicon.ico"
+      "favicon": "./public/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "a2bc8b20-40a7-4564-8fe5-f471d491f8e5"
+      }
     }
   }
 }

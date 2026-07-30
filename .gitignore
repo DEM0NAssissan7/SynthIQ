@@ -12,6 +12,13 @@ dist
 dist-ssr
 *.local
 
+# Expo cache & build artifacts
+.expo/
+android
+
+# Generated CSS source maps (optional)
+*.map
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -23,3 +30,4 @@ dist-ssr
 *.sln
 *.sw?
 .codex
+eas.json
