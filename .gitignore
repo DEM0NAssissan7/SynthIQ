@@ -15,6 +15,7 @@ dist-ssr
 # Expo cache & build artifacts
 .expo/
 android
+src/bundledHtml.ts
 
 # Generated CSS source maps (optional)
 *.map
