@@ -27,6 +27,7 @@ import {
   PageHeader,
   PageLayout,
 } from "../components/PageLayout";
+import { HealthMonitorStore } from "../storage/healthMonitorStore";
 
 export default function InsulinPage() {
   const navigate = useNavigate();
@@ -70,6 +71,7 @@ export default function InsulinPage() {
               currentGlucose,
               getFastingVelocity(),
               getDailyBasal(),
+              HealthMonitorStore.recentBoluses.value,
             );
         }
 

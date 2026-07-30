@@ -51,6 +51,7 @@ export default class Session extends Subscribable {
 
   fastingVelocity: number | null = null; // mg/dL per hour
   dailyBasal: number | null = null; // Units
+  onBoardInsulins: Insulin[] = []; // Whatever was on board before session started
 
   constructor(createSnapshot = true) {
     // This timestamp marks when eating _begins_
@@ -634,6 +635,7 @@ export default class Session extends Subscribable {
       version: session.version,
       fastingVelocity: session.fastingVelocity,
       dailyBasal: session.dailyBasal,
+      onBoardInsulins: session.onBoardInsulins.map((a) => Insulin.serialize(a)),
     };
   };
   static deserialize: Deserializer<Session> = (o) => {
@@ -665,6 +667,10 @@ export default class Session extends Subscribable {
       ? o.activities.map((a: JSONObject) => Activity.deserialize(a))
       : [];
     activities.forEach((a) => session.addActivity(a));
+
+    session.onBoardInsulins = o.onBoardInsulins
+      ? o.onBoardInsulins.map((a: string) => Insulin.deserialize(a))
+      : [];
 
     return session;
   };

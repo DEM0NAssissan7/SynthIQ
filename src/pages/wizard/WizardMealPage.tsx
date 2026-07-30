@@ -18,6 +18,7 @@ import {
   PageHeader,
   PageLayout,
 } from "../../components/PageLayout";
+import { HealthMonitorStore } from "../../storage/healthMonitorStore";
 
 export default function WizardMealPage() {
   const [template] = WizardStore.template.useState();
@@ -45,6 +46,7 @@ export default function WizardMealPage() {
           initialGlucose,
           getFastingVelocity(),
           getDailyBasal(),
+          HealthMonitorStore.recentBoluses.value,
         );
       WizardManager.moveToPage(
         session.insulinMarked ? WizardPage.Hub : WizardPage.Insulin,

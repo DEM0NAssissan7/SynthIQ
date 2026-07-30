@@ -10,6 +10,7 @@ import type Activity from "../models/events/activity";
 import { InsulinVariantManager } from "./insulinVariantManager";
 import type { RescueVariant } from "../models/types/rescueVariant";
 import { PrivateStore } from "../storage/privateStore";
+import type Insulin from "../models/events/insulin";
 
 export default class WizardManager {
   // Page Redirects
@@ -37,12 +38,14 @@ export default class WizardManager {
     BG: number,
     fastingVelocity: number,
     dailyBasal: number,
+    onBoardInsulins: Insulin[],
   ) {
     const session = WizardStore.session.value;
     if (!session.initialGlucose) {
       session.fastingVelocity = fastingVelocity;
       session.initialGlucose = BG;
       session.dailyBasal = dailyBasal;
+      session.onBoardInsulins = onBoardInsulins;
     }
   }
 
