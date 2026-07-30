@@ -52,7 +52,6 @@ export default function InsulinPage() {
   const [variant, setVariant] = useState(InsulinVariantManager.getDefault());
 
   // Inputted Insulin
-  const [insulinTaken, setInsulinTaken] = useState(0);
   const [currentGlucose, setCurrentGlucose] = useState<number | null>(null);
   const markInsulin = (insulin: number) => {
     if (!currentGlucose && isBolus && !isFirstPostMealInjection) {
@@ -97,9 +96,6 @@ export default function InsulinPage() {
       alert("Please enter a valid number");
     }
   };
-  function onMark() {
-    markInsulin(insulinTaken);
-  }
 
   const correctionInsulin = useMemo(() => {
     return currentGlucose ? getCorrectionInsulin(currentGlucose, variant) : 0;
@@ -148,6 +144,15 @@ export default function InsulinPage() {
       session.mealMarked ? WizardPage.Hub : WizardPage.Meal,
       navigate,
     );
+  }
+  const [insulinTaken, setInsulinTaken] = useState(displayedInsulin);
+  const [insulinEntry, setInsulinEntry] = useState("");
+  useMemo(() => {
+    if (insulinEntry.length === 0)
+      setInsulinTaken(roundByHalf(displayedInsulin));
+  }, [displayedInsulin]);
+  function onMark() {
+    markInsulin(insulinTaken);
   }
 
   const correctionIsDisplayed =
@@ -245,10 +250,12 @@ export default function InsulinPage() {
                 : `${roundByHalf(displayedInsulin)}u`
             }
             aria-describedby="basic-addon1"
+            value={insulinEntry}
             onChange={(e: any) => {
               const val = parseFloat(e.target.value);
               if (!isNaN(val)) setInsulinTaken(val);
-              else setInsulinTaken(0);
+              else setInsulinTaken(displayedInsulin);
+              setInsulinEntry(e.target.value);
             }}
           />
           <InputGroup.Text id="basic-addon1">u</InputGroup.Text>

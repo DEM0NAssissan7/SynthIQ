@@ -42,7 +42,6 @@ export default function RescuePage() {
       ? session.initialGlucose
       : PreferencesStore.targetBG.value,
   );
-  const [gramsTaken, setCapsTaken] = useState(0);
   const [variant, setVariant] = useState(RescueVariantManager.getDefault());
 
   const correction = useMemo(() => {
@@ -72,7 +71,8 @@ export default function RescuePage() {
         ),
       );
     });
-  }, [currentBG, variant, updated]);
+    setIntelligentCorrection(correction); // Fallback if there is no CGM data
+  }, [currentBG, variant, updated, correction]);
 
   const displayRange =
     correction === intelligentCorrection
@@ -93,6 +93,11 @@ export default function RescuePage() {
       goBack();
     }
   }
+  const [gramsTaken, setCapsTaken] = useState(intelligentCorrection);
+  const [inputGlucose, setInputGlucose] = useState("");
+  useMemo(() => {
+    if (inputGlucose.length === 0) setCapsTaken(intelligentCorrection);
+  }, [intelligentCorrection]);
   function onMark() {
     markGlucoseTaken(gramsTaken, variant);
   }
@@ -179,10 +184,12 @@ export default function RescuePage() {
             type="number"
             placeholder={intelligentCorrection.toString()}
             aria-describedby="basic-addon1"
+            value={inputGlucose}
             onChange={(e: any) => {
               const val = parseFloat(e.target.value);
               if (!isNaN(val)) setCapsTaken(val);
-              else setCapsTaken(0);
+              else setCapsTaken(intelligentCorrection);
+              setInputGlucose(e.target.value);
             }}
           />
           <InputGroup.Text id="basic-addon1">{variant.name}</InputGroup.Text>
