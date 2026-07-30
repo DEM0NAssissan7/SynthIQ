@@ -30,8 +30,20 @@ if (fs.existsSync(assetsDir)) {
   }
 
   if (jsFile) {
-    const jsBuffer = fs.readFileSync(path.join(assetsDir, jsFile));
-    const jsBase64 = jsBuffer.toString("base64");
+    let jsString = fs.readFileSync(path.join(assetsDir, jsFile), "utf8");
+
+    // Replace image asset paths with inline Data URIs
+    files.forEach((file) => {
+      const ext = path.extname(file).toLowerCase();
+      if ([".png", ".jpg", ".jpeg", ".svg", ".ico"].includes(ext)) {
+        const mime = ext === ".svg" ? "image/svg+xml" : `image/${ext.slice(1)}`;
+        const imgBuffer = fs.readFileSync(path.join(assetsDir, file));
+        const imgDataUri = `data:${mime};base64,${imgBuffer.toString("base64")}`;
+        jsString = jsString.replaceAll(`/assets/${file}`, imgDataUri);
+      }
+    });
+
+    const jsBase64 = Buffer.from(jsString, "utf8").toString("base64");
     html = html.replace(
       /<script type="module"[^>]*><\/script>/,
       `<script type="module" src="data:text/javascript;base64,${jsBase64}"></script>`

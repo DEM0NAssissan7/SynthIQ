@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Navbar, Container, Nav, NavDropdown } from "react-bootstrap";
 import { selfID } from "../lib/remote/backend";
 import { Link, useLocation } from "react-router";
+import logo from "../assets/logo.png";
 
 type MenuItem = { label: string; to: string };
 type MenuSection = { label: string; items: MenuItem[] };
@@ -83,7 +84,7 @@ function TopBar() {
         <Container>
           <Navbar.Brand as={Link} to="/hub">
             <img
-              src="/favicon.png"
+              src={logo}
               alt="Logo"
               width="30"
               height="30"
