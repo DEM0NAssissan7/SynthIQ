@@ -146,7 +146,7 @@ function SetupPage() {
         subtitle="Connect SynthIQ to Nightscout, review authorization status, and continue once the link is healthy enough for your workflow."
       />
 
-      <Alert variant="light" className="border shadow-sm">
+      <Alert variant="secondary" className="border shadow-sm">
         <div className="d-flex justify-content-between align-items-start gap-3">
           <div>
             <div className="small text-uppercase text-muted fw-semibold mb-1">

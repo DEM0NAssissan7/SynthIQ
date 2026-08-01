@@ -40,7 +40,7 @@ export default function DebugPage() {
         ) : (
           <div className="mt-3 d-grid gap-2">
             {queue.map((q) => (
-              <div key={q.uuid} className="rounded-4 border p-3 bg-light-subtle">
+              <div key={q.uuid} className="rounded-4 app-metric-pill p-3">
                 <div className="fw-semibold">{q.api}</div>
                 <div className="small text-muted">Type: {q.type}</div>
                 <div className="small text-muted">

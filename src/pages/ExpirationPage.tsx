@@ -115,7 +115,7 @@ export default function ExpirationPage() {
                     </label>
                   ) : (
                     <label className="m-0 d-flex align-items-center gap-1 small">
-                      <span className="badge bg-warning text-dark fw-semibold">
+                      <span className="badge text-bg-warning fw-semibold">
                         Expired
                       </span>
                       <span className="text-muted">

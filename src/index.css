@@ -11894,7 +11894,8 @@ textarea.form-control-lg {
     display: none !important;
   }
 }
-:root {
+:root,
+[data-bs-theme=light] {
   --app-bg: #f4f7fb;
   --app-bg-accent: #e9f0ff;
   --app-surface: rgba(255, 255, 255, 0.94);
@@ -11902,6 +11903,18 @@ textarea.form-control-lg {
   --app-border: rgba(18, 28, 45, 0.08);
   --app-text: #172033;
   --app-text-muted: #5d6a7b;
+  color-scheme: light;
+}
+
+[data-bs-theme=dark] {
+  --app-bg: #0f172a;
+  --app-bg-accent: #1e293b;
+  --app-surface: rgba(30, 41, 59, 0.94);
+  --app-surface-muted: #0f172a;
+  --app-border: rgba(255, 255, 255, 0.12);
+  --app-text: #f8fafc;
+  --app-text-muted: #94a3b8;
+  color-scheme: dark;
 }
 
 html,
@@ -11914,8 +11927,45 @@ div[data-reactroot] {
 }
 
 body {
-  background: radial-gradient(circle at top, #ffffff 0%, var(--app-bg-accent) 30%, var(--app-bg) 100%);
+  background: radial-gradient(circle at top, var(--app-bg-accent) 0%, var(--app-bg) 100%);
   color: var(--app-text);
+  min-height: 100vh;
+}
+
+[data-bs-theme=dark] .btn-light {
+  background-color: var(--app-surface-muted);
+  border-color: var(--app-border);
+  color: var(--app-text);
+}
+[data-bs-theme=dark] .btn-light:hover, [data-bs-theme=dark] .btn-light:focus, [data-bs-theme=dark] .btn-light:active {
+  background-color: var(--app-bg-accent);
+  border-color: var(--app-border);
+  color: var(--app-text);
+}
+[data-bs-theme=dark] .bg-light,
+[data-bs-theme=dark] .bg-light-subtle {
+  background-color: var(--app-surface-muted) !important;
+  color: var(--app-text) !important;
+}
+[data-bs-theme=dark] .bg-primary-subtle {
+  background-color: rgba(13, 110, 253, 0.15) !important;
+  color: #6ea8fe !important;
+}
+[data-bs-theme=dark] .bg-secondary-subtle {
+  background-color: rgba(108, 117, 125, 0.2) !important;
+  color: #a7acb1 !important;
+}
+[data-bs-theme=dark] .table {
+  --bs-table-bg: transparent;
+  --bs-table-color: var(--app-text);
+  --bs-table-border-color: var(--app-border);
+}
+[data-bs-theme=dark] .dropdown-menu {
+  --bs-dropdown-bg: var(--app-surface);
+  --bs-dropdown-border-color: var(--app-border);
+  --bs-dropdown-link-color: var(--app-text);
+  --bs-dropdown-link-hover-bg: var(--app-surface-muted);
+  --bs-dropdown-link-hover-color: var(--app-text);
 }
 
 .app-shell {

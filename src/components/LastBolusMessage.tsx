@@ -67,7 +67,7 @@ export default function LastBolusMessage({
           return (
             <div
               key={`${insulin.timestamp.getTime()}-${insulin.variant.name}-${index}`}
-              className="rounded-4 border p-3 bg-light-subtle"
+              className="rounded-4 app-metric-pill p-3"
             >
               <div className="d-flex justify-content-between align-items-start gap-3">
                 <div>

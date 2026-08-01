@@ -42,6 +42,7 @@ import { PrivateStore } from "./storage/privateStore";
 import { initializeNodes, nodes } from "./storage/storageNode";
 import ExpirationPage from "./pages/ExpirationPage";
 import DebugPage from "./pages/DebugPage";
+import { initThemeListener } from "./lib/themeManager";
 import WizardSessionSelectPage from "./pages/wizard/WizardSessionSelectPage";
 
 function App() {
@@ -52,6 +53,7 @@ function App() {
       try {
         // Wait for all nodes to fetch their data asynchronously
         await initializeNodes();
+        initThemeListener();
       } catch (err) {
         console.error("Failed to initialize storage nodes:", err);
       } finally {

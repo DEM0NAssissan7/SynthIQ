@@ -105,7 +105,7 @@ export default function BasalPage() {
         </div>
         <div className="d-flex flex-wrap gap-2">
           {getTimes().map((time) => (
-            <span key={time} className="badge text-bg-light border px-3 py-2">
+            <span key={time} className="badge text-bg-secondary border px-3 py-2">
               {time}
             </span>
           ))}

@@ -55,7 +55,7 @@ export default function BasalCard({
 
   return (
     <BsCard
-      className={`border-0 shadow-sm mb-3 ${dueForBasal ? "bg-primary-subtle" : ""}`}
+      className="app-card border-0 shadow-sm mb-3"
     >
       <BsCard.Body className="p-3">
         <div className="d-flex justify-content-between align-items-start gap-3 mb-3">
@@ -74,7 +74,7 @@ export default function BasalCard({
           </Badge>
         </div>
 
-        <div className="rounded-4 bg-white p-3 mb-3">
+        <div className="rounded-4 app-metric-pill p-3 mb-3">
           <div className="d-flex justify-content-between gap-3 small">
             <div>
               <div className="text-muted">Typical dose</div>
@@ -109,8 +109,8 @@ export default function BasalCard({
               : "Open basal page"}
           </Button>
           <Button
-            variant="light"
-            className="py-2 fw-semibold border"
+            variant="outline-secondary"
+            className="py-2 fw-semibold"
             as={Link as any}
             to="/basal"
           >

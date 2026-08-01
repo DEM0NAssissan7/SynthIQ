@@ -190,6 +190,13 @@ export default function SettingsPage() {
     PrivateStore.masterState.value = value;
     setSelectedIndex(value.valueOf());
   }
+  const themeOptions: ["auto" | "light" | "dark", string, string][] = [
+    ["auto", "System (Auto)", "bi bi-display"],
+    ["light", "Light", "bi bi-sun"],
+    ["dark", "Dark", "bi bi-moon-stars"],
+  ];
+  const [currentTheme, setCurrentTheme] = PreferencesStore.themeMode.useState();
+
   return (
     <PageLayout maxWidth="42rem">
       <PageHeader
@@ -197,6 +204,27 @@ export default function SettingsPage() {
         title="Configuration"
         subtitle="Keep system behavior, sync mode, basal settings, and data management in cleaner grouped sections."
       />
+      <SettingsSection
+        title="Appearance & Theme"
+        subtitle="Choose whether SynthIQ automatically synchronizes with your operating system theme or uses a fixed mode."
+      >
+        <ButtonGroup className="flex-wrap">
+          {themeOptions.map(([val, label, icon]) => (
+            <ToggleButton
+              key={val}
+              id={`theme-radio-${val}`}
+              type="radio"
+              variant={currentTheme === val ? "primary" : "outline-secondary"}
+              value={val}
+              checked={currentTheme === val}
+              onChange={() => setCurrentTheme(val)}
+            >
+              <i className={`${icon} me-1`}></i>
+              {label}
+            </ToggleButton>
+          ))}
+        </ButtonGroup>
+      </SettingsSection>
       <SettingsSection
         title="Data backup"
         subtitle="Export or import a full local backup."
