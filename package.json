@@ -19,7 +19,7 @@
     "expo:start": "npm run build && expo start",
     "expo:android": "npm run build && expo run:android",
     "expo:web": "npm run css && vite --host",
-    "build-android": "npx expo prebuild --platform android && android/gradlew assembleRelease",
+    "build-android": "npm run build && npx expo prebuild --platform android && android/gradlew -p android assembleRelease",
     "android-eas-build": "npm run build && eas build --platform android --profile preview",
     "eas-build-post-install": "npm run build"
   },
