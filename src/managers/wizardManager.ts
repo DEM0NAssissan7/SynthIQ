@@ -61,6 +61,7 @@ export default class WizardManager {
 
     // TODO: Use date selector
     RemoteTreatments.markMeal(meal.carbs, meal.protein, timestamp);
+    WizardStore.session.write();
   }
 
   // Insulin
@@ -72,6 +73,7 @@ export default class WizardManager {
       InsulinVariantManager.getVariant(variantName) ??
       InsulinVariantManager.getDefault();
     session.createInsulin(units, timestamp, variant, BG);
+    WizardStore.session.write();
   }
   static markInsulin(units: number, BG: number, variantName: string) {
     this.insulin(units, BG, variantName);
@@ -82,6 +84,7 @@ export default class WizardManager {
     const session: Session = WizardStore.session.value;
     if (session.started) {
       session.createGlucose(amount, new Date(), variant);
+      WizardStore.session.write();
     }
   }
 
@@ -94,6 +97,7 @@ export default class WizardManager {
     );
     const session = WizardStore.session.value;
     session.addActivity(activity);
+    WizardStore.session.write();
   }
 
   // Template selection

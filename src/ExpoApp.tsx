@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   Platform,
   StyleSheet,
@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { BrowserRouter } from "react-router";
 import App from "./App";
 import { BUNDLED_HTML } from "./bundledHtml";
@@ -21,8 +22,11 @@ import "./index.css";
 LogBox.ignoreLogs(["Require cycle:"]);
 
 const DEFAULT_DEV_URL = "http://10.0.2.2:5173";
+const WebViewComponent = WebView as any;
 
 export default function ExpoApp() {
+  const webViewRef = useRef<any>(null);
+
   // Direct Web browser platform rendering
   if (Platform.OS === "web") {
     return (
@@ -50,6 +54,56 @@ export default function ExpoApp() {
   const handleSwitchToBundled = () => {
     setHasError(false);
     setUseLiveServer(false);
+  };
+
+  const handleWebViewMessage = async (event: any) => {
+    try {
+      const data = JSON.parse(event.nativeEvent.data);
+      if (!data || !data.type || !data.id) return;
+
+      if (data.type === "ASYNC_STORAGE_GET") {
+        const val = await AsyncStorage.getItem(data.key);
+        const payload = JSON.stringify({
+          id: data.id,
+          type: "ASYNC_STORAGE_RESPONSE",
+          value: val,
+        });
+        webViewRef.current?.injectJavaScript(`
+          (function() {
+            window.postMessage(${JSON.stringify(payload)}, "*");
+          })();
+          true;
+        `);
+      } else if (data.type === "ASYNC_STORAGE_SET") {
+        await AsyncStorage.setItem(data.key, data.value);
+        const payload = JSON.stringify({
+          id: data.id,
+          type: "ASYNC_STORAGE_RESPONSE",
+          success: true,
+        });
+        webViewRef.current?.injectJavaScript(`
+          (function() {
+            window.postMessage(${JSON.stringify(payload)}, "*");
+          })();
+          true;
+        `);
+      } else if (data.type === "ASYNC_STORAGE_CLEAR") {
+        await AsyncStorage.clear();
+        const payload = JSON.stringify({
+          id: data.id,
+          type: "ASYNC_STORAGE_RESPONSE",
+          success: true,
+        });
+        webViewRef.current?.injectJavaScript(`
+          (function() {
+            window.postMessage(${JSON.stringify(payload)}, "*");
+          })();
+          true;
+        `);
+      }
+    } catch (err) {
+      console.error("Error handling WebView storage message:", err);
+    }
   };
 
   const webViewSource = useLiveServer
@@ -81,7 +135,8 @@ export default function ExpoApp() {
 
         <View style={styles.webviewContainer}>
           {!hasError ? (
-            <WebView
+            <WebViewComponent
+              ref={webViewRef}
               key={useLiveServer ? currentUrl : "bundled-html"}
               source={webViewSource}
               style={styles.webview}
@@ -93,6 +148,7 @@ export default function ExpoApp() {
               allowFileAccessFromFileURLs={true}
               mixedContentMode="always"
               originWhitelist={["*"]}
+              onMessage={handleWebViewMessage}
               onError={() => setHasError(true)}
               renderLoading={() => (
                 <View style={styles.centerContainer}>
