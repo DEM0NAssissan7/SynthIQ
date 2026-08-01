@@ -1,4 +1,4 @@
-import { getFormattedTime, getMinuteDiff, getPrettyTime } from "../lib/timing";
+import { getFormattedTime, getMinuteDiff } from "../lib/timing";
 import { round } from "../lib/util";
 import { HealthMonitorStore } from "../storage/healthMonitorStore";
 import { useNow } from "../state/useNow";
@@ -32,6 +32,10 @@ export default function LastBolusMessage({
     (sum, insulin) => sum + insulin.iob(now),
     0,
   );
+  const totalAbsorptionRate = activeBoluses.reduce(
+    (sum, insulin) => sum + insulin.absorptionRate(now),
+    0,
+  );
 
   return (
     <div>
@@ -46,11 +50,15 @@ export default function LastBolusMessage({
       </div>
 
       <MetricGrid>
+        <MetricPill label="On board" value={`${formatDose(totalIOB)}u`} />
         <MetricPill
-          label="Last Taken At"
-          value={getPrettyTime(latestBolus.timestamp)}
+          label="Activity rate:"
+          value={`${formatDose(totalAbsorptionRate)} u/hr`}
         />
-        <MetricPill label="Total on board" value={`${formatDose(totalIOB)}u`} />
+        <MetricPill
+          label="Last Taken"
+          value={getFormattedTime(getMinuteDiff(now, latestBolus.timestamp))}
+        />
       </MetricGrid>
 
       <div className="d-grid gap-2 mt-3">

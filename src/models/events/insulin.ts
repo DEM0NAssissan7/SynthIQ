@@ -39,6 +39,9 @@ export default class Insulin extends MetaEvent implements ScalarMetaEvent {
   iob(time: Date) {
     return this.value * this.variant.fractionActive(this.getHours(time));
   }
+  absorptionRate(time: Date) {
+    return this.bateman(time);
+  }
 
   // Insulin Activity
   getActivityStatus(time: Date): boolean {
