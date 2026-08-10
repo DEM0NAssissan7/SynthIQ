@@ -1,5 +1,6 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
+  BackHandler,
   Platform,
   StyleSheet,
   View,
@@ -26,6 +27,25 @@ const WebViewComponent = WebView as any;
 
 export default function ExpoApp() {
   const webViewRef = useRef<any>(null);
+  const canGoBackRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    if (Platform.OS === "web") return;
+
+    const onBackPress = () => {
+      if (canGoBackRef.current && webViewRef.current) {
+        webViewRef.current.goBack();
+        return true;
+      }
+      return false;
+    };
+
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      onBackPress
+    );
+    return () => subscription.remove();
+  }, []);
 
   // Direct Web browser platform rendering
   if (Platform.OS === "web") {
@@ -149,6 +169,9 @@ export default function ExpoApp() {
               mixedContentMode="always"
               originWhitelist={["*"]}
               onMessage={handleWebViewMessage}
+              onNavigationStateChange={(navState: any) => {
+                canGoBackRef.current = navState.canGoBack;
+              }}
               onError={() => setHasError(true)}
               renderLoading={() => (
                 <View style={styles.centerContainer}>
