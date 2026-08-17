@@ -30,6 +30,8 @@
     "bootstrap": "^5.3.6",
     "bootstrap-icons": "^1.13.1",
     "expo": "^57.0.9",
+    "expo-file-system": "^57.0.4",
+    "expo-sharing": "^57.0.13",
     "fmin": "https://github.com/DEM0NAssissan7/fmin/tarball/master",
     "pako": "^2.1.0",
     "react": "^19.1.0",

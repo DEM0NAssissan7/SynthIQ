@@ -14,6 +14,9 @@ import {
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Paths } from "expo-file-system";
+import * as FileSystemLegacy from "expo-file-system/legacy";
+import * as Sharing from "expo-sharing";
 import { BrowserRouter } from "react-router";
 import App from "./App";
 import { BUNDLED_HTML } from "./bundledHtml";
@@ -120,6 +123,54 @@ export default function ExpoApp() {
           })();
           true;
         `);
+      } else if (data.type === "DOWNLOAD_START") {
+        webViewRef.current = {
+          ...webViewRef.current,
+          _downloadState: {
+            filename: data.filename,
+            totalChunks: data.totalChunks,
+            chunks: new Array(data.totalChunks),
+          },
+        };
+      } else if (data.type === "DOWNLOAD_CHUNK" && webViewRef.current?._downloadState) {
+        webViewRef.current._downloadState.chunks[data.index] = data.data;
+      } else if (data.type === "DOWNLOAD_END" && webViewRef.current?._downloadState) {
+        const state = webViewRef.current._downloadState;
+        delete webViewRef.current._downloadState;
+        try {
+          const fullData = state.chunks.join("");
+          const fileUri = `${Paths.cache.uri}${state.filename}`;
+          await FileSystemLegacy.writeAsStringAsync(fileUri, fullData);
+          await Sharing.shareAsync(fileUri, {
+            mimeType: "application/json",
+            dialogTitle: "Save SynthIQ Data",
+          });
+          const payload = JSON.stringify({
+            id: data.id || "unknown",
+            type: "DOWNLOAD_RESPONSE",
+            success: true,
+          });
+          webViewRef.current?.injectJavaScript(`
+            (function() {
+              window.postMessage(${JSON.stringify(payload)}, "*");
+            })();
+            true;
+          `);
+        } catch (err) {
+          console.error("Error handling download:", err);
+          const payload = JSON.stringify({
+            id: data.id || "unknown",
+            type: "DOWNLOAD_RESPONSE",
+            success: false,
+            error: String(err),
+          });
+          webViewRef.current?.injectJavaScript(`
+            (function() {
+              window.postMessage(${JSON.stringify(payload)}, "*");
+            })();
+            true;
+          `);
+        }
       }
     } catch (err) {
       console.error("Error handling WebView storage message:", err);
