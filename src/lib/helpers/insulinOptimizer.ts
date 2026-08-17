@@ -5,7 +5,6 @@ import { RescueVariant } from "../../models/types/rescueVariant";
 import { useVariantGetters } from "./useVariantGetters";
 import { PreferencesStore } from "../../storage/preferencesStore";
 import Glucose from "../../models/events/glucose";
-import Snapshot from "../../models/snapshot";
 import { morphInsulins } from "./createWindow";
 import { convertDimensions } from "../util";
 import Unit from "../../models/unit";
@@ -15,26 +14,6 @@ export namespace InsulinOptimizer {
   // Helpers
   function insulinsDeepCopy(insulins: Insulin[]) {
     return insulins.map((i) => Insulin.deserialize(Insulin.serialize(i)));
-  }
-  function glucosesDeepCopy(glucoses: Glucose[]) {
-    return glucoses.map((g) => Glucose.deserialize(Glucose.serialize(g)));
-  }
-  function snapshotDeepCopy(snapshot: Snapshot): Snapshot {
-    return Snapshot.deserialize(Snapshot.serialize(snapshot));
-  }
-  function windowsDeepCopy(windows: TreatmentWindow[]): TreatmentWindow[] {
-    return windows.map((window) => {
-      return {
-        snapshot: snapshotDeepCopy(window.snapshot),
-        initialBG: window.initialBG,
-        startTime: window.startTime,
-        insulins: insulinsDeepCopy(window.insulins),
-        glucoses: glucosesDeepCopy(window.glucoses),
-        finalBG: window.finalBG,
-        endTime: window.endTime,
-        length: window.length,
-      };
-    });
   }
 
   function remorph(windows: TreatmentWindow[], insulins: Insulin[]) {
