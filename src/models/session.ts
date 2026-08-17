@@ -1,8 +1,4 @@
-import {
-  getHourDiff,
-  getTimestampFromOffset,
-  timestampIsBetween,
-} from "../lib/timing";
+import { getHourDiff, getTimestampFromOffset } from "../lib/timing";
 import { convertDimensions, genUUID, MathUtil, type UUID } from "../lib/util";
 import Glucose from "./events/glucose";
 import Insulin from "./events/insulin";
@@ -21,16 +17,9 @@ import { getBasalSensitivity } from "../lib/basal";
 import { InsulinVariantStore } from "../storage/insulinVariantStore";
 import { RescueVariantStore } from "../storage/rescueVariantStore";
 import { useVariantGetters } from "../lib/helpers/useVariantGetters";
-
-type TreatmentWindow = {
-  snapshot: Snapshot;
-  initialBG: number;
-  insulins: Insulin[];
-  glucoses: Glucose[];
-  glucoseEffect: number;
-  finalBG: number;
-  length: number;
-};
+import type { TreatmentWindow } from "./types/treatmentWindow";
+import { InsulinOptimizer } from "../lib/helpers/insulinOptimizer";
+import { createWindows } from "../lib/helpers/createWindow";
 
 export default class Session extends Subscribable {
   uuid: UUID;
@@ -234,115 +223,19 @@ export default class Session extends Subscribable {
     );
   }
   get windows(): TreatmentWindow[] {
-    /**
-     * The rationale here is we basically create little windows of time
-     * Each bolus shot creates a new window
-     * A window contains the following info:
-     *
-     * InitialBG
-     * Insulin amount taken
-     * Glucose amount taken
-     * FinalBG
-     *
-     * The algorithm is pretty simple. We adjust for the change in BG (accounting for glucose rise).
-     * And it implicitly subtracts whatever correction insulin was taken because it attempts
-     * to correct for it.
-     *
-     * For the first insulin, we subtract the insulin taken to correct for the current BG
-     * because this function only wants to return the optimal MEAL insulin, not cumUlative.
-     */
-
-    const snapshots: Snapshot[] = this.snapshots;
-    const glucoses = this.glucoses;
-
     if (!this.initialGlucose) return [];
-    if (this.insulins.length === 0) return [];
-
-    // Treatment windows creation
-    let windows: TreatmentWindow[] = [];
-    for (let i = 0; i < snapshots.length; i++) {
-      const snapshot = snapshots[i];
-      const timeA = snapshot.startTime;
-      const timeB = snapshot.endTime;
-
-      const insulins = this.insulins.map((i) =>
-        Insulin.deserialize(Insulin.serialize(i)),
-      );
-      if (!snapshot.finalBG || !snapshot.initialBG)
-        throw new Error(`Cannot get windows: no final or inital BG`);
-      // Find optimal variant
-      insulins.forEach((i) => (i.value = i.batemanIntegral(timeA, timeB)));
-      const window: TreatmentWindow = {
-        snapshot: snapshot,
-        initialBG: snapshot.initialBG.sugar,
-        insulins: insulins,
-        finalBG: snapshot.finalBG.sugar,
-        length: snapshot.length,
-        glucoses: [],
-        glucoseEffect: 0,
-      };
-      // We account for glucose taken within the time frame and subtract it from the final sugar to see what it would be without any adjustment
-      for (let glucose of glucoses) {
-        if (
-          timestampIsBetween(
-            glucose.timestamp,
-            snapshot.initialBG.timestamp,
-            snapshot.finalBG.timestamp,
-          )
-        ) {
-          // If the glucose was taken during this window
-          window.glucoses.push(Glucose.deserialize(Glucose.serialize(glucose)));
-          window.glucoseEffect += glucose.value * glucose.variant.effect;
-        }
-      }
-
-      windows.push(window);
-    }
-    return windows;
+    return createWindows(this.insulins, this.snapshots, this.glucoses);
   }
   getOptimalMealInsulins(
     insulinVariants: InsulinVariant[],
     rescueVariants: RescueVariant[],
   ): Insulin[] {
-    const { getInsulinVariant, getRescueVariant } = useVariantGetters(
+    return InsulinOptimizer.getOptimalInsulins(
+      this.insulins,
+      this.windows,
       insulinVariants,
       rescueVariants,
     );
-
-    const windows = this.windows;
-    if (windows.length === 0) return [];
-
-    let doseAdjustments = this.insulins.map(() => 0);
-    for (let window of windows) {
-      const insulins = window.insulins;
-      const totalInsulinEffect = insulins.reduce(
-        (n, i) => i.value * getInsulinVariant(i.variant).effect + n,
-        0,
-      );
-      if (!totalInsulinEffect) continue;
-
-      const glucoseEffect = window.glucoses.reduce(
-        (n, g) => g.value * getRescueVariant(g.variant).effect + n,
-        0,
-      );
-
-      const theoreticalFinalBG = window.finalBG - glucoseEffect;
-      const deltaBG = theoreticalFinalBG - window.initialBG;
-      const messyCumulativeDeltaBG = deltaBG / totalInsulinEffect;
-      // Index alignment between window.insulins and this.insulin is guaranteed
-      window.insulins.forEach((partialInsulin, i) => {
-        const correctionFragment =
-          partialInsulin.value * messyCumulativeDeltaBG;
-        doseAdjustments[i] += correctionFragment;
-      }); // Add correction fragment to overall dose adjustment
-    }
-
-    // We take the original dose plus correction adjustment
-    return this.insulins.map((original, i) => {
-      const result = Insulin.deserialize(Insulin.serialize(original));
-      result.value += doseAdjustments[i];
-      return result;
-    });
   }
   get optimalMealInsulins(): Insulin[] {
     return this.getOptimalMealInsulins(

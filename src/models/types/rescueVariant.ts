@@ -3,7 +3,7 @@ import type { Deserializer, Serializer } from "./types";
 export class RescueVariant {
   constructor(
     public name: string,
-    public duration: number,
+    public duration: number, // Minutes that it is active
     public carbs: number, // Carbs per unit of rescue
     public effect: number,
   ) {}

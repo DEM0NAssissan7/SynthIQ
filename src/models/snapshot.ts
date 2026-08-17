@@ -6,6 +6,7 @@
  */
 
 import RemoteReadings from "../lib/remote/readings";
+import { timestampIsBetween } from "../lib/timing";
 import { convertDimensions, MathUtil } from "../lib/util";
 import { PreferencesStore } from "../storage/preferencesStore";
 import { PrivateStore } from "../storage/privateStore";
@@ -36,6 +37,31 @@ export default class Snapshot extends Subscribable {
   absorb(snapshot: Snapshot) {
     snapshot.rawReadings.forEach((r) => this.addReading(r, false));
     this.notify();
+  }
+  contains(timestamp: Date) {
+    return timestampIsBetween(timestamp, this.startTime, this.endTime);
+  }
+  view(timestampA: Date, timestampB: Date): Snapshot {
+    const snapshot = new Snapshot();
+    const timeA = timestampA.getTime();
+    const timeB = timestampB.getTime();
+    for (let reading of this.timeSorted) {
+      const readingTime = reading.timestamp.getTime();
+      if (readingTime < timeA) continue;
+      if (readingTime >= timeB) break;
+      snapshot.addReading(reading, false);
+    }
+    return snapshot;
+  }
+  getReading(timestamp: Date) {
+    // Shows what the user had seen at `timestamp` from their CGM/meter
+    const time = timestamp.getTime();
+    let retval: SugarReading = this.timeSorted[0];
+    for (let reading of this.timeSorted) {
+      if (reading.timestamp.getTime() > time) break;
+      retval = reading;
+    }
+    return retval;
   }
   get readings(): SugarReading[] {
     // This is for when we implement smoothing
