@@ -52,7 +52,9 @@ function safeAtob(input: string): string {
     let bc = 0, bs: number | undefined, buffer: any, i = 0;
     (buffer = str.charAt(i++));
     ~buffer && ((bs = bc % 4 ? (bs as number) * 64 + buffer : buffer), bc++ % 4)
-      ? (output += String.fromCharCode(255 & ((bs as number) >> ((-2 * bc) & 6))))
+      ? (output += String.fromCharCode(
+          255 & ((bs as number) >> ((-2 * bc) & 6)),
+        ))
       : 0
   ) {
     buffer = chars.indexOf(buffer);
@@ -234,10 +236,15 @@ class StorageEntry {
   }
 
   // Serializer Abstraction
-  export() {
-    return this.serializer(this.value);
+  export(compress = false) {
+    const serialized = this.serializer(this.value);
+    if (!compress) return serialized;
+    return compressValue(serialized);
   }
-  import(object: JSONValue) {
+  import(object: JSONValue | string) {
+    if (typeof object === "string")
+      if (isCompressed(object))
+        return (this.value = this.deserializer(decompressValue(object)));
     return (this.value = this.deserializer(object));
   }
 
