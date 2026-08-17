@@ -65,8 +65,10 @@ export function createWindows(
     const window: TreatmentWindow = {
       snapshot: snapshot,
       initialBG: snapshot.initialBG.sugar,
+      startTime: snapshot.startTime,
       insulins: insulins,
       finalBG: snapshot.finalBG.sugar,
+      endTime: snapshot.endTime,
       length: snapshot.length,
       glucoses: [],
     };

@@ -27,9 +27,11 @@ export namespace InsulinOptimizer {
       return {
         snapshot: snapshotDeepCopy(window.snapshot),
         initialBG: window.initialBG,
+        startTime: window.startTime,
         insulins: insulinsDeepCopy(window.insulins),
         glucoses: glucosesDeepCopy(window.glucoses),
         finalBG: window.finalBG,
+        endTime: window.endTime,
         length: window.length,
       };
     });
@@ -40,8 +42,8 @@ export namespace InsulinOptimizer {
     windows.forEach((window) => {
       window.insulins = morphInsulins(
         insulins,
-        window.snapshot.startTime,
-        window.snapshot.endTime,
+        window.startTime,
+        window.endTime,
       );
     });
   }
@@ -155,8 +157,8 @@ export namespace InsulinOptimizer {
     );
 
     // Now for the magic
-    const timestampA = window.snapshot.startTime;
-    const timestampB = window.snapshot.endTime;
+    const timestampA = window.startTime;
+    const timestampB = window.endTime;
     const splitBG = window.snapshot.getReading(timestamp).sugar;
 
     // Create windows
@@ -165,17 +167,21 @@ export namespace InsulinOptimizer {
     const windowA: TreatmentWindow = {
       snapshot: snapshotA,
       initialBG: window.initialBG,
+      startTime: timestampA,
       insulins: morphInsulins(newInsulins, timestampA, timestamp),
       glucoses: glucosesA,
       finalBG: splitBG,
+      endTime: timestamp,
       length: snapshotA.length,
     };
     const windowB: TreatmentWindow = {
       snapshot: snapshotB,
       initialBG: splitBG,
+      startTime: timestamp,
       insulins: morphInsulins(newInsulins, timestamp, timestampB),
       glucoses: glucosesB,
       finalBG: window.finalBG,
+      endTime: timestampB,
       length: snapshotB.length,
     };
 

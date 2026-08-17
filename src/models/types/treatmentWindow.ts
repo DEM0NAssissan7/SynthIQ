@@ -5,8 +5,10 @@ import type Snapshot from "../snapshot";
 export interface TreatmentWindow {
   snapshot: Snapshot;
   initialBG: number;
+  startTime: Date;
   insulins: Insulin[];
   glucoses: Glucose[];
   finalBG: number;
+  endTime: Date;
   length: number;
 }
