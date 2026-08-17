@@ -1,6 +1,6 @@
 import Glucose from "../../models/events/glucose";
 import Insulin from "../../models/events/insulin";
-import type Snapshot from "../../models/snapshot";
+import Snapshot from "../../models/snapshot";
 import type { TreatmentWindow } from "../../models/types/treatmentWindow";
 import { timestampIsBetween } from "../timing";
 
@@ -49,14 +49,36 @@ export function createWindows(
    * because this function only wants to return the optimal MEAL insulin, not cumUlative.
    */
 
-  if (_insulins.length === 0) return [];
+  if (_insulins.length === 0 || snapshots.length === 0) return [];
+
+  // Reconcile snapshots with insulins to guarantee 1:1 window mapping
+  let alignedSnapshots: Snapshot[] = [];
+  if (snapshots.length === _insulins.length) {
+    alignedSnapshots = snapshots;
+  } else if (snapshots.length > _insulins.length) {
+    alignedSnapshots = snapshots.slice(0, _insulins.length);
+    for (let i = _insulins.length; i < snapshots.length; i++) {
+      alignedSnapshots[alignedSnapshots.length - 1].absorb(snapshots[i]);
+    }
+  } else {
+    const baseSnapshot = new Snapshot();
+    snapshots.forEach((s) => baseSnapshot.absorb(s));
+    for (let i = 0; i < _insulins.length; i++) {
+      const startTime = _insulins[i].timestamp;
+      const endTime =
+        i < _insulins.length - 1
+          ? _insulins[i + 1].timestamp
+          : (baseSnapshot.endTime ?? _insulins[i].timestamp);
+      alignedSnapshots.push(baseSnapshot.view(startTime, endTime));
+    }
+  }
 
   // Treatment windows creation
   let windows: TreatmentWindow[] = [];
-  for (let i = 0; i < snapshots.length; i++) {
-    const snapshot = snapshots[i];
+  for (let i = 0; i < alignedSnapshots.length; i++) {
+    const snapshot = alignedSnapshots[i];
     if (!snapshot.finalBG || !snapshot.initialBG)
-      throw new Error(`Cannot create windows: no final or inital BG`);
+      continue;
     const insulins = morphInsulins(
       _insulins,
       snapshot.startTime,

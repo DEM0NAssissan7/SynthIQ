@@ -57,23 +57,22 @@ export namespace InsulinOptimizer {
    * @returns An array of Insulin[] and Windows[] equal in size to input, but all doses have been adjusted
    */
   function balance(
-    _insulins: Insulin[],
-    _windows: TreatmentWindow[],
+    insulins: Insulin[],
+    windows: TreatmentWindow[],
     getInsulinVariant: (variant: InsulinVariant) => InsulinVariant,
     getRescueVariant: (variant: RescueVariant) => RescueVariant,
   ): [Insulin[], TreatmentWindow[]] {
-    const insulins = insulinsDeepCopy(_insulins);
-    const windows = windowsDeepCopy(_windows);
+    if (windows.length === 0 || insulins.length === 0) return [[], []];
 
-    if (windows.length === 0) return [[], []];
-
-    // Initialize all deltaInsulins to zero
-    const deltaInsulins = insulinsDeepCopy(_insulins);
-    deltaInsulins.forEach((insulin) => (insulin.value = 0));
+    // Save the original values
+    const originalInsulinValues = insulins.map((insulin) => insulin.value);
+    // Initialize all insulins to zero
+    insulins.forEach((insulin) => (insulin.value = 0));
     // Proceed through the windows procedurally
-    for (let i = 0; i < windows.length; i++) {
+    for (let i = 0; i < Math.min(windows.length, insulins.length); i++) {
       const window = windows[i];
-      const insulin = deltaInsulins[i];
+      const insulin = insulins[i];
+      if (!insulin || !insulin.variant) continue;
 
       const glucoseEffect = window.glucoses.reduce(
         (n, g) => g.value * getRescueVariant(g.variant).effect + n,
@@ -99,7 +98,7 @@ export namespace InsulinOptimizer {
       // Now that the theoretical insulin is applied, we modify the
       // theoretical windows accordingly
       // Remorph to readjust all windows' partial insulin change distributions
-      remorph(windows, deltaInsulins);
+      remorph(windows, insulins);
       // Now we go through all future windows and make theoretical adjustments to their
       // blood sugars
       for (let j = i; j < windows.length; j++) {
@@ -107,6 +106,7 @@ export namespace InsulinOptimizer {
         let totalInsulinEffect = 0;
         for (let k = i; k < window.insulins.length; k++) {
           const insulin = window.insulins[k];
+          if (!insulin || !insulin.variant) continue;
           totalInsulinEffect +=
             getInsulinVariant(insulin.variant).effect * insulin.value;
         }
@@ -116,7 +116,9 @@ export namespace InsulinOptimizer {
       }
     }
     // Apply changes to insulins
-    insulins.forEach((insulin, i) => (insulin.value += deltaInsulins[i].value));
+    insulins.forEach((insulin, i) => {
+      if (originalInsulinValues[i]) insulin.value += originalInsulinValues[i];
+    });
     return [insulins, windows];
   }
   function needsAdditionalDose(
@@ -190,7 +192,7 @@ export namespace InsulinOptimizer {
 
   export function getOptimalInsulins(
     _insulins: Insulin[],
-    _windows: TreatmentWindow[],
+    windows: TreatmentWindow[],
     insulinVariants: InsulinVariant[],
     rescueVariants: RescueVariant[],
   ): Insulin[] {
@@ -199,10 +201,7 @@ export namespace InsulinOptimizer {
       rescueVariants,
     );
     // Create a deep copy of insulins
-    let insulins = _insulins.map((i) =>
-      Insulin.deserialize(Insulin.serialize(i)),
-    );
-    let windows = windowsDeepCopy(_windows);
+    let insulins = insulinsDeepCopy(_insulins);
     // Phase 1: Figure out where to put new splits
     for (let i = 0; i < windows.length; i++) {
       const window = windows[i];

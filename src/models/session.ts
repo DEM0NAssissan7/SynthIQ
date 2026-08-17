@@ -262,10 +262,14 @@ export default class Session extends Subscribable {
     BG?: number,
   ): Insulin {
     // Mark snapshot
-    if (this.insulins.length !== 0 && BG) {
-      this.lastSnapshot.finalBG = BG;
+    if (this.insulins.length !== 0) {
+      if (BG) {
+        this.lastSnapshot.finalBG = BG;
+      }
       const snapshot = this.addSnapshot();
-      snapshot.initialBG = BG;
+      if (BG) {
+        snapshot.initialBG = BG;
+      }
     }
 
     const insulin = new Insulin(units, timestamp, variant);
