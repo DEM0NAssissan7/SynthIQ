@@ -398,7 +398,9 @@ export default class Session extends Subscribable {
       this.insulin <= 0 ||
       (this.completed ? this.length : this.getN(new Date())) <
         PreferencesStore.minSessionLength.value ||
-      this.glucoseEffect > this.insulinEffect * 0.3 ||
+      this.glucoseEffect >
+        (this.initialGlucose ?? PreferencesStore.targetBG.value) -
+          PreferencesStore.dangerBG.value ||
       this.activities.length !== 0 ||
       impossible
     );
