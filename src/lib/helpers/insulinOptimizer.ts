@@ -343,7 +343,7 @@ export namespace InsulinOptimizer {
       const balanced = newInsulins[i];
       const delta = balanced.value - original.value;
       const damped = original.value + delta * learningRate;
-      if (damped <= 0) continue; // Pruning
+      if (damped <= 0.01) continue; // Pruning
       resultInsulins.push(
         new Insulin(damped, balanced.timestamp, balanced.variant),
       );
