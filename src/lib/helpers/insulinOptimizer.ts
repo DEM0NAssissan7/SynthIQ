@@ -9,6 +9,7 @@ import { morphInsulins } from "./createWindow";
 import { convertDimensions } from "../util";
 import Unit from "../../models/unit";
 import { InsulinVariantManager } from "../../managers/insulinVariantManager";
+import { PrivateStore } from "../../storage/privateStore";
 
 export namespace InsulinOptimizer {
   // Helpers
@@ -25,6 +26,67 @@ export namespace InsulinOptimizer {
         window.endTime,
       );
     });
+  }
+  function propogateDoseDeltas(
+    windows: TreatmentWindow[],
+    deltaInsulins: Insulin[],
+    doseIndex: number,
+  ) {
+    // Remorph to readjust all windows' partial insulin change distributions
+    remorph(windows, deltaInsulins);
+    // Now we go through all future windows and make theoretical partial adjustments to their
+    // blood sugars specifically from our target dose
+    for (let i = doseIndex; i < windows.length; i++) {
+      const window = windows[i];
+      const partialInsulin: Insulin = window.insulins[doseIndex];
+      if (!partialInsulin || !partialInsulin.variant) continue;
+      const deltaBG = -partialInsulin.variant.effect * partialInsulin.value;
+      window.finalBG += deltaBG;
+      // Propogate total change forward (becuase lowering 10mg/dL now will make it theoretically 10mg/dL less in 10 hours or 100 days compared to an identical scenario)
+      for (let j = i + 1; j < windows.length; j++) {
+        const nextWindow = windows[j];
+        nextWindow.initialBG += deltaBG;
+        nextWindow.finalBG += deltaBG;
+      }
+    }
+  }
+  function getMaxAllowedDeltaUnits(
+    victimWindow: TreatmentWindow,
+    windowInsulin: Insulin,
+    perpetrator: Insulin,
+  ): number {
+    const glucoseEffect = victimWindow.glucoses.reduce(
+      (n, glucose) => n + glucose.value * glucose.variant.effect,
+      0,
+    );
+    const theoreticalFinalBG = victimWindow.finalBG - glucoseEffect; // Avoid allowing glucose to falsely give the impression we have more room to spare
+    const deltaBG = theoreticalFinalBG - victimWindow.initialBG;
+    // This value is the theoretically how high the deltaBG in our window could go if we did not take any insulin (i.e. insulin.value = 0)
+    const selfFraction = windowInsulin.batemanIntegral(
+      victimWindow.startTime,
+      victimWindow.endTime,
+      true,
+    );
+    const theoreticalMaxDeltaBG =
+      deltaBG +
+      windowInsulin.value * windowInsulin.variant.effect * selfFraction;
+    // If the victim window has zero or negative headroom (i.e. is already crashing), perpetrator cannot add ANY extra units
+    if (theoreticalMaxDeltaBG <= 0) return 0;
+
+    // Great, now that we know how high the deltaBG (theoretically) could go if we had no insulin, we see how many units the perpetrator needs to inject itself with
+    // before pushing us over that limit
+    const perpetratorFraction = perpetrator.batemanIntegral(
+      victimWindow.startTime,
+      victimWindow.endTime,
+      true,
+    );
+    // If the perpetrator does not affect us, let it do whatever it wants
+    if (perpetratorFraction <= 0) return Infinity;
+
+    // For example, if only 20% of the original dose is active during the victim window, we can let the perpetrator have 2x more what it would be compared to if we had 40% of it active
+    const maxAllowedDeltaUnits =
+      theoreticalMaxDeltaBG / perpetrator.variant.effect / perpetratorFraction;
+    return maxAllowedDeltaUnits;
   }
   /**
    * Adjust the dosing in insulins to be as mathematically sound as possible without modifying
@@ -43,15 +105,14 @@ export namespace InsulinOptimizer {
   ): [Insulin[], TreatmentWindow[]] {
     if (windows.length === 0 || insulins.length === 0) return [[], []];
 
-    // Save the original values
-    const originalInsulinValues = insulins.map((insulin) => insulin.value);
-    // Initialize all insulins to zero
-    insulins.forEach((insulin) => (insulin.value = 0));
+    const deltaInsulins = insulinsDeepCopy(insulins);
+    // Initialize all delta insulins to zero
+    deltaInsulins.forEach((i) => (i.value = 0));
     // Proceed through the windows procedurally
     for (let i = 0; i < Math.min(windows.length, insulins.length); i++) {
       const window = windows[i];
-      const insulin = insulins[i];
-      if (!insulin || !insulin.variant) continue;
+      const deltaInsulin = deltaInsulins[i];
+      if (!deltaInsulin || !deltaInsulin.variant) continue;
 
       const glucoseEffect = window.glucoses.reduce(
         (n, g) => g.value * getRescueVariant(g.variant).effect + n,
@@ -66,38 +127,35 @@ export namespace InsulinOptimizer {
       // totalDeltaInsulin -> the total amount of insulin we need to absorb in THAT window
       // to get the optimal correction
       const totalDeltaInsulin =
-        deltaBG / getInsulinVariant(insulin.variant).effect;
+        deltaBG / getInsulinVariant(deltaInsulin.variant).effect;
       // insulinEffectRatio -> the fraction of insulin from the window's shot that was absorbed in its timeframe
-      const insulinEffectRatio = getInsulinVariant(
-        insulin.variant,
-      ).unitBatemanIntegral(0, window.length);
-      const deltaInsulin = totalDeltaInsulin / insulinEffectRatio;
-      // Apply it to our model
-      insulin.value = deltaInsulin;
-      // Now that the theoretical insulin is applied, we modify the
-      // theoretical windows accordingly
-      // Remorph to readjust all windows' partial insulin change distributions
-      remorph(windows, insulins);
-      // Now we go through all future windows and make theoretical adjustments to their
-      // blood sugars
-      for (let j = i; j < windows.length; j++) {
-        const window = windows[j];
-        let totalInsulinEffect = 0;
-        for (let k = i; k < window.insulins.length; k++) {
-          const insulin = window.insulins[k];
-          if (!insulin || !insulin.variant) continue;
-          totalInsulinEffect +=
-            getInsulinVariant(insulin.variant).effect * insulin.value;
-        }
-        window.finalBG -= totalInsulinEffect;
-        if (j < windows.length - 1)
-          windows[j + 1].initialBG -= totalInsulinEffect;
+      const insulinEffectRatio = deltaInsulin.batemanIntegral(
+        window.startTime,
+        window.endTime,
+        true,
+      );
+      const learningRate = PreferencesStore.learningRate.value / 100; // The stored learningRate is a percentage - convert to fraction
+      const neededDelta =
+        (totalDeltaInsulin / insulinEffectRatio) * learningRate;
+      // Now we look into the future windows/doses to see what they will allow us to do before pushing them over (into negatives)
+      const maxAllowedDeltaUnits: number[] = [];
+      for (let j = i + 1; j < windows.length; j++) {
+        const victim = windows[j];
+        const victimInsulin = insulins[j];
+        maxAllowedDeltaUnits.push(
+          getMaxAllowedDeltaUnits(victim, victimInsulin, deltaInsulin),
+        );
       }
+      // Apply it to our model
+      const unconstrainedDelta = Math.min(neededDelta, ...maxAllowedDeltaUnits);
+      deltaInsulin.value = Math.max(unconstrainedDelta, -insulins[i].value); // Prevent making own dose less than itself
+      insulins[i].value += deltaInsulin.value; // Modify original dose
+      // Now that the theoretical insulin deltas are applied, we
+      // Propogate the simulated changes (deltas) forward
+      propogateDoseDeltas(windows, deltaInsulins, i);
     }
-    // Apply changes to insulins
-    insulins.forEach((insulin, i) => {
-      if (originalInsulinValues[i]) insulin.value += originalInsulinValues[i];
-    });
+    // Before returning, morph the windows to match the final insulins (not deltas)
+    remorph(windows, insulins);
     return [insulins, windows];
   }
   function needsAdditionalDose(
@@ -221,14 +279,22 @@ export namespace InsulinOptimizer {
     // Phase 2: Now that we have the new splits that we want, we run
     // the balancer to let it adjust the new phantom insulins to their theoretical
     // optimal value
-    [insulins] = balance(
+    [insulins, windows] = balance(
       insulins,
       windows,
       getInsulinVariant,
       getRescueVariant,
     );
 
-    // Phase 3: Remove any negative/zerp doses (these are doses that have been overridden by a big previous dose)
+    // Phase 3: Remove any zero doses (these are doses that have been overridden by a big previous dose)
+    if (PrivateStore.debugLogs.value)
+      if (insulins.filter((insulin) => insulin.value < 0).length > 0)
+        console.warn(
+          `[InsulinOptimizer]: Insulins contain a negative dose`,
+          windows,
+          insulins,
+          _insulins,
+        );
     insulins = insulins.filter((insulin) => insulin.value > 0);
 
     return insulins;

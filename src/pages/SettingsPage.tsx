@@ -7,7 +7,13 @@ import {
   ToggleButton,
 } from "react-bootstrap";
 import Card from "../components/Card";
-import { useMemo, useRef, useState, type ChangeEvent, type ReactNode } from "react";
+import {
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type ReactNode,
+} from "react";
 import RemoteStorage from "../lib/remote/storage";
 import type { KeyInterface } from "../storage/storageNode";
 import { PrivateStore } from "../storage/privateStore";
@@ -340,7 +346,7 @@ export default function SettingsPage() {
           unit="mg/dL"
         />
       </SettingsSection>
-      <SettingsSection title="Session timing">
+      <SettingsSection title="Session Management">
         <NumberSetting
           keyInterface={BackendStore.cgmDelay}
           title="CGM Delay (in minutes)"
@@ -352,6 +358,12 @@ export default function SettingsPage() {
           title="Bolus Target Overcompensation Offset"
           iconClass="bi bi-arrow-down-short"
           unit="mg/dL"
+        />
+        <NumberSetting
+          keyInterface={PreferencesStore.learningRate}
+          title="Insulin Adjustment Learning Rate"
+          iconClass="bi bi-graph-up-arrow"
+          unit="%"
         />
         <NumberSetting
           keyInterface={PreferencesStore.maxSessionLife}

@@ -27,14 +27,14 @@ export default class Insulin extends MetaEvent implements ScalarMetaEvent {
   private getHours(time: Date) {
     return getHourDiff(time, this.timestamp);
   }
-  bateman(time: Date) {
+  bateman(time: Date, unit = false) {
     const t = this.getHours(time);
-    return this.value * this.variant.unitBateman(t);
+    return (unit ? 1 : this.value) * this.variant.unitBateman(t);
   }
-  batemanIntegral(timeA: Date, timeB: Date) {
+  batemanIntegral(timeA: Date, timeB: Date, unit = false) {
     const tA = this.getHours(timeA);
     const tB = this.getHours(timeB);
-    return this.value * this.variant.unitBatemanIntegral(tA, tB);
+    return (unit ? 1 : this.value) * this.variant.unitBatemanIntegral(tA, tB);
   }
   iob(time: Date) {
     return this.value * this.variant.fractionActive(this.getHours(time));

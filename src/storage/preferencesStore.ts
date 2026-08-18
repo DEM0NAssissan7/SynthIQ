@@ -19,5 +19,9 @@ export namespace PreferencesStore {
   export const overshootOffset = node.add("overshootOffset", 10);
   export const sugarSaveTime = node.add("sugarSaveTime", 10);
   export const insulinMinActivity = node.add("insulinMinActivity", 5);
-  export const themeMode = node.add<"auto" | "dark" | "light">("themeMode", "auto");
+  export const themeMode = node.add<"auto" | "dark" | "light">(
+    "themeMode",
+    "auto",
+  );
+  export const learningRate = node.add<number>("learningRate", 30);
 }
