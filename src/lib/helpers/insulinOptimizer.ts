@@ -338,14 +338,11 @@ export namespace InsulinOptimizer {
     for (let i = 0; i < insulins.length; i++) {
       const original = insulins[i];
       const balanced = newInsulins[i];
-      if (balanced.value <= 0) continue; // Pruning
       const delta = balanced.value - original.value;
+      const damped = original.value + delta * learningRate;
+      if (damped <= 0) continue; // Pruning
       resultInsulins.push(
-        new Insulin(
-          original.value + delta * learningRate,
-          balanced.timestamp,
-          balanced.variant,
-        ),
+        new Insulin(damped, balanced.timestamp, balanced.variant),
       );
     }
 
