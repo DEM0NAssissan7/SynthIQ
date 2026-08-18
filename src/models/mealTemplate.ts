@@ -307,13 +307,37 @@ export default class MealTemplate extends Subscribable implements Template {
     return getSimilarSessionsDistances(meal, sessions);
   }
   getBaseSession(meal: Meal): Session | null {
-    let sessionsDistances = this.getSimilarSessionsDistances(meal);
-    if (!sessionsDistances) return null;
-    if (sessionsDistances.length === 0) return null;
-    console.log(sessionsDistances);
-    return sessionsDistances[0][0]; // Just call it a day and return the closest session
-  }
+    const sessionsDistances = this.getSimilarSessionsDistances(meal);
+    if (!sessionsDistances || sessionsDistances.length === 0) return null;
 
+    // Ensure ascending order by distance score
+    const sortedDistances = sessionsDistances
+      .slice()
+      .sort((a, b) => a[1] - b[1]);
+
+    const bestDistance = sortedDistances[0][1];
+    const distances = sortedDistances.map((a) => a[1]);
+
+    // Calculate MAD with a safe fallback floor to prevent 0-dispersion collapse
+    const mad = MathUtil.medianAbsoluteDeviation(distances);
+
+    // Safe spread factor (at least 1e-3)
+    const spreadAllowance = Math.max(mad, 1e-3);
+    const maxAcceptableDistance = bestDistance + spreadAllowance;
+
+    // Gather all sessions falling within the acceptable neighborhood of the best match
+    const candidates: Session[] = [];
+    for (const [session, dist] of sortedDistances) {
+      if (dist > maxAcceptableDistance) break;
+      candidates.push(session);
+    }
+
+    if (candidates.length === 0) return sortedDistances[0][0];
+
+    // Pick the most recent session among the top candidates
+    candidates.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+    return candidates[0];
+  }
   // Dosing helpers
   vectorizeInsulin(meal: Meal, session: Session | null): Insulin[] {
     // If session is null

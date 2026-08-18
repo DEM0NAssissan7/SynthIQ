@@ -384,14 +384,6 @@ export default class Session extends Subscribable {
     return this._isGarbage;
   }
   get isInvalid(): boolean {
-    // Determine if we have realistically impossible insulin suggestions
-    let impossible = false;
-    if (this.completed) {
-      const optimalInsulins = this.optimalMealInsulins;
-      optimalInsulins.forEach((i) => {
-        if (i.value < 0) impossible = true;
-      });
-    }
     return (
       this.isGarbage ||
       this.meals.length !== 1 ||
@@ -399,10 +391,10 @@ export default class Session extends Subscribable {
       (this.completed ? this.length : this.getN(new Date())) <
         PreferencesStore.minSessionLength.value ||
       this.glucoseEffect >
-        (this.initialGlucose ?? PreferencesStore.targetBG.value) -
-          PreferencesStore.dangerBG.value ||
-      this.activities.length !== 0 ||
-      impossible
+        ((this.initialGlucose ?? PreferencesStore.targetBG.value) -
+          PreferencesStore.dangerBG.value) *
+          1.414 ||
+      this.activities.length !== 0
     );
   }
 
