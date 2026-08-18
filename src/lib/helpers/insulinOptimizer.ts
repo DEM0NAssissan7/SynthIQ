@@ -9,7 +9,6 @@ import { morphInsulins } from "./createWindow";
 import { convertDimensions } from "../util";
 import Unit from "../../models/unit";
 import { InsulinVariantManager } from "../../managers/insulinVariantManager";
-import { PrivateStore } from "../../storage/privateStore";
 
 export namespace InsulinOptimizer {
   // Helpers
@@ -141,16 +140,16 @@ export namespace InsulinOptimizer {
    * @returns An array of Insulin[] and Windows[] equal in size to input, but all doses have been adjusted
    */
   function balance(
-    originalInsulins: Insulin[],
+    returnInsulins: Insulin[],
     windows: TreatmentWindow[],
     getInsulinVariant: (variant: InsulinVariant) => InsulinVariant,
     getRescueVariant: (variant: RescueVariant) => RescueVariant,
   ): [Insulin[], TreatmentWindow[]] {
-    if (windows.length === 0 || originalInsulins.length === 0) return [[], []];
+    if (windows.length === 0 || returnInsulins.length === 0) return [[], []];
 
     // Set optimization target
     const targetBG = windows[0].initialBG; // Anchor to a target BG insteado of reducing per-window deltas
-    const insulins = insulinsDeepCopy(originalInsulins);
+    const insulins = insulinsDeepCopy(returnInsulins);
     const deltaInsulins = insulinsDeepCopy(insulins);
     // Initialize all delta insulins to zero
     deltaInsulins.forEach((i) => (i.value = 0));
@@ -186,15 +185,17 @@ export namespace InsulinOptimizer {
       );
       // Apply it to our model
       const unconstrainedDelta = Math.min(neededDelta, ...maxAllowedDeltaUnits);
-      deltaInsulin.value = Math.max(unconstrainedDelta, -insulins[i].value); // Prevent making own dose less than itself
-      insulins[i].value += deltaInsulin.value; // Modify original dose
+      const constrainedDelta = Math.max(unconstrainedDelta, -insulins[i].value);
+      deltaInsulin.value = constrainedDelta; // Prevent making own dose less than itself
+      insulins[i].value += constrainedDelta; // Modify scratchpad with constrained dose
+      returnInsulins[i].value += unconstrainedDelta; // Relay the unconstrained dose to the return value so the viewing class can know how badly we wanted this gone (if it was constrained) - NOTE: This does NOT affect the running calculations, it's purely for reporting back to the caller
       // Now that the theoretical insulin deltas are applied, we
       // Propogate the simulated changes (deltas) forward
       propogateDoseDeltas(windows, deltaInsulins, i, getInsulinVariant);
     }
     // Before returning, morph the windows to match the final insulins (not deltas)
     remorph(windows, insulins);
-    return [insulins, windows];
+    return [returnInsulins, windows];
   }
   function needsAdditionalDose(
     window: TreatmentWindow,
@@ -317,6 +318,7 @@ export namespace InsulinOptimizer {
     // Phase 2: Now that we have the new splits that we want, we run
     // the balancer to let it adjust the new phantom insulins to their theoretical
     // optimal value
+    const originalInsulins = insulinsDeepCopy(insulins);
     const [newInsulins, newWindows] = balance(
       insulins,
       windows,
@@ -324,6 +326,7 @@ export namespace InsulinOptimizer {
       getRescueVariant,
     );
     windows = newWindows;
+    /*
     if (PrivateStore.debugLogs.value)
       if (newInsulins.filter((insulin) => insulin.value < 0).length > 0)
         console.warn(
@@ -332,15 +335,18 @@ export namespace InsulinOptimizer {
           insulins,
           _insulins,
         );
-    /*if (PrivateStore.debugLogs.value)
-      console.log(_insulins, insulins, inputWindows, windows);*/
+        */
+    /*
+    if (PrivateStore.debugLogs.value)
+      console.log(originalInsulins, newInsulins, windows);*/
 
     // Phase 3: Apply learning rate and prune any zero-doses
     const learningRate = PreferencesStore.learningRate.value / 100; // The stored learningRate is a percentage - convert to fraction
     const resultInsulins: Insulin[] = [];
-    for (let i = 0; i < insulins.length; i++) {
-      const original = insulins[i];
+    for (let i = 0; i < newInsulins.length; i++) {
+      const original = originalInsulins[i];
       const balanced = newInsulins[i];
+      if (!balanced || !original) continue;
       const delta = balanced.value - original.value;
       const damped = original.value + delta * learningRate;
       if (damped <= 0.01) continue; // Pruning
