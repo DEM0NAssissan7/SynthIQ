@@ -31,6 +31,7 @@ export namespace InsulinOptimizer {
     windows: TreatmentWindow[],
     deltaInsulins: Insulin[],
     doseIndex: number,
+    getInsulinVariant: (variant: InsulinVariant) => InsulinVariant,
   ) {
     // Remorph to readjust all windows' partial insulin change distributions
     remorph(windows, deltaInsulins);
@@ -40,7 +41,9 @@ export namespace InsulinOptimizer {
       const window = windows[i];
       const partialInsulin: Insulin = window.insulins[doseIndex];
       if (!partialInsulin || !partialInsulin.variant) continue;
-      const deltaBG = -partialInsulin.variant.effect * partialInsulin.value;
+      const deltaBG =
+        -getInsulinVariant(partialInsulin.variant).effect *
+        partialInsulin.value;
       window.finalBG += deltaBG;
       // Propogate total change forward (becuase lowering 10mg/dL now will make it theoretically 10mg/dL less in 10 hours or 100 days compared to an identical scenario)
       for (let j = i + 1; j < windows.length; j++) {
@@ -55,6 +58,7 @@ export namespace InsulinOptimizer {
     perpetratorIndex: number,
     perpetratorInsulin: Insulin,
     targetBG: number,
+    getInsulinVariant: (variant: InsulinVariant) => InsulinVariant,
   ): number[] {
     const firstWindow = windows[perpetratorIndex];
     const maxTheoreticalDeltaBGs: number[] = [];
@@ -78,7 +82,8 @@ export namespace InsulinOptimizer {
         ) {
           const insulin = windows[j].insulins[k];
           if (!insulin || !insulin.variant) continue;
-          totalAuxillaryInsulinEffect += insulin.value * insulin.variant.effect;
+          totalAuxillaryInsulinEffect +=
+            insulin.value * getInsulinVariant(insulin.variant).effect;
         }
       }
 
@@ -98,7 +103,7 @@ export namespace InsulinOptimizer {
       // For example, if only 20% of the original dose is active during the super window, we can let the perpetrator have 2x more what it would be compared to if we had 40% of it active
       const maxAllowedDeltaUnits =
         theoreticalMaxDeltaBG /
-        perpetratorInsulin.variant.effect /
+        getInsulinVariant(perpetratorInsulin.variant).effect /
         perpetratorFraction;
       maxTheoreticalDeltaBGs.push(maxAllowedDeltaUnits);
     }
@@ -177,6 +182,7 @@ export namespace InsulinOptimizer {
         i,
         deltaInsulin,
         targetBG,
+        getInsulinVariant,
       );
       // Apply it to our model
       const unconstrainedDelta = Math.min(neededDelta, ...maxAllowedDeltaUnits);
@@ -184,7 +190,7 @@ export namespace InsulinOptimizer {
       insulins[i].value += deltaInsulin.value; // Modify original dose
       // Now that the theoretical insulin deltas are applied, we
       // Propogate the simulated changes (deltas) forward
-      propogateDoseDeltas(windows, deltaInsulins, i);
+      propogateDoseDeltas(windows, deltaInsulins, i, getInsulinVariant);
     }
     // Before returning, morph the windows to match the final insulins (not deltas)
     remorph(windows, insulins);
