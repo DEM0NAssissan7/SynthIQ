@@ -21,14 +21,14 @@ export function morphInsulins(
 }
 /**
  *
- * @param _insulins The insulins taken in general
+ * @param insulins The insulins taken in general
  * @param snapshots The snapshots corresponding to each insulin. Note: MUST be the same length as _insulins
  * @param glucoses Glucoses taken
  * @returns
  */
 export function createWindows(
-  _insulins: Insulin[],
-  snapshots: Snapshot[],
+  insulins: Insulin[],
+  _snapshot: Snapshot,
   glucoses: Glucose[],
 ): TreatmentWindow[] {
   /**
@@ -49,38 +49,29 @@ export function createWindows(
    * because this function only wants to return the optimal MEAL insulin, not cumUlative.
    */
 
-  if (_insulins.length === 0 || snapshots.length === 0) return [];
-
-  // Reconcile snapshots with insulins to guarantee 1:1 window mapping
-  let alignedSnapshots: Snapshot[] = [];
-  if (snapshots.length === _insulins.length) {
-    alignedSnapshots = snapshots;
-  } else if (snapshots.length > _insulins.length) {
-    alignedSnapshots = snapshots.slice(0, _insulins.length);
-    for (let i = _insulins.length; i < snapshots.length; i++) {
-      alignedSnapshots[alignedSnapshots.length - 1].absorb(snapshots[i]);
-    }
-  } else {
-    const baseSnapshot = new Snapshot();
-    snapshots.forEach((s) => baseSnapshot.absorb(s));
-    for (let i = 0; i < _insulins.length; i++) {
-      const startTime = _insulins[i].timestamp;
-      const endTime =
-        i < _insulins.length - 1
-          ? _insulins[i + 1].timestamp
-          : (baseSnapshot.endTime ?? _insulins[i].timestamp);
-      alignedSnapshots.push(baseSnapshot.view(startTime, endTime));
-    }
-  }
+  if (insulins.length === 0 || !_snapshot.hasCalibrations) return [];
 
   // Treatment windows creation
-  let windows: TreatmentWindow[] = [];
-  for (let i = 0; i < alignedSnapshots.length; i++) {
-    const snapshot = alignedSnapshots[i];
-    if (!snapshot.finalBG || !snapshot.initialBG)
-      continue;
-    const insulins = morphInsulins(
-      _insulins,
+  const windows: TreatmentWindow[] = [];
+  for (let i = 0; i < insulins.length; i++) {
+    const insulin = insulins[i];
+    const nextInsulin = insulins[i + 1];
+    if (!insulin) continue;
+
+    const snapshot: Snapshot | null = nextInsulin
+      ? _snapshot.looseView(insulin.timestamp, nextInsulin.timestamp)
+      : _snapshot.looseView(insulin.timestamp, _snapshot.endTime);
+    /*console.log(
+      `${i + 1} / ${insulins.length}`,
+      snapshot,
+      insulin,
+      nextInsulin,
+    );*/
+    if (!snapshot) continue;
+    if (!snapshot.finalBG || !snapshot.initialBG) continue;
+    if (snapshot.length <= 0) continue;
+    const morphedInsulins = morphInsulins(
+      insulins,
       snapshot.startTime,
       snapshot.endTime,
     );
@@ -88,7 +79,7 @@ export function createWindows(
       snapshot: snapshot,
       initialBG: snapshot.initialBG.sugar,
       startTime: snapshot.startTime,
-      insulins: insulins,
+      insulins: morphedInsulins,
       finalBG: snapshot.finalBG.sugar,
       endTime: snapshot.endTime,
       length: snapshot.length,

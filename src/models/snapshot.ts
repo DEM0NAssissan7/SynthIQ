@@ -45,19 +45,40 @@ export default class Snapshot extends Subscribable {
     const snapshot = new Snapshot();
     const timeA = timestampA.getTime();
     const timeB = timestampB.getTime();
-    for (let reading of this.timeSorted) {
+    for (const reading of this.timeSorted) {
       const readingTime = reading.timestamp.getTime();
       if (readingTime < timeA) continue;
-      if (readingTime >= timeB) break;
+      if (readingTime > timeB) break;
       snapshot.addReading(reading, false);
     }
     return snapshot;
   }
-  getReading(timestamp: Date) {
+  looseView(timestampA: Date, timestampB: Date, calibrations = false) {
+    // A looser version of view that takes advantage of the getReading to ensure that there's a bit of leeway
+    const leftReading = this.getReading(timestampA, calibrations);
+    const rightReading = this.getReading(timestampB, calibrations);
+    if (!leftReading || !rightReading) return null;
+    return this.view(leftReading.timestamp, rightReading.timestamp);
+  }
+  getReading(timestamp: Date, calibrationOnly = false, reverse = false) {
     // Shows what the user had seen at `timestamp` from their CGM/meter
     const time = timestamp.getTime();
-    let retval: SugarReading = this.timeSorted[0];
-    for (let reading of this.timeSorted) {
+    const readings = calibrationOnly
+      ? this.timeSortedCalibrations
+      : this.timeSorted;
+    if (readings.length <= 0)
+      throw new Error(`Cannot get reading: readings is empty`);
+    if (reverse) {
+      let retval: SugarReading = readings[readings.length - 1];
+      for (let i = readings.length - 1; i >= 0; i--) {
+        const reading = readings[i];
+        if (reading.timestamp.getTime() < time) break;
+        retval = reading;
+      }
+      return retval;
+    }
+    let retval: SugarReading = readings[0];
+    for (const reading of readings) {
       if (reading.timestamp.getTime() > time) break;
       retval = reading;
     }
@@ -70,6 +91,12 @@ export default class Snapshot extends Subscribable {
     }
     return this.readingsCache;
   }
+  get isEmpty(): boolean {
+    return this.rawReadings.length <= 0;
+  }
+  get hasCalibrations(): boolean {
+    return this.calibrations.length > 0;
+  }
   private get calibrations(): SugarReading[] {
     // We filter through raw readings because calibrations don't need to be smoothed
     return this.rawReadings.filter((r) => r.isCalibration);
@@ -81,14 +108,16 @@ export default class Snapshot extends Subscribable {
     if (this.timeSortedCache.length === 0) {
       // Sorts it from oldest -> latest
       // We prioritize using calibrations in this case because on the user-end it is much easier to mark the beginning and end glucose rather than the peaks
-      let readings = this.readings;
-      const calibrations = this.calibrations;
-      if (calibrations.length !== 0) readings = calibrations;
-      this.timeSortedCache = readings
+      this.timeSortedCache = this.readings
         .slice()
         .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
     }
     return this.timeSortedCache;
+  }
+  private get timeSortedCalibrations(): SugarReading[] {
+    return this.calibrations
+      .slice()
+      .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
   }
   private get valueSorted() {
     if (this.valueSortedCache.length === 0) {
@@ -106,6 +135,19 @@ export default class Snapshot extends Subscribable {
   }
   private createContemporaryCalibration(value: number) {
     this.addReading(new SugarReading(value, new Date(), true));
+  }
+  private deduplicate() {
+    const deduplicated: SugarReading[] = [];
+    this.rawReadings.forEach((reading) => {
+      const readingTime = reading.timestamp.getTime();
+      for (const r of deduplicated) {
+        if (readingTime === r.timestamp.getTime()) return;
+      }
+      deduplicated.push(reading);
+    });
+    this.rawReadings = deduplicated;
+    this.invalidateCaches();
+    this.notify();
   }
 
   async pullReadings() {
@@ -224,6 +266,7 @@ export default class Snapshot extends Subscribable {
   static serialize: Serializer<Snapshot> = (s: Snapshot) => {
     let baseTime = 0;
     let timeJump = 0;
+    s.deduplicate();
     const readings = s.rawReadings
       .slice()
       .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
@@ -273,6 +316,7 @@ export default class Snapshot extends Subscribable {
       },
     );
     readings.forEach((r) => snapshot.addReading(r, false));
+    snapshot.deduplicate();
     return snapshot;
   };
 }

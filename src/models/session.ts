@@ -20,13 +20,15 @@ import { useVariantGetters } from "../lib/helpers/useVariantGetters";
 import type { TreatmentWindow } from "./types/treatmentWindow";
 import { InsulinOptimizer } from "../lib/helpers/insulinOptimizer";
 import { createWindows } from "../lib/helpers/createWindow";
+import SugarReading from "./types/sugarReading";
+import { PrivateStore } from "../storage/privateStore";
 
 export default class Session extends Subscribable {
   uuid: UUID;
 
   _parent: UUID | null = null;
 
-  snapshots: Snapshot[] = [];
+  snapshot: Snapshot = new Snapshot();
 
   _isGarbage: boolean = false;
   completed: boolean = false;
@@ -42,11 +44,10 @@ export default class Session extends Subscribable {
   dailyBasal: number | null = null; // Units
   onBoardInsulins: Insulin[] = []; // Whatever was on board before session started
 
-  constructor(createSnapshot = true) {
+  constructor() {
     // This timestamp marks when eating _begins_
     super();
     this.uuid = genUUID();
-    if (createSnapshot) this.addSnapshot(); // Create the initial snapshot
   }
 
   // Parent
@@ -124,33 +125,11 @@ export default class Session extends Subscribable {
   }
 
   // Snapshot abstractions
-  addSnapshot(_snapshot?: Snapshot) {
-    let snapshot: Snapshot = new Snapshot();
-    if (_snapshot) snapshot = _snapshot;
-    this.snapshots.push(snapshot);
-    this.addChildSubscribable(snapshot);
-    return snapshot;
-  }
-  get firstSnapshot() {
-    if (this.snapshots.length === 0) throw new Error(`No snapshots exist`);
-    return this.snapshots[0];
-  }
-  get lastSnapshot() {
-    const snapshot = this.snapshots[Math.max(this.insulins.length - 1, 0)];
-    if (!snapshot) throw new Error(`Latest snapshot is invalid`);
-    return snapshot;
-  }
-  get snapshot() {
-    // This is a meta snapshot that is a symbolic summation of all the snapshots
-    let snapshot = new Snapshot();
-    this.snapshots.forEach((s) => snapshot.absorb(s));
-    return snapshot;
-  }
   get finalBG(): number | null {
     return this.snapshot.finalBG ? this.snapshot.finalBG.sugar : null;
   }
   set finalBG(sugar: number) {
-    this.lastSnapshot.finalBG = sugar;
+    this.snapshot.finalBG = sugar;
     this.completed = true;
   }
   get endTimestamp() {
@@ -160,7 +139,7 @@ export default class Session extends Subscribable {
     return this.snapshot.initialBG ? this.snapshot.initialBG.sugar : null;
   }
   set initialGlucose(sugar: number) {
-    this.firstSnapshot.initialBG = sugar;
+    this.snapshot.initialBG = sugar;
   }
   get peakGlucose() {
     return this.snapshot.peakBG ? this.snapshot.peakBG.sugar : null;
@@ -224,7 +203,7 @@ export default class Session extends Subscribable {
   }
   get windows(): TreatmentWindow[] {
     if (!this.initialGlucose) return [];
-    return createWindows(this.insulins, this.snapshots, this.glucoses);
+    return createWindows(this.insulins, this.snapshot, this.glucoses);
   }
   getOptimalMealInsulins(
     insulinVariants: InsulinVariant[],
@@ -262,15 +241,7 @@ export default class Session extends Subscribable {
     BG?: number,
   ): Insulin {
     // Mark snapshot
-    if (this.insulins.length !== 0) {
-      if (BG) {
-        this.lastSnapshot.finalBG = BG;
-      }
-      const snapshot = this.addSnapshot();
-      if (BG) {
-        snapshot.initialBG = BG;
-      }
-    }
+    if (BG) this.snapshot.addReading(new SugarReading(BG, timestamp, true));
 
     const insulin = new Insulin(units, timestamp, variant);
     this.insulins.push(insulin);
@@ -281,45 +252,6 @@ export default class Session extends Subscribable {
   removeInsulin(insulin: Insulin) {
     const index = this.insulins.indexOf(insulin);
     if (index === -1) return; // Already gone
-    /**
-     * Because of the physics of how snapshots work in the session, we need to modify
-     * the anatomy of the snapshots as well so that snapshot[i] -> insulin[i]
-     *
-     * If this anatomy/assumption fails, a lot of things go very bad
-     *
-     * To resolve, we merge snapshot windows when removing an insulin
-     *
-     * For example:
-     *
-     * | insulin 1 | insulin 2 | insulin 3 |
-     * | snapshot1 | snapshot2 | snapshot3 |
-     *
-     * If we remove insulin 2:
-     * | insulin 1             | insulin 3 |
-     * | snapshot1             | snapshot3 |
-     *
-     * Snapshot 1 absorbs snapshot 2 to successfully merge and maintain correct anatomy.
-     * So snapshot 1 is the "mother snapshot" in this case
-     *
-     * In the case we remove the last insulin:
-     *
-     * | insulin 2 | insulin 3 |
-     * | snapshot2 | snapshot3 |
-     *
-     * Snapshot 2 absorbs snapshot 1 to successfully derive the new anatomy
-     * Snapshot 2 is then considered the "mother snapshot"
-     */
-    const motherIndex = index !== 0 ? index - 1 : index + 1;
-    // Ensure that the absorption takes place with valid indeces
-    // This prevents an invalid action if we are removing the only insulin dose left
-    if (motherIndex < this.snapshots.length) {
-      this.snapshots[motherIndex].absorb(this.snapshots[index]);
-    }
-    // Prevent deleting the root snapshot - we always need a root snapshot
-    if (this.snapshots.length > 1) {
-      this.removeChildSubscribable(this.snapshots[index]); // Unsubscribe the snapshot properly
-      this.snapshots.splice(index, 1);
-    }
     this.insulins.splice(index, 1);
     this.removeChildSubscribable(insulin);
     this.notify();
@@ -521,7 +453,7 @@ export default class Session extends Subscribable {
     return {
       uuid: session.uuid,
       parent: session.parent,
-      snapshots: session.snapshots.map((s) => Snapshot.serialize(s)),
+      snapshot: Snapshot.serialize(session.snapshot),
       meals: session.meals.map((a) => Meal.serialize(a)),
       insulins: session.insulins.map((a) => Insulin.serialize(a)),
       glucoses: session.glucoses.map((a) => Glucose.serialize(a)),
@@ -536,7 +468,7 @@ export default class Session extends Subscribable {
     };
   };
   static deserialize: Deserializer<Session> = (o) => {
-    let session = new Session(false);
+    const session = new Session();
     session.uuid = o.uuid;
     session._parent = o.parent;
     session.isGarbage = o.isGarbage ?? false;
@@ -555,10 +487,20 @@ export default class Session extends Subscribable {
       session.createGlucose(glucose.value, glucose.timestamp, glucose.variant);
     });
 
-    const snapshots: Snapshot[] = o.snapshots.map((a: JSONObject) =>
-      Snapshot.deserialize(a),
-    );
-    snapshots.forEach((s) => session.addSnapshot(s));
+    const snapshot = o.snapshot
+      ? Snapshot.deserialize(o.snapshot)
+      : new Snapshot();
+    if (o.snapshots) {
+      // Migration
+      const snapshots: Snapshot[] = o.snapshots.map((a: JSONObject) =>
+        Snapshot.deserialize(a),
+      );
+      snapshots.forEach((s) => snapshot.absorb(s));
+      if (PrivateStore.debugLogs.value)
+        console.log(`Merged ${snapshots.length} snapshots`);
+      snapshot.pullReadings();
+    }
+    session.snapshot = snapshot;
 
     const activities: Activity[] = o.activities
       ? o.activities.map((a: JSONObject) => Activity.deserialize(a))
