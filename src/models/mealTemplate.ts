@@ -10,7 +10,6 @@ import { InsulinVariantManager } from "../managers/insulinVariantManager";
 import { BasalStore } from "../storage/basalStore";
 import { CalibrationStore } from "../storage/calibrationStore";
 import { PreferencesStore } from "../storage/preferencesStore";
-import { PrivateStore } from "../storage/privateStore";
 import Insulin from "./events/insulin";
 import Meal from "./events/meal";
 import Session from "./session";
