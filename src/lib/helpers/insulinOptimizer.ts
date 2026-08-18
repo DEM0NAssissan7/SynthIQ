@@ -10,7 +10,6 @@ import { convertDimensions } from "../util";
 import Unit from "../../models/unit";
 import { InsulinVariantManager } from "../../managers/insulinVariantManager";
 import { PrivateStore } from "../../storage/privateStore";
-import Snapshot from "../../models/snapshot";
 
 export namespace InsulinOptimizer {
   // Helpers
@@ -57,9 +56,7 @@ export namespace InsulinOptimizer {
     perpetratorInsulin: Insulin,
     targetBG: number,
   ): number[] {
-    const snapshot = new Snapshot();
     const firstWindow = windows[perpetratorIndex];
-    snapshot.absorb(firstWindow.snapshot);
     const maxTheoreticalDeltaBGs: number[] = [];
     for (let i = perpetratorIndex + 1; i < windows.length; i++) {
       // First, before anything, we need to make a meta-window to encapsulate the combination
