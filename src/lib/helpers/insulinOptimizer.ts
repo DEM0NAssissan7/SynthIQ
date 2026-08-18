@@ -10,6 +10,7 @@ import { convertDimensions } from "../util";
 import Unit from "../../models/unit";
 import { InsulinVariantManager } from "../../managers/insulinVariantManager";
 import { PrivateStore } from "../../storage/privateStore";
+import Snapshot from "../../models/snapshot";
 
 export namespace InsulinOptimizer {
   // Helpers
@@ -51,42 +52,82 @@ export namespace InsulinOptimizer {
     }
   }
   function getMaxAllowedDeltaUnits(
-    victimWindow: TreatmentWindow,
-    windowInsulin: Insulin,
-    perpetrator: Insulin,
-  ): number {
-    const glucoseEffect = victimWindow.glucoses.reduce(
-      (n, glucose) => n + glucose.value * glucose.variant.effect,
-      0,
-    );
-    const theoreticalFinalBG = victimWindow.finalBG - glucoseEffect; // Avoid allowing glucose to falsely give the impression we have more room to spare
-    const deltaBG = theoreticalFinalBG - victimWindow.initialBG;
-    // This value is the theoretically how high the deltaBG in our window could go if we did not take any insulin (i.e. insulin.value = 0)
-    const selfFraction = windowInsulin.batemanIntegral(
-      victimWindow.startTime,
-      victimWindow.endTime,
-      true,
-    );
-    const theoreticalMaxDeltaBG =
-      deltaBG +
-      windowInsulin.value * windowInsulin.variant.effect * selfFraction;
-    // If the victim window has zero or negative headroom (i.e. is already crashing), perpetrator cannot add ANY extra units
-    if (theoreticalMaxDeltaBG <= 0) return 0;
+    windows: TreatmentWindow[],
+    perpetratorIndex: number,
+    perpetratorInsulin: Insulin,
+    targetBG: number,
+  ): number[] {
+    const snapshot = new Snapshot();
+    const firstWindow = windows[perpetratorIndex];
+    snapshot.absorb(firstWindow.snapshot);
+    const maxTheoreticalDeltaBGs: number[] = [];
+    for (let i = perpetratorIndex + 1; i < windows.length; i++) {
+      // First, before anything, we need to make a meta-window to encapsulate the combination
+      const thisWindow = windows[i];
+      if (thisWindow.glucoses.length > 0 || firstWindow.glucoses.length > 0)
+        throw new Error(
+          `The assumption that glucoses have been cleared does not hold. This is a fatal error and the engine will not produce reliable results. This needs to be fixed - before passing vlues into getMaxAllowedDeltaUnits, first you must reverse the effects of glucose`,
+        );
 
-    // Great, now that we know how high the deltaBG (theoretically) could go if we had no insulin, we see how many units the perpetrator needs to inject itself with
-    // before pushing us over that limit
-    const perpetratorFraction = perpetrator.batemanIntegral(
-      victimWindow.startTime,
-      victimWindow.endTime,
-      true,
-    );
-    // If the perpetrator does not affect us, let it do whatever it wants
-    if (perpetratorFraction <= 0) return Infinity;
+      // Now we get onto the business-end
+      const wideDeltaBG = thisWindow.finalBG - targetBG;
+      // Now we we find the total theoretical insulin effect from whatever is ahead of the perpetrator
+      let totalAuxillaryInsulinEffect = 0;
+      for (let j = perpetratorIndex + 1; j <= i; j++) {
+        for (
+          let k = perpetratorIndex + 1;
+          k < windows[j].insulins.length;
+          k++
+        ) {
+          const insulin = windows[j].insulins[k];
+          if (!insulin || !insulin.variant) continue;
+          totalAuxillaryInsulinEffect += insulin.value * insulin.variant.effect;
+        }
+      }
 
-    // For example, if only 20% of the original dose is active during the victim window, we can let the perpetrator have 2x more what it would be compared to if we had 40% of it active
-    const maxAllowedDeltaUnits =
-      theoreticalMaxDeltaBG / perpetrator.variant.effect / perpetratorFraction;
-    return maxAllowedDeltaUnits;
+      const theoreticalMaxDeltaBG = wideDeltaBG + totalAuxillaryInsulinEffect;
+
+      const perpetratorFraction = perpetratorInsulin.batemanIntegral(
+        firstWindow.startTime,
+        thisWindow.endTime,
+        true,
+      );
+      // If the perpetrator does not affect us, let it do whatever it wants
+      if (perpetratorFraction <= 0) {
+        maxTheoreticalDeltaBGs.push(Infinity);
+        continue;
+      }
+
+      // For example, if only 20% of the original dose is active during the super window, we can let the perpetrator have 2x more what it would be compared to if we had 40% of it active
+      const maxAllowedDeltaUnits =
+        theoreticalMaxDeltaBG /
+        perpetratorInsulin.variant.effect /
+        perpetratorFraction;
+      maxTheoreticalDeltaBGs.push(maxAllowedDeltaUnits);
+    }
+    return maxTheoreticalDeltaBGs;
+  }
+  function reverseGlucoseEffects(
+    windows: TreatmentWindow[],
+    getRescueVariant: (variant: RescueVariant) => RescueVariant,
+  ) {
+    // This function clears out the glucoses to basically extract from the windows "what would've happened if we didn't take glucose" because for the sake of safety, this obviously cannot be done IRL - we gotta do it in theory
+    for (let i = 0; i < windows.length; i++) {
+      const window = windows[i];
+      const glucoseEffect = window.glucoses.reduce(
+        (n, glucose) =>
+          n + glucose.value * getRescueVariant(glucose.variant).effect,
+        0,
+      );
+      window.finalBG -= glucoseEffect;
+      window.glucoses = [];
+      // Propogate the change forward
+      for (let j = i + 1; j < windows.length; j++) {
+        const windowJ = windows[j];
+        windowJ.initialBG -= glucoseEffect;
+        windowJ.finalBG -= glucoseEffect;
+      }
+    }
   }
   /**
    * Adjust the dosing in insulins to be as mathematically sound as possible without modifying
@@ -98,32 +139,29 @@ export namespace InsulinOptimizer {
    * @returns An array of Insulin[] and Windows[] equal in size to input, but all doses have been adjusted
    */
   function balance(
-    insulins: Insulin[],
+    originalInsulins: Insulin[],
     windows: TreatmentWindow[],
     getInsulinVariant: (variant: InsulinVariant) => InsulinVariant,
     getRescueVariant: (variant: RescueVariant) => RescueVariant,
   ): [Insulin[], TreatmentWindow[]] {
-    if (windows.length === 0 || insulins.length === 0) return [[], []];
+    if (windows.length === 0 || originalInsulins.length === 0) return [[], []];
 
+    // Set optimization target
+    const targetBG = windows[0].initialBG; // Anchor to a target BG insteado of reducing per-window deltas
+    const insulins = insulinsDeepCopy(originalInsulins);
     const deltaInsulins = insulinsDeepCopy(insulins);
     // Initialize all delta insulins to zero
     deltaInsulins.forEach((i) => (i.value = 0));
+    // First, so we don't blame the meal for something glucose did, we inverse its effects from the windows completely
+    reverseGlucoseEffects(windows, getRescueVariant);
     // Proceed through the windows procedurally
     for (let i = 0; i < Math.min(windows.length, insulins.length); i++) {
       const window = windows[i];
       const deltaInsulin = deltaInsulins[i];
       if (!deltaInsulin || !deltaInsulin.variant) continue;
 
-      const glucoseEffect = window.glucoses.reduce(
-        (n, g) => g.value * getRescueVariant(g.variant).effect + n,
-        0,
-      );
-
-      // We get rid of the theoretical effect of glucose, so the window is no longer considering them (theoretical)
-      window.finalBG -= glucoseEffect;
-      window.glucoses = [];
-      // This deltaBG is our needed adjustment budget for the window
-      const deltaBG = window.finalBG - window.initialBG;
+      // This deltaBG is our needed adjustment budget for the window to pull down to target
+      const deltaBG = window.finalBG - targetBG;
       // totalDeltaInsulin -> the total amount of insulin we need to absorb in THAT window
       // to get the optimal correction
       const totalDeltaInsulin =
@@ -134,18 +172,15 @@ export namespace InsulinOptimizer {
         window.endTime,
         true,
       );
-      const learningRate = PreferencesStore.learningRate.value / 100; // The stored learningRate is a percentage - convert to fraction
-      const neededDelta =
-        (totalDeltaInsulin / insulinEffectRatio) * learningRate;
-      // Now we look into the future windows/doses to see what they will allow us to do before pushing them over (into negatives)
-      const maxAllowedDeltaUnits: number[] = [];
-      for (let j = i + 1; j < windows.length; j++) {
-        const victim = windows[j];
-        const victimInsulin = insulins[j];
-        maxAllowedDeltaUnits.push(
-          getMaxAllowedDeltaUnits(victim, victimInsulin, deltaInsulin),
-        );
-      }
+      const neededDelta = totalDeltaInsulin / insulinEffectRatio;
+      // Now we look into the future windows/doses to see what they will allow us to do before pushing them over (into negative deltaBG)
+      remorph(windows, insulins); // Remorph the windows to use the actual values of insulin (all previous insulins < i modifications do persist here)
+      const maxAllowedDeltaUnits: number[] = getMaxAllowedDeltaUnits(
+        windows,
+        i,
+        deltaInsulin,
+        targetBG,
+      );
       // Apply it to our model
       const unconstrainedDelta = Math.min(neededDelta, ...maxAllowedDeltaUnits);
       deltaInsulin.value = Math.max(unconstrainedDelta, -insulins[i].value); // Prevent making own dose less than itself
@@ -279,24 +314,41 @@ export namespace InsulinOptimizer {
     // Phase 2: Now that we have the new splits that we want, we run
     // the balancer to let it adjust the new phantom insulins to their theoretical
     // optimal value
-    [insulins, windows] = balance(
+    const [newInsulins, newWindows] = balance(
       insulins,
       windows,
       getInsulinVariant,
       getRescueVariant,
     );
-
-    // Phase 3: Remove any zero doses (these are doses that have been overridden by a big previous dose)
+    windows = newWindows;
     if (PrivateStore.debugLogs.value)
-      if (insulins.filter((insulin) => insulin.value < 0).length > 0)
+      if (newInsulins.filter((insulin) => insulin.value < 0).length > 0)
         console.warn(
           `[InsulinOptimizer]: Insulins contain a negative dose`,
           windows,
           insulins,
           _insulins,
         );
-    insulins = insulins.filter((insulin) => insulin.value > 0);
+    /*if (PrivateStore.debugLogs.value)
+      console.log(_insulins, insulins, inputWindows, windows);*/
 
-    return insulins;
+    // Phase 3: Apply learning rate and prune any zero-doses
+    const learningRate = PreferencesStore.learningRate.value / 100; // The stored learningRate is a percentage - convert to fraction
+    const resultInsulins: Insulin[] = [];
+    for (let i = 0; i < insulins.length; i++) {
+      const original = insulins[i];
+      const balanced = newInsulins[i];
+      if (balanced.value <= 0) continue; // Pruning
+      const delta = balanced.value - original.value;
+      resultInsulins.push(
+        new Insulin(
+          original.value + delta * learningRate,
+          balanced.timestamp,
+          balanced.variant,
+        ),
+      );
+    }
+
+    return resultInsulins;
   }
 }
