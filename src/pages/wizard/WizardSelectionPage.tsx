@@ -15,6 +15,7 @@ export default function WizardSelectionPage() {
 
   function advance(name: string | null) {
     if (!name) {
+      WizardManager.setGlobMeta("Session"); // Make it able to see all sessions
       WizardManager.createTemplate("Session");
       WizardManager.begin(navigate);
       return;
@@ -24,6 +25,7 @@ export default function WizardSelectionPage() {
       const latestSession = template.latestSession;
       if (!latestSession) {
         // New template, no sessions yet — jump straight to meal
+        WizardManager.setGlobMeta(name);
         WizardManager.begin(navigate);
         return;
       }

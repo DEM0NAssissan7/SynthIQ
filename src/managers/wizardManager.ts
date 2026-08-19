@@ -167,6 +167,20 @@ export default class WizardManager {
     templates.splice(index, 1);
     WizardStore.templates.write();
   }
+  /**
+   * Updates the session with `name` to use ALL sessions
+   * @param name Name of template
+   */
+  static setGlobMeta(name: string) {
+    const template = this.getTemplateByName(name);
+    const templateSessionUUIDs = template.sessions.map((s) => s.uuid);
+    const allSessions = this.getAllSessions().map((s) =>
+      Session.deserialize(Session.serialize(s)),
+    );
+    template.auxillarySessions = allSessions.filter(
+      (s) => templateSessionUUIDs.indexOf(s.uuid) === -1,
+    );
+  }
 
   // Reset
   static endSession(finalBG: number) {

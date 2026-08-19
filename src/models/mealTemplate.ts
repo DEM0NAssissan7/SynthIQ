@@ -18,17 +18,21 @@ import type { Template } from "./types/interfaces";
 import type { Deserializer, Serializer } from "./types/types";
 
 export default class MealTemplate extends Subscribable implements Template {
-  sessions: Session[] = [];
+  _sessions: Session[] = [];
+  auxillarySessions: Session[] = []; // Sessions that will not be serialized
   timestamp: Date;
 
   constructor(public name: string) {
     super();
     this.timestamp = new Date();
   }
+  get sessions() {
+    return [...this._sessions, ...this.auxillarySessions];
+  }
 
   // Session management
   addSession(session: Session) {
-    this.sessions.push(session);
+    this._sessions.push(session);
     this.timestamp = session.timestamp; // We set the timestamp to be the latest added session timestamp
     this.addChildSubscribable(session);
   }
@@ -133,8 +137,7 @@ export default class MealTemplate extends Subscribable implements Template {
     return this.sessions.length;
   }
   get validSessions(): Session[] {
-    const sessions = this.sessions.filter((s) => !s.isInvalid);
-    return sessions;
+    return this.sessions.filter((s) => !s.isInvalid);
   }
   get freshSessions(): Session[] {
     const sessions = this.validSessions.filter((s) => !s.expired);
@@ -450,7 +453,7 @@ export default class MealTemplate extends Subscribable implements Template {
 
   // Serialization
   static serialize: Serializer<MealTemplate> = (template: MealTemplate) => {
-    const sessions = template.sessions.filter(
+    const sessions = template._sessions.filter(
       (s) => s.age < PreferencesStore.maxSessionLife.value,
     ); // Get rid of old sessions upon serialization
     return {
