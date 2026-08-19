@@ -96,9 +96,9 @@ export default function TestPage() {
                   strokeDasharray="3 3"
                   label={{
                     value: `${value > 0 ? "+" : ""}${round(value, 1)}u`,
-                    fill: "#c6c6c6",
+                    fill: "#c49d4a",
                     fontSize: 12,
-                    position: "bottom",
+                    position: "center",
                   }}
                 />
               ))}
