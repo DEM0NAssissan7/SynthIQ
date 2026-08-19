@@ -13,7 +13,6 @@ import {
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Paths } from "expo-file-system";
 import * as FileSystemLegacy from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
@@ -84,46 +83,7 @@ export default function ExpoApp() {
       const data = JSON.parse(event.nativeEvent.data);
       if (!data || !data.type || !data.id) return;
 
-      if (data.type === "ASYNC_STORAGE_GET") {
-        const val = await AsyncStorage.getItem(data.key);
-        const payload = JSON.stringify({
-          id: data.id,
-          type: "ASYNC_STORAGE_RESPONSE",
-          value: val,
-        });
-        webViewRef.current?.injectJavaScript(`
-          (function() {
-            window.postMessage(${JSON.stringify(payload)}, "*");
-          })();
-          true;
-        `);
-      } else if (data.type === "ASYNC_STORAGE_SET") {
-        await AsyncStorage.setItem(data.key, data.value);
-        const payload = JSON.stringify({
-          id: data.id,
-          type: "ASYNC_STORAGE_RESPONSE",
-          success: true,
-        });
-        webViewRef.current?.injectJavaScript(`
-          (function() {
-            window.postMessage(${JSON.stringify(payload)}, "*");
-          })();
-          true;
-        `);
-      } else if (data.type === "ASYNC_STORAGE_CLEAR") {
-        await AsyncStorage.clear();
-        const payload = JSON.stringify({
-          id: data.id,
-          type: "ASYNC_STORAGE_RESPONSE",
-          success: true,
-        });
-        webViewRef.current?.injectJavaScript(`
-          (function() {
-            window.postMessage(${JSON.stringify(payload)}, "*");
-          })();
-          true;
-        `);
-      } else if (data.type === "DOWNLOAD_START") {
+      if (data.type === "DOWNLOAD_START") {
         webViewRef.current = {
           ...webViewRef.current,
           _downloadState: {

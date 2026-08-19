@@ -12,25 +12,11 @@ export namespace CustomStore {
     Serialization.getArraySerializer(Food.serialize),
     Serialization.getArrayDeserializer(Food.deserialize)
   );
-  // Push custom foods to global when loaded or updated
-  foods.subscribe((customFoods: Food[]) => {
-    if (Array.isArray(customFoods)) {
-      customFoods.forEach((food) => {
-        if (!globalFoods.some((f) => f.name === food.name)) {
-          globalFoods.push(food);
-        }
-      });
-    }
-  });
+  // Push custom foods to global
+  globalFoods.push(...foods.value);
 
   export function addFood(food: Food) {
-    let current: Food[] = [];
-    try {
-      current = foods.value;
-    } catch {
-      // Storage not loaded yet
-    }
-    foods.value = [...current, food];
+    foods.value = [...foods.value, food];
 
     if (!globalFoods.some((f) => f.name === food.name)) {
       globalFoods.push(food);
@@ -38,16 +24,14 @@ export namespace CustomStore {
   }
 
   export function removeFood(food: Food) {
-    let current: Food[] = [];
-    try {
-      current = foods.value;
-    } catch {
-      // Storage not loaded yet
-    }
-    const newFoods = current.filter((f: Food) => f.name !== food.name && f !== food);
+    const newFoods = foods.value.filter(
+      (f: Food) => f.name !== food.name && f !== food,
+    );
     foods.value = newFoods;
 
-    const idx = globalFoods.findIndex((f: Food) => f.name === food.name || f === food);
+    const idx = globalFoods.findIndex(
+      (f: Food) => f.name === food.name || f === food,
+    );
     if (idx !== -1) {
       globalFoods.splice(idx, 1);
     }

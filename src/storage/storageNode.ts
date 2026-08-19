@@ -108,7 +108,7 @@ export interface KeyInterface<T> {
 
 const appID = "synthiq";
 const storageBackend = StorageBackends.getDefault();
-function useStorageState<T>(entry: StorageEntry): [T, (v: T) => void] {
+function useStorageState<T>(entry: StorageEntry<T>): [T, (v: T) => void] {
   // Keep the latest value in a ref (doesn't cause renders by itself)
   const valueRef = useRef<T>(entry.get() as T);
 
@@ -143,30 +143,25 @@ const defaultDeserializer: Deserializer<any> = (a: JSONValue) => a;
 const defaultSerializer: Serializer<any> = (a: JSONValue) => a;
 
 export let nodes: StorageNode[] = [];
-export let allNodes: StorageNode[] = [];
-export async function initializeNodes() {
-  await Promise.all(allNodes.map((node) => node.read()));
-}
 
-class StorageEntry {
+class StorageEntry<T> {
   id: string;
   private nodeName: string;
-  private serializer: Serializer<any>;
-  private deserializer: Deserializer<any>;
-  private defaultValue: any;
-  private isLoaded: boolean = false;
+  private serializer: Serializer<T>;
+  private deserializer: Deserializer<T>;
+  private defaultValue: T;
 
-  value: any;
-  subscriptions: SubscriptionCallback<any>[] = [];
+  value: T;
+  subscriptions: SubscriptionCallback<T>[] = [];
   /** Tracks whether the last read was uncompressed old data — triggers re-compression */
   private _needsCompressionMigration: boolean = false;
 
   constructor(
     id: string,
     nodeName: string,
-    defaultValue: any,
-    serializer: Serializer<any>,
-    deserializer: Deserializer<any>,
+    defaultValue: T,
+    serializer: Serializer<T>,
+    deserializer: Deserializer<T>,
   ) {
     this.id = id;
     this.nodeName = nodeName;
@@ -178,13 +173,9 @@ class StorageEntry {
 
   // Basic, fast, in-memory frontend
   get() {
-    if (!this.isLoaded)
-      throw new Error(
-        `Cannot get ${this.getStorageKey()}: value has not been loaded`,
-      );
     return this.value;
   }
-  set(value: any) {
+  set(value: T) {
     this.value = value; // Update in-memory cache value
     this.write(); // Write to storage
     this.notify(); // Notify subscribers
@@ -194,16 +185,15 @@ class StorageEntry {
   }
 
   // Storage Abstraction (through handlers and try/catch)
-  async read() {
+  read() {
     let val: JSONValue;
     try {
-      val = await this.getFromStorage();
+      val = this.getFromStorage();
     } catch {
       console.warn(
-        `StorageProvider: did not find an entry in storage for ${this.getStorageKey()}. Creating new entry...`,
+        `StorageEntry: did not find an entry in storage for ${this.getStorageKey()}. Creating new entry...`,
       );
       this.write();
-      this.isLoaded = true;
       return;
     }
 
@@ -215,17 +205,16 @@ class StorageEntry {
         this._needsCompressionMigration = false;
         this.write();
       }
-      this.isLoaded = true;
     } catch (e) {
       console.error(e);
       throw new Error(
-        `StorageProvider[${this.getStorageKey()}]: Deserializer is invalid: ${e}`,
+        `StorageEntry[${this.getStorageKey()}]: Deserializer is invalid: ${e}`,
       );
     }
   }
-  async write() {
+  write() {
     try {
-      await this.writeToStorage(this.export());
+      this.writeToStorage(this.export());
       this.notify();
     } catch (e) {
       console.error(e);
@@ -249,26 +238,24 @@ class StorageEntry {
   }
 
   // Storage API
-  private async writeToStorage(value: JSONValue) {
-    await storageBackend.setItem(this.getStorageKey(), compressValue(value));
+  private writeToStorage(value: JSONValue) {
+    storageBackend.setItem(this.getStorageKey(), compressValue(value));
   }
-  private async getFromStorage(): Promise<JSONValue> {
-    let retval: any;
-    const raw = await storageBackend.getItem(this.getStorageKey());
-    retval = raw;
-    if (retval === null)
+  private getFromStorage(): JSONValue {
+    const raw = storageBackend.getItem(this.getStorageKey());
+    if (raw === null || raw === undefined)
       throw new Error(
         `StorageEntry[${this.getStorageKey()}]: Failed to retrieve key`,
       );
-    this._needsCompressionMigration = !isCompressed(retval);
-    return decompressValue(retval);
+    this._needsCompressionMigration = !isCompressed(raw);
+    return decompressValue(raw);
   }
   private getStorageKey() {
     return `${appID}.${this.nodeName}.${this.id}`;
   }
 
   // Key interface
-  getKeyInterface<T>(): KeyInterface<T> {
+  getKeyInterface(): KeyInterface<T> {
     const self = this;
     return {
       get value() {
@@ -287,10 +274,10 @@ class StorageEntry {
   }
 
   // Subscriptions
-  subscribe(callback: SubscriptionCallback<any>) {
+  subscribe(callback: SubscriptionCallback<T>) {
     this.subscriptions.push(callback);
   }
-  unsubscribe(callback: SubscriptionCallback<any>) {
+  unsubscribe(callback: SubscriptionCallback<T>) {
     this.subscriptions = this.subscriptions.filter(
       (subscriber) => subscriber !== callback,
     );
@@ -311,10 +298,9 @@ class StorageEntry {
 
 class StorageNode {
   name: string;
-  private entries: StorageEntry[] = [];
+  private entries: StorageEntry<any>[] = [];
   constructor(name: string, skipRegister: boolean = false) {
     this.name = name;
-    allNodes.push(this);
     if (!skipRegister) nodes.push(this);
   }
 
@@ -326,23 +312,19 @@ class StorageNode {
     deserializer: Deserializer<T> = defaultDeserializer,
   ): KeyInterface<T> {
     try {
-      return this.getEntryById(id).getKeyInterface<T>(); // Try to see if it already exists
+      return this.getEntryById(id).getKeyInterface(); // Try to see if it already exists
     } catch {
-      const entry = new StorageEntry(
+      const entry = new StorageEntry<T>(
         id,
         this.name,
         defaultValue,
         serializer,
         deserializer,
       );
+      entry.read(); // Automatically pull value from storage
       this.entries.push(entry);
-      return entry.getKeyInterface<T>();
+      return entry.getKeyInterface();
     }
-  }
-
-  // Async read
-  async read() {
-    await Promise.all(this.entries.map((e) => e.read()));
   }
 
   // Resetting
@@ -381,7 +363,7 @@ class StorageNode {
   }
 
   // ID abstraction
-  private getEntryById(id: string): StorageEntry {
+  private getEntryById(id: string): StorageEntry<any> {
     for (const entry of this.entries) {
       if (entry.id === id) return entry;
     }
