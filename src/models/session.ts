@@ -209,12 +209,13 @@ export default class Session extends Subscribable {
     insulinVariants: InsulinVariant[],
     rescueVariants: RescueVariant[],
   ): Insulin[] {
-    return InsulinOptimizer.getOptimalInsulins(
+    const [optimalInsulins] = InsulinOptimizer.getOptimalInsulins(
       this.insulins,
       this.windows,
       insulinVariants,
       rescueVariants,
     );
+    return optimalInsulins;
   }
   get optimalMealInsulins(): Insulin[] {
     return this.getOptimalMealInsulins(

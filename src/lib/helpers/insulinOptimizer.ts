@@ -173,6 +173,7 @@ export namespace InsulinOptimizer {
         window.endTime,
         true,
       );
+      if (insulinEffectRatio <= 0) continue;
       const neededDelta = totalDeltaInsulin / insulinEffectRatio;
       // Now we look into the future windows/doses to see what they will allow us to do before pushing them over (into negative deltaBG)
       remorph(windows, insulins); // Remorph the windows to use the actual values of insulin (all previous insulins < i modifications do persist here)
@@ -271,7 +272,7 @@ export namespace InsulinOptimizer {
     windows: TreatmentWindow[],
     insulinVariants: InsulinVariant[],
     rescueVariants: RescueVariant[],
-  ): Insulin[] {
+  ): [Insulin[], TreatmentWindow[], Insulin[], Insulin[]] {
     const { getInsulinVariant, getRescueVariant } = useVariantGetters(
       insulinVariants,
       rescueVariants,
@@ -355,6 +356,6 @@ export namespace InsulinOptimizer {
       );
     }
 
-    return resultInsulins;
+    return [resultInsulins, windows, newInsulins, originalInsulins];
   }
 }

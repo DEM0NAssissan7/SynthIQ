@@ -44,6 +44,7 @@ import ExpirationPage from "./pages/ExpirationPage";
 import DebugPage from "./pages/DebugPage";
 import { initThemeListener } from "./lib/themeManager";
 import WizardSessionSelectPage from "./pages/wizard/WizardSessionSelectPage";
+import TestPage from "./pages/TestPage";
 
 function App() {
   // Load up values into nodes
@@ -156,6 +157,7 @@ function App() {
           <Route path="/insulinvariants" element={<InsulinVariantsPage />} />
           <Route path="/history" element={<HistoryPage />} />
           <Route path="/expirations" element={<ExpirationPage />} />
+          <Route path="/test" element={<TestPage />} />
 
           {/* Wizard Routes */}
           <Route path="/wizard" element={<WizardRouterPage />} />
@@ -165,10 +167,7 @@ function App() {
             path="/wizard/selectsession"
             element={<WizardSessionSelectPage />}
           />
-          <Route
-            path="/wizard/hub"
-            element={<Navigate to="/hub" replace />}
-          />
+          <Route path="/wizard/hub" element={<Navigate to="/hub" replace />} />
           <Route path="/wizard/meal" element={<WizardMealPage />} />
           <Route path="/wizard/insulin" element={<WizardInsulinRouter />} />
           <Route path="/wizard/edit" element={<WizardEditPage />} />
