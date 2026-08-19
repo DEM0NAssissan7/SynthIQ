@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   BackHandler,
   Platform,
@@ -16,10 +16,7 @@ import { WebView } from "react-native-webview";
 import { Paths } from "expo-file-system";
 import * as FileSystemLegacy from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
-import { BrowserRouter } from "react-router";
-import App from "./App";
 import { BUNDLED_HTML } from "./bundledHtml";
-import "./index.css";
 
 // Suppress benign JS circular dependency warnings in Metro
 LogBox.ignoreLogs(["Require cycle:"]);
@@ -48,17 +45,6 @@ export default function ExpoApp() {
     );
     return () => subscription.remove();
   }, []);
-
-  // Direct Web browser platform rendering
-  if (Platform.OS === "web") {
-    return (
-      <React.StrictMode>
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
-      </React.StrictMode>
-    );
-  }
 
   // Native Android / Mobile WebView Shell
   const [useLiveServer, setUseLiveServer] = useState<boolean>(false);
