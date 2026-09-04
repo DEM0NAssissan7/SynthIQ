@@ -60,15 +60,17 @@ export function getIntelligentGlucoseCorrection(
    */
   const velocity = velocityHours / 60;
   const velocityHorizon = Math.min(actingMinutes, 30);
-  const velocityPredictedDrop = velocity * velocityHorizon;
+  let velocityPredictedDrop = velocity * velocityHorizon;
+  if (!Number.isFinite(velocityPredictedDrop)) velocityPredictedDrop = 0;
 
   const dynamicISF = estimateDynamicISF(readings, insulinsOnBoard);
   const now = new Date();
   const future = getTimestampFromOffset(now, actingMinutes / 60);
-  const insulinPredictedDrop = insulinsOnBoard.reduce(
+  let insulinPredictedDrop = insulinsOnBoard.reduce(
     (n, insulin) => n - insulin.batemanIntegral(now, future) * dynamicISF,
     0,
   );
+  if (!Number.isFinite(insulinPredictedDrop)) insulinPredictedDrop = 0;
 
   // Choose the largest drop as the safest bet for the user if we are dropping
   // If we are rising, have the rise counteract the predicted drop from insulin

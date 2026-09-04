@@ -14,10 +14,11 @@ export function getBGVelocities(readings: SugarReading[]): number[] {
     const lastReading = readings[i + 1];
     const timeDiff = getHourDiff(
       currentReading.timestamp,
-      lastReading.timestamp
+      lastReading.timestamp,
     );
     const velocity = (currentReading.sugar - lastReading.sugar) / timeDiff;
-    if (velocity !== null && !isNaN(velocity)) velocities.push(velocity);
+    if (velocity !== null && Number.isFinite(velocity))
+      velocities.push(velocity);
   }
   return velocities;
 }
