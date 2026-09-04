@@ -159,7 +159,7 @@ function App() {
           <Route path="/activity/end" element={<ActivityEndPage />} />
         </Routes>
       </div>
-      <footer className="app-footer text-center py-2">
+      <footer className="app-footer text-center">
         <button
           type="button"
           onClick={checkPwaUpdate}
