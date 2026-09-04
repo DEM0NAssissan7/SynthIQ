@@ -227,6 +227,10 @@ body {
 .app-action-grid {
   display: grid;
   gap: 0.75rem;
+
+  > * {
+    min-height: 0;
+  }
 }
 
 @media (min-width: 576px) {

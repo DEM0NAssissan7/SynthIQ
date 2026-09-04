@@ -46,14 +46,15 @@ function QuickTreatmentsContent() {
         </Alert>
       )}
 
+      {latestBolus !== null && (
+        <BsCard className="border-0 shadow-sm mb-3">
+          <BsCard.Body className="p-3">
+            <LastBolusMessage />
+          </BsCard.Body>
+        </BsCard>
+      )}
+
       <ActionGrid>
-        {latestBolus !== null && (
-          <BsCard className="h-100 border-0 shadow-sm app-action-card mb-3">
-            <BsCard.Body className="p-3">
-              <LastBolusMessage />
-            </BsCard.Body>
-          </BsCard>
-        )}
         <ActionCard
           icon="bi-droplet-half"
           eyebrow="Insulin"

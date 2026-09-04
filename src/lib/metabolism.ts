@@ -40,7 +40,9 @@ export function getGlucoseCorrectionCaps(
   variant: RescueVariant,
   allowNegative = false,
 ) {
+  if (!variant || variant.effect <= 0 || !Number.isFinite(sugar)) return 0;
   const correction = (PreferencesStore.targetBG.value - sugar) / variant.effect;
+  if (!Number.isFinite(correction)) return 0;
   if (allowNegative) return correction;
   return Math.max(correction, 0);
 }
