@@ -46,11 +46,14 @@ import { initThemeListener } from "./lib/themeManager";
 import WizardSessionSelectPage from "./pages/wizard/WizardSessionSelectPage";
 import TestPage from "./pages/TestPage";
 import { VERSION_STRING } from "./version";
+import { initPwaUpdater, checkPwaUpdate } from "./lib/pwaUpdater";
 
 function App() {
   useEffect(() => {
     initThemeListener();
+    initPwaUpdater();
   }, []);
+
 
   if (PrivateStore.debugLogs.value) {
     console.log(BackendStore);
@@ -157,13 +160,16 @@ function App() {
         </Routes>
       </div>
       <footer className="app-footer text-center py-2">
-        <span
-          className="app-version text-muted small"
-          title={`SynthIQ ${VERSION_STRING}`}
+        <button
+          type="button"
+          onClick={checkPwaUpdate}
+          className="btn btn-link p-0 text-decoration-none app-version text-muted small"
+          title={`SynthIQ ${VERSION_STRING} · Tap to check for updates`}
         >
           {VERSION_STRING}
-        </span>
+        </button>
       </footer>
+
     </div>
   );
 
