@@ -1,12 +1,12 @@
 import { Button, Form, InputGroup } from "react-bootstrap";
-import Card from "../components/Card";
+import Card from "../../components/Card";
 import {
   MetricGrid,
   MetricPill,
   PageActions,
   PageHeader,
   PageLayout,
-} from "../components/PageLayout";
+} from "../../components/PageLayout";
 import {
   dosingChangeComplete,
   getBasalSensitivity,
@@ -15,18 +15,18 @@ import {
   getFastingVelocity,
   getLastShot,
   populateFastingVelocitiesCache,
-} from "../lib/basal";
-import { round } from "../lib/util";
+} from "../../lib/basal";
+import { round } from "../../lib/util";
 import { useEffect, useMemo, useReducer, useState } from "react";
 import { useNavigate } from "react-router";
-import { getHourDiff, getPrettyTime } from "../lib/timing";
-import { HealthMonitorStore } from "../storage/healthMonitorStore";
-import { BasalStore } from "../storage/basalStore";
-import { getLatestBasalTimestamp } from "../lib/healthMonitor";
-import type Insulin from "../models/events/insulin";
-import { useNow } from "../state/useNow";
-import { TreatmentManager } from "../managers/treatmentManager";
-import { InsulinVariantManager } from "../managers/insulinVariantManager";
+import { getHourDiff, getPrettyTime } from "../../lib/timing";
+import { HealthMonitorStore } from "../../storage/healthMonitorStore";
+import { BasalStore } from "../../storage/basalStore";
+import { getLatestBasalTimestamp } from "../../lib/healthMonitor";
+import type Insulin from "../../models/events/insulin";
+import { useNow } from "../../state/useNow";
+import { InsulinVariantManager } from "../../managers/insulinVariantManager";
+import WizardManager from "../../managers/wizardManager";
 
 export default function BasalPage() {
   const now = useNow(60);
@@ -52,7 +52,7 @@ export default function BasalPage() {
   const navigate = useNavigate();
   function markBasalInjection(dose: number) {
     if (confirm(`Confirm that you have injected ${dose}u of basal insulin`)) {
-      TreatmentManager.basal(dose, new Date());
+      WizardManager.markBasal(dose, new Date());
       navigate("/");
     }
   }
@@ -97,7 +97,10 @@ export default function BasalPage() {
               lastBasalTimestamp,
             )}h ago)`}
           />
-          <MetricPill label="Cycle status" value={changeIsComplete ? "Complete" : "In progress"} />
+          <MetricPill
+            label="Cycle status"
+            value={changeIsComplete ? "Complete" : "In progress"}
+          />
         </MetricGrid>
         <hr />
         <div className="small text-uppercase text-muted fw-semibold mb-2">
@@ -105,7 +108,10 @@ export default function BasalPage() {
         </div>
         <div className="d-flex flex-wrap gap-2">
           {getTimes().map((time) => (
-            <span key={time} className="badge text-bg-secondary border px-3 py-2">
+            <span
+              key={time}
+              className="badge text-bg-secondary border px-3 py-2"
+            >
               {time}
             </span>
           ))}

@@ -10,14 +10,14 @@ import {
   PageLayout,
 } from "../../components/PageLayout";
 
-export default function WizardSelectionPage() {
+export default function MealSelectionPage() {
   const navigate = useNavigate();
 
   function advance(name: string | null) {
     if (!name) {
       WizardManager.setGlobMeta("Session"); // Make it able to see all sessions
       WizardManager.createTemplate("Session");
-      WizardManager.begin(navigate);
+      navigate("/meal");
       return;
     }
     try {
@@ -26,11 +26,11 @@ export default function WizardSelectionPage() {
       if (!latestSession) {
         // New template, no sessions yet — jump straight to meal
         WizardManager.setGlobMeta(name);
-        WizardManager.begin(navigate);
+        navigate("/meal");
         return;
       }
       WizardManager.selectSession(latestSession!);
-      WizardManager.begin(navigate);
+      navigate("/meal");
     } catch (e) {
       alert(`Template named ${name} encountered an error`);
       console.error(e);

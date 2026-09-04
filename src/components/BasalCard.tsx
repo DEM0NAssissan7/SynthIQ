@@ -3,9 +3,9 @@ import { useNavigate, Link } from "react-router";
 import { getLastShot, getDailyBasalPerShot } from "../lib/basal";
 import { getPrettyTime, getHourDiff } from "../lib/timing";
 import { round } from "../lib/util";
-import { TreatmentManager } from "../managers/treatmentManager";
 import { BasalStore } from "../storage/basalStore";
 import { HealthMonitorStore } from "../storage/healthMonitorStore";
+import WizardManager from "../managers/wizardManager";
 
 function formatDose(value: number) {
   const rounded = round(value, 1);
@@ -48,15 +48,13 @@ export default function BasalCard({
     if (
       confirm(`Confirm that you have injected ${doseLabel}u of basal insulin`)
     ) {
-      TreatmentManager.basal(typicalBasalDose, new Date());
+      WizardManager.markBasal(typicalBasalDose, new Date());
       setDueForBasal(false);
     }
   }
 
   return (
-    <BsCard
-      className="app-card border-0 shadow-sm mb-3"
-    >
+    <BsCard className="app-card border-0 shadow-sm mb-3">
       <BsCard.Body className="p-3">
         <div className="d-flex justify-content-between align-items-start gap-3 mb-3">
           <div>

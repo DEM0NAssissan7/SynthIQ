@@ -69,7 +69,7 @@ export function timeToCritical() {
 }
 
 // Rescue Glucose
-export function markGlucose(
+export function setLastRescue(
   amount: number,
   variant: RescueVariant,
   timestamp = new Date(),
@@ -99,7 +99,7 @@ export function getLatestBasalTimestamp() {
 }
 
 // Insulin Bolus
-export function markBolus(
+export function addRecentBolus(
   units: number,
   variant: InsulinVariant,
   timestamp = new Date(),

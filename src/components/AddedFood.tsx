@@ -12,11 +12,11 @@ interface SearchFoodProps {
 }
 
 export default function AddedFood({ food, meal }: SearchFoodProps) {
-  let prettyUnit = getFoodUnitPrettyName(food.unit);
-  let letter = prettyUnit[prettyUnit.length - 1];
+  const prettyUnit = getFoodUnitPrettyName(food.unit);
+  const letter = prettyUnit[prettyUnit.length - 1];
   const { amount, setAmount, carbs, protein, fiber, rise } = useFood(
     food,
-    meal
+    meal,
   );
   const netCarbs = useMemo(() => {
     return carbs - fiber;

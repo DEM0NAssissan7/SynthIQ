@@ -1,11 +1,11 @@
 import { useNavigate } from "react-router";
-import { WizardStore } from "../../storage/wizardStore";
 import { useEffect } from "react";
+import { WizardStore } from "../../storage/wizardStore";
 
 export default function () {
   const navigate = useNavigate();
+  WizardStore.insulinIsMealRelated.value = true;
   useEffect(() => {
-    WizardStore.isBolus.value = true;
     navigate("/insulin");
   }, [navigate]);
   return <></>;

@@ -50,15 +50,6 @@ export default class Session extends Subscribable {
     this.uuid = genUUID();
   }
 
-  // Parent
-  get parent(): UUID | null {
-    return this._parent;
-  }
-  set parent(p: UUID) {
-    this._parent = p;
-    this.notify();
-  }
-
   // Meals
   addMeal(meal: Meal): void {
     this.meals.push(meal);
@@ -406,6 +397,25 @@ export default class Session extends Subscribable {
   get expired(): boolean {
     return this.age > PreferencesStore.usableSessionLife.value;
   }
+  get ended(): boolean {
+    const now = new Date();
+    const elapsed = this.getN(now);
+
+    // Can't end before min session length
+    if (elapsed < PreferencesStore.minSessionLength.value) return false;
+
+    // We are past max length, we are done
+    if (elapsed > PreferencesStore.maxSessionLength.value) return true;
+
+    // See if we have a significant amount of insulin on board
+    let totalEffect = 0;
+    for (const insulin of this.insulins) {
+      totalEffect += insulin.iob(now) * insulin.variant.effect;
+    }
+    if (totalEffect < PreferencesStore.insulinMinActivity.value) return true;
+
+    return false;
+  }
 
   getObservedReadings() {
     if (!this.endTimestamp) return Promise.resolve([]);
@@ -447,7 +457,6 @@ export default class Session extends Subscribable {
   static serialize: Serializer<Session> = (session: Session) => {
     return {
       uuid: session.uuid,
-      parent: session.parent,
       snapshot: Snapshot.serialize(session.snapshot),
       meals: session.meals.map((a) => Meal.serialize(a)),
       insulins: session.insulins.map((a) => Insulin.serialize(a)),

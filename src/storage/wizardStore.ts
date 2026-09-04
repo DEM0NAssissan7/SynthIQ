@@ -25,6 +25,12 @@ export namespace WizardStore {
     MealTemplate.serialize,
     MealTemplate.deserialize,
   );
+  export const activeTemplate = node.add<MealTemplate>(
+    "activeTemplate",
+    new MealTemplate(""),
+    MealTemplate.serialize,
+    MealTemplate.deserialize,
+  );
 
   // Page
   export const page = node.add<WizardPage>(
@@ -35,7 +41,7 @@ export namespace WizardStore {
   );
 
   // State tracking for insulin page
-  export const isBolus = node.add("isBolus", false);
+  export const insulinIsMealRelated = node.add("insulinIsMealRelated", false);
 
   // Active Session
   export const session = node.add<Session>(

@@ -1,37 +1,37 @@
 import { useState, useMemo, useEffect, useReducer } from "react";
 import { Button, Form, InputGroup } from "react-bootstrap";
 import { useNavigate } from "react-router";
-import BloodSugarInput from "../components/BloodSugarInput";
+import BloodSugarInput from "../../components/BloodSugarInput";
 import {
   getGlucoseCorrectionCaps,
   getIntelligentGlucoseCorrection,
-} from "../lib/metabolism";
-import { roundByHalf } from "../lib/util";
-import Card from "../components/Card";
-import HealthMonitorMessage from "../components/HealthMonitorMessage";
+} from "../../lib/metabolism";
+import { roundByHalf } from "../../lib/util";
+import Card from "../../components/Card";
+import HealthMonitorMessage from "../../components/HealthMonitorMessage";
 import {
   populateReadingCache,
   getBGVelocity,
   getLastRescueMinutes,
-} from "../lib/healthMonitor";
-import TemplateSummary from "../components/TemplateSummary";
-import { HealthMonitorStore } from "../storage/healthMonitorStore";
-import { WizardStore } from "../storage/wizardStore";
-import { PreferencesStore } from "../storage/preferencesStore";
-import { NumberOptionSelector } from "../components/NumberOptionSelector";
-import { RescueVariantManager } from "../managers/rescueVariantManager";
-import type { RescueVariant } from "../models/types/rescueVariant";
-import { RescueVariantStore } from "../storage/rescueVariantStore";
-import { useNow } from "../state/useNow";
-import { TreatmentManager } from "../managers/treatmentManager";
-import LastBolusMessage from "../components/LastBolusMessage";
+} from "../../lib/healthMonitor";
+import TemplateSummary from "../../components/summary/TemplateSummary";
+import { HealthMonitorStore } from "../../storage/healthMonitorStore";
+import { WizardStore } from "../../storage/wizardStore";
+import { PreferencesStore } from "../../storage/preferencesStore";
+import { NumberOptionSelector } from "../../components/NumberOptionSelector";
+import { RescueVariantManager } from "../../managers/rescueVariantManager";
+import type { RescueVariant } from "../../models/types/rescueVariant";
+import { RescueVariantStore } from "../../storage/rescueVariantStore";
+import { useNow } from "../../state/useNow";
+import LastBolusMessage from "../../components/LastBolusMessage";
 import {
   MetricGrid,
   MetricPill,
   PageActions,
   PageHeader,
   PageLayout,
-} from "../components/PageLayout";
+} from "../../components/PageLayout";
+import WizardManager from "../../managers/wizardManager";
 
 export default function RescuePage() {
   const [session] = WizardStore.session.useState();
@@ -93,7 +93,7 @@ export default function RescuePage() {
   }
   function markGlucoseTaken(amount: number, variant: RescueVariant) {
     if (confirm(`Confirm that you have taken ${amount} ${variant.name}`)) {
-      TreatmentManager.glucose(amount, variant.name, new Date());
+      WizardManager.markGlucose(amount, variant);
       goBack();
     }
   }

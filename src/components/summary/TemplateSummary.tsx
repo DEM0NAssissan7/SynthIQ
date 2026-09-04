@@ -1,13 +1,17 @@
 import { Button } from "react-bootstrap";
 import { useMemo, useState } from "react";
-import { getFormattedTime, getMinuteDiff, getPrettyTime } from "../lib/timing";
-import { round } from "../lib/util";
-import type Meal from "../models/events/meal";
-import type Session from "../models/session";
-import type MealTemplate from "../models/mealTemplate";
+import {
+  getFormattedTime,
+  getMinuteDiff,
+  getPrettyTime,
+} from "../../lib/timing";
+import { round } from "../../lib/util";
+import type Meal from "../../models/events/meal";
+import type Session from "../../models/session";
+import type MealTemplate from "../../models/mealTemplate";
 import TemplateMealSummary from "./TemplateMealSummary";
-import { useNow } from "../state/useNow";
-import { MetricGrid, MetricPill } from "./PageLayout";
+import { useNow } from "../../state/useNow";
+import { MetricGrid, MetricPill } from "../PageLayout";
 
 function formatDose(value: number) {
   const rounded = round(value, 1);
@@ -92,7 +96,9 @@ export default function TemplateSummary({
           {session.initialGlucose && (
             <div className="d-flex justify-content-between py-1 small">
               <span className="text-muted">Starting BG</span>
-              <span className="fw-semibold">{session.initialGlucose} mg/dL</span>
+              <span className="fw-semibold">
+                {session.initialGlucose} mg/dL
+              </span>
             </div>
           )}
 
@@ -100,7 +106,9 @@ export default function TemplateSummary({
           {session.started && (
             <div className="d-flex justify-content-between py-1 small">
               <span className="text-muted">Started at</span>
-              <span className="fw-semibold">{getPrettyTime(session.timestamp)}</span>
+              <span className="fw-semibold">
+                {getPrettyTime(session.timestamp)}
+              </span>
             </div>
           )}
 
@@ -129,14 +137,17 @@ export default function TemplateSummary({
                   {round(session.carbs, 0)}g
                   {session.carbs !== session.totalCarbs && (
                     <span className="text-muted fw-normal">
-                      {" "}({round(session.totalCarbs, 0)}g total)
+                      {" "}
+                      ({round(session.totalCarbs, 0)}g total)
                     </span>
                   )}
                 </span>
               </div>
               <div className="d-flex justify-content-between py-1 small">
                 <span className="text-muted">Protein</span>
-                <span className="fw-semibold">{round(session.protein, 0)}g</span>
+                <span className="fw-semibold">
+                  {round(session.protein, 0)}g
+                </span>
               </div>
               <div className="d-flex justify-content-between py-1 small">
                 <span className="text-muted">Fat</span>
@@ -144,7 +155,9 @@ export default function TemplateSummary({
               </div>
               <div className="d-flex justify-content-between py-1 small">
                 <span className="text-muted">Calories</span>
-                <span className="fw-semibold">{round(session.calories, 0)} kcal</span>
+                <span className="fw-semibold">
+                  {round(session.calories, 0)} kcal
+                </span>
               </div>
             </>
           )}
@@ -157,9 +170,14 @@ export default function TemplateSummary({
                 Activities
               </div>
               {session.activities.map((a, i) => (
-                <div key={i} className="d-flex justify-content-between py-1 small">
+                <div
+                  key={i}
+                  className="d-flex justify-content-between py-1 small"
+                >
                   <span>{a.name}</span>
-                  <span className="fw-semibold">{getFormattedTime(a.length)}</span>
+                  <span className="fw-semibold">
+                    {getFormattedTime(a.length)}
+                  </span>
                 </div>
               ))}
             </>

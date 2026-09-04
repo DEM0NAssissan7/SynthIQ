@@ -1,48 +1,44 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button, Form, InputGroup } from "react-bootstrap";
-import WizardManager from "../managers/wizardManager";
-import { roundByHalf } from "../lib/util";
+import WizardManager from "../../managers/wizardManager";
+import { roundByHalf } from "../../lib/util";
 import { useNavigate } from "react-router";
-import BloodSugarInput from "../components/BloodSugarInput";
+import BloodSugarInput from "../../components/BloodSugarInput";
 import {
   getCorrectionInsulin,
   getOvercompensationInsulins,
-} from "../lib/metabolism";
-import Card from "../components/Card";
-import TemplateSummary from "../components/TemplateSummary";
-import { WizardStore } from "../storage/wizardStore";
-import { WizardPage } from "../models/types/wizardPage";
-import { PreferencesStore } from "../storage/preferencesStore";
-import { InsulinVariantManager } from "../managers/insulinVariantManager";
-import { NumberOptionSelector } from "../components/NumberOptionSelector";
-import { useNow } from "../state/useNow";
-import { TreatmentManager } from "../managers/treatmentManager";
-import InsulinVariantDropdown from "../components/InsulinVariantDropdown";
-import { getDailyBasal, getFastingVelocity } from "../lib/basal";
-import LastBolusMessage from "../components/LastBolusMessage";
+} from "../../lib/metabolism";
+import Card from "../../components/Card";
+import TemplateSummary from "../../components/summary/TemplateSummary";
+import { WizardStore } from "../../storage/wizardStore";
+import { PreferencesStore } from "../../storage/preferencesStore";
+import { InsulinVariantManager } from "../../managers/insulinVariantManager";
+import { NumberOptionSelector } from "../../components/NumberOptionSelector";
+import InsulinVariantDropdown from "../../components/InsulinVariantDropdown";
+import { getFastingVelocity } from "../../lib/basal";
+import LastBolusMessage from "../../components/LastBolusMessage";
 import {
   MetricGrid,
   MetricPill,
   PageActions,
   PageHeader,
   PageLayout,
-} from "../components/PageLayout";
-import { HealthMonitorStore } from "../storage/healthMonitorStore";
+} from "../../components/PageLayout";
 
 export default function InsulinPage() {
   const navigate = useNavigate();
   const [session] = WizardStore.session.useState();
-  const [isBolus, setIsBolus] = WizardStore.isBolus.useState();
+  const [isMealRelated, setIsMealRelated] =
+    WizardStore.insulinIsMealRelated.useState();
 
   const isFirstPostMealInjection = useMemo(
     () =>
       session.initialGlucose !== null &&
       session.insulins.length === 0 &&
-      isBolus,
-    [isBolus, session],
+      isMealRelated,
+    [isMealRelated, session],
   );
 
-  const now = useNow();
   const meal = session.mealMarked ? session.latestMeal : WizardStore.meal.value;
   const [template] = WizardStore.template.useState();
   const baseSession = useMemo(
@@ -54,7 +50,7 @@ export default function InsulinPage() {
   // Inputted Insulin
   const [currentGlucose, setCurrentGlucose] = useState<number | null>(null);
   const markInsulin = (insulin: number) => {
-    if (!currentGlucose && isBolus && !isFirstPostMealInjection) {
+    if (!currentGlucose && isMealRelated && !isFirstPostMealInjection) {
       alert(`You must input your current blood sugar`);
       return;
     }
@@ -64,33 +60,14 @@ export default function InsulinPage() {
           `Confirm that you have taken ${insulin} units of ${variant.name}`,
         )
       ) {
-        if (isBolus && (currentGlucose || session.initialGlucose)) {
-          if (currentGlucose)
-            WizardManager.setInitialGlucose(
-              currentGlucose,
-              getFastingVelocity(),
-              getDailyBasal(),
-              HealthMonitorStore.recentBoluses.value,
-            );
-        }
-
         // TODO: Use date selector
         const BG =
           currentGlucose ??
           session.initialGlucose ??
           PreferencesStore.targetBG.value;
-        TreatmentManager.insulin(insulin, variant.name, BG, isBolus, now);
+        WizardManager.markInsulin(insulin, BG, variant.name, isMealRelated);
 
-        if (session.started) {
-          WizardManager.moveToPage(
-            session.mealMarked ? WizardPage.Hub : WizardPage.Meal,
-            navigate,
-          );
-        } else {
-          navigate("/hub");
-        }
-
-        setIsBolus(false);
+        goBack();
       }
     } else {
       alert("Please enter a valid number");
@@ -122,7 +99,7 @@ export default function InsulinPage() {
 
   const extraInsulin = correctionInsulin + overshootInsulinOffset;
   const displayedInsulin = (() => {
-    if (!isBolus) return correctionInsulin;
+    if (session.ended) return correctionInsulin;
     let insulin: number =
       vectorizedInsulins[shotIndex]?.value ?? -overshootInsulinOffset;
     return insulin + extraInsulin;
@@ -139,11 +116,9 @@ export default function InsulinPage() {
   })();
 
   function goBack() {
-    WizardStore.isBolus.value = false;
-    WizardManager.moveToPage(
-      session.mealMarked ? WizardPage.Hub : WizardPage.Meal,
-      navigate,
-    );
+    const wasMealRelated = isMealRelated;
+    setIsMealRelated(false); // Reset flag
+    navigate(wasMealRelated ? "/meal" : "/hub");
   }
   const [insulinTaken, setInsulinTaken] = useState(displayedInsulin);
   const [insulinEntry, setInsulinEntry] = useState("");
@@ -160,13 +135,10 @@ export default function InsulinPage() {
 
   // Set usage state based on the current session state
   useEffect(() => {
-    if (!isBolus) setIsBolus(session.started);
-    else {
-      setVariant(
-        vectorizedInsulins[shotIndex]?.variant ??
-          InsulinVariantManager.getDefault(),
-      );
-    }
+    setVariant(
+      vectorizedInsulins[shotIndex]?.variant ??
+        InsulinVariantManager.getDefault(),
+    );
   }, []);
 
   return (
@@ -175,13 +147,13 @@ export default function InsulinPage() {
         eyebrow="Treatment"
         title="Insulin dosing"
         subtitle={
-          isBolus
+          isMealRelated
             ? "Review the suggested meal dose, confirm current glucose if needed, and mark insulin cleanly."
             : "Use this page for quick correction dosing without the extra noise."
         }
       />
 
-      {isBolus && (
+      {isMealRelated && (
         <Card>
           <TemplateSummary
             template={template}
@@ -212,7 +184,11 @@ export default function InsulinPage() {
         <MetricGrid>
           <MetricPill
             label="Mode"
-            value={isBolus ? "Meal or follow-up bolus" : "Correction only"}
+            value={
+              session.started || session.meals.length !== 0 || isMealRelated
+                ? "Meal or follow-up bolus"
+                : "Correction only"
+            }
           />
           <MetricPill
             label="Suggested dose"
@@ -234,7 +210,7 @@ export default function InsulinPage() {
           <BloodSugarInput
             initialGlucose={currentGlucose}
             setInitialGlucose={setCurrentGlucose}
-            pullFromNightscout={!isBolus}
+            pullFromNightscout={true}
           />
         )}
         <InsulinVariantDropdown setVariant={setVariant} variant={variant} />
@@ -274,11 +250,9 @@ export default function InsulinPage() {
       </Card>
 
       <PageActions inline>
-        {isBolus && (
-          <Button variant="secondary" onClick={goBack}>
-            Go Back
-          </Button>
-        )}
+        <Button variant="secondary" onClick={goBack}>
+          Go Back
+        </Button>
         <Button variant="primary" onClick={onMark}>
           Mark Insulin
         </Button>

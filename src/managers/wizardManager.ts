@@ -1,7 +1,5 @@
 import Session from "../models/session";
 import Meal from "../models/events/meal";
-import { serializeWizardPage, WizardPage } from "../models/types/wizardPage";
-import { type NavigateFunction } from "react-router";
 import RemoteTreatments from "../lib/remote/treatments";
 import RemoteSessions from "../lib/remote/sessions";
 import { WizardStore } from "../storage/wizardStore";
@@ -11,26 +9,57 @@ import { InsulinVariantManager } from "./insulinVariantManager";
 import type { RescueVariant } from "../models/types/rescueVariant";
 import { PrivateStore } from "../storage/privateStore";
 import type Insulin from "../models/events/insulin";
+import { PreferencesStore } from "../storage/preferencesStore";
+import { getFastingVelocity, getDailyBasal, addNewBasal } from "../lib/basal";
+import { HealthMonitorStore } from "../storage/healthMonitorStore";
+import { ActivityManager } from "./activityManager";
+import { addRecentBolus, setLastRescue } from "../lib/healthMonitor";
 
 export default class WizardManager {
-  // Page Redirects
-  private static getPageRedirect(state: WizardPage): string {
-    return `/wizard/${serializeWizardPage(state)}`;
-  }
+  // This manager deals with the session automation
+  static shouldTransitionSession(now = new Date()): boolean {
+    const session = WizardStore.session.value;
+    const elapsedHours = session.getN(now);
+    if (!session.started || session.completed) return false;
 
-  // Movement
-  static moveToPage(page: WizardPage, navigate: NavigateFunction): void {
-    WizardStore.page.value = page;
-    navigate(this.getPageRedirect(page));
+    // If the user already pre-bolused for this meal (insulin marked, but no meal yet),
+    // this upcoming meal belongs to this active session — do NOT transition!
+    if (
+      session.insulins.length > 0 &&
+      session.meals.length === 0 &&
+      elapsedHours < PreferencesStore.minSessionLength.value
+    ) {
+      return false;
+    }
+
+    // Minimum session duration reached AND session declares itself finished
+    if (session.ended) {
+      return true;
+    }
+    return false;
   }
-  static moveToCurrentPage(navigate: NavigateFunction): void {
-    this.moveToPage(WizardStore.page.value, navigate);
-  }
-  static moveToFirstPage(navigate: NavigateFunction): void {
-    this.moveToPage(WizardPage.Select, navigate);
-  }
-  static begin(navigate: NavigateFunction) {
-    this.moveToPage(WizardPage.Meal, navigate);
+  static transition(BG: number): Session {
+    const oldSession = WizardStore.session.value;
+
+    // Finalize and archive previous session if one was running
+    if (oldSession.started && !oldSession.completed) {
+      oldSession.finalBG = BG;
+      oldSession.snapshot.pullReadings();
+      this.addSessionToActiveTemplate(oldSession);
+      this.replaceTemplateToArray();
+      RemoteSessions.storeSession(oldSession);
+    }
+    const newSession = new Session();
+    newSession.initialGlucose = BG;
+    newSession.fastingVelocity = getFastingVelocity();
+    newSession.dailyBasal = getDailyBasal();
+    newSession.onBoardInsulins = HealthMonitorStore.recentBoluses.value;
+
+    // Update store references
+    WizardStore.session.value = newSession;
+    WizardStore.activeTemplate.value = WizardStore.template.value;
+
+    return newSession;
   }
 
   // Glucose marking
@@ -50,42 +79,105 @@ export default class WizardManager {
   }
 
   // Meal
-  static markMeal() {
+  static markMeal(BG: number, timestamp = new Date()) {
+    if (this.shouldTransitionSession()) {
+      this.transition(BG);
+    } else if (!WizardStore.session.value.initialGlucose && BG) {
+      // If starting fresh without pre-bolus
+      this.setInitialGlucose(
+        BG,
+        getFastingVelocity(),
+        getDailyBasal(),
+        HealthMonitorStore.recentBoluses.value,
+      );
+    }
+
     const meal: Meal = WizardStore.meal.value;
     const session: Session = WizardStore.session.value;
-    const timestamp = new Date();
 
     meal.timestamp = timestamp;
     session.addMeal(meal);
-    this.resetMeal(); // Reset the meal to make room for additional
+    this.resetMeal(); // Now that the meal is officially part of the session, reset the scratchpad meal
 
-    // TODO: Use date selector
     RemoteTreatments.markMeal(meal.carbs, meal.protein, timestamp);
     WizardStore.session.write();
   }
 
   // Insulin
-  private static insulin(units: number, BG: number, variantName: string) {
+  private static insulin(
+    units: number,
+    BG: number,
+    variantName: string,
+    mealRelated: boolean,
+  ) {
     const session: Session = WizardStore.session.value;
     const timestamp = new Date();
-
     const variant =
       InsulinVariantManager.getVariant(variantName) ??
       InsulinVariantManager.getDefault();
-    session.createInsulin(units, timestamp, variant, BG);
-    WizardStore.session.write();
+
+    // Avoid adding insulin to session that does not want it
+    if (mealRelated || session.started) {
+      session.createInsulin(units, timestamp, variant, BG);
+      WizardStore.session.write();
+    }
+
+    // Add it to the other places
+    RemoteTreatments.markInsulin(units, timestamp, variantName);
+    addRecentBolus(units, variant, timestamp);
   }
-  static markInsulin(units: number, BG: number, variantName: string) {
-    this.insulin(units, BG, variantName);
+  static markInsulin(
+    units: number,
+    BG: number,
+    variantName: string,
+    mealRelated: boolean,
+  ) {
+    // If it's not meal related, call it a day and just mark it on the session
+    if (!mealRelated) {
+      this.insulin(units, BG, variantName, mealRelated);
+      return;
+    }
+    const now = new Date();
+
+    // If it's meal related, we first need to figure out if we need to make a new session
+    if (this.shouldTransitionSession(now)) {
+      this.transition(BG);
+    } else if (!WizardStore.session.value.initialGlucose) {
+      // If this bolus is starting a new session (e.g. pre-bolusing before planning food)
+      this.setInitialGlucose(
+        BG,
+        getFastingVelocity(),
+        getDailyBasal(),
+        HealthMonitorStore.recentBoluses.value,
+      );
+    }
+
+    // Now we mark insulin
+    this.insulin(units, BG, variantName, mealRelated);
   }
+
+  // Basal
+  static markBasal(amount: number, timestamp = new Date()) {
+    addNewBasal(amount, timestamp);
+    RemoteTreatments.markBasal(amount, timestamp);
+  }
+
   // Glucose
   static markGlucose(amount: number, variant: RescueVariant) {
     // We really don't want to mark glucose if we haven't taken insulin. The glucose would never be taken because of a meal. Meals raise glucose.
     const session: Session = WizardStore.session.value;
+    const timestamp = new Date();
     if (session.started) {
-      session.createGlucose(amount, new Date(), variant);
+      session.createGlucose(amount, timestamp, variant);
       WizardStore.session.write();
     }
+    ActivityManager.markGlucose(amount, variant);
+    RemoteTreatments.markGlucose(
+      amount * variant.carbs,
+      timestamp,
+      variant.name,
+    );
+    setLastRescue(amount, variant, timestamp);
   }
 
   // Activity
@@ -113,28 +205,29 @@ export default class WizardManager {
     return templates[this.getTemplateIndexByName(name)];
   }
   private static replaceTemplateToArray() {
-    const template = WizardStore.template.value;
-    const index = this.getTemplateIndexByName(template.name);
-    WizardStore.templates.value[index] = template;
+    const activeTemplate = WizardStore.activeTemplate.value;
+    const index = this.getTemplateIndexByName(activeTemplate.name);
+    WizardStore.templates.value[index] = activeTemplate;
     WizardStore.templates.write();
   }
 
   // Template functions
-  static addSessionToTemplate(session: Session) {
-    const template = WizardStore.template.value;
-    template.addSession(session);
-    WizardStore.template.write();
+  static addSessionToActiveTemplate(session: Session) {
+    const activeTemplate = WizardStore.activeTemplate.value;
+    activeTemplate.addSession(session);
+    WizardStore.activeTemplate.write();
   }
   static selectSession(session: Session) {
     WizardStore.meal.value = Meal.deserialize(
       Meal.serialize(session.firstMeal),
     );
-    WizardStore.session.value.parent = session.uuid;
   }
   static selectTemplate(name: string) {
     // Select template to be used for all operations
     const template = this.getTemplateByName(name);
     WizardStore.template.value = template;
+    if (!WizardStore.session.value.started)
+      WizardStore.activeTemplate.value = template; // Workaround for transition
     WizardStore.meal.value = new Meal(new Date()); // Populate meal with an empty entry
     if (PrivateStore.debugLogs.value) console.log(template);
     return template;
@@ -180,6 +273,7 @@ export default class WizardManager {
     template.auxillarySessions = allSessions.filter(
       (s) => templateSessionUUIDs.indexOf(s.uuid) === -1,
     );
+    // Note: auxillarySessions is not serialized
   }
 
   // Reset
@@ -189,7 +283,7 @@ export default class WizardManager {
     session.snapshot.pullReadings();
   }
   static resetTemplate() {
-    this.addSessionToTemplate(WizardStore.session.value);
+    this.addSessionToActiveTemplate(WizardStore.session.value);
     this.replaceTemplateToArray();
     WizardStore.template.value = new MealTemplate("");
   }
@@ -199,24 +293,18 @@ export default class WizardManager {
   static resetMeal() {
     WizardStore.meal.value = new Meal(new Date());
   }
-  static resetWizard(navigate: NavigateFunction) {
+  static resetWizard() {
     this.resetSession(); // Reset the session
     this.resetMeal(); // Reset temporary meal
-    this.moveToFirstPage(navigate); // Move to the first page
   }
-  static cancelSession(navigate: NavigateFunction) {
+  static cancelSession() {
     if (
       confirm(
         "Are you sure you want to discard the entire session? This will delete all data you've inputted so far for this session.",
       )
     ) {
-      this.resetWizard(navigate);
+      this.resetWizard();
     }
-  }
-  static startNew(navigate: NavigateFunction) {
-    this.resetTemplate();
-    RemoteSessions.storeSession(WizardStore.session.value); // Store the entire session into nightscout so we can analyze it later
-    this.resetWizard(navigate); // Reset the wizard states
   }
 
   // General helper functions

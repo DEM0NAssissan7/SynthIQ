@@ -9,10 +9,8 @@ import { Button } from "react-bootstrap";
 import { useMemo, useState } from "react";
 import { Dropdown } from "react-bootstrap";
 import BloodSugarInput from "../../components/BloodSugarInput";
-import TemplateSummary from "../../components/TemplateSummary";
+import TemplateSummary from "../../components/summary/TemplateSummary";
 import { WizardStore } from "../../storage/wizardStore";
-import WizardManager from "../../managers/wizardManager";
-import { WizardPage } from "../../models/types/wizardPage";
 import { PreferencesStore } from "../../storage/preferencesStore";
 import Meal from "../../models/events/meal";
 import {
@@ -26,13 +24,13 @@ export default function WizardEditPage() {
   const [selectedMealIndex, setSelectedMealIndex] = useState(0);
   const meal = useMemo<Meal | null>(
     () => session.meals[selectedMealIndex] ?? null,
-    [selectedMealIndex]
+    [selectedMealIndex],
   );
   const template = WizardStore.template.value;
 
   const navigate = useNavigate();
   function finishEdit() {
-    WizardManager.moveToPage(WizardPage.Hub, navigate);
+    navigate("/hub");
   }
   function setGlucose(_: number) {
     // session.initialGlucose = a;
@@ -65,19 +63,21 @@ export default function WizardEditPage() {
           </Dropdown.Menu>
         </Dropdown>
       </Card>
-      {meal && <>
-        <Card>
-          <FoodSearchDisplay meal={meal} />
-        </Card>
+      {meal && (
+        <>
+          <Card>
+            <FoodSearchDisplay meal={meal} />
+          </Card>
 
-        <Card>
-          <AddedFoodsDisplay meal={meal} />
-        </Card>
+          <Card>
+            <AddedFoodsDisplay meal={meal} />
+          </Card>
 
-        <Card>
-          <MealAdditionalNutrients meal={meal} />
-        </Card>
-      </>}
+          <Card>
+            <MealAdditionalNutrients meal={meal} />
+          </Card>
+        </>
+      )}
 
       <Card>
         <BloodSugarInput
