@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Button, Card, Container } from "react-bootstrap";
-import { Link } from "react-router";
+import { useNavigate } from "react-router";
 
 interface PageLayoutProps {
   children: ReactNode;
@@ -14,10 +14,7 @@ interface PageHeaderProps {
   actions?: ReactNode;
 }
 
-export function PageLayout({
-  children,
-  maxWidth = "36rem",
-}: PageLayoutProps) {
+export function PageLayout({ children, maxWidth = "36rem" }: PageLayoutProps) {
   return (
     <Container fluid="sm" className="app-page px-0 pb-4">
       <div className="mx-auto" style={{ maxWidth }}>
@@ -110,10 +107,22 @@ export function ActionCard({
   onClick,
   className = "",
 }: ActionCardProps) {
+  const navigate = useNavigate();
+
+  const handleAction = () => {
+    if (onClick) {
+      onClick();
+    } else if (to) {
+      navigate(to);
+    }
+  };
+
   return (
-    <Card className={`h-100 border-0 shadow-sm app-action-card ${className}`.trim()}>
+    <Card
+      className={`h-100 border-0 shadow-sm app-action-card ${className}`.trim()}
+    >
       <Card.Body className="p-3 d-flex flex-column">
-        <div className="d-flex align-items-start gap-3">
+        <div className="d-flex align-items-start gap-3 flex-grow-1">
           <div className="app-action-icon">
             <i className={`bi ${icon} fs-4`} />
           </div>
@@ -126,9 +135,7 @@ export function ActionCard({
         <Button
           variant={buttonVariant}
           className="w-100 mt-3 py-2 fw-semibold"
-          as={to ? (Link as any) : undefined}
-          to={to}
-          onClick={onClick}
+          onClick={handleAction}
         >
           {buttonLabel}
         </Button>

@@ -21,8 +21,13 @@ export default function HealthMonitorMessage() {
       return (
         <>
           Your blood sugar is falling at a rate of{" "}
-          <b>{round(fallRate / 60, 0)} pts/min</b>. You will reach{" "}
-          <b>{dangerBG} mg/dL</b> in <b>{time} minutes</b>.
+          <b>{round(fallRate / 60, 0)} pts/min</b>.
+          {Number.isFinite(time) && time > 0 && (
+            <>
+              {" "}
+              You will reach <b>{dangerBG} mg/dL</b> in <b>{time} minutes</b>.
+            </>
+          )}
         </>
       );
     case HealthMonitorStatus.Low:

@@ -54,7 +54,8 @@ export async function populateReadingCache() {
 export function getBGVelocity() {
   const readings = HealthMonitorStore.readingsCache.value;
   const velocities = getBGVelocities(readings);
-  // We give the median of all the velocities to smooth out jumps
+  if (velocities.length === 0) return 0;
+  // We give the mean of all the velocities to smooth out jumps
   return MathUtil.mean(velocities);
 }
 /**
