@@ -80,7 +80,7 @@ function TopBar() {
 
   return (
     <div ref={topBarRef}>
-      <Navbar expand="lg" className="bg-body-tertiary" expanded={expanded}>
+      <Navbar expand="lg" className="bg-body-tertiary app-topbar" expanded={expanded}>
         <Container>
           <Navbar.Brand as={Link} to="/hub">
             <img
