@@ -45,6 +45,7 @@ import DebugPage from "./pages/DebugPage";
 import { initThemeListener } from "./lib/themeManager";
 import WizardSessionSelectPage from "./pages/wizard/WizardSessionSelectPage";
 import TestPage from "./pages/TestPage";
+import { VERSION_STRING } from "./version";
 
 function App() {
   useEffect(() => {
@@ -113,9 +114,9 @@ function App() {
   }
 
   return (
-    <div style={{ flex: 1, minHeight: "100%", width: "100%" }}>
+    <div className="d-flex flex-column min-vh-100" style={{ width: "100%" }}>
       <TopBar />
-      <div className="app-shell" style={{ flex: 1 }}>
+      <div className="app-shell flex-grow-1">
         <Routes>
           <Route path="/" element={<HubPage />} />
           <Route path="/hub" element={<HubPage />} />
@@ -155,8 +156,17 @@ function App() {
           <Route path="/activity/end" element={<ActivityEndPage />} />
         </Routes>
       </div>
+      <footer className="app-footer text-center py-2">
+        <span
+          className="app-version text-muted small"
+          title={`SynthIQ ${VERSION_STRING}`}
+        >
+          {VERSION_STRING}
+        </span>
+      </footer>
     </div>
   );
+
 }
 
 export default App;

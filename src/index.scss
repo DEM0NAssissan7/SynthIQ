@@ -35,12 +35,18 @@ div[data-reactroot] {
   overflow-x: hidden !important;
 }
 
+#root {
+  display: flex;
+  flex-direction: column;
+}
+
 body {
   background:
     radial-gradient(circle at top, var(--app-bg-accent) 0%, var(--app-bg) 100%);
   color: var(--app-text);
   min-height: 100vh;
 }
+
 
 [data-bs-theme="dark"] {
   .btn-light {
@@ -97,6 +103,23 @@ body {
     padding: 1.25rem 1.5rem;
   }
 }
+
+.app-footer {
+  padding: 0.75rem 1rem 1.25rem;
+}
+
+.app-version {
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  color: var(--app-text-muted);
+  opacity: 0.8;
+  transition: opacity 0.15s ease-in-out;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
 
 .card {
   border-radius: 1.25rem;
