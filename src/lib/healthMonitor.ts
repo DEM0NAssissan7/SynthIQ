@@ -38,7 +38,7 @@ export async function populateReadingCache() {
   const readingsCacheSize = HealthMonitorStore.readingsCacheSize.value;
   const rawReadings = await RemoteReadings.getLatestReadings(readingsCacheSize);
   if (rawReadings) {
-    let readings = rawReadings.map((r: any) =>
+    const readings = rawReadings.map((r: any) =>
       getReadingFromNightscout(r),
     ) as SugarReading[];
     HealthMonitorStore.readingsCache.value = readings;

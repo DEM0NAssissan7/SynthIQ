@@ -1,9 +1,13 @@
 import { InsulinVariantManager } from "../managers/insulinVariantManager";
+import type Insulin from "../models/events/insulin";
 import type { InsulinVariant } from "../models/types/insulinVariant";
 import type { RescueVariant } from "../models/types/rescueVariant";
+import type SugarReading from "../models/types/sugarReading";
 import { CalibrationStore } from "../storage/calibrationStore";
 import { PreferencesStore } from "../storage/preferencesStore";
 import { WizardStore } from "../storage/wizardStore";
+import { estimateDynamicISF } from "./helpers/estimateDynamicISF";
+import { getTimestampFromOffset } from "./timing";
 
 // Insulin
 export function getCorrectionInsulin(glucose: number, variant: InsulinVariant) {
@@ -41,19 +45,38 @@ export function getGlucoseCorrectionCaps(
   return Math.max(correction, 0);
 }
 export function getIntelligentGlucoseCorrection(
-  velocityHours: number,
+  velocityHours: number, // User BG Velocity in pts/hr
   currentBG: number,
-  actingMinutes: number,
+  actingMinutes: number, // How far to look in the future
   variant: RescueVariant,
+  readings: SugarReading[],
+  insulinsOnBoard: Insulin[],
 ) {
   /**
-   * We consider the current BG velocity to last another 30 minutes.
+   * We consider the current BG velocity to last another 'actingMinutes' minutes (i.e. the max duration it takes for a rescue dose takes to work).
    * As in, the current BG effect from the velocity will last another 30 minutes.
    * For example, if the sugar is moving at a rate of 30 mg/dL per hr, we assume it's gonna
    * end up going down by 15mg/dL (30 minutes = 1/2 hour), so we add that into the
    */
-  const velocityMinutes = velocityHours / 60;
-  const predictedDrop = velocityMinutes * actingMinutes;
+  const velocity = velocityHours / 60;
+  const velocityHorizon = Math.min(actingMinutes, 30);
+  const velocityPredictedDrop = velocity * velocityHorizon;
+
+  const dynamicISF = estimateDynamicISF(readings, insulinsOnBoard);
+  const now = new Date();
+  const future = getTimestampFromOffset(now, actingMinutes / 60);
+  const insulinPredictedDrop = insulinsOnBoard.reduce(
+    (n, insulin) => n - insulin.batemanIntegral(now, future) * dynamicISF,
+    0,
+  );
+
+  // Choose the largest drop as the safest bet for the user if we are dropping
+  // If we are rising, have the rise counteract the predicted drop from insulin
+  const predictedDrop =
+    velocity < 0
+      ? Math.min(velocityPredictedDrop, insulinPredictedDrop)
+      : velocityPredictedDrop + insulinPredictedDrop;
+
   return getGlucoseCorrectionCaps(currentBG + predictedDrop, variant); // We add predictedDrop because if the sugar is dropping, the velocity will be negative (along with predictedDrop being negative too)
 }
 

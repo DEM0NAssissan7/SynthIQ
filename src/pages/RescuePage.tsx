@@ -58,6 +58,8 @@ export default function RescuePage() {
     populateReadingCache().then(() => {
       const velocityHours = getBGVelocity();
       const actingMinutes = HealthMonitorStore.dropTime.value;
+      const readings = HealthMonitorStore.readingsCache.value;
+      const insulinsOnBoard = HealthMonitorStore.recentBoluses.value;
 
       setIntelligentCorrection(
         roundByHalf(
@@ -66,6 +68,8 @@ export default function RescuePage() {
             currentBG,
             actingMinutes,
             variant,
+            readings,
+            insulinsOnBoard,
           ),
           true,
         ),
