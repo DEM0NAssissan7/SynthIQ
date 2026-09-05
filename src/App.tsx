@@ -128,8 +128,8 @@ function App() {
           <Route path="/meal" element={<MealPage />} />
           <Route path="/selectmeal" element={<MealSelectionPage />} />
           <Route path="/insulin" element={<InsulinPage />} />
-          <Route path="/mealinsulin" element={<MealInsulinRouter />} />
-          <Route path="/bolusinsulin" element={<InsulinRouter />} />
+          <Route path="/prebolus" element={<MealInsulinRouter />} />
+          <Route path="/markinsulin" element={<InsulinRouter />} />
           <Route path="/rescue" element={<RescuePage />} />
           <Route path="/basal" element={<BasalPage />} />
 

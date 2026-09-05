@@ -18,7 +18,7 @@ export function getSimilarSessionsDistances(
   }
 
   const targetMap = toFoodMap(meal.summedFoods);
-  const sessionMaps = sessions.map((s) => toFoodMap(s.firstMeal.summedFoods));
+  const sessionMaps = sessions.map((s) => toFoodMap(s.meal?.summedFoods ?? []));
 
   // Collect all unique food names across target AND sessions
   const allFoodNames = new Set<string>();

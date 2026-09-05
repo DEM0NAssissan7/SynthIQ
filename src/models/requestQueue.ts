@@ -1,9 +1,9 @@
-import { genUUID, type UUID } from "../lib/util";
+import { genUUID } from "../lib/util";
 import RequestType, {
   parseRequestType,
   stringifyRequestType,
 } from "./types/requestType";
-import type { Deserializer, Serializer } from "./types/types";
+import type { Deserializer, Serializer, UUID } from "./types/types";
 
 export default class RequestQueue {
   type: RequestType;

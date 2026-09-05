@@ -5,11 +5,15 @@ import TemplateSummary from "./summary/TemplateSummary";
 import LastBolusMessage from "./LastBolusMessage";
 import { WizardStore } from "../storage/wizardStore";
 import { ActionCard, ActionGrid } from "./PageLayout";
+import WizardManager from "../managers/wizardManager";
 
 export default function SessionHubContent() {
   const navigate = useNavigate();
   const [session] = WizardStore.session.useState();
   const [activeTemplate] = WizardStore.activeTemplate.useState();
+  const [meal] = WizardStore.meal.useState();
+  console.log(meal);
+  const shouldTransition = WizardManager.shouldTransitionSession();
 
   function setGarbage(value: boolean) {
     if (value === true) {
@@ -18,11 +22,14 @@ export default function SessionHubContent() {
     } else session.isGarbage = value;
   }
 
+  const isSessionActive =
+    session.started && !session.completed && !session.readyToTransition;
+  const markedAndActive = session.insulinMarked && isSessionActive;
   function takeInsulin() {
-    navigate(session.insulinMarked ? "/bolusinsulin" : "/mealinsulin");
+    navigate("/markinsulin");
   }
   function addMeal() {
-    navigate("/selectmeal");
+    navigate(meal.isEmpty ? "/selectmeal" : "/meal");
   }
   function takeGlucose() {
     navigate("/rescue");
@@ -61,14 +68,14 @@ export default function SessionHubContent() {
         <ActionCard
           icon="bi-droplet-half"
           eyebrow="Insulin"
-          title={session.insulinMarked ? "Add more insulin" : "Mark insulin"}
+          title={markedAndActive ? "Add more insulin" : "Mark insulin"}
           body={
-            session.insulinMarked
+            markedAndActive
               ? "Record an additional insulin dose without interrupting the current session."
               : "Open insulin dosing for the session."
           }
-          buttonLabel={session.insulinMarked ? "Add insulin" : "Open insulin"}
-          buttonVariant={session.insulinMarked ? "danger" : "primary"}
+          buttonLabel={markedAndActive ? "Add insulin" : "Open insulin"}
+          buttonVariant={markedAndActive ? "danger" : "primary"}
           onClick={takeInsulin}
         />
         <ActionCard
@@ -82,10 +89,16 @@ export default function SessionHubContent() {
         <ActionCard
           icon="bi-fork-knife"
           eyebrow="Meal"
-          title={"New Meal"}
+          title={shouldTransition ? "New Meal" : "Add Meal"}
           body={"Build and mark a new meal"}
-          buttonLabel={session.mealMarked ? "Add meal" : "Open meal"}
-          buttonVariant={"primary"}
+          buttonLabel={
+            meal.isEmpty
+              ? shouldTransition
+                ? "New meal"
+                : "Add meal"
+              : "Open Meal"
+          }
+          buttonVariant={session.immature ? "danger" : "primary"}
           onClick={addMeal}
         />
       </ActionGrid>

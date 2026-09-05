@@ -1,5 +1,5 @@
 import { getHourDiff, getTimestampFromOffset } from "../lib/timing";
-import { convertDimensions, genUUID, MathUtil, type UUID } from "../lib/util";
+import { convertDimensions, genUUID, MathUtil } from "../lib/util";
 import Glucose from "./events/glucose";
 import Insulin from "./events/insulin";
 import Meal from "./events/meal";
@@ -8,7 +8,7 @@ import Unit from "./unit";
 import RemoteReadings from "../lib/remote/readings";
 import Snapshot from "./snapshot";
 import Subscribable from "./subscribable";
-import type { Deserializer, JSONObject, Serializer } from "./types/types";
+import type { Deserializer, JSONObject, Serializer, UUID } from "./types/types";
 import { PreferencesStore } from "../storage/preferencesStore";
 import Activity from "./events/activity";
 import type { InsulinVariant } from "./types/insulinVariant";
@@ -35,7 +35,7 @@ export default class Session extends Subscribable {
   notes: string = "";
   version: number = 1;
 
-  meals: Meal[] = [];
+  meal: Meal | null = null;
   insulins: Insulin[] = [];
   glucoses: Glucose[] = [];
   activities: Activity[] = [];
@@ -52,67 +52,33 @@ export default class Session extends Subscribable {
 
   // Meals
   addMeal(meal: Meal): void {
-    this.meals.push(meal);
+    // If we already have a meal, we combine the two into one
+    if (this.meal !== null) {
+      this.meal.absorb(meal);
+      this.notify();
+      return;
+    }
+    this.meal = meal;
     this.addChildSubscribable(meal);
     this.notify();
   }
-  removeMeal(meal: Meal) {
-    this.meals = this.meals.filter((m) => m !== meal);
-    this.removeChildSubscribable(meal);
-    this.notify();
-  }
   get mealMarked(): boolean {
-    return this.meals.length !== 0;
-  }
-  get metaMeal(): Meal {
-    // This is a meal that is a simplified combination of all the meals we have
-    let meal = new Meal(this.firstMealTimestamp);
-    this.meals.forEach((m) => meal.foods.push(...m.foods));
-    return Meal.deserialize(Meal.serialize(meal)); // Return a deep copy
+    return this.meal !== null;
   }
   get carbs(): number {
-    let carbs = 0;
-    this.meals.forEach((a: Meal) => (carbs += a.carbs));
-    return carbs;
+    return this.meal?.carbs ?? 0;
   }
   get totalCarbs(): number {
-    let netCarbs = 0;
-    this.meals.forEach((a: Meal) => (netCarbs += a.totalCarbs));
-    return netCarbs;
+    return this.meal?.totalCarbs ?? 0;
   }
   get protein(): number {
-    let protein = 0;
-    this.meals.forEach((a: Meal) => (protein += a.protein));
-    return protein;
+    return this.meal?.protein ?? 0;
   }
   get fat(): number {
-    let fat = 0;
-    this.meals.forEach((a: Meal) => (fat += a.fat));
-    return fat;
+    return this.meal?.fat ?? 0;
   }
   get calories(): number {
-    let calories = 0;
-    this.meals.forEach((a: Meal) => (calories += a.calories));
-    return calories;
-  }
-  get latestMealTimestamp(): Date {
-    if (this.meals.length !== 0)
-      return this.meals[this.meals.length - 1].timestamp;
-    return this.timestamp;
-  }
-  get latestMeal(): Meal {
-    if (this.meals.length === 0)
-      throw new Error("No meal events found in session");
-    return this.meals[this.meals.length - 1];
-  }
-  get firstMealTimestamp(): Date {
-    if (this.meals.length !== 0) return this.meals[0].timestamp;
-    return this.timestamp;
-  }
-  get firstMeal(): Meal {
-    if (this.meals.length === 0)
-      throw new Error("No meal events found in session");
-    return this.meals[0];
+    return this.meal?.calories ?? 0;
   }
 
   // Snapshot abstractions
@@ -342,7 +308,7 @@ export default class Session extends Subscribable {
     return getHourDiff(timestamp, this.timestamp);
   }
   getRelativeN(timestamp: Date) {
-    return getHourDiff(timestamp, this.firstMealTimestamp);
+    return getHourDiff(timestamp, this.meal?.timestamp ?? new Date());
   }
   get timestamp() {
     let timestamp = new Date();
@@ -350,7 +316,7 @@ export default class Session extends Subscribable {
       if (timestamp === undefined || getHourDiff(e.timestamp, timestamp) < 0)
         timestamp = e.timestamp;
     };
-    this.meals.forEach((a: MetaEvent) => callback(a));
+    if (this.meal) callback(this.meal);
     this.insulins.forEach((a: MetaEvent) => callback(a));
     this.glucoses.forEach((a: MetaEvent) => callback(a));
 
@@ -366,7 +332,7 @@ export default class Session extends Subscribable {
     return daysSince;
   }
   get started() {
-    return this.meals.length + this.insulins.length !== 0;
+    return this.insulins.length !== 0 || this.meal !== null;
   }
   set isGarbage(value: boolean) {
     this._isGarbage = value;
@@ -376,45 +342,49 @@ export default class Session extends Subscribable {
     return this._isGarbage;
   }
   get isInvalid(): boolean {
+    // Detect if any windows had enough glucose to cause hypoglycemia if it were not taken
+    const deltaBGThreshold =
+      ((this.initialGlucose ?? PreferencesStore.targetBG.value) -
+        PreferencesStore.dangerBG.value) *
+      1.414;
+    const tooMuchGlucose = (() => {
+      for (const window of this.windows) {
+        const glucoseEffect = window.glucoses.reduce(
+          (n, glucose) => n + glucose.value * glucose.variant.effect,
+          0,
+        );
+        if (glucoseEffect > deltaBGThreshold) return true;
+      }
+      return false;
+    })();
     return (
       this.isGarbage ||
-      this.meals.length !== 1 ||
       this.insulin <= 0 ||
-      (this.completed ? this.length : this.getN(new Date())) <
-        PreferencesStore.minSessionLength.value ||
-      this.glucoseEffect >
-        ((this.initialGlucose ?? PreferencesStore.targetBG.value) -
-          PreferencesStore.dangerBG.value) *
-          1.414 ||
+      this.meal === null ||
+      this.immature ||
+      tooMuchGlucose ||
       this.activities.length !== 0
     );
   }
 
   get length(): number {
-    if (!this.endTimestamp) return 0;
+    if (!this.endTimestamp) return this.getN(new Date());
     return this.getN(this.endTimestamp);
   }
   get expired(): boolean {
     return this.age > PreferencesStore.usableSessionLife.value;
   }
-  get ended(): boolean {
+  get immature(): boolean {
+    return this.length < PreferencesStore.minSessionLength.value;
+  }
+  get readyToTransition(): boolean {
     const now = new Date();
     const elapsed = this.getN(now);
 
-    // Can't end before min session length
-    if (elapsed < PreferencesStore.minSessionLength.value) return false;
+    // Can't end before grace period
+    if (elapsed < PreferencesStore.maxMealGrace.value) return false;
 
-    // We are past max length, we are done
-    if (elapsed > PreferencesStore.maxSessionLength.value) return true;
-
-    // See if we have a significant amount of insulin on board
-    let totalEffect = 0;
-    for (const insulin of this.insulins) {
-      totalEffect += insulin.iob(now) * insulin.variant.effect;
-    }
-    if (totalEffect < PreferencesStore.insulinMinActivity.value) return true;
-
-    return false;
+    return true;
   }
 
   getObservedReadings() {
@@ -458,7 +428,7 @@ export default class Session extends Subscribable {
     return {
       uuid: session.uuid,
       snapshot: Snapshot.serialize(session.snapshot),
-      meals: session.meals.map((a) => Meal.serialize(a)),
+      meal: session.meal ? Meal.serialize(session.meal) : null,
       insulins: session.insulins.map((a) => Insulin.serialize(a)),
       glucoses: session.glucoses.map((a) => Glucose.serialize(a)),
       activities: session.activities.map((a) => Activity.serialize(a)),
@@ -481,7 +451,13 @@ export default class Session extends Subscribable {
     session.fastingVelocity = o.fastingVelocity || null;
     session.dailyBasal = o.dailyBasal || null;
 
-    o.meals.map((a: string) => session.addMeal(Meal.deserialize(a)));
+    if (o.meals) {
+      // If we have more than one meal, mark it as garbage right away
+      if (o.meals.length > 1) session._isGarbage = true;
+      // Otherwise set the meal to the first meal
+      if (o.meals.length === 1) session.addMeal(Meal.deserialize(o.meals[0]));
+    }
+    if (o.meal) session.addMeal(Meal.deserialize(o.meal));
     o.insulins.map((a: string) => {
       const insulin = Insulin.deserialize(a);
       session.createInsulin(insulin.value, insulin.timestamp, insulin.variant); // Create insulin without modifying snapshots

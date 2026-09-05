@@ -35,23 +35,45 @@ export default function InsulinPage() {
     () =>
       session.initialGlucose !== null &&
       session.insulins.length === 0 &&
-      isMealRelated,
-    [isMealRelated, session],
+      session.mealMarked,
+    [session],
   );
 
-  const meal = session.mealMarked ? session.latestMeal : WizardStore.meal.value;
+  const meal = isMealRelated ? WizardStore.meal.value : session.meal;
   const [template] = WizardStore.template.useState();
   const baseSession = useMemo(
-    () => template.getBaseSession(meal),
+    () => (meal ? template.getBaseSession(meal) : null),
     [template, meal],
   );
   const [variant, setVariant] = useState(InsulinVariantManager.getDefault());
 
+  const [isCorrectionOnly, setIsCorrectionOnly] = useState(
+    !meal || (!isMealRelated && session.readyToTransition),
+  );
+
+  function toggleCorrectionOnly(enabled: boolean) {
+    setIsCorrectionOnly(enabled);
+    setInsulinEntry("");
+  }
+
   // Inputted Insulin
   const [currentGlucose, setCurrentGlucose] = useState<number | null>(null);
+  const effectiveGlucose =
+    currentGlucose ??
+    (isFirstPostMealInjection ? session.initialGlucose : null);
+
   const markInsulin = (insulin: number) => {
-    if (!currentGlucose && isMealRelated && !isFirstPostMealInjection) {
+    const effectiveMealRelated = isMealRelated && !isCorrectionOnly;
+    if (
+      !effectiveGlucose &&
+      effectiveMealRelated &&
+      !isFirstPostMealInjection
+    ) {
       alert(`You must input your current blood sugar`);
+      return;
+    }
+    if (isCorrectionOnly && !effectiveGlucose) {
+      alert(`You must input your current blood sugar for a correction`);
       return;
     }
     if (!isNaN(insulin)) {
@@ -61,11 +83,13 @@ export default function InsulinPage() {
         )
       ) {
         // TODO: Use date selector
-        const BG =
-          currentGlucose ??
-          session.initialGlucose ??
-          PreferencesStore.targetBG.value;
-        WizardManager.markInsulin(insulin, BG, variant.name, isMealRelated);
+        const BG = effectiveGlucose ?? PreferencesStore.targetBG.value;
+        WizardManager.markInsulin(
+          insulin,
+          BG,
+          variant.name,
+          effectiveMealRelated,
+        );
 
         goBack();
       }
@@ -75,15 +99,19 @@ export default function InsulinPage() {
   };
 
   const correctionInsulin = useMemo(() => {
-    return currentGlucose ? getCorrectionInsulin(currentGlucose, variant) : 0;
-  }, [currentGlucose, variant]);
-  const vectorizedInsulins = template.vectorizeInsulin(meal, baseSession);
+    return effectiveGlucose
+      ? getCorrectionInsulin(effectiveGlucose, variant)
+      : 0;
+  }, [effectiveGlucose, variant]);
+  const vectorizedInsulins = meal
+    ? template.vectorizeInsulin(meal, baseSession)
+    : [];
   const shotIndex = session.insulins.length;
   const overshootInsulinOffset =
     shotIndex < vectorizedInsulins.length
       ? getOvercompensationInsulins(
-          currentGlucose && currentGlucose > 0
-            ? currentGlucose
+          effectiveGlucose && effectiveGlucose > 0
+            ? effectiveGlucose
             : PreferencesStore.targetBG.value,
           vectorizedInsulins.map((i) => i.variant),
         )[shotIndex]
@@ -99,7 +127,9 @@ export default function InsulinPage() {
 
   const extraInsulin = correctionInsulin + overshootInsulinOffset;
   const displayedInsulin = (() => {
-    if (session.ended) return correctionInsulin;
+    if (isCorrectionOnly || session.completed) {
+      return correctionInsulin;
+    }
     let insulin: number =
       vectorizedInsulins[shotIndex]?.value ?? -overshootInsulinOffset;
     return insulin + extraInsulin;
@@ -116,7 +146,7 @@ export default function InsulinPage() {
   })();
 
   function goBack() {
-    const wasMealRelated = isMealRelated;
+    const wasMealRelated = isMealRelated && !isCorrectionOnly;
     setIsMealRelated(false); // Reset flag
     navigate(wasMealRelated ? "/meal" : "/hub");
   }
@@ -131,6 +161,7 @@ export default function InsulinPage() {
   }
 
   const correctionIsDisplayed =
+    isCorrectionOnly ||
     roundByHalf(displayedInsulin) === roundByHalf(correctionInsulin);
 
   // Set usage state based on the current session state
@@ -147,13 +178,13 @@ export default function InsulinPage() {
         eyebrow="Treatment"
         title="Insulin dosing"
         subtitle={
-          isMealRelated
+          isMealRelated && !isCorrectionOnly
             ? "Review the suggested meal dose, confirm current glucose if needed, and mark insulin cleanly."
             : "Use this page for quick correction dosing without the extra noise."
         }
       />
 
-      {isMealRelated && (
+      {meal && !isCorrectionOnly && (
         <Card>
           <TemplateSummary
             template={template}
@@ -162,7 +193,7 @@ export default function InsulinPage() {
             currentBG={
               session.initialGlucose
                 ? undefined
-                : currentGlucose || PreferencesStore.targetBG.value
+                : effectiveGlucose || PreferencesStore.targetBG.value
             }
           />
         </Card>
@@ -178,16 +209,35 @@ export default function InsulinPage() {
 
       {/* Recommendation */}
       <Card>
-        <div className="small text-uppercase text-muted fw-semibold mb-2">
-          Recommendation
+        <div className="d-flex justify-content-between align-items-center mb-2">
+          <div className="small text-uppercase text-muted fw-semibold">
+            Recommendation
+          </div>
+          <Form.Check
+            type="switch"
+            id="correction-only-toggle"
+            label="Correction only"
+            checked={isCorrectionOnly}
+            disabled={!meal}
+            onChange={(e) => toggleCorrectionOnly(e.target.checked)}
+            className="small"
+          />
         </div>
         <MetricGrid>
           <MetricPill
             label="Mode"
             value={
-              session.started || session.meals.length !== 0 || isMealRelated
-                ? "Meal or follow-up bolus"
-                : "Correction only"
+              isCorrectionOnly
+                ? "Correction only"
+                : isMealRelated
+                  ? "Meal pre-bolus"
+                  : session.readyToTransition
+                    ? "Correction only"
+                    : session.insulins.length > 0
+                      ? "Additional bolus"
+                      : session.mealMarked
+                        ? "Meal bolus"
+                        : "Correction only"
             }
           />
           <MetricPill
@@ -206,9 +256,9 @@ export default function InsulinPage() {
         <div className="small text-uppercase text-muted fw-semibold mb-2">
           Mark insulin
         </div>
-        {!isFirstPostMealInjection && (
+        {(!isFirstPostMealInjection || isCorrectionOnly) && (
           <BloodSugarInput
-            initialGlucose={currentGlucose}
+            initialGlucose={effectiveGlucose}
             setInitialGlucose={setCurrentGlucose}
             pullFromNightscout={true}
           />

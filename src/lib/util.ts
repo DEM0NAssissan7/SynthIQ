@@ -1,3 +1,5 @@
+import type { UUID } from "../models/types/types";
+
 // Units
 export function convertDimensions(source: number, destination: number): number {
   return source / destination;
@@ -18,7 +20,6 @@ export function clamp(value: number, min: number, max: number): number {
 }
 
 // Number Generation
-export type UUID = number;
 export function genUUID(): UUID {
   return Math.round(random(0, 2 ** 24));
 }

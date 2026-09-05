@@ -15,8 +15,8 @@ export default function MealSelectionPage() {
 
   function advance(name: string | null) {
     if (!name) {
-      WizardManager.setGlobMeta("Session"); // Make it able to see all sessions
       WizardManager.createTemplate("Session");
+      WizardManager.setGlobMeta("Session"); // Make it able to see all sessions
       navigate("/meal");
       return;
     }

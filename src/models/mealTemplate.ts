@@ -5,7 +5,7 @@ import {
 } from "../lib/helpers/getSimilarSessionsDistances";
 import { sessionsWeightedAverage } from "../lib/templateHelpers";
 import { timeOfDayOffset } from "../lib/timing";
-import { clamp, MathUtil } from "../lib/util";
+import { clamp, genUUID, MathUtil } from "../lib/util";
 import { InsulinVariantManager } from "../managers/insulinVariantManager";
 import { BasalStore } from "../storage/basalStore";
 import { CalibrationStore } from "../storage/calibrationStore";
@@ -15,16 +15,18 @@ import Meal from "./events/meal";
 import Session from "./session";
 import Subscribable from "./subscribable";
 import type { Template } from "./types/interfaces";
-import type { Deserializer, Serializer } from "./types/types";
+import type { Deserializer, Serializer, UUID } from "./types/types";
 
 export default class MealTemplate extends Subscribable implements Template {
   _sessions: Session[] = [];
   auxillarySessions: Session[] = []; // Sessions that will not be serialized
   timestamp: Date;
+  UUID: UUID;
 
   constructor(public name: string) {
     super();
     this.timestamp = new Date();
+    this.UUID = genUUID();
   }
   get sessions() {
     return [...this._sessions, ...this.auxillarySessions];
@@ -72,7 +74,7 @@ export default class MealTemplate extends Subscribable implements Template {
     let typicalCarbs = MathUtil.mode(validSessions.map((s) => s.carbs));
     let typicalProtein = MathUtil.mode(validSessions.map((s) => s.protein));
     let typicalNumFoods = MathUtil.mode(
-      validSessions.map((s) => s.firstMeal.foods.length),
+      validSessions.map((s) => s.meal?.foods.length ?? 0),
     );
 
     let typicalSessions: Session[] = [];
@@ -82,7 +84,7 @@ export default class MealTemplate extends Subscribable implements Template {
       const deviation =
         (s.carbs - typicalCarbs) ** 2 +
         (s.protein - typicalProtein) ** 2 +
-        (typicalNumFoods - s.firstMeal.foods.length) ** 2;
+        (typicalNumFoods - (s.meal?.foods.length ?? 0)) ** 2;
       if (deviation < minDeviation) {
         typicalSessions = [];
         minDeviation = deviation;
@@ -376,7 +378,8 @@ export default class MealTemplate extends Subscribable implements Template {
     const carbsEffect = CalibrationStore.carbsEffect.value;
     const proteinEffect = CalibrationStore.proteinEffect.value;
 
-    const sessionMeal = session.metaMeal;
+    const sessionMeal = session.meal;
+    if (!sessionMeal) return [];
     const profileRise =
       sessionMeal.carbs * carbsEffect + sessionMeal.protein * proteinEffect;
 
@@ -430,7 +433,7 @@ export default class MealTemplate extends Subscribable implements Template {
      * (x + x*(1/s - 1)) * s = (x + x/s - x) * s = (x/s) * s = x
      */
     const uncommonFactor = 1 / profileScale - 1;
-    let carbsRise =
+    const carbsRise =
       (meal.carbs - sessionMeal.carbs + uncommonCarbs * uncommonFactor) *
       carbsEffect *
       profileScale;
@@ -460,14 +463,16 @@ export default class MealTemplate extends Subscribable implements Template {
       name: template.name,
       sessions: sessions.map((s) => Session.serialize(s)),
       timestamp: template.timestamp.getTime(),
+      UUID: template.UUID,
     };
   };
   static deserialize: Deserializer<MealTemplate> = (o) => {
-    let template = new MealTemplate(o.name);
+    const template = new MealTemplate(o.name);
     o.sessions.forEach((s: string) =>
       template.addSession(Session.deserialize(s)),
     );
     template.timestamp = new Date(o.timestamp);
+    template.UUID = o.UUID ?? template.UUID;
     return template;
   };
 }

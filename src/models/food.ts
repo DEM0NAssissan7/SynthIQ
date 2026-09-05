@@ -1,7 +1,7 @@
 import * as importedFoods from "../assets/foods.json";
-import { genUUID, type UUID } from "../lib/util";
+import { genUUID } from "../lib/util";
 import Unit from "../models/unit";
-import type { Deserializer, Serializer } from "./types/types";
+import type { Deserializer, Serializer, UUID } from "./types/types";
 
 export default class Food {
   name: string;
@@ -21,7 +21,7 @@ export default class Food {
     unit: Unit.Food = Unit.Food.HundredGrams,
     arbitraryRise?: number,
     fatRate?: number,
-    fiberRate?: number
+    fiberRate?: number,
   ) {
     this.name = name;
     this.carbsRate = carbsRate;
@@ -34,7 +34,7 @@ export default class Food {
     this.key = genUUID();
   }
   get prettyUnit(): string {
-    return this.unit === Unit.Food.HundredGrams ? "g" : ""
+    return this.unit === Unit.Food.HundredGrams ? "g" : "";
   }
   get netCarbsRate(): number {
     return this.carbsRate - this.fiberRate;
@@ -82,7 +82,7 @@ export default class Food {
       unit,
       food.rise || 0,
       food.fat || 0,
-      food.fiber || 0
+      food.fiber || 0,
     );
     newFood.amount = food.amount || 0;
     return newFood;
@@ -122,7 +122,7 @@ if (!isImported) {
   });
 } else {
   console.warn(
-    `Foods: Refusing to import foods - already imported for this session.`
+    `Foods: Refusing to import foods - already imported for this session.`,
   );
 }
 
@@ -136,7 +136,7 @@ export function getFoodByName(name: string): Food {
         food.unit,
         food.arbitraryRise,
         food.fatRate,
-        food.fiberRate
+        food.fiberRate,
       );
   throw new Error(`Foods: could not find food with name ${name}`);
 }

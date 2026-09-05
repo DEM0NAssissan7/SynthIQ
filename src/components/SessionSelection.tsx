@@ -23,10 +23,7 @@ export default function SessionSelection({
       <MetricGrid>
         <MetricPill label="Age" value={`${session.age.toFixed(0)} days ago`} />
         <MetricPill label="Score" value={session.score.toFixed(0)} />
-        <MetricPill
-          label="Insulin"
-          value={`${session.insulin}u taken`}
-        />
+        <MetricPill label="Insulin" value={`${session.insulin}u taken`} />
         <MetricPill
           label="Target"
           value={`${session.optimalMealInsulin.toFixed(0)}u optimal`}
@@ -37,7 +34,7 @@ export default function SessionSelection({
           Meal Snapshot
         </div>
         <div className="small">
-          {session.firstMeal.addedFoods.map((f, index) => (
+          {session.meal?.addedFoods.map((f, index) => (
             <div key={`${f.name}-${index}`} className="mb-1">
               {f.amount}
               {f.prettyUnit} {f.name}

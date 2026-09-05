@@ -24,6 +24,9 @@ export default function MealPage() {
   const [initialGlucose, setInitialGlucose] = useState<number | null>(null); // We are not wanting to modify the actual targetbg, so we do not use the store state
   const navigate = useNavigate();
   function goBack() {
+    navigate("/hub");
+  }
+  function selectDifferent() {
     navigate("/selectmeal");
   }
   function beginEating() {
@@ -33,11 +36,13 @@ export default function MealPage() {
     }
     if (confirm("Are you ready to start eating?")) {
       WizardManager.markMeal(initialGlucose);
-      navigate(session.insulinMarked ? "/hub" : "/mealinsulin");
+      navigate(
+        WizardStore.session.value.insulinMarked ? "/hub" : "/markinsulin",
+      );
     }
   }
   function markInsulin() {
-    navigate("/mealinsulin");
+    navigate("/prebolus");
   }
 
   // Upon Startup
@@ -92,10 +97,13 @@ export default function MealPage() {
       </Card>
       <PageActions>
         <Button variant="secondary" onClick={goBack}>
-          Go Back
+          Back to Hub
+        </Button>
+        <Button variant="danger" onClick={selectDifferent}>
+          Select Different Meal
         </Button>
         <Button variant="primary" onClick={markInsulin}>
-          Mark Insulin
+          Mark Pre-Bolus
         </Button>
         <Button variant="primary" onClick={beginEating}>
           Begin Eating

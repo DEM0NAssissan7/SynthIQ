@@ -6,13 +6,10 @@ import GlucoseManager from "../../components/GlucoseManager";
 import InsulinManager from "../../components/InsulinManager";
 import MealAdditionalNutrients from "../../components/MealAdditionalNutrientsCard";
 import { Button } from "react-bootstrap";
-import { useMemo, useState } from "react";
-import { Dropdown } from "react-bootstrap";
 import BloodSugarInput from "../../components/BloodSugarInput";
 import TemplateSummary from "../../components/summary/TemplateSummary";
 import { WizardStore } from "../../storage/wizardStore";
 import { PreferencesStore } from "../../storage/preferencesStore";
-import Meal from "../../models/events/meal";
 import {
   PageActions,
   PageHeader,
@@ -21,12 +18,8 @@ import {
 
 export default function WizardEditPage() {
   const [session] = WizardStore.session.useState();
-  const [selectedMealIndex, setSelectedMealIndex] = useState(0);
-  const meal = useMemo<Meal | null>(
-    () => session.meals[selectedMealIndex] ?? null,
-    [selectedMealIndex],
-  );
-  const template = WizardStore.template.value;
+  const meal = session.meal;
+  const [template] = WizardStore.activeTemplate.useState();
 
   const navigate = useNavigate();
   function finishEdit() {
@@ -44,24 +37,6 @@ export default function WizardEditPage() {
       />
       <Card>
         <TemplateSummary template={template} session={session} />
-      </Card>
-      <Card>
-        <Dropdown
-          onSelect={(eventKey) =>
-            setSelectedMealIndex(parseInt(eventKey ? eventKey : ""))
-          }
-        >
-          <Dropdown.Toggle variant="secondary" id="meal-dropdown">
-            {`Meal ${selectedMealIndex + 1}`}
-          </Dropdown.Toggle>
-          <Dropdown.Menu>
-            {session.meals.map((_, i: number) => (
-              <Dropdown.Item key={i} eventKey={i}>
-                Meal {i + 1}
-              </Dropdown.Item>
-            ))}
-          </Dropdown.Menu>
-        </Dropdown>
       </Card>
       {meal && (
         <>

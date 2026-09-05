@@ -98,7 +98,7 @@ export default function HistoryPage() {
     .flatMap((template: MealTemplate) => {
       const sessions = [...template.sessions]
         .reverse()
-        .filter((session) => session.meals.length >= 1);
+        .filter((session) => session.meal !== null);
 
       // Assert the pair as a fixed tuple
       return sessions.map(

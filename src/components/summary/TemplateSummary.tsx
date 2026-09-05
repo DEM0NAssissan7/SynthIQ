@@ -40,7 +40,7 @@ export default function TemplateSummary({
   );
   const elapsedFormatted = getFormattedTime(elapsedMinutes);
 
-  const hasMeals = session.meals.length > 0;
+  const hasMeal = session.mealMarked;
   const insulinTotal = session.insulin;
 
   return (
@@ -125,7 +125,7 @@ export default function TemplateSummary({
           )}
 
           {/* Macronutrients */}
-          {hasMeals && (
+          {hasMeal && (
             <>
               <hr className="my-2" />
               <div className="small text-uppercase text-muted fw-semibold mb-1">

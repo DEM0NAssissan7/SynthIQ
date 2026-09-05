@@ -11,11 +11,11 @@ export function splitIdenticalMeals(sessions: Session[]): Session[][] {
   let splitSessions: Session[][] = [];
 
   for (let session of sessions) {
-    if (session.meals.length !== 1)
+    if (!session.meal)
       throw new Error(
         `Cannot split identical meals if a session has anything besides one meal`,
       );
-    const meal = session.firstMeal;
+    const meal = session.meal;
     // Check if it has an identical meal set
     let hasIdentical = false;
     for (let i = 0; i < recordedMeals.length; i++) {

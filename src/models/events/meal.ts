@@ -1,6 +1,6 @@
 import Food from "../food";
 import MetaEvent from "./metaEvent";
-import type { Deserializer, Serializer } from "../types/types";
+import type { Deserializer, Serializer, UUID } from "../types/types";
 import Unit from "../unit";
 import { simplifyFoods } from "../../lib/helpers/simplifyFoods";
 
@@ -20,7 +20,10 @@ export default class Meal extends MetaEvent {
     createFatOffset(), // Fat offset food
   ];
 
-  constructor(timestamp: Date) {
+  constructor(
+    timestamp: Date,
+    public templateUUID: UUID | null = null,
+  ) {
     super(timestamp);
   }
 
@@ -85,6 +88,14 @@ export default class Meal extends MetaEvent {
   get summedFoods() {
     return simplifyFoods(this.foods);
   }
+  get isEmpty() {
+    return (
+      this.addedFoods.length === 0 &&
+      this.carbsOffset === 0 &&
+      this.proteinOffset === 0 &&
+      this.fatOffset === 0
+    );
+  }
   isIdentical(meal: Meal) {
     const myFoods = this.summedFoods;
     const foods = meal.summedFoods;
@@ -133,17 +144,27 @@ export default class Meal extends MetaEvent {
     return calories;
   }
 
+  // State management
+  absorb(meal: Meal) {
+    this.carbsOffset += meal.carbsOffset;
+    this.proteinOffset += meal.proteinOffset;
+    this.fatOffset += meal.fatOffset;
+    this.foods.push(...meal.addedFoods);
+    this.notify();
+  }
+
   // Storage Transience
   static serialize: Serializer<Meal> = (meal) => {
     return {
       timestamp: meal.timestamp.getTime(),
       foods: meal.foods.map((a) => Food.serialize(a)),
+      templateUUID: meal.templateUUID,
     };
   };
   static deserialize: Deserializer<Meal> = (o) => {
-    let timestamp = new Date(o.timestamp);
-    let foods: Food[] = o.foods.map((a: string) => Food.deserialize(a));
-    let newMeal = new Meal(timestamp);
+    const timestamp = new Date(o.timestamp);
+    const foods: Food[] = o.foods.map((a: string) => Food.deserialize(a));
+    const newMeal = new Meal(timestamp, o.templateUUID ?? null);
     newMeal.foods = foods;
     return newMeal;
   };
