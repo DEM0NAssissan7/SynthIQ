@@ -1,33 +1,83 @@
 import { basalIsDue } from "../lib/healthMonitor";
 import { useNow } from "../state/useNow";
-import { PageHeader, PageLayout } from "../components/PageLayout";
-import SessionHubContent from "../components/SessionHubContent";
+import { ActionCard, PageLayout } from "../components/PageLayout";
 import BasalCard from "../components/BasalCard";
 import { useMemo, useState } from "react";
+import { ToggleButton } from "react-bootstrap";
+import LastBolusMessage from "../components/LastBolusMessage";
+import TemplateSummary from "../components/summary/TemplateSummary";
+import { WizardStore } from "../storage/wizardStore";
+import Card from "../components/Card";
+import { useNavigate } from "react-router";
 
 function HubPage() {
   const now = useNow(60);
+  const [session] = WizardStore.session.useState();
+  const [activeTemplate] = WizardStore.activeTemplate.useState();
+
+  const navigate = useNavigate();
 
   const [dueForBasal, setDueForBasal] = useState(basalIsDue());
   useMemo(() => {
     setDueForBasal(basalIsDue());
   }, [now]);
+  function editSession() {
+    navigate("/session/edit");
+  }
+  function setGarbage(value: boolean) {
+    if (value === true) {
+      if (confirm("Do you want to mark this session as unreliable?"))
+        session.isGarbage = value;
+    } else session.isGarbage = value;
+  }
 
   return (
     <PageLayout maxWidth="32rem">
       {dueForBasal && (
         <BasalCard dueForBasal={dueForBasal} setDueForBasal={setDueForBasal} />
       )}
-      <>
-        <PageHeader
-          eyebrow="Wizard"
-          title="Session hub"
-          subtitle="Keep the current session readable while keeping glucose, activity, meal, and insulin actions close at hand."
-        />
-        <SessionHubContent />
-      </>
+      <Card className="mt-4">
+        <div className="small text-uppercase text-muted fw-semibold mb-2">
+          Active insulin
+        </div>
+        <LastBolusMessage />
+      </Card>
+
+      {session.started && (
+        <Card>
+          <TemplateSummary session={session} template={activeTemplate} />
+        </Card>
+      )}
       {!dueForBasal && (
         <BasalCard dueForBasal={dueForBasal} setDueForBasal={setDueForBasal} />
+      )}
+      {session.started && (
+        <Card className="mt-4">
+          <div className="small text-uppercase text-muted fw-semibold mb-2">
+            Session controls
+          </div>
+          <div className="d-grid gap-2">
+            <ToggleButton
+              id="toggle-check"
+              type="checkbox"
+              variant="outline-danger"
+              checked={session.isGarbage}
+              value="1"
+              onChange={(e) => setGarbage(e.currentTarget.checked)}
+            >
+              Exclude Session
+            </ToggleButton>
+            <ActionCard
+              icon="bi-pencil-square"
+              eyebrow="Edit"
+              title="Edit session"
+              body="Adjust stored foods, treatments, or glucose details for the current session."
+              buttonLabel="Open editor"
+              buttonVariant="secondary"
+              onClick={editSession}
+            />
+          </div>
+        </Card>
       )}
     </PageLayout>
   );

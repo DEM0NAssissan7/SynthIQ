@@ -16,12 +16,10 @@ import { InsulinVariantManager } from "../../managers/insulinVariantManager";
 import { NumberOptionSelector } from "../../components/NumberOptionSelector";
 import InsulinVariantDropdown from "../../components/InsulinVariantDropdown";
 import { getFastingVelocity } from "../../lib/basal";
-import LastBolusMessage from "../../components/LastBolusMessage";
 import {
   MetricGrid,
   MetricPill,
   PageActions,
-  PageHeader,
   PageLayout,
 } from "../../components/PageLayout";
 
@@ -225,16 +223,6 @@ export default function InsulinPage() {
 
   return (
     <PageLayout>
-      <PageHeader
-        eyebrow="Treatment"
-        title="Insulin dosing"
-        subtitle={
-          isPrebolus && !isCorrectionOnly
-            ? "Review the suggested meal dose, confirm current glucose if needed, and mark insulin cleanly."
-            : "Use this page for quick correction dosing without the extra noise."
-        }
-      />
-
       {meal && (
         <Card>
           <TemplateSummary
@@ -249,14 +237,6 @@ export default function InsulinPage() {
           />
         </Card>
       )}
-
-      {/* Active insulin */}
-      <Card>
-        <div className="small text-uppercase text-muted fw-semibold mb-2">
-          Active insulin
-        </div>
-        <LastBolusMessage />
-      </Card>
 
       {/* Recommendation */}
       <Card>
@@ -335,7 +315,7 @@ export default function InsulinPage() {
           />
           <InputGroup.Text id="basic-addon1">u</InputGroup.Text>
         </InputGroup>
-        <div className="d-flex justify-content-center flex-wrap">
+        <div className="w-100 mb-2">
           <NumberOptionSelector
             value={roundByHalf(displayedInsulin)}
             rangeFromOrigin={2}
@@ -348,10 +328,7 @@ export default function InsulinPage() {
         </div>
       </Card>
 
-      <PageActions inline>
-        <Button variant="secondary" onClick={goBack}>
-          Go Back
-        </Button>
+      <PageActions>
         <Button variant="primary" onClick={onMark}>
           Mark Insulin
         </Button>

@@ -1,5 +1,4 @@
 import React from "react";
-import { Button } from "react-bootstrap"; // assuming react-bootstrap, adjust if different
 
 type NumberOptionSelectorProps = {
   value: number; // the base value (origin)
@@ -29,22 +28,21 @@ export const NumberOptionSelector: React.FC<NumberOptionSelectorProps> = ({
   }
 
   return (
-    <>
-      {options.map((opt) => (
-        <Button
-          key={opt}
-          variant={
-            opt !== value || !highlightOriginal
-              ? "outline-secondary"
-              : "outline-primary"
-          }
-          className="me-2 mb-2"
-          onClick={() => onSelect(opt)}
-        >
-          {opt}
-          {labelSuffix}
-        </Button>
-      ))}
-    </>
+    <div className="app-number-options-row">
+      {options.map((opt) => {
+        const isSelected = opt === value && highlightOriginal;
+        return (
+          <button
+            key={opt}
+            type="button"
+            className={`app-number-option-btn ${isSelected ? "is-selected" : ""}`}
+            onClick={() => onSelect(opt)}
+          >
+            {opt}
+            {labelSuffix}
+          </button>
+        );
+      })}
+    </div>
   );
 };

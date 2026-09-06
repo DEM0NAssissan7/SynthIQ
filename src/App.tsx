@@ -1,5 +1,6 @@
 import { Route, Routes } from "react-router";
 import TopBar from "./components/TopBar";
+import BottomNav from "./components/BottomNav";
 import HubPage from "./pages/HubPage";
 import SettingsPage from "./pages/SettingsPage";
 import SetupPage from "./pages/SetupPage";
@@ -153,6 +154,7 @@ function App() {
           {VERSION_STRING}
         </button>
       </footer>
+      <BottomNav />
     </div>
   );
 }

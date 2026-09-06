@@ -14,32 +14,29 @@ import {
   getBGVelocity,
   getLastRescueMinutes,
 } from "../../lib/healthMonitor";
-import TemplateSummary from "../../components/summary/TemplateSummary";
 import { HealthMonitorStore } from "../../storage/healthMonitorStore";
-import { WizardStore } from "../../storage/wizardStore";
 import { PreferencesStore } from "../../storage/preferencesStore";
 import { NumberOptionSelector } from "../../components/NumberOptionSelector";
 import { RescueVariantManager } from "../../managers/rescueVariantManager";
 import type { RescueVariant } from "../../models/types/rescueVariant";
 import { RescueVariantStore } from "../../storage/rescueVariantStore";
 import { useNow } from "../../state/useNow";
-import LastBolusMessage from "../../components/LastBolusMessage";
 import {
   MetricGrid,
   MetricPill,
   PageActions,
-  PageHeader,
   PageLayout,
 } from "../../components/PageLayout";
 import WizardManager from "../../managers/wizardManager";
+import { estimateDynamicISF } from "../../lib/helpers/estimateDynamicISF";
 
 export default function RescuePage() {
-  const [session] = WizardStore.session.useState();
-  const [template] = WizardStore.template.useState();
   const isFasting = WizardManager.isFasting();
 
   const [currentBG, setCurrentBG] = useState<number | null>(null);
   const [variant, setVariant] = useState(RescueVariantManager.getDefault());
+  const [readings] = HealthMonitorStore.readingsCache.useState();
+  const [insulinsOnBoard] = HealthMonitorStore.recentBoluses.useState();
 
   const correction = useMemo(() => {
     return currentBG
@@ -76,6 +73,10 @@ export default function RescuePage() {
     });
     setIntelligentCorrection(correction); // Fallback if there is no CGM data
   }, [currentBG, variant, updated, correction]);
+  const dynamicISF = useMemo(
+    () => estimateDynamicISF(readings, insulinsOnBoard),
+    [readings, insulinsOnBoard],
+  );
 
   const displayRange =
     correction === intelligentCorrection
@@ -111,27 +112,6 @@ export default function RescuePage() {
 
   return (
     <PageLayout>
-      <PageHeader
-        eyebrow="Treatment"
-        title="Low correction"
-        subtitle="Keep rescue corrections immediate while still showing the context you need."
-      />
-
-      {/* Session summary (collapsible) */}
-      {session.started && (
-        <Card>
-          <TemplateSummary template={template} session={session} />
-        </Card>
-      )}
-
-      {/* Active insulin */}
-      <Card>
-        <div className="small text-uppercase text-muted fw-semibold mb-2">
-          Active insulin
-        </div>
-        <LastBolusMessage />
-      </Card>
-
       {/* Recommendation */}
       <Card>
         <div className="small text-uppercase text-muted fw-semibold mb-2">
@@ -143,6 +123,7 @@ export default function RescuePage() {
             value={`${displayRange} ${variant.unitLetter}`}
           />
           <MetricPill label="Drop rate" value={dropRate} />
+          <MetricPill label="Dynamic ISF" value={`${dynamicISF}`} />
         </MetricGrid>
         <HealthMonitorMessage />
         {HealthMonitorStore.lastRescue.value.value > 0 &&
@@ -201,7 +182,7 @@ export default function RescuePage() {
           />
           <InputGroup.Text id="basic-addon1">{variant.name}</InputGroup.Text>
         </InputGroup>
-        <div className="d-flex justify-content-center flex-wrap">
+        <div className="w-100 mb-2">
           <NumberOptionSelector
             value={intelligentCorrection}
             rangeFromOrigin={2}
@@ -214,12 +195,7 @@ export default function RescuePage() {
         </div>
       </Card>
 
-      <PageActions inline>
-        {session.started && (
-          <Button variant="secondary" onClick={goBack}>
-            Back to hub
-          </Button>
-        )}
+      <PageActions>
         <Button variant="primary" onClick={onMark}>
           Mark Glucose
         </Button>

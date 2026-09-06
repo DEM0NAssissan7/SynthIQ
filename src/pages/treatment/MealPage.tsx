@@ -1,20 +1,17 @@
 import { useState, useEffect, useMemo } from "react";
-import { Button, Card, Form, ListGroup } from "react-bootstrap";
+import { Button, Form, ListGroup } from "react-bootstrap";
 import { useNavigate } from "react-router";
 import AddedFoodsDisplay from "../../components/AddedFoodsDisplay";
 import BloodSugarInput from "../../components/BloodSugarInput";
 import FoodSearchDisplay from "../../components/FoodSearchDisplay";
 import MealAdditionalNutrients from "../../components/MealAdditionalNutrientsCard";
-import {
-  PageLayout,
-  PageHeader,
-  PageActions,
-} from "../../components/PageLayout";
+import { PageLayout, PageActions } from "../../components/PageLayout";
 import TemplateSummary from "../../components/summary/TemplateSummary";
 import WizardManager from "../../managers/wizardManager";
 import { useNow } from "../../state/useNow";
 import { PreferencesStore } from "../../storage/preferencesStore";
 import { WizardStore } from "../../storage/wizardStore";
+import Card from "../../components/Card";
 
 export default function MealPage() {
   const [template] = WizardStore.template.useState();
@@ -27,10 +24,9 @@ export default function MealPage() {
 
   const [initialGlucose, setInitialGlucose] = useState<number | null>(null); // We are not wanting to modify the actual targetbg, so we do not use the store state
   const navigate = useNavigate();
-  function goBack() {
-    navigate("/hub");
-  }
   function selectDifferent() {
+    // We have to reset the meal because it would happen anyways - don't want stale state
+    WizardManager.resetMeal();
     navigate("/selectmeal");
   }
   function beginEating() {
@@ -58,12 +54,6 @@ export default function MealPage() {
 
   return (
     <PageLayout>
-      <PageHeader
-        eyebrow="Wizard"
-        title="Meal creation"
-        subtitle="Build the meal cleanly, review the predicted session impact, and keep the next action obvious."
-      />
-
       <Card>
         <FoodSearchDisplay meal={meal} />
       </Card>
@@ -99,18 +89,14 @@ export default function MealPage() {
           </ListGroup.Item>
         </ListGroup>
       </Card>
+
       <PageActions>
-        <Button variant="secondary" onClick={goBack}>
-          Back to Hub
-        </Button>
         <Button variant="danger" onClick={selectDifferent}>
           Select Different Meal
         </Button>
-        {(session.mealMarked ||
-          session.insulins.length === 0 ||
-          !session.started) && (
+        {showPreBolus && (
           <Button variant="primary" onClick={markInsulin}>
-            {showPreBolus ? `Mark Pre-Bolus` : `Mark Insulin`}
+            Mark Pre-Bolus
           </Button>
         )}
         <Button variant="primary" onClick={beginEating}>
