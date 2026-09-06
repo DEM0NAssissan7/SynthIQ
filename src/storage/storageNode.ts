@@ -155,6 +155,7 @@ class StorageEntry<T> {
   subscriptions: SubscriptionCallback<T>[] = [];
   /** Tracks whether the last read was uncompressed old data — triggers re-compression */
   private _needsCompressionMigration: boolean = false;
+  private _isWriting: boolean = false;
 
   constructor(
     id: string,
@@ -213,6 +214,8 @@ class StorageEntry<T> {
     }
   }
   write() {
+    if (this._isWriting) return;
+    this._isWriting = true;
     try {
       this.writeToStorage(this.export());
       this.notify();
@@ -221,6 +224,8 @@ class StorageEntry<T> {
       throw new Error(
         `StorageEntry[${this.getStorageKey()}]: Serializer is invalid: ${e}`,
       );
+    } finally {
+      this._isWriting = false;
     }
   }
 

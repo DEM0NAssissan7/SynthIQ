@@ -147,7 +147,6 @@ export default class Snapshot extends Subscribable {
     });
     this.rawReadings = deduplicated;
     this.invalidateCaches();
-    this.notify();
   }
 
   async pullReadings() {
