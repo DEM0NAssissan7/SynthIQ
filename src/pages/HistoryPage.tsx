@@ -8,8 +8,6 @@ import { useState } from "react";
 import { BasalStore } from "../storage/basalStore";
 import {
   EmptyState,
-  MetricGrid,
-  MetricPill,
   PageHeader,
   PageLayout,
 } from "../components/PageLayout";
@@ -36,12 +34,14 @@ function SessionCard({ session }: { session: Session; liverOutput: number }) {
 
   return (
     <Card className={backgroundClass}>
-      <div className="d-flex justify-content-between align-items-start gap-3 mb-3">
+      <div className="d-flex justify-content-between align-items-start gap-3 mb-2">
         <div>
           <div className="fw-semibold">
             {getFullPrettyDate(session.timestamp)}
           </div>
-          <div className="small text-muted">UUID: {session.uuid}</div>
+          <div className="small text-muted" style={{ fontSize: "0.75rem" }}>
+            {session.initialGlucose} → {session.finalBG} mg/dL · {session.length.toFixed(1)}h
+          </div>
         </div>
         <ToggleButton
           id={`toggle-check-${session.uuid}`}
@@ -56,37 +56,57 @@ function SessionCard({ session }: { session: Session; liverOutput: number }) {
             setRerenderFlag((f) => !f);
           }}
         >
-          Garbage
+          {session.isGarbage ? "Excluded" : "Exclude"}
         </ToggleButton>
       </div>
 
-      <MetricGrid>
-        <MetricPill label="Length" value={`${session.length.toFixed(1)} hr`} />
-        <MetricPill
-          label="Calories"
-          value={session.calories.toFixed(0) ?? "n/a"}
-        />
-        <MetricPill label="Carbs" value={`${session.carbs.toFixed()}g`} />
-        <MetricPill label="Protein" value={`${session.protein.toFixed()}g`} />
-        <MetricPill label="Score" value={session.score.toFixed(0)} />
-        <MetricPill
-          label="Insulin"
-          value={`${session.insulin}u${session.correctionInsulin > 0 ? ` [${session.correctionInsulin.toFixed(1)}]` : ""}`}
-        />
-        <MetricPill label="Shots" value={`${session.insulins.length}`} />
-        <MetricPill
-          label="Glucose"
-          value={`${session.glucose}g (${session.glucoseDoses})`}
-        />
-        <MetricPill
-          label="Blood sugar"
-          value={`${session.initialGlucose} -> ${session.finalBG}`}
-        />
-        <MetricPill
-          label="Meal rise"
-          value={`${session.theoreticalMealRise.toFixed(0)} mg/dL`}
-        />
-      </MetricGrid>
+      <div className="app-stat-strip mb-2">
+        <div className="app-stat-strip-item">
+          <span className="stat-label">Carbs</span>
+          <span className="stat-value">{session.carbs.toFixed(0)}g</span>
+        </div>
+        <div className="app-stat-strip-item">
+          <span className="stat-label">Protein</span>
+          <span className="stat-value">{session.protein.toFixed(0)}g</span>
+        </div>
+        <div className="app-stat-strip-item">
+          <span className="stat-label">Calories</span>
+          <span className="stat-value">{session.calories.toFixed(0)}</span>
+        </div>
+        <div className="app-stat-strip-item">
+          <span className="stat-label">Score</span>
+          <span className="stat-value">{session.score.toFixed(0)}</span>
+        </div>
+      </div>
+
+      <div className="app-stat-strip">
+        <div className="app-stat-strip-item">
+          <span className="stat-label">Insulin</span>
+          <span className="stat-value">
+            {session.insulin}u
+            {session.correctionInsulin > 0 && (
+              <span className="stat-sub">[{session.correctionInsulin.toFixed(1)}]</span>
+            )}
+          </span>
+        </div>
+        <div className="app-stat-strip-item">
+          <span className="stat-label">Shots</span>
+          <span className="stat-value">{session.insulins.length}</span>
+        </div>
+        <div className="app-stat-strip-item">
+          <span className="stat-label">Rescue</span>
+          <span className="stat-value">
+            {session.glucose}g
+            {session.glucoseDoses > 0 && (
+              <span className="stat-sub">({session.glucoseDoses})</span>
+            )}
+          </span>
+        </div>
+        <div className="app-stat-strip-item">
+          <span className="stat-label">Meal Rise</span>
+          <span className="stat-value">{session.theoreticalMealRise.toFixed(0)} mg/dL</span>
+        </div>
+      </div>
     </Card>
   );
 }

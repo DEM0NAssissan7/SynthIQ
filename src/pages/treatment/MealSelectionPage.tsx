@@ -1,14 +1,10 @@
 import { useNavigate } from "react-router";
+import { Button } from "react-bootstrap";
 import TemplateNameSearch from "../../components/TemplateNameSearch";
 import Card from "../../components/Card";
 import WizardManager from "../../managers/wizardManager";
 import { WizardStore } from "../../storage/wizardStore";
-import {
-  ActionCard,
-  ActionGrid,
-  PageHeader,
-  PageLayout,
-} from "../../components/PageLayout";
+import { PageLayout } from "../../components/PageLayout";
 
 export default function MealSelectionPage() {
   const navigate = useNavigate();
@@ -36,11 +32,13 @@ export default function MealSelectionPage() {
       console.error(e);
     }
   }
+
   function skip() {
-    if (confirm("Are you sure you wanna skip naming your session?")) {
+    if (confirm("Are you sure you want to skip naming your session?")) {
       advance(null);
     }
   }
+
   function addTemplate() {
     const name = prompt("Template name:");
     if (name && name.trim()) {
@@ -55,11 +53,27 @@ export default function MealSelectionPage() {
 
   return (
     <PageLayout>
-      <PageHeader
-        eyebrow="Wizard"
-        title="Choose a meal template"
-        subtitle="Reuse a known template for speed, or create a fresh one when you want a new baseline."
-      />
+      <div className="d-flex gap-2 mb-3">
+        <Button
+          variant="primary"
+          className="flex-fill d-flex align-items-center justify-content-center gap-1.5 py-2.5 fw-semibold"
+          style={{ borderRadius: "0.85rem" }}
+          onClick={addTemplate}
+        >
+          <i className="bi bi-plus-lg" />
+          <span>New template</span>
+        </Button>
+        <Button
+          variant="outline-secondary"
+          className="flex-fill d-flex align-items-center justify-content-center gap-1.5 py-2.5 fw-semibold"
+          style={{ borderRadius: "0.85rem" }}
+          onClick={skip}
+        >
+          <span>Skip naming</span>
+          <i className="bi bi-arrow-right" />
+        </Button>
+      </div>
+
       <Card>
         <TemplateNameSearch
           templates={WizardStore.templates.value}
@@ -67,26 +81,6 @@ export default function MealSelectionPage() {
           onDelete={(name: string) => WizardManager.deleteTemplate(name)}
         />
       </Card>
-
-      <ActionGrid>
-        <ActionCard
-          icon="bi-plus-circle"
-          eyebrow="Template"
-          title="Create a new template"
-          body="Start with a fresh template when this meal pattern doesn’t match an existing one."
-          buttonLabel="Create template"
-          onClick={addTemplate}
-        />
-        <ActionCard
-          icon="bi-arrow-right-circle"
-          eyebrow="Quick Start"
-          title="Start without naming"
-          body="Skip template naming and begin a one-off session immediately."
-          buttonLabel="Skip template"
-          buttonVariant="danger"
-          onClick={skip}
-        />
-      </ActionGrid>
     </PageLayout>
   );
 }

@@ -12,109 +12,133 @@ interface ActivitySummaryProps {
   activity: Activity;
   template: ActivityTemplate;
   currentBG: number | null;
+  className?: string;
 }
+
 export default function ActivitySummary({
   activity,
   template,
   currentBG,
+  className = "",
 }: ActivitySummaryProps) {
-  const now = useNow();
+  const now = useNow(60);
   const defaultVariant = InsulinVariantManager.getDefault();
   const defaultRescueVariant = RescueVariantManager.getDefault();
+
   const baseCorrection = useMemo(
     () =>
       currentBG
         ? getGlucoseCorrectionCaps(currentBG, defaultRescueVariant, true)
         : 0,
-    [currentBG]
+    [currentBG, defaultRescueVariant],
   );
+
   const glucoseCorrectionRate = useMemo(
     () => -template.changeRate / defaultRescueVariant.effect,
-    [template]
+    [template, defaultRescueVariant],
   );
+
   const totalGlucoseCorrection = useMemo(
     () => glucoseCorrectionRate * (template.length / 60) + baseCorrection,
-    [glucoseCorrectionRate, template, baseCorrection]
+    [glucoseCorrectionRate, template, baseCorrection],
   );
+
   const insulinCorrectionRate = useMemo(
     () => template.changeRate / defaultVariant.effect,
-    [template, defaultVariant]
+    [template, defaultVariant],
   );
+
   const insulinCorrectionTotal = useMemo(
     () => insulinCorrectionRate * (template.length / 60),
-    [insulinCorrectionRate, template]
+    [insulinCorrectionRate, template],
   );
+
   return (
-    <>
-      <h2 style={{ paddingTop: "12px" }}>{template.name}</h2>
-      {template.isFirstTime ? (
-        <>
-          This is the first time using this template
-          <br />
-        </>
-      ) : (
-        <>
-          Typical Length: <b>{getFormattedTime(Math.round(template.length))}</b>
-          <br />
-          Score:{" "}
-          <b>
-            {template.changeRate > 0 && "+"}
-            {template.changeRate.toFixed()}mg/dL per hour
-          </b>
-          <hr />
-          {template.changeRate < 0 ? (
-            <>
-              Consider taking{" "}
-              <b>
-                {roundByHalf(glucoseCorrectionRate, true)}{" "}
-                {defaultRescueVariant.name}
-              </b>{" "}
-              every hour.
-              <br /> You might need to take{" "}
-              {roundByHalf(totalGlucoseCorrection, true)}{" "}
-              {defaultRescueVariant.name} in total.{" "}
-              {roundByHalf(baseCorrection, false) !== 0 && (
-                <>
-                  <br />
-                  {baseCorrection >= 0 && "+"}
-                  {roundByHalf(baseCorrection, false)}{" "}
-                  {defaultRescueVariant.name} to correct for BG of {currentBG}
-                  mg/dL
-                </>
-              )}
-            </>
-          ) : (
-            <>
-              Consider taking{" "}
-              <b>
-                {roundByHalf(insulinCorrectionRate, false)}u of{" "}
-                {defaultVariant.name}
-              </b>{" "}
-              for every hour you plan to do this activity.
-              <br />
-              Typically{" "}
-              <b>
-                {roundByHalf(insulinCorrectionTotal, false)}u{" of "}
-                {defaultVariant.name}
-              </b>{" "}
-              in total for this activity.
-            </>
-          )}
-        </>
-      )}
-      <hr />
+    <div className={`app-discrete-summary ${className}`.trim()}>
+      {/* Header */}
+      <div className="app-discrete-header">
+        <div>
+          <h2 className="app-discrete-title">
+            <i className="bi bi-person-walking text-primary" />
+            <span>{template.name}</span>
+          </h2>
+          <div className="app-discrete-subtitle">
+            {activity.started ? (
+              <>
+                Started {getPrettyTime(activity.timestamp)} ·{" "}
+                {getFormattedTime(getMinuteDiff(now, activity.timestamp))} ago
+              </>
+            ) : template.isFirstTime ? (
+              <span className="fst-italic">First time using this template</span>
+            ) : (
+              <>
+                Typical duration:{" "}
+                <span className="fw-medium text-body">
+                  {getFormattedTime(Math.round(template.length))}
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+        <span
+          className={`badge ${
+            activity.started
+              ? "bg-success-subtle text-success"
+              : "bg-secondary-subtle text-secondary-emphasis"
+          } fw-semibold px-2 py-0.5 rounded-pill`}
+          style={{ fontSize: "0.72rem" }}
+        >
+          {activity.started ? "In Progress" : "Template"}
+        </span>
+      </div>
+
+      {/* Discrete Stats Strip */}
+      <div className="app-stat-strip">
+        <div className="app-stat-strip-item">
+          <span className="stat-label">Duration</span>
+          <span className="stat-value">
+            {getFormattedTime(Math.round(template.length))}
+          </span>
+        </div>
+        <div className="app-stat-strip-item">
+          <span className="stat-label">Impact Rate</span>
+          <span className="stat-value">
+            {template.changeRate > 0 ? "+" : ""}
+            {template.changeRate.toFixed(0)} mg/dL/hr
+          </span>
+        </div>
+        <div className="app-stat-strip-item">
+          <span className="stat-label">Hourly Dose</span>
+          <span className="stat-value">
+            {template.changeRate < 0
+              ? `${roundByHalf(glucoseCorrectionRate, true)} ${defaultRescueVariant.name}`
+              : `${roundByHalf(insulinCorrectionRate, false)}u ${defaultVariant.name}`}
+          </span>
+        </div>
+        <div className="app-stat-strip-item">
+          <span className="stat-label">Total Projected</span>
+          <span className="stat-value">
+            {template.changeRate < 0
+              ? `${roundByHalf(totalGlucoseCorrection, true)} ${defaultRescueVariant.name}`
+              : `${roundByHalf(insulinCorrectionTotal, false)}u ${defaultVariant.name}`}
+          </span>
+        </div>
+      </div>
+
+      {/* Active Tracking Status (if started) */}
       {activity.started && (
-        <>
-          This activity was started at{" "}
-          <b>{getPrettyTime(activity.timestamp)}</b>,{" "}
-          <b>{getFormattedTime(getMinuteDiff(now, activity.timestamp))} ago</b>
-          <br />
-          <br />
-          <b>{activity.glucose} doses</b>,{" "}
-          {getFormattedTime(getMinuteDiff(now, activity.latestRescueTimestamp))}{" "}
-          ago
-        </>
+        <div className="app-dosing-banner">
+          <span className="dosing-label">Rescue Doses</span>
+          <span className="dosing-value">
+            {activity.glucose} doses
+            {activity.latestRescueTimestamp && (
+              <span className="dosing-note">
+                (Last: {getFormattedTime(getMinuteDiff(now, activity.latestRescueTimestamp))} ago)
+              </span>
+            )}
+          </span>
+        </div>
       )}
-    </>
+    </div>
   );
 }

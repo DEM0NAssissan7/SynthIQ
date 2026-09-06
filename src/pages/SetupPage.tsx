@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Backend from "../lib/remote/backend";
 import { BackendStore } from "../storage/backendStore";
 import { PrivateStore } from "../storage/privateStore";
+import Card from "../components/Card";
 import { PageActions, PageHeader, PageLayout } from "../components/PageLayout";
 
 const autoHideTime = 4000;
@@ -195,36 +196,38 @@ function SetupPage() {
           </Badge>
         </div>
       </Alert>
-      <div className="card app-card border-0 shadow-sm mb-3">
-        <div className="card-body">
-          <Form.Label>Nightscout URL</Form.Label>
-          <InputGroup className="mb-3">
-            <InputGroup.Text>
-              <i className="bi bi-globe"></i>
-            </InputGroup.Text>
-            <Form.Control
-              type="text"
-              placeholder={url || "Enter your nightscout server URL"}
-              aria-label="URL"
-              aria-describedby="basic-addon1"
-              onChange={(e) => setUrl(e.target.value)}
-            />
-          </InputGroup>
-          <Form.Label>API key</Form.Label>
-          <InputGroup className="mb-0">
-            <InputGroup.Text>
-              <i className="bi bi-key"></i>
-            </InputGroup.Text>
-            <Form.Control
-              type="text"
-              placeholder={apiSecret || "Enter your API key"}
-              aria-label="API Key"
-              aria-describedby="basic-addon2"
-              onChange={(e) => setApiSecret(e.target.value)}
-            />
-          </InputGroup>
+      <Card>
+        <div className="app-card-title">
+          <i className="bi bi-shield-lock"></i>
+          <span>Connection details</span>
         </div>
-      </div>
+        <Form.Label className="small text-muted mb-1">Nightscout URL</Form.Label>
+        <InputGroup className="mb-3">
+          <InputGroup.Text>
+            <i className="bi bi-globe"></i>
+          </InputGroup.Text>
+          <Form.Control
+            type="text"
+            placeholder={url || "Enter your nightscout server URL"}
+            aria-label="URL"
+            aria-describedby="basic-addon1"
+            onChange={(e) => setUrl(e.target.value)}
+          />
+        </InputGroup>
+        <Form.Label className="small text-muted mb-1">API key</Form.Label>
+        <InputGroup className="mb-0">
+          <InputGroup.Text>
+            <i className="bi bi-key"></i>
+          </InputGroup.Text>
+          <Form.Control
+            type="text"
+            placeholder={apiSecret || "Enter your API key"}
+            aria-label="API Key"
+            aria-describedby="basic-addon2"
+            onChange={(e) => setApiSecret(e.target.value)}
+          />
+        </InputGroup>
+      </Card>
       <Toast
         show={!errorMsgHidden}
         bg="danger"

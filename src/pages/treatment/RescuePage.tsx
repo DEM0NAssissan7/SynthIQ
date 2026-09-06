@@ -25,6 +25,7 @@ import {
   MetricGrid,
   MetricPill,
   PageActions,
+  PageHeader,
   PageLayout,
 } from "../../components/PageLayout";
 import WizardManager from "../../managers/wizardManager";
@@ -112,10 +113,17 @@ export default function RescuePage() {
 
   return (
     <PageLayout>
+      <PageHeader
+        eyebrow="Treatment"
+        title="Rescue treatment"
+        subtitle="Review suggested fast-acting carbohydrates and log rescue doses."
+      />
+
       {/* Recommendation */}
       <Card>
-        <div className="small text-uppercase text-muted fw-semibold mb-2">
-          Recommendation
+        <div className="app-card-title">
+          <i className="bi bi-shield-plus text-danger" />
+          <span>Recommendation</span>
         </div>
         <MetricGrid>
           <MetricPill
@@ -128,7 +136,7 @@ export default function RescuePage() {
         <HealthMonitorMessage />
         {HealthMonitorStore.lastRescue.value.value > 0 &&
           lastRescueMinutes < 60 && (
-            <div className="rounded-3 border p-3 mt-3 bg-body-tertiary small">
+            <div className="rounded-3 border p-2.5 mt-3 bg-body-tertiary small">
               <div className="d-flex justify-content-between align-items-center">
                 <span className="text-muted">Last rescue</span>
                 <span className="fw-semibold">
@@ -142,8 +150,9 @@ export default function RescuePage() {
 
       {/* Mark rescue */}
       <Card>
-        <div className="small text-uppercase text-muted fw-semibold mb-2">
-          Mark rescue
+        <div className="app-card-title">
+          <i className="bi bi-heart-pulse text-primary" />
+          <span>Mark rescue</span>
         </div>
         <BloodSugarInput
           initialGlucose={currentBG}

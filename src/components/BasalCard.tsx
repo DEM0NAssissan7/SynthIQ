@@ -1,4 +1,4 @@
-import { Badge, Button, Card as BsCard } from "react-bootstrap";
+import { Button } from "react-bootstrap";
 import { useNavigate, Link } from "react-router";
 import { getLastShot, getDailyBasalPerShot } from "../lib/basal";
 import { getPrettyTime, getHourDiff } from "../lib/timing";
@@ -6,6 +6,7 @@ import { round } from "../lib/util";
 import { BasalStore } from "../storage/basalStore";
 import { HealthMonitorStore } from "../storage/healthMonitorStore";
 import WizardManager from "../managers/wizardManager";
+import Card from "./Card";
 
 function formatDose(value: number) {
   const rounded = round(value, 1);
@@ -54,68 +55,73 @@ export default function BasalCard({
   }
 
   return (
-    <BsCard className="app-card border-0 shadow-sm mb-3">
-      <BsCard.Body className="p-3">
-        <div className="d-flex justify-content-between align-items-start gap-3 mb-3">
-          <div>
-            <div className="small text-uppercase text-muted fw-semibold mb-1">
-              Basal
-            </div>
-            <p className="text-muted mb-0">
-              {dueForBasal
-                ? "Your basal looks due. Quick mark your usual dose or open the full basal page."
-                : ""}
+    <Card>
+      <div className="d-flex justify-content-between align-items-start gap-3 mb-2">
+        <div>
+          <div className="app-card-title mb-1">
+            <i className="bi bi-shield-check text-success" />
+            <span>Basal Status</span>
+          </div>
+          {dueForBasal && (
+            <p className="text-muted small mb-0">
+              Your basal looks due. Quick mark your usual dose or view schedule.
             </p>
-          </div>
-          <Badge bg={dueForBasal ? "primary" : "secondary"}>
-            {dueForBasal ? "Due now" : "On schedule"}
-          </Badge>
+          )}
         </div>
+        <span
+          className={`badge ${
+            dueForBasal
+              ? "bg-warning-subtle text-warning-emphasis"
+              : "bg-success-subtle text-success"
+          } fw-semibold px-2 py-0.5 rounded-pill`}
+          style={{ fontSize: "0.72rem" }}
+        >
+          {dueForBasal ? "Due now" : "On schedule"}
+        </span>
+      </div>
 
-        <div className="rounded-4 app-metric-pill p-3 mb-3">
-          <div className="d-flex justify-content-between gap-3 small">
-            <div>
-              <div className="text-muted">Typical dose</div>
-              <div className="fw-semibold">
-                {typicalBasalDose > 0
-                  ? `${formatDose(typicalBasalDose)}u`
-                  : "Open basal page"}
-              </div>
-            </div>
-            <div className="text-end">
-              <div className="text-muted">Schedule</div>
-              <div className="fw-semibold">{scheduledTimes.join(" / ")}</div>
-            </div>
-          </div>
-          <div className="small text-muted mt-2">
+      <div className="app-stat-strip mb-3">
+        <div className="app-stat-strip-item">
+          <span className="stat-label">Typical Dose</span>
+          <span className="stat-value">
+            {typicalBasalDose > 0
+              ? `${formatDose(typicalBasalDose)}u`
+              : "Not set"}
+          </span>
+        </div>
+        <div className="app-stat-strip-item">
+          <span className="stat-label">Schedule</span>
+          <span className="stat-value">{scheduledTimes.join(" / ")}</span>
+        </div>
+        <div className="app-stat-strip-item" style={{ gridColumn: "span 2" }}>
+          <span className="stat-label">Last Dose</span>
+          <span className="stat-value">
             {latestBasal
-              ? `Last basal: ${formatDose(latestBasal.value)}u at ${getPrettyTime(
+              ? `${formatDose(latestBasal.value)}u · ${getPrettyTime(
                   latestBasal.timestamp,
                 )} (${round(getHourDiff(new Date(), latestBasal.timestamp), 1)}h ago)`
-              : "No basal history yet."}
-          </div>
+              : "None yet"}
+          </span>
         </div>
+      </div>
 
-        <div className="d-grid gap-2">
-          <Button
-            variant={dueForBasal ? "primary" : "outline-primary"}
-            className="py-3 fw-semibold"
-            onClick={markTypicalBasal}
-          >
-            {typicalBasalDose > 0
-              ? `Mark ${formatDose(typicalBasalDose)}u now`
-              : "Open basal page"}
-          </Button>
-          <Button
-            variant="outline-secondary"
-            className="py-2 fw-semibold"
-            as={Link as any}
-            to="/basal"
-          >
-            Basal details
-          </Button>
-        </div>
-      </BsCard.Body>
-    </BsCard>
+      <div className="d-grid gap-2">
+        <Button
+          variant={dueForBasal ? "primary" : "outline-primary"}
+          onClick={markTypicalBasal}
+        >
+          {typicalBasalDose > 0
+            ? `Mark ${formatDose(typicalBasalDose)}u now`
+            : "Open basal page"}
+        </Button>
+        <Button
+          variant="outline-secondary"
+          as={Link as any}
+          to="/basal"
+        >
+          Basal details
+        </Button>
+      </div>
+    </Card>
   );
 }

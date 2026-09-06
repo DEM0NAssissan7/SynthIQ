@@ -20,6 +20,7 @@ import {
   MetricGrid,
   MetricPill,
   PageActions,
+  PageHeader,
   PageLayout,
 } from "../../components/PageLayout";
 
@@ -223,6 +224,12 @@ export default function InsulinPage() {
 
   return (
     <PageLayout>
+      <PageHeader
+        eyebrow="Treatment"
+        title={isPrebolus ? "Meal pre-bolus" : "Insulin bolus"}
+        subtitle="Calculate and mark bolus insulin with optimal timing and dose projections."
+      />
+
       {!meal.isEmpty && (!session.insulinMarked || isPrebolus) && (
         <Card>
           <MealSummary
@@ -236,8 +243,9 @@ export default function InsulinPage() {
       {/* Recommendation */}
       <Card>
         <div className="d-flex justify-content-between align-items-center mb-2">
-          <div className="small text-uppercase text-muted fw-semibold">
-            Recommendation
+          <div className="app-card-title mb-0">
+            <i className="bi bi-droplet-half text-primary" />
+            <span>Recommendation</span>
           </div>
           <Form.Check
             type="switch"
@@ -277,8 +285,9 @@ export default function InsulinPage() {
 
       {/* Mark insulin */}
       <Card>
-        <div className="small text-uppercase text-muted fw-semibold mb-2">
-          Mark insulin
+        <div className="app-card-title">
+          <i className="bi bi-capsule text-primary" />
+          <span>Mark insulin</span>
         </div>
         {(!isFirstPostMealInjection || isCorrectionOnly) && (
           <BloodSugarInput

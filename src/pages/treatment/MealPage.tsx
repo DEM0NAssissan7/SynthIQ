@@ -1,11 +1,15 @@
 import { useState, useEffect, useMemo } from "react";
-import { Button, Form, ListGroup } from "react-bootstrap";
+import { Button } from "react-bootstrap";
 import { useNavigate } from "react-router";
 import AddedFoodsDisplay from "../../components/AddedFoodsDisplay";
 import BloodSugarInput from "../../components/BloodSugarInput";
 import FoodSearchDisplay from "../../components/FoodSearchDisplay";
 import MealAdditionalNutrients from "../../components/MealAdditionalNutrientsCard";
-import { PageLayout, PageActions } from "../../components/PageLayout";
+import {
+  PageLayout,
+  PageActions,
+  PageHeader,
+} from "../../components/PageLayout";
 import MealSummary from "../../components/summary/MealSummary";
 import WizardManager from "../../managers/wizardManager";
 import { useNow } from "../../state/useNow";
@@ -53,6 +57,12 @@ export default function MealPage() {
 
   return (
     <PageLayout>
+      <PageHeader
+        eyebrow="Meal"
+        title={template?.name || "Meal entry"}
+        subtitle="Search and add foods, customize portions, and monitor nutritional totals."
+      />
+
       <Card>
         <FoodSearchDisplay meal={meal} />
       </Card>
@@ -62,39 +72,43 @@ export default function MealPage() {
       </Card>
 
       <Card>
-        <Form.Label>Additional Nutrition</Form.Label>
+        <div className="app-card-title">
+          <i className="bi bi-sliders text-primary" />
+          <span>Additional Nutrition</span>
+        </div>
         <MealAdditionalNutrients meal={meal} />
       </Card>
 
       <Card>
-        <ListGroup>
-          <ListGroup.Item>
-            <MealSummary
-              template={template}
-              meal={meal}
-              mealName={template.name}
-            />
-          </ListGroup.Item>
-          <ListGroup.Item>
-            <BloodSugarInput
-              initialGlucose={initialGlucose}
-              setInitialGlucose={(g) => setInitialGlucose(g)}
-            />
-          </ListGroup.Item>
-        </ListGroup>
+        <MealSummary
+          template={template}
+          meal={meal}
+          mealName={template.name}
+        />
+      </Card>
+
+      <Card>
+        <BloodSugarInput
+          initialGlucose={initialGlucose}
+          setInitialGlucose={(g) => setInitialGlucose(g)}
+          pullFromNightscout={true}
+        />
       </Card>
 
       <PageActions>
-        <Button variant="danger" onClick={selectDifferent}>
-          Select Different Meal
-        </Button>
         {showPreBolus && (
           <Button variant="primary" onClick={markInsulin}>
             Mark Pre-Bolus
           </Button>
         )}
-        <Button variant="primary" onClick={beginEating}>
+        <Button
+          variant={showPreBolus ? "outline-primary" : "primary"}
+          onClick={beginEating}
+        >
           Begin Eating
+        </Button>
+        <Button variant="outline-danger" onClick={selectDifferent}>
+          Select Different Meal
         </Button>
       </PageActions>
     </PageLayout>

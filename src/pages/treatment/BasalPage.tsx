@@ -119,8 +119,9 @@ export default function BasalPage() {
       </Card>
 
       <Card>
-        <div className="small text-uppercase text-muted fw-semibold mb-2">
-          Basal analysis
+        <div className="app-card-title">
+          <i className="bi bi-graph-up text-primary" />
+          <span>Basal analysis</span>
         </div>
         <MetricGrid>
           <MetricPill
@@ -150,8 +151,9 @@ export default function BasalPage() {
       </Card>
 
       <Card>
-        <div className="small text-uppercase text-muted fw-semibold mb-2">
-          Quick mark
+        <div className="app-card-title">
+          <i className="bi bi-eyedropper text-primary" />
+          <span>Quick mark</span>
         </div>
         <InputGroup className="mb-3">
           <InputGroup.Text id="basic-addon1">
@@ -184,17 +186,18 @@ export default function BasalPage() {
       </Card>
 
       <Card>
-        <div className="small text-uppercase text-muted fw-semibold mb-2">
-          Previous doses
+        <div className="app-card-title">
+          <i className="bi bi-clock-history text-secondary" />
+          <span>Previous doses</span>
         </div>
-        <div className="small">
+        <div className="d-flex flex-column gap-1">
           {basals.map((a: Insulin, index: number) => (
             <div
               key={`${a.timestamp.getTime()}-${index}`}
-              className="d-flex justify-content-between py-2 border-bottom"
+              className="app-dose-item"
             >
-              <span className="fw-semibold">{a.value}u</span>
-              <span className="text-muted">{getPrettyTime(a.timestamp)}</span>
+              <span className="dose-name">{getPrettyTime(a.timestamp)}</span>
+              <span className="dose-value">{a.value}u</span>
             </div>
           ))}
         </div>

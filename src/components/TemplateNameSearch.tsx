@@ -1,5 +1,5 @@
 import { useMemo, useState, type BaseSyntheticEvent } from "react";
-import { Button, Form, ListGroup } from "react-bootstrap";
+import { Button, Form } from "react-bootstrap";
 import { getFullPrettyDate } from "../lib/timing";
 import type { Template } from "../models/types/interfaces";
 import { EmptyState } from "./PageLayout";
@@ -30,18 +30,14 @@ export default function TemplateNameSearch({
     });
 
     return result;
-  }, [query]);
+  }, [query, templates]);
 
-  // Just to prevent reload when pressing enter
-  const handleFormSubmit = (e: BaseSyntheticEvent) => {
-    e.preventDefault(); // Prevent the default form submission behavior
-  };
-
-  function deleteTemplate(name: string) {
-    if (confirm("Are you SURE you want to delete this template?")) {
+  function deleteTemplate(e: React.MouseEvent, name: string) {
+    e.stopPropagation();
+    if (confirm("Are you sure you want to delete this template?")) {
       if (
         confirm(
-          "This action will be irreversable, and all associated data with the template WILL be permanently destroyed."
+          "This action is irreversible and all associated template data will be permanently removed."
         )
       ) {
         onDelete(name);
@@ -51,62 +47,113 @@ export default function TemplateNameSearch({
   }
 
   return (
-    <>
-      <Form>
-        <Form.Group controlId="food-search" className="mb-3">
-          <Form.Label>Template Search</Form.Label>
-          <div className="input-group">
-            <span className="input-group-text">
-              <i className="bi bi-search"></i>
-            </span>
-            <Form.Control
-              type="text"
-              placeholder="Search templates..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-          </div>
-        </Form.Group>
+    <div>
+      <div className="d-flex justify-content-between align-items-center mb-2">
+        <div className="app-card-title mb-0">
+          <i className="bi bi-collection text-primary" />
+          <span>Meal Templates</span>
+        </div>
+        <span
+          className="badge bg-primary-subtle text-primary fw-semibold px-2 py-0.5 rounded-pill"
+          style={{ fontSize: "0.72rem" }}
+        >
+          {filteredTemplates.length}{" "}
+          {filteredTemplates.length === 1 ? "template" : "templates"}
+        </span>
+      </div>
+
+      <Form onSubmit={(e: BaseSyntheticEvent) => e.preventDefault()}>
+        <div className="input-group mb-2">
+          <span className="input-group-text bg-body-tertiary border-end-0 text-muted">
+            <i className="bi bi-search" />
+          </span>
+          <Form.Control
+            type="search"
+            placeholder="Search templates..."
+            className="border-start-0 ps-1"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          {query.length > 0 && (
+            <Button
+              variant="outline-secondary"
+              className="border-start-0 d-flex align-items-center justify-content-center text-muted"
+              style={{ width: "2.5rem" }}
+              onClick={() => setQuery("")}
+              title="Clear search"
+            >
+              <i className="bi bi-x-lg" style={{ fontSize: "0.8rem" }} />
+            </Button>
+          )}
+        </div>
       </Form>
 
-      <ListGroup variant="flush">
-        {filteredTemplates.map((template: Template, i: number) => (
-          <ListGroup.Item key={i} className="px-0 py-3 border-0 border-bottom">
-            <div className="d-flex justify-content-between align-items-start gap-3 mb-3">
-              <div>
-                <div className="fw-semibold">{template.name}</div>
-                <div className="text-muted small">{template.size} sessions</div>
+      {filteredTemplates.length === 0 ? (
+        <EmptyState>
+          {query.trim().length > 0
+            ? `No templates matching "${query}".`
+            : "No templates saved yet."}
+        </EmptyState>
+      ) : (
+        <div className="app-template-list">
+          {filteredTemplates.map((template: Template, i: number) => (
+            <div
+              key={i}
+              className="app-template-row"
+              onClick={() => onInput(template.name)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  onInput(template.name);
+                }
+              }}
+            >
+              <div className="template-main">
+                <div className="template-name">{template.name}</div>
+                <div className="template-meta">
+                  <span className="fw-medium text-body-secondary">
+                    {template.size} {template.size === 1 ? "session" : "sessions"}
+                  </span>
+                  <span>·</span>
+                  <span>{getFullPrettyDate(template.timestamp)}</span>
+                  {template.score > 0 && (
+                    <>
+                      <span>·</span>
+                      <span className="badge bg-body-tertiary border text-muted fw-semibold rounded-pill px-1.5 py-0.5">
+                        Score {template.score.toFixed(0)}
+                      </span>
+                    </>
+                  )}
+                </div>
               </div>
-              <div className="text-end small text-muted">
-                <div>{getFullPrettyDate(template.timestamp)}</div>
-                <div>Score {template.score.toFixed(0)}</div>
+
+              <div className="template-actions">
+                <button
+                  type="button"
+                  className="template-del-btn"
+                  onClick={(e) => deleteTemplate(e, template.name)}
+                  title="Delete template"
+                  aria-label={`Delete ${template.name}`}
+                >
+                  <i className="bi bi-trash3" />
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm rounded-pill px-3 py-1 fw-semibold d-flex align-items-center gap-1"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onInput(template.name);
+                  }}
+                >
+                  <span>Use</span>
+                  <i className="bi bi-chevron-right" style={{ fontSize: "0.75rem" }} />
+                </button>
               </div>
             </div>
-            <Form onSubmit={handleFormSubmit}>
-              <div className="d-grid gap-2 d-sm-flex justify-content-sm-end">
-                <Button
-                  variant="outline-danger"
-                  onClick={() => deleteTemplate(template.name)}
-                >
-                  Delete
-                </Button>
-                <Button
-                  variant="primary"
-                  onClick={() => onInput(template.name)}
-                >
-                  Use
-                </Button>
-              </div>
-            </Form>
-          </ListGroup.Item>
-        ))}
-
-        {filteredTemplates.length === 0 && query.length !== 0 && (
-          <ListGroup.Item className="px-0 border-0">
-            <EmptyState>No templates match that search.</EmptyState>
-          </ListGroup.Item>
-        )}
-      </ListGroup>
-    </>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

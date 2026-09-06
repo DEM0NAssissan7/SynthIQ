@@ -1,4 +1,4 @@
-import { Button, Form, ListGroup, Modal } from "react-bootstrap";
+import { Button, Form, Modal } from "react-bootstrap";
 import { useMemo, useState } from "react";
 import Food, { foods } from "../models/food";
 import SearchFood from "./SearchFood";
@@ -112,9 +112,12 @@ export default function FoodSearchDisplay({ meal }: FoodSearchDisplayProps) {
   return (
     <>
       <Form onSubmit={(e) => e.preventDefault()}>
-        <Form.Group controlId="food-search" className="mb-3">
+        <Form.Group controlId="food-search" className="mb-0">
           <div className="d-flex justify-content-between align-items-center mb-2">
-            <Form.Label className="mb-0 fw-semibold">Food Search</Form.Label>
+            <div className="app-card-title mb-0">
+              <i className="bi bi-search text-primary" />
+              <span>Food Search</span>
+            </div>
             <Button
               variant="link"
               size="sm"
@@ -127,57 +130,59 @@ export default function FoodSearchDisplay({ meal }: FoodSearchDisplayProps) {
           </div>
 
           <div className="input-group">
-            <span className="input-group-text">
+            <span className="input-group-text bg-body-tertiary border-end-0 text-muted">
               <i className="bi bi-search" />
             </span>
             <Form.Control
               type="text"
               placeholder="Search any food..."
+              className="border-start-0 ps-1"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
-            <Button
-              variant="outline-primary"
-              onClick={openAddModal}
-              title="Create a new custom food"
-              className="d-flex align-items-center gap-1"
-            >
-              <i className="bi bi-plus-lg" />
-              <span className="d-none d-sm-inline">New</span>
-            </Button>
+            {query.length > 0 && (
+              <Button
+                variant="outline-secondary"
+                className="border-start-0 d-flex align-items-center justify-content-center text-muted"
+                style={{ width: "2.5rem" }}
+                onClick={() => setQuery("")}
+                title="Clear search"
+              >
+                <i className="bi bi-x-lg" style={{ fontSize: "0.8rem" }} />
+              </Button>
+            )}
           </div>
         </Form.Group>
       </Form>
 
-      <ListGroup>
-        {filteredFoods.map((food: Food, i: number) => (
-          <ListGroup.Item key={i} className="d-flex flex-column gap-3 p-3">
+      {query.length > 0 && (
+        <div className="app-food-list mt-3">
+          {filteredFoods.map((food: Food, i: number) => (
             <SearchFood
+              key={i}
               food={food}
               addFood={(f: Food) => {
                 addMealFood(f, f.amount);
               }}
             />
-          </ListGroup.Item>
-        ))}
+          ))}
 
-        {filteredFoods.length === 0 && query.length !== 0 && (
-          <ListGroup.Item className="d-flex justify-content-between align-items-center p-3 text-muted">
-            <div>
-              <span>No matches for &ldquo;{query}&rdquo;</span>
+          {filteredFoods.length === 0 && (
+            <div className="p-3 text-center text-muted small d-flex flex-column align-items-center gap-2">
+              <div>No matches for &ldquo;{query}&rdquo;</div>
+              <Button
+                variant="outline-primary"
+                size="sm"
+                onClick={openAddModal}
+                className="d-inline-flex align-items-center gap-1"
+              >
+                <i className="bi bi-plus-circle" />
+                <span>Add &ldquo;{query}&rdquo; as custom food</span>
+              </Button>
             </div>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={openAddModal}
-              className="d-inline-flex align-items-center gap-1"
-            >
-              <i className="bi bi-plus-lg" />
-              <span>Add Custom</span>
-            </Button>
-          </ListGroup.Item>
-        )}
-      </ListGroup>
+          )}
+        </div>
+      )}
 
       {/* Quick Add Food Modal */}
       <Modal

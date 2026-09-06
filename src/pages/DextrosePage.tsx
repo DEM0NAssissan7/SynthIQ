@@ -1,7 +1,6 @@
 import Card from "../components/Card";
 import { Form, InputGroup } from "react-bootstrap";
 import { round } from "../lib/util";
-import type { KeyInterface } from "../storage/storageNode";
 import { DextroseStore } from "../storage/dextroseStore";
 import { useMemo } from "react";
 import {
@@ -11,39 +10,17 @@ import {
   PageLayout,
 } from "../components/PageLayout";
 
-interface InputBoxParams {
-  keyInterface: KeyInterface<number>;
-  unit?: string;
-}
-function InputBox({ keyInterface, unit }: InputBoxParams) {
-  const [value, setVal] = keyInterface.useState();
-
-  return (
-    <InputGroup
-      size="sm"
-      style={{ maxWidth: 100, display: "inline-flex", verticalAlign: "middle" }}
-    >
-      <Form.Control
-        type="number"
-        value={value || ""}
-        onChange={(e) => {
-          const value = parseFloat(e.target.value);
-          setVal(!isNaN(value) ? value : 0);
-        }}
-      />
-      {unit && (
-        <InputGroup.Text style={{ padding: "2px 6px" }}>{unit}</InputGroup.Text>
-      )}
-    </InputGroup>
-  );
-}
-
 export default function DextrosePage() {
-  const [powderGlucoseContent] = DextroseStore.powderGlucoseContent.useState();
-  const [powderMassContent] = DextroseStore.powderMassContent.useState();
-  const [totalSolution] = DextroseStore.totalSolution.useState();
-  const [concentrationGlucose] = DextroseStore.concentrationGlucose.useState();
-  const [concentrationVolume] = DextroseStore.concentrationVolume.useState();
+  const [powderGlucoseContent, setPowderGlucoseContent] =
+    DextroseStore.powderGlucoseContent.useState();
+  const [powderMassContent, setPowderMassContent] =
+    DextroseStore.powderMassContent.useState();
+  const [totalSolution, setTotalSolution] =
+    DextroseStore.totalSolution.useState();
+  const [concentrationGlucose, setConcentrationGlucose] =
+    DextroseStore.concentrationGlucose.useState();
+  const [concentrationVolume, setConcentrationVolume] =
+    DextroseStore.concentrationVolume.useState();
 
   const powderMass = useMemo(() => {
     let glucoseInPowder = powderGlucoseContent / powderMassContent;
@@ -72,37 +49,97 @@ export default function DextrosePage() {
         subtitle="Dial in powder ratios and final concentration without juggling the numbers by hand."
       />
       <Card>
-        <div className="small text-uppercase text-muted fw-semibold mb-2">
-          Powder concentration
+        <div className="app-card-title">
+          <i className="bi bi-box-seam"></i>
+          <span>Powder concentration</span>
         </div>
-        <InputBox
-          keyInterface={DextroseStore.powderGlucoseContent}
-          unit="g"
-        />{" "}
-        carbs per{" "}
-        <InputBox keyInterface={DextroseStore.powderMassContent} unit="g" />{" "}
-        dextrose powder
-      </Card>
-      <Card>
-        <div className="small text-uppercase text-muted fw-semibold mb-2">
-          Target solution
+        <div className="row g-2 align-items-center">
+          <div className="col-12 col-sm-6">
+            <Form.Label className="small text-muted mb-1">Carbs</Form.Label>
+            <InputGroup>
+              <Form.Control
+                type="number"
+                value={powderGlucoseContent || ""}
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value);
+                  setPowderGlucoseContent(!isNaN(val) ? val : 0);
+                }}
+              />
+              <InputGroup.Text>g</InputGroup.Text>
+            </InputGroup>
+          </div>
+          <div className="col-12 col-sm-6">
+            <Form.Label className="small text-muted mb-1">Per powder mass</Form.Label>
+            <InputGroup>
+              <Form.Control
+                type="number"
+                value={powderMassContent || ""}
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value);
+                  setPowderMassContent(!isNaN(val) ? val : 0);
+                }}
+              />
+              <InputGroup.Text>g powder</InputGroup.Text>
+            </InputGroup>
+          </div>
         </div>
-        Total solution:{" "}
-        <InputBox keyInterface={DextroseStore.totalSolution} unit="ml" />
-        <br />
-        <br />
-        Concentration:{" "}
-        <InputBox
-          keyInterface={DextroseStore.concentrationGlucose}
-          unit="g"
-        />{" "}
-        carbs per{" "}
-        <InputBox keyInterface={DextroseStore.concentrationVolume} unit="ml" />{" "}
-        solution
       </Card>
+
       <Card>
-        <div className="small text-uppercase text-muted fw-semibold mb-2">
-          Mix result
+        <div className="app-card-title">
+          <i className="bi bi-droplet"></i>
+          <span>Target solution</span>
+        </div>
+        <div className="row g-2">
+          <div className="col-12">
+            <Form.Label className="small text-muted mb-1">Total solution volume</Form.Label>
+            <InputGroup>
+              <Form.Control
+                type="number"
+                value={totalSolution || ""}
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value);
+                  setTotalSolution(!isNaN(val) ? val : 0);
+                }}
+              />
+              <InputGroup.Text>ml</InputGroup.Text>
+            </InputGroup>
+          </div>
+          <div className="col-12 col-sm-6">
+            <Form.Label className="small text-muted mb-1">Target carbs</Form.Label>
+            <InputGroup>
+              <Form.Control
+                type="number"
+                value={concentrationGlucose || ""}
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value);
+                  setConcentrationGlucose(!isNaN(val) ? val : 0);
+                }}
+              />
+              <InputGroup.Text>g carbs</InputGroup.Text>
+            </InputGroup>
+          </div>
+          <div className="col-12 col-sm-6">
+            <Form.Label className="small text-muted mb-1">Per solution volume</Form.Label>
+            <InputGroup>
+              <Form.Control
+                type="number"
+                value={concentrationVolume || ""}
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value);
+                  setConcentrationVolume(!isNaN(val) ? val : 0);
+                }}
+              />
+              <InputGroup.Text>ml solution</InputGroup.Text>
+            </InputGroup>
+          </div>
+        </div>
+      </Card>
+
+      <Card>
+        <div className="app-card-title">
+          <i className="bi bi-check2-circle"></i>
+          <span>Mix result</span>
         </div>
         <MetricGrid>
           <MetricPill

@@ -2,20 +2,12 @@ import { getFormattedTime, getMinuteDiff } from "../lib/timing";
 import { round } from "../lib/util";
 import { HealthMonitorStore } from "../storage/healthMonitorStore";
 import { useNow } from "../state/useNow";
-import { MetricGrid, MetricPill } from "./PageLayout";
-
 function formatDose(value: number) {
   const rounded = round(value, 1);
   return Number.isInteger(rounded) ? `${rounded}` : rounded.toFixed(1);
 }
 
-interface LastBolusMessageProps {
-  title?: string;
-}
-
-export default function LastBolusMessage({
-  title = "Active Insulin",
-}: LastBolusMessageProps) {
+export default function LastBolusMessage() {
   const [boluses] = HealthMonitorStore.recentBoluses.useState();
   const now = useNow(60);
 
@@ -24,7 +16,11 @@ export default function LastBolusMessage({
     .sort((a, b) => b.iob(now) - a.iob(now));
 
   if (activeBoluses.length === 0) {
-    return <div className="text-muted">No recent insulin doses</div>;
+    return (
+      <div className="text-muted small py-1">
+        No active insulin currently on board.
+      </div>
+    );
   }
 
   const latestBolus = activeBoluses[0];
@@ -38,53 +34,42 @@ export default function LastBolusMessage({
   );
 
   return (
-    <div>
-      <div className="d-flex align-items-start gap-3 mb-3">
-        <div className="app-action-icon">
-          <i className="bi bi-capsule-pill fs-4" />
+    <div className="d-flex flex-column gap-2">
+      <div className="app-stat-strip">
+        <div className="app-stat-strip-item">
+          <span className="stat-label">On Board</span>
+          <span className="stat-value">{formatDose(totalIOB)}u</span>
         </div>
-        <div>
-          <div className="app-kicker mb-1">Insulin</div>
-          <h2 className="h5 mb-1">{title}</h2>
+        <div className="app-stat-strip-item">
+          <span className="stat-label">Activity Rate</span>
+          <span className="stat-value">{formatDose(totalAbsorptionRate)} u/hr</span>
+        </div>
+        <div className="app-stat-strip-item" style={{ gridColumn: "span 2" }}>
+          <span className="stat-label">Last Dose</span>
+          <span className="stat-value">
+            {formatDose(latestBolus.value)}u · {getFormattedTime(getMinuteDiff(now, latestBolus.timestamp))} ago
+          </span>
         </div>
       </div>
 
-      <MetricGrid>
-        <MetricPill label="On board" value={`${formatDose(totalIOB)}u`} />
-        <MetricPill
-          label="Activity rate:"
-          value={`${formatDose(totalAbsorptionRate)} u/hr`}
-        />
-        <MetricPill
-          label="Last Taken"
-          value={getFormattedTime(getMinuteDiff(now, latestBolus.timestamp))}
-        />
-      </MetricGrid>
-
-      <div className="d-grid gap-2 mt-3">
+      <div className="d-flex flex-column gap-1">
         {activeBoluses.map((insulin, index) => {
           const iob = insulin.iob(now);
           return (
             <div
               key={`${insulin.timestamp.getTime()}-${insulin.variant.name}-${index}`}
-              className="rounded-4 app-metric-pill p-3"
+              className="app-dose-item"
             >
-              <div className="d-flex justify-content-between align-items-start gap-3">
-                <div>
-                  <div className="fw-semibold">
-                    {formatDose(insulin.value)}u {insulin.variant.name}
-                  </div>
-                  <div className="small text-muted">
-                    Taken{" "}
-                    {getFormattedTime(getMinuteDiff(now, insulin.timestamp))}{" "}
-                    ago
-                  </div>
-                </div>
-                <div className="text-end">
-                  <div className="small text-muted">On board</div>
-                  <div className="fw-semibold">{formatDose(iob)}u</div>
-                </div>
-              </div>
+              <span className="dose-name">
+                <i className="bi bi-capsule-pill text-primary opacity-75" style={{ fontSize: "0.75rem" }} />
+                <span>
+                  {formatDose(insulin.value)}u {insulin.variant.name} ·{" "}
+                  {getFormattedTime(getMinuteDiff(now, insulin.timestamp))} ago
+                </span>
+              </span>
+              <span className="dose-value fw-semibold" style={{ fontSize: "0.82rem" }}>
+                {formatDose(iob)}u IOB
+              </span>
             </div>
           );
         })}

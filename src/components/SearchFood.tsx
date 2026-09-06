@@ -25,61 +25,50 @@ export default function SearchFood({ food, addFood }: SearchFoodProps) {
   }
 
   return (
-    <div className="w-100">
-      <div className="d-flex justify-content-between align-items-start gap-2 mb-2">
-        <div>
-          <span className="fw-semibold text-body fs-6">{food.name}</span>
-          <div className="small text-muted">Per {prettyUnit}</div>
-        </div>
-        <div className="d-flex flex-wrap gap-1 justify-content-end">
+    <div className="app-food-row">
+      <div className="food-main">
+        <div className="food-name">{food.name}</div>
+        <div className="food-macros">
+          <span className="text-body-secondary">Per {prettyUnit}</span>
           {food.carbsRate !== 0 && (
-            <span className="badge bg-primary-subtle text-primary rounded-pill px-2 py-1">
-              {food.carbsRate}g carbs
-            </span>
+            <span className="fw-semibold text-primary">· {food.carbsRate}g carbs</span>
           )}
           {food.proteinRate !== 0 && (
-            <span className="badge bg-success-subtle text-success rounded-pill px-2 py-1">
-              {food.proteinRate}g protein
-            </span>
+            <span>· {food.proteinRate}g prot</span>
           )}
           {food.arbitraryRise !== 0 && (
-            <span className="badge bg-warning-subtle text-warning-emphasis rounded-pill px-2 py-1">
-              +{food.arbitraryRise} mg/dL
-            </span>
+            <span className="text-warning-emphasis">· +{food.arbitraryRise} mg/dL</span>
           )}
         </div>
       </div>
 
-      <Form onSubmit={handleFormSubmit}>
-        <div className="d-flex align-items-center gap-2">
-          <Form.Group controlId={`food-amount-${food.name}`} className="mb-0 flex-grow-1">
-            <div className="input-group">
-              <Form.Control
-                type="number"
-                placeholder="0"
-                className="text-center fw-semibold"
-                value={amount || ""}
-                onInput={(e: BaseSyntheticEvent) => {
-                  const value = parseFloat(e.target.value) || 0;
-                  setAmount(value);
-                }}
-              />
-              <span className="input-group-text small text-muted">
-                {letter}
-              </span>
-            </div>
-          </Form.Group>
-          <Button
-            variant="primary"
-            onClick={add}
-            disabled={!amount || amount <= 0}
-            className="d-inline-flex align-items-center gap-1 px-3"
-          >
-            <i className="bi bi-plus-lg" />
-            <span>Add</span>
-          </Button>
-        </div>
-      </Form>
+      <div className="food-actions">
+        <Form onSubmit={handleFormSubmit}>
+          <div className="input-group food-input-group">
+            <Form.Control
+              type="number"
+              placeholder="0"
+              value={amount || ""}
+              onInput={(e: BaseSyntheticEvent) => {
+                const value = parseFloat(e.target.value) || 0;
+                setAmount(value);
+              }}
+            />
+            <span className="input-group-text">{letter}</span>
+          </div>
+        </Form>
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={add}
+          disabled={!amount || amount <= 0}
+          className="d-inline-flex align-items-center gap-1"
+          style={{ height: "2.2rem", padding: "0 0.65rem", fontSize: "0.85rem" }}
+        >
+          <i className="bi bi-plus-lg" />
+          <span>Add</span>
+        </Button>
+      </div>
     </div>
   );
 }

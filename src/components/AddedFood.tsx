@@ -1,4 +1,4 @@
-import { Button, Form } from "react-bootstrap";
+import { Form } from "react-bootstrap";
 import { getFoodUnitPrettyName } from "../models/unit";
 import { useMemo, type BaseSyntheticEvent } from "react";
 import type Food from "../models/food";
@@ -24,7 +24,7 @@ export default function AddedFood({ food, meal }: SearchFoodProps) {
 
   // Just to prevent reload when pressing enter
   const handleFormSubmit = (e: BaseSyntheticEvent) => {
-    e.preventDefault(); // Prevent the default form submission behavior
+    e.preventDefault();
   };
 
   function remove() {
@@ -32,49 +32,41 @@ export default function AddedFood({ food, meal }: SearchFoodProps) {
   }
 
   return (
-    <>
-      <div className="d-flex justify-content-between align-items-center">
-        <span className="fw-bold">{food.name}</span>
-        <span className="text-muted">
-          {carbs !== 0 && (
-            <>
-              {round(carbs, 2)}g carbs <br />
-            </>
-          )}
-          {carbs !== netCarbs && (
-            <>
-              {round(netCarbs, 2)}g net carbs
-              <br />
-            </>
-          )}
-          {protein !== 0 && (
-            <>
-              {round(protein, 2)}g protein
-              <br />
-            </>
-          )}
-          {rise !== 0 && <>{rise}mg/dL rise</>}
-        </span>
+    <div className="app-food-row">
+      <div className="food-main">
+        <div className="food-name">{food.name}</div>
+        <div className="food-macros">
+          <span className="fw-semibold text-body-secondary">{round(carbs, 1)}g carbs</span>
+          {carbs !== netCarbs && <span className="opacity-75"> ({round(netCarbs, 1)}g net)</span>}
+          {protein !== 0 && <span>· {round(protein, 1)}g prot</span>}
+          {rise !== 0 && <span className="text-warning-emphasis">· +{rise} mg/dL</span>}
+        </div>
       </div>
-      <Form onSubmit={handleFormSubmit}>
-        <div className="d-flex align-items-center gap-2">
-          <Form.Group controlId="food-amount" className="mb-0 flex-grow-1">
+      <div className="food-actions">
+        <Form onSubmit={handleFormSubmit}>
+          <div className="input-group food-input-group">
             <Form.Control
               type="number"
-              placeholder={`Amount (${letter})`}
-              className="text-center"
+              placeholder="0"
               value={amount || ""}
               onInput={(e: BaseSyntheticEvent) => {
                 const value = parseFloat(e.target.value) || 0;
                 setAmount(value);
               }}
             />
-          </Form.Group>
-          <Button variant="danger" onClick={remove}>
-            Remove
-          </Button>
-        </div>
-      </Form>
-    </>
+            <span className="input-group-text">{letter}</span>
+          </div>
+        </Form>
+        <button
+          type="button"
+          className="food-del-btn"
+          onClick={remove}
+          title="Remove food"
+          aria-label="Remove food"
+        >
+          <i className="bi bi-trash3" />
+        </button>
+      </div>
+    </div>
   );
 }

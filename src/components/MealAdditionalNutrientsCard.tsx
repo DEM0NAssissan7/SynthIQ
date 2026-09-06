@@ -1,4 +1,3 @@
-import { ListGroup } from "react-bootstrap";
 import NutritionOffset from "./NutritionOffset";
 import type Meal from "../models/events/meal";
 
@@ -9,21 +8,23 @@ export default function MealAdditionalNutrients({
   meal,
 }: MealAdditionalNutrientsProps) {
   return (
-    <ListGroup>
-      <ListGroup.Item>
+    <div className="row g-2">
+      <div className="col-6">
         <NutritionOffset
-          label="Carbs"
+          label="Extra Carbs"
           value={meal.carbsOffset}
           setValue={(a: number) => (meal.carbsOffset = a)}
           iconClassName="bi bi-cookie"
         />
+      </div>
+      <div className="col-6">
         <NutritionOffset
-          label="Protein"
+          label="Extra Protein"
           value={meal.proteinOffset}
           setValue={(a: number) => (meal.proteinOffset = a)}
           iconClassName="bi bi-egg-fried"
         />
-      </ListGroup.Item>
-    </ListGroup>
+      </div>
+    </div>
   );
 }

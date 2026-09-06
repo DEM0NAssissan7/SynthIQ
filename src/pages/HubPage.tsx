@@ -1,6 +1,6 @@
 import { basalIsDue } from "../lib/healthMonitor";
 import { useNow } from "../state/useNow";
-import { ActionCard, PageLayout } from "../components/PageLayout";
+import { ActionCard, PageHeader, PageLayout } from "../components/PageLayout";
 import BasalCard from "../components/BasalCard";
 import { useMemo, useState } from "react";
 import { ToggleButton } from "react-bootstrap";
@@ -32,13 +32,21 @@ function HubPage() {
   }
 
   return (
-    <PageLayout maxWidth="32rem">
+    <PageLayout maxWidth="34rem">
+      <PageHeader
+        eyebrow="Overview"
+        title="Status Hub"
+        subtitle="Real-time session monitoring, active insulin, and background basal status."
+      />
+
       {dueForBasal && (
         <BasalCard dueForBasal={dueForBasal} setDueForBasal={setDueForBasal} />
       )}
-      <Card className="mt-4">
-        <div className="small text-uppercase text-muted fw-semibold mb-2">
-          Active insulin
+
+      <Card>
+        <div className="app-card-title">
+          <i className="bi bi-droplet-fill text-primary" />
+          <span>Active insulin</span>
         </div>
         <LastBolusMessage />
       </Card>
@@ -50,13 +58,16 @@ function HubPage() {
           contained={true}
         />
       )}
+
       {!dueForBasal && (
         <BasalCard dueForBasal={dueForBasal} setDueForBasal={setDueForBasal} />
       )}
+
       {session.started && (
-        <Card className="mt-4">
-          <div className="small text-uppercase text-muted fw-semibold mb-2">
-            Session controls
+        <Card>
+          <div className="app-card-title">
+            <i className="bi bi-sliders text-secondary" />
+            <span>Session controls</span>
           </div>
           <div className="d-grid gap-2">
             <ToggleButton

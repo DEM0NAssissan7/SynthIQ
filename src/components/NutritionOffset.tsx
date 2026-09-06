@@ -14,21 +14,22 @@ export default function NutritionOffset({
   iconClassName,
 }: NutritionOffsetProps) {
   return (
-    <Form.Group controlId="carbs-offset" className="mb-3">
-      <Form.Label className="text-muted">{label}</Form.Label>
+    <Form.Group controlId={`offset-${label.toLowerCase().replace(/\s+/g, "-")}`} className="mb-0">
+      <Form.Label className="small text-muted fw-semibold mb-1">{label}</Form.Label>
       <div className="input-group">
         <span className="input-group-text">
           <i className={iconClassName}></i>
         </span>
         <Form.Control
           type="number"
-          value={value || ""} // controlled value
+          placeholder="0"
+          value={value || ""}
           onChange={(e) => {
-            const value = parseFloat(e.target.value);
-            setValue(!isNaN(value) ? value : 0);
+            const val = parseFloat(e.target.value);
+            setValue(!isNaN(val) ? val : 0);
           }}
         />
-        <span className="input-group-text">g</span>
+        <span className="input-group-text small">g</span>
       </div>
     </Form.Group>
   );
