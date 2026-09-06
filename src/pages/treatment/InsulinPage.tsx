@@ -28,29 +28,26 @@ import {
 export default function InsulinPage() {
   const navigate = useNavigate();
   const [session] = WizardStore.session.useState();
-  const [isMealRelated, setIsMealRelated] =
-    WizardStore.insulinIsMealRelated.useState();
+  const [template] = WizardStore.template.useState();
+  const [isPrebolus, setIsPrebolus] = WizardStore.isPrebolus.useState();
 
   const isFirstPostMealInjection = useMemo(
     () =>
+      !isPrebolus &&
       session.initialGlucose !== null &&
       session.insulins.length === 0 &&
       session.mealMarked,
-    [session],
+    [isPrebolus, session],
   );
 
-  const meal = isMealRelated ? WizardStore.meal.value : session.meal;
-  const [template] = WizardStore.template.useState();
+  const meal = isPrebolus ? WizardStore.meal.value : session.meal;
   const baseSession = useMemo(
     () => (meal ? template.getBaseSession(meal) : null),
     [template, meal],
   );
   const [variant, setVariant] = useState(InsulinVariantManager.getDefault());
 
-  const [isCorrectionOnly, setIsCorrectionOnly] = useState(
-    !meal || (!isMealRelated && session.readyToTransition),
-  );
-
+  const [isCorrectionOnly, setIsCorrectionOnly] = useState(false);
   function toggleCorrectionOnly(enabled: boolean) {
     setIsCorrectionOnly(enabled);
     setInsulinEntry("");
@@ -58,21 +55,17 @@ export default function InsulinPage() {
 
   // Inputted Insulin
   const [currentGlucose, setCurrentGlucose] = useState<number | null>(null);
-  const effectiveGlucose =
+  const currentBG =
     currentGlucose ??
     (isFirstPostMealInjection ? session.initialGlucose : null);
 
   const markInsulin = (insulin: number) => {
-    const effectiveMealRelated = isMealRelated && !isCorrectionOnly;
-    if (
-      !effectiveGlucose &&
-      effectiveMealRelated &&
-      !isFirstPostMealInjection
-    ) {
+    const effectiveMealRelated = isPrebolus && !isCorrectionOnly;
+    if (!currentBG && effectiveMealRelated && !isFirstPostMealInjection) {
       alert(`You must input your current blood sugar`);
       return;
     }
-    if (isCorrectionOnly && !effectiveGlucose) {
+    if (isCorrectionOnly && !currentBG) {
       alert(`You must input your current blood sugar for a correction`);
       return;
     }
@@ -83,7 +76,7 @@ export default function InsulinPage() {
         )
       ) {
         // TODO: Use date selector
-        const BG = effectiveGlucose ?? PreferencesStore.targetBG.value;
+        const BG = currentBG ?? PreferencesStore.targetBG.value;
         WizardManager.markInsulin(
           insulin,
           BG,
@@ -99,23 +92,42 @@ export default function InsulinPage() {
   };
 
   const correctionInsulin = useMemo(() => {
-    return effectiveGlucose
-      ? getCorrectionInsulin(effectiveGlucose, variant)
-      : 0;
-  }, [effectiveGlucose, variant]);
-  const vectorizedInsulins = meal
+    return currentBG ? getCorrectionInsulin(currentBG, variant) : 0;
+  }, [currentBG, variant]);
+
+  const predictedOptimalInsulins = meal
     ? template.vectorizeInsulin(meal, baseSession)
     : [];
-  const shotIndex = session.insulins.length;
-  const overshootInsulinOffset =
-    shotIndex < vectorizedInsulins.length
-      ? getOvercompensationInsulins(
-          effectiveGlucose && effectiveGlucose > 0
-            ? effectiveGlucose
-            : PreferencesStore.targetBG.value,
-          vectorizedInsulins.map((i) => i.variant),
-        )[shotIndex]
+  const shotIndex = isPrebolus ? 0 : session.insulins.length;
+
+  const overcompensationInsulins = useMemo(() => {
+    if (
+      isCorrectionOnly ||
+      (!isPrebolus && session.completed) ||
+      !meal ||
+      meal.isEmpty
+    )
+      return [];
+    return getOvercompensationInsulins(
+      currentBG && currentBG > 0 ? currentBG : PreferencesStore.targetBG.value,
+      predictedOptimalInsulins.length > 0
+        ? predictedOptimalInsulins.map((i) => i.variant)
+        : [variant],
+    );
+  }, [
+    isCorrectionOnly,
+    isPrebolus,
+    session.completed,
+    meal,
+    currentBG,
+    predictedOptimalInsulins,
+    variant,
+  ]);
+  const overshootInsulin =
+    shotIndex < overcompensationInsulins.length
+      ? overcompensationInsulins[shotIndex]
       : 0;
+
   const continuedRiseInsulin = (() => {
     const fastingVelocity = getFastingVelocity(); // mg/dL per hour
     const insulinDuration = variant.duration; // hours
@@ -125,15 +137,54 @@ export default function InsulinPage() {
 
   const risenCorrectionInsulin = correctionInsulin + continuedRiseInsulin;
 
-  const extraInsulin = correctionInsulin + overshootInsulinOffset;
-  const displayedInsulin = (() => {
-    if (isCorrectionOnly || session.completed) {
-      return correctionInsulin;
+  const displayedInsulin = useMemo(() => {
+    // Insulin dosing pipeline
+    let dose = 0;
+
+    // Stage 1: Find raw unadjusted meal insulin
+    const mealDose = (() => {
+      // If we are correcting or if session is (somehow) complete, or no meal
+      if (
+        isCorrectionOnly ||
+        (!isPrebolus && session.completed) ||
+        !meal ||
+        meal.isEmpty
+      )
+        return 0;
+      // If this shot index is within the predicted optimal shots
+      if (shotIndex < predictedOptimalInsulins.length) {
+        return predictedOptimalInsulins[shotIndex].value;
+      }
+      // If we haven't taken any shots yet and predictedOptimalInsulins was empty, fall back to profile
+      if (shotIndex === 0) {
+        return template.getProfileInsulin(meal.carbs, meal.protein, variant);
+      }
+      // All predicted shots already taken, so no additional meal dose
+      return 0;
+    })();
+    dose += mealDose;
+
+    // Stage 2: Account for current BG correction
+    dose += correctionInsulin;
+
+    // Stage 3: Apply overcompensation offset (only for active meal shots)
+    if (mealDose > 0) {
+      dose += overshootInsulin;
     }
-    let insulin: number =
-      vectorizedInsulins[shotIndex]?.value ?? -overshootInsulinOffset;
-    return insulin + extraInsulin;
-  })();
+
+    return dose;
+  }, [
+    isCorrectionOnly,
+    isPrebolus,
+    session.completed,
+    meal,
+    shotIndex,
+    predictedOptimalInsulins,
+    template,
+    variant,
+    correctionInsulin,
+    overshootInsulin,
+  ]);
   const displayedRange: string = (() => {
     const correction = Math.max(roundByHalf(correctionInsulin), 0);
     const risenCorrection = Math.max(roundByHalf(risenCorrectionInsulin), 0);
@@ -145,9 +196,13 @@ export default function InsulinPage() {
         )}u`;
   })();
 
+  const correctionIsDisplayed =
+    isCorrectionOnly ||
+    roundByHalf(displayedInsulin) === roundByHalf(correctionInsulin);
+
   function goBack() {
-    const wasMealRelated = isMealRelated && !isCorrectionOnly;
-    setIsMealRelated(false); // Reset flag
+    const wasMealRelated = isPrebolus && !isCorrectionOnly;
+    setIsPrebolus(false); // Reset flag
     navigate(wasMealRelated ? "/meal" : "/hub");
   }
   const [insulinTaken, setInsulinTaken] = useState(displayedInsulin);
@@ -160,14 +215,10 @@ export default function InsulinPage() {
     markInsulin(insulinTaken);
   }
 
-  const correctionIsDisplayed =
-    isCorrectionOnly ||
-    roundByHalf(displayedInsulin) === roundByHalf(correctionInsulin);
-
   // Set usage state based on the current session state
   useEffect(() => {
     setVariant(
-      vectorizedInsulins[shotIndex]?.variant ??
+      predictedOptimalInsulins[shotIndex]?.variant ??
         InsulinVariantManager.getDefault(),
     );
   }, []);
@@ -178,13 +229,13 @@ export default function InsulinPage() {
         eyebrow="Treatment"
         title="Insulin dosing"
         subtitle={
-          isMealRelated && !isCorrectionOnly
+          isPrebolus && !isCorrectionOnly
             ? "Review the suggested meal dose, confirm current glucose if needed, and mark insulin cleanly."
             : "Use this page for quick correction dosing without the extra noise."
         }
       />
 
-      {meal && !isCorrectionOnly && (
+      {meal && (
         <Card>
           <TemplateSummary
             template={template}
@@ -193,7 +244,7 @@ export default function InsulinPage() {
             currentBG={
               session.initialGlucose
                 ? undefined
-                : effectiveGlucose || PreferencesStore.targetBG.value
+                : currentBG || PreferencesStore.targetBG.value
             }
           />
         </Card>
@@ -229,15 +280,13 @@ export default function InsulinPage() {
             value={
               isCorrectionOnly
                 ? "Correction only"
-                : isMealRelated
+                : isPrebolus
                   ? "Meal pre-bolus"
-                  : session.readyToTransition
-                    ? "Correction only"
-                    : session.insulins.length > 0
-                      ? "Additional bolus"
-                      : session.mealMarked
-                        ? "Meal bolus"
-                        : "Correction only"
+                  : session.insulins.length > 0
+                    ? "Additional bolus"
+                    : session.mealMarked
+                      ? "Meal bolus"
+                      : "Correction only"
             }
           />
           <MetricPill
@@ -258,7 +307,7 @@ export default function InsulinPage() {
         </div>
         {(!isFirstPostMealInjection || isCorrectionOnly) && (
           <BloodSugarInput
-            initialGlucose={effectiveGlucose}
+            initialGlucose={currentBG}
             setInitialGlucose={setCurrentGlucose}
             pullFromNightscout={true}
           />

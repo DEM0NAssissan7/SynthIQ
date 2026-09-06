@@ -41,7 +41,7 @@ export namespace WizardStore {
   );
 
   // State tracking for insulin page
-  export const insulinIsMealRelated = node.add("insulinIsMealRelated", false);
+  export const isPrebolus = node.add("isPrebolus", false);
 
   // Active Session
   export const session = node.add<Session>(

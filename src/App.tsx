@@ -41,8 +41,8 @@ import { VERSION_STRING } from "./version";
 import { initPwaUpdater, checkPwaUpdate } from "./lib/pwaUpdater";
 import MealSelectionPage from "./pages/treatment/MealSelectionPage";
 import MealPage from "./pages/treatment/MealPage";
-import MealInsulinRouter from "./pages/treatment/MealInsulinRouter";
 import InsulinRouter from "./pages/treatment/InsulinRouter";
+import PrebolusRouter from "./pages/treatment/PrebolusRouter";
 
 function App() {
   useEffect(() => {
@@ -128,7 +128,7 @@ function App() {
           <Route path="/meal" element={<MealPage />} />
           <Route path="/selectmeal" element={<MealSelectionPage />} />
           <Route path="/insulin" element={<InsulinPage />} />
-          <Route path="/prebolus" element={<MealInsulinRouter />} />
+          <Route path="/prebolus" element={<PrebolusRouter />} />
           <Route path="/markinsulin" element={<InsulinRouter />} />
           <Route path="/rescue" element={<RescuePage />} />
           <Route path="/basal" element={<BasalPage />} />

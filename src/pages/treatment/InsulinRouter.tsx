@@ -4,7 +4,7 @@ import { WizardStore } from "../../storage/wizardStore";
 
 export default function () {
   const navigate = useNavigate();
-  WizardStore.insulinIsMealRelated.value = false;
+  WizardStore.isPrebolus.value = false;
   useEffect(() => {
     navigate("/insulin");
   }, [navigate]);
