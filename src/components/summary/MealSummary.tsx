@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import type Meal from "../../models/events/meal";
 import type MealTemplate from "../../models/mealTemplate";
-import { round, roundByHalf } from "../../lib/util";
+import { round } from "../../lib/util";
 import { CalibrationStore } from "../../storage/calibrationStore";
 import { InsulinVariantManager } from "../../managers/insulinVariantManager";
 import { MetricGrid, MetricPill } from "../PageLayout";
