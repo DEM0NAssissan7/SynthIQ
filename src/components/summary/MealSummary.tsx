@@ -69,17 +69,17 @@ export const MealSummary: React.FC<MealSummaryProps> = ({
 
   // Calculate Optimal Insulins
   const optimalInsulins: Insulin[] | null = useMemo(() => {
-    if (template) {
-      const vectorized = template.vectorizeInsulin(meal, baseSession);
-      if (vectorized && vectorized.length > 0 && !template.isFirstTime) {
-        return vectorized;
-      }
+    const vectorized = template.vectorizeInsulin(meal, baseSession);
+    if (vectorized && vectorized.length > 0 && !template.isFirstTime) {
+      return vectorized;
     }
     return null;
   }, [template, meal, profileInsulin, now, defaultVariant]);
 
   const totalOptimalInsulin = useMemo(() => {
-    return optimalInsulins?.reduce((acc, curr) => acc + curr.value, 0) ?? null;
+    return (
+      optimalInsulins?.reduce((n, insulin) => n + insulin.value, 0) ?? null
+    );
   }, [optimalInsulins]);
 
   const content = (
@@ -169,9 +169,10 @@ export const MealSummary: React.FC<MealSummaryProps> = ({
               >
                 <span className="text-muted">
                   Dose {optimalInsulins.length > 1 ? idx + 1 : ""} (
-                  {ins.variant.name})
+                  {ins.variant.name}){" "}
+                  {baseSession?.getRelativeN(ins.timestamp).toFixed(1)}hr
                 </span>
-                <span className="fw-semibold">{roundByHalf(ins.value)}u</span>
+                <span className="fw-semibold">{ins.value.toFixed(1)}u</span>
               </div>
             ))}
           </div>
