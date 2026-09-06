@@ -12768,4 +12768,141 @@ body {
   font-weight: 700 !important;
 }
 
+/* ==========================================================================
+   Discrete Summary & Compact Stat Layouts
+   ========================================================================== */
+.app-discrete-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.app-discrete-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.app-discrete-title {
+  font-size: 0.98rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  line-height: 1.25;
+}
+
+.app-discrete-subtitle {
+  font-size: 0.75rem;
+  color: var(--app-text-muted);
+  margin-top: 0.15rem;
+  line-height: 1.2;
+}
+
+.app-stat-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.25rem;
+  padding: 0.35rem 0.5rem;
+  background: var(--app-surface-muted);
+  border: 1px solid var(--app-border);
+  border-radius: 0.75rem;
+}
+@media (max-width: 480px) {
+  .app-stat-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.35rem 0.5rem;
+    padding: 0.45rem 0.6rem;
+  }
+}
+
+.app-stat-strip-item {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.app-stat-strip-item .stat-label {
+  font-size: 0.63rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--app-text-muted);
+  line-height: 1;
+  margin-bottom: 0.2rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.app-stat-strip-item .stat-value {
+  font-size: 0.86rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--app-text);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.app-stat-strip-item .stat-value .stat-sub {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--app-text-muted);
+  margin-left: 0.2rem;
+}
+
+.app-dosing-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.45rem 0.65rem;
+  background: var(--app-surface-muted);
+  border: 1px solid var(--app-border);
+  border-radius: 0.65rem;
+  font-size: 0.84rem;
+}
+.app-dosing-banner .dosing-label {
+  font-weight: 600;
+  color: var(--app-text-muted);
+}
+.app-dosing-banner .dosing-value {
+  font-weight: 700;
+  color: var(--app-text);
+}
+.app-dosing-banner .dosing-note {
+  font-size: 0.72rem;
+  font-weight: normal;
+  color: var(--app-text-muted);
+  margin-left: 0.35rem;
+}
+
+.app-dose-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.35rem 0.6rem;
+  border-radius: 0.5rem;
+  background: var(--app-surface-muted);
+  font-size: 0.82rem;
+  line-height: 1.25;
+}
+.app-dose-item .dose-name {
+  color: var(--app-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.app-dose-item .dose-value {
+  font-weight: 700;
+  color: var(--app-text);
+  white-space: nowrap;
+  margin-left: 0.5rem;
+}
+
 /*# sourceMappingURL=index.css.map */

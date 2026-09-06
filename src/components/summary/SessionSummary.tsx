@@ -9,8 +9,8 @@ import {
   getFullPrettyDate,
 } from "../../lib/timing";
 import { useNow } from "../../state/useNow";
-import { MetricGrid, MetricPill } from "../PageLayout";
 import MealSummary from "./MealSummary";
+import Card from "../Card";
 
 export interface SessionSummaryProps {
   session: Session;
@@ -30,6 +30,7 @@ export const SessionSummary: React.FC<SessionSummaryProps> = ({
   session,
   template,
   currentBG,
+  contained = false,
   showMealSummary = true,
   className = "",
 }) => {
@@ -70,164 +71,162 @@ export const SessionSummary: React.FC<SessionSummaryProps> = ({
   }, [session.glucoses, session.latestGlucoseTimestamp, now]);
 
   const content = (
-    <div className={`app-session-summary ${className}`.trim()}>
-      {/* Child MealSummary if meal exists */}
-      <div className="d-flex justify-content-between align-items-start gap-3 mb-3">
-        {showMealSummary && session.meal ? (
-          <MealSummary
-            meal={session.meal}
-            mealName={template.name}
-            template={template}
-          />
-        ) : (
-          <>
-            <div>
-              <div className="app-kicker mb-1">Overview</div>
-              <h2 className="h5 mb-0 fw-bold">
-                {template?.name || "Active Session"}
-              </h2>
-            </div>
-            <span className="badge bg-secondary-subtle text-secondary-emphasis fs-6 fw-normal px-3 py-1 rounded-pill">
-              {session.completed ? "Completed" : elapsedFormatted}
+    <div className={`app-discrete-summary ${className}`.trim()}>
+      {/* Meal Summary OR Session Header */}
+      {showMealSummary && session.meal ? (
+        <MealSummary
+          meal={session.meal}
+          mealName={template?.name || "Meal"}
+          template={template}
+          contained={false}
+          statusBadge={
+            <span
+              className={`badge ${
+                session.completed
+                  ? "bg-secondary-subtle text-secondary-emphasis"
+                  : "bg-success-subtle text-success"
+              } fw-semibold px-2 py-0.5 rounded-pill`}
+              style={{ fontSize: "0.72rem" }}
+            >
+              {session.completed ? "Completed" : `Active · ${elapsedFormatted}`}
             </span>
-          </>
-        )}
+          }
+        />
+      ) : (
+        <div className="app-discrete-header">
+          <div>
+            <h2 className="app-discrete-title">
+              {template?.name || "Active Session"}
+            </h2>
+            <div className="app-discrete-subtitle">
+              Started {getPrettyTime(session.timestamp)} · {durationFormatted}
+            </div>
+          </div>
+          <span
+            className={`badge ${
+              session.completed
+                ? "bg-secondary-subtle text-secondary-emphasis"
+                : "bg-success-subtle text-success"
+            } fw-semibold px-2 py-0.5 rounded-pill`}
+            style={{ fontSize: "0.72rem" }}
+          >
+            {session.completed ? "Completed" : `Active · ${elapsedFormatted}`}
+          </span>
+        </div>
+      )}
+
+      {/* Timing & Baseline Strip */}
+      <div className="app-stat-strip">
+        <div className="app-stat-strip-item">
+          <span className="stat-label">Start</span>
+          <span className="stat-value">{getPrettyTime(session.timestamp)}</span>
+        </div>
+        <div className="app-stat-strip-item">
+          <span className="stat-label">Start BG</span>
+          <span className="stat-value">
+            {session.initialGlucose
+              ? `${session.initialGlucose} mg/dL`
+              : currentBG
+                ? `${currentBG} mg/dL`
+                : "—"}
+          </span>
+        </div>
+        <div className="app-stat-strip-item">
+          <span className="stat-label">Length</span>
+          <span className="stat-value">{durationFormatted}</span>
+        </div>
+        <div className="app-stat-strip-item">
+          <span className="stat-label">Date</span>
+          <span className="stat-value">
+            {getFullPrettyDate(session.timestamp)}
+          </span>
+        </div>
       </div>
 
-      {/* Primary Metrics: Start Time, Start BG, Length */}
-      <div className="mb-3">
-        <div className="small text-uppercase text-muted fw-semibold mb-2">
-          Timing & Baseline
+      {/* Dosing & Treatment Totals Strip */}
+      <div className="app-stat-strip">
+        <div className="app-stat-strip-item">
+          <span className="stat-label">Total Insulin</span>
+          <span className="stat-value">{formatDose(session.insulin)}u</span>
         </div>
-        <MetricGrid>
-          <MetricPill
-            label="Start Time"
-            value={getPrettyTime(session.timestamp)}
-          />
-          <MetricPill
-            label="Start BG"
-            value={
-              session.initialGlucose
-                ? `${session.initialGlucose} mg/dL`
-                : currentBG
-                  ? `${currentBG} mg/dL`
-                  : "—"
-            }
-          />
-          <MetricPill label="Length" value={durationFormatted} />
-          <MetricPill
-            label="Date"
-            value={
-              <span className="small">
-                {getFullPrettyDate(session.timestamp)}
-              </span>
-            }
-          />
-        </MetricGrid>
-      </div>
-
-      {/* Treatment Totals & Last Doses */}
-      <div className="mb-3">
-        <div className="small text-uppercase text-muted fw-semibold mb-2">
-          Dosing & Rescue Totals
+        <div className="app-stat-strip-item">
+          <span className="stat-label">Total Glucose</span>
+          <span className="stat-value">
+            {session.glucose > 0 ? `${session.glucose.toFixed(1)}g` : "0g"}
+          </span>
         </div>
-        <MetricGrid>
-          <MetricPill
-            label="Total Insulin"
-            value={`${formatDose(session.insulin)}u`}
-          />
-          <MetricPill
-            label="Total Glucose"
-            value={
-              session.glucose > 0
-                ? `${session.glucose.toFixed(1)}g (${session.glucoseDoses})`
-                : "0g"
-            }
-          />
-          <MetricPill
-            label="Last Insulin"
-            value={
-              lastInsulin ? (
-                <div className="lh-sm">
-                  <div>{formatDose(lastInsulin.value)}u</div>
-                  <div className="small text-muted fw-normal">
-                    {lastInsulin.timeAgo}
-                  </div>
-                </div>
-              ) : (
-                <span className="text-muted fw-normal">None</span>
-              )
-            }
-          />
-          <MetricPill
-            label="Last Glucose"
-            value={
-              lastGlucose ? (
-                <div className="lh-sm">
-                  <div>{lastGlucose.value}g</div>
-                  <div className="small text-muted fw-normal">
-                    {lastGlucose.timeAgo}
-                  </div>
-                </div>
-              ) : (
-                <span className="text-muted fw-normal">None</span>
-              )
-            }
-          />
-        </MetricGrid>
+        <div className="app-stat-strip-item">
+          <span className="stat-label">Last Bolus</span>
+          <span className="stat-value">
+            {lastInsulin ? (
+              <>
+                {formatDose(lastInsulin.value)}u
+                <span className="stat-sub">{lastInsulin.timeAgo}</span>
+              </>
+            ) : (
+              <span className="text-muted fw-normal">None</span>
+            )}
+          </span>
+        </div>
+        <div className="app-stat-strip-item">
+          <span className="stat-label">Last Glucose</span>
+          <span className="stat-value">
+            {lastGlucose ? (
+              <>
+                {lastGlucose.value}g
+                <span className="stat-sub">{lastGlucose.timeAgo}</span>
+              </>
+            ) : (
+              <span className="text-muted fw-normal">None</span>
+            )}
+          </span>
+        </div>
       </div>
 
       {/* Treatment Windows */}
       {session.windows.length > 0 && (
-        <div className="mb-3">
-          <div className="small text-uppercase text-muted fw-semibold mb-2">
-            Treatment History ({session.windows.length})
+        <div className="d-flex flex-column gap-1 mt-1">
+          <div className="px-0.5">
+            <span
+              className="text-uppercase text-muted fw-bold"
+              style={{ fontSize: "0.64rem", letterSpacing: "0.04em" }}
+            >
+              Treatment Windows ({session.windows.length})
+            </span>
           </div>
-          <div className="d-flex flex-column gap-2">
+          <div className="d-flex flex-column gap-1">
             {session.windows.map((window, i) => {
               const windowInsulin = session.insulins[i];
               return (
-                <div
-                  key={i}
-                  className="rounded-3 border p-2 bg-body-tertiary small"
-                >
-                  <div className="d-flex justify-content-between align-items-center mb-1">
-                    <span className="fw-semibold">Window {i + 1}</span>
-                    <span className="text-muted">
+                <div key={i} className="app-dose-item">
+                  <span className="dose-name">
+                    <span className="fw-bold text-body me-1">W{i + 1}</span>
+                    <span>
                       {window.initialBG} → {window.finalBG} mg/dL
                     </span>
-                  </div>
-                  {windowInsulin && (
-                    <div className="d-flex justify-content-between mb-1">
-                      <span>
-                        {windowInsulin.value.toFixed(1)}u{" "}
+                    {windowInsulin && (
+                      <span className="opacity-75 ms-1">
+                        · {windowInsulin.value.toFixed(1)}u{" "}
                         {windowInsulin.variant.name}
                       </span>
-                      <span className="text-muted">
-                        {getFormattedTime(
-                          Math.abs(
-                            session.getRelativeN(windowInsulin.timestamp) * 60,
-                          ),
-                        )}{" "}
-                        {session.getRelativeN(windowInsulin.timestamp) >= 0
-                          ? "after"
-                          : "before"}{" "}
-                        meal
-                      </span>
-                    </div>
-                  )}
-                  <div className="d-flex justify-content-between text-muted">
-                    <span>
-                      Duration:{" "}
-                      {getFormattedTime(Math.round(window.length * 60))}
-                    </span>
+                    )}
+                  </span>
+                  <span className="d-flex align-items-center gap-1.5 flex-shrink-0">
                     {window.glucoses.length > 0 && (
-                      <span className="text-warning-emphasis fw-semibold">
+                      <span
+                        className="text-warning-emphasis fw-semibold"
+                        style={{ fontSize: "0.72rem" }}
+                      >
                         +{window.glucoses.reduce((s, g) => s + g.value, 0)}g
-                        rescue
                       </span>
                     )}
-                  </div>
+                    <span
+                      className="text-muted"
+                      style={{ fontSize: "0.72rem" }}
+                    >
+                      {getFormattedTime(Math.round(window.length * 60))}
+                    </span>
+                  </span>
                 </div>
               );
             })}
@@ -237,18 +236,20 @@ export const SessionSummary: React.FC<SessionSummaryProps> = ({
 
       {/* Activities */}
       {session.activities.length > 0 && (
-        <div className="mb-3">
-          <div className="small text-uppercase text-muted fw-semibold mb-2">
-            Activities
+        <div className="d-flex flex-column gap-1 mt-1">
+          <div className="px-0.5">
+            <span
+              className="text-uppercase text-muted fw-bold"
+              style={{ fontSize: "0.64rem", letterSpacing: "0.04em" }}
+            >
+              Activities
+            </span>
           </div>
           <div className="d-flex flex-column gap-1">
             {session.activities.map((a, i) => (
-              <div
-                key={i}
-                className="d-flex justify-content-between align-items-center py-1 small"
-              >
-                <span>{a.name}</span>
-                <span className="fw-semibold">
+              <div key={i} className="app-dose-item">
+                <span className="dose-name">{a.name}</span>
+                <span className="dose-value fw-medium" style={{ fontSize: "0.78rem" }}>
                   {getFormattedTime(a.length)}
                 </span>
               </div>
@@ -259,26 +260,41 @@ export const SessionSummary: React.FC<SessionSummaryProps> = ({
 
       {/* Flags & Notes */}
       {(template?.isFirstTime || session.isInvalid || session.notes) && (
-        <div className="mb-3">
+        <div className="d-flex flex-column gap-1 pt-1">
           {template?.isFirstTime && (
-            <div className="small text-warning-emphasis mb-1">
-              <i className="bi bi-info-circle me-1" />
-              First time using this template
+            <div
+              className="text-warning-emphasis d-flex align-items-center gap-1"
+              style={{ fontSize: "0.75rem" }}
+            >
+              <i className="bi bi-info-circle" />
+              <span>First time using this template</span>
             </div>
           )}
           {session.isInvalid && (
-            <div className="small text-danger-emphasis mb-1">
-              <i className="bi bi-exclamation-triangle me-1" />
-              Session is currently invalid
+            <div
+              className="text-danger-emphasis d-flex align-items-center gap-1"
+              style={{ fontSize: "0.75rem" }}
+            >
+              <i className="bi bi-exclamation-triangle" />
+              <span>Session is currently invalid</span>
             </div>
           )}
           {session.notes && (
-            <div className="small text-muted fst-italic">{session.notes}</div>
+            <div
+              className="text-muted fst-italic"
+              style={{ fontSize: "0.75rem" }}
+            >
+              {session.notes}
+            </div>
           )}
         </div>
       )}
     </div>
   );
+
+  if (contained) {
+    return <Card className={className}>{content}</Card>;
+  }
 
   return content;
 };

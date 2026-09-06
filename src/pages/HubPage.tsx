@@ -44,13 +44,11 @@ function HubPage() {
       </Card>
 
       {session.started && (
-        <Card>
-          <SessionSummary
-            session={session}
-            template={activeTemplate}
-            contained={true}
-          />
-        </Card>
+        <SessionSummary
+          session={session}
+          template={activeTemplate}
+          contained={true}
+        />
       )}
       {!dueForBasal && (
         <BasalCard dueForBasal={dueForBasal} setDueForBasal={setDueForBasal} />
