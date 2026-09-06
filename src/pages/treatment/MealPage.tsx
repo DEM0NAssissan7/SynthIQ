@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button, Card, Form, ListGroup } from "react-bootstrap";
 import { useNavigate } from "react-router";
 import AddedFoodsDisplay from "../../components/AddedFoodsDisplay";
@@ -20,6 +20,10 @@ export default function MealPage() {
   const [template] = WizardStore.template.useState();
   const [session] = WizardStore.session.useState();
   const [meal] = WizardStore.meal.useState();
+  const showPreBolus = useMemo(
+    () => WizardManager.shouldTransitionSession() || !session.started,
+    [session],
+  );
 
   const [initialGlucose, setInitialGlucose] = useState<number | null>(null); // We are not wanting to modify the actual targetbg, so we do not use the store state
   const navigate = useNavigate();
@@ -42,7 +46,7 @@ export default function MealPage() {
     }
   }
   function markInsulin() {
-    navigate(session.readyToTransition ? "/prebolus" : "/markinsulin");
+    navigate(showPreBolus ? "/prebolus" : "/markinsulin");
   }
 
   // Upon Startup
@@ -106,7 +110,7 @@ export default function MealPage() {
           session.insulins.length === 0 ||
           !session.started) && (
           <Button variant="primary" onClick={markInsulin}>
-            {session.readyToTransition ? `Mark Pre-Bolus` : `Mark Insulin`}
+            {showPreBolus ? `Mark Pre-Bolus` : `Mark Insulin`}
           </Button>
         )}
         <Button variant="primary" onClick={beginEating}>
