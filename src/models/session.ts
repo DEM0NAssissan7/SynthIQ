@@ -149,7 +149,12 @@ export default class Session extends Subscribable {
   }
   get insulinEffect(): number {
     let mgdl = 0;
-    this.insulins.forEach((i) => (mgdl += i.value * i.variant.effect));
+    this.insulins.forEach(
+      (i) =>
+        (mgdl +=
+          (i.value - i.iob(this.endTimestamp ?? new Date())) *
+          i.variant.effect),
+    );
     return mgdl;
   }
   get correctionInsulin(): number {
@@ -349,6 +354,7 @@ export default class Session extends Subscribable {
       this.isGarbage ||
       this.insulin <= 0 ||
       this.meal === null ||
+      this.glucoseEffect >= this.insulinEffect ||
       this.immature ||
       this.activities.length !== 0
     );
