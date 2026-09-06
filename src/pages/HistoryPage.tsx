@@ -74,7 +74,10 @@ function SessionCard({ session }: { session: Session; liverOutput: number }) {
           value={`${session.insulin}u${session.correctionInsulin > 0 ? ` [${session.correctionInsulin.toFixed(1)}]` : ""}`}
         />
         <MetricPill label="Shots" value={`${session.insulins.length}`} />
-        <MetricPill label="Glucose" value={`${session.glucose}`} />
+        <MetricPill
+          label="Glucose"
+          value={`${session.glucose}g (${session.glucoseDoses})`}
+        />
         <MetricPill
           label="Blood sugar"
           value={`${session.initialGlucose} -> ${session.finalBG}`}
