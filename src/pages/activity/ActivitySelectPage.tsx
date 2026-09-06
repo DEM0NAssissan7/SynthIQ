@@ -8,7 +8,6 @@ import { WizardStore } from "../../storage/wizardStore";
 import {
   ActionCard,
   ActionGrid,
-  PageHeader,
   PageLayout,
 } from "../../components/PageLayout";
 
@@ -41,11 +40,6 @@ export default function ActivitySelectPage() {
 
   return (
     <PageLayout>
-      <PageHeader
-        eyebrow="Activity"
-        title="Choose an activity template"
-        subtitle="Pick a saved template or create a new one so activity tracking starts with the right baseline."
-      />
       <Card>
         <TemplateNameSearch
           onInput={(name: string) => advance(name)}

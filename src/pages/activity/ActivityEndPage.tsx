@@ -6,11 +6,7 @@ import ActivitySummary from "../../components/ActivitySummary";
 import { Button } from "react-bootstrap";
 import BloodSugarInput from "../../components/BloodSugarInput";
 import { useState } from "react";
-import {
-  PageActions,
-  PageHeader,
-  PageLayout,
-} from "../../components/PageLayout";
+import { PageActions, PageLayout } from "../../components/PageLayout";
 
 export default function ActivityEndPage() {
   const [currentBG, setCurrentBG] = useState<number | null>(null);
@@ -23,7 +19,7 @@ export default function ActivityEndPage() {
   function cancel() {
     if (
       confirm(
-        `Are you sure you want to cancel your activity? This will completely disregard this session, and it will not be stored.`
+        `Are you sure you want to cancel your activity? This will completely disregard this session, and it will not be stored.`,
       )
     ) {
       ActivityManager.cancel(navigate);
@@ -43,11 +39,6 @@ export default function ActivityEndPage() {
   }
   return (
     <PageLayout>
-      <PageHeader
-        eyebrow="Activity"
-        title="Finish activity"
-        subtitle="Wrap up the activity with a clean final glucose entry, or jump to rescue treatment if you need it."
-      />
       <Card>
         <ActivitySummary
           activity={activity}

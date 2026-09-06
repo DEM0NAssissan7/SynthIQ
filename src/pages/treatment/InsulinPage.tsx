@@ -20,7 +20,6 @@ import {
   MetricGrid,
   MetricPill,
   PageActions,
-  PageHeader,
   PageLayout,
 } from "../../components/PageLayout";
 
@@ -224,12 +223,6 @@ export default function InsulinPage() {
 
   return (
     <PageLayout>
-      <PageHeader
-        eyebrow="Treatment"
-        title={isPrebolus ? "Meal pre-bolus" : "Insulin bolus"}
-        subtitle="Calculate and mark bolus insulin with optimal timing and dose projections."
-      />
-
       {!meal.isEmpty && (!session.insulinMarked || isPrebolus) && (
         <Card>
           <MealSummary

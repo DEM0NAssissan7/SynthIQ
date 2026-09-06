@@ -144,46 +144,48 @@ export const MealSummary: React.FC<MealSummaryProps> = ({
 
       {/* Discrete Insulin Section */}
       {optimalInsulins && optimalInsulins.length > 0 ? (
-        <div className="d-flex flex-column gap-1">
-          <div className="d-flex justify-content-between align-items-center px-0.5">
+        <div className="d-flex flex-column gap-2 mt-1">
+          <div className="d-flex justify-content-between align-items-baseline px-0.5">
             <span
               className="text-uppercase text-muted fw-bold"
-              style={{ fontSize: "0.64rem", letterSpacing: "0.04em" }}
+              style={{ fontSize: "0.74rem", letterSpacing: "0.05em" }}
             >
               Optimal Doses
             </span>
-            <span className="small fw-semibold">
+            <span className="fw-bold" style={{ fontSize: "0.95rem" }}>
               {totalOptimalInsulin
                 ? `${formatDose(totalOptimalInsulin)}u total`
                 : ""}
               <span
                 className="text-muted fw-normal ms-1"
-                style={{ fontSize: "0.72rem" }}
+                style={{ fontSize: "0.8rem" }}
               >
                 (Profile: {formatDose(profileInsulin)}u)
               </span>
             </span>
           </div>
-          {optimalInsulins.map((ins, idx) => (
-            <div key={idx} className="app-dose-item">
-              <span className="dose-name">
-                <i
-                  className="bi bi-capsule-pill opacity-75"
-                  style={{ fontSize: "0.75rem" }}
-                />
-                <span>
-                  Dose {optimalInsulins.length > 1 ? idx + 1 : ""} (
-                  {ins.variant.name})
-                  {baseSession && (
-                    <span className="opacity-75 ms-1">
-                      · {baseSession.getRelativeN(ins.timestamp).toFixed(1)}hr
-                    </span>
-                  )}
+          <div className="app-dose-list">
+            {optimalInsulins.map((ins, idx) => (
+              <div key={idx} className="app-dose-item">
+                <span className="dose-name">
+                  <i
+                    className="bi bi-capsule-pill text-primary opacity-75"
+                    style={{ fontSize: "0.85rem" }}
+                  />
+                  <span>
+                    Dose {optimalInsulins.length > 1 ? idx + 1 : ""} (
+                    {ins.variant.name})
+                    {baseSession && (
+                      <span className="dose-sub ms-1">
+                        · {baseSession.getRelativeN(ins.timestamp).toFixed(1)}hr
+                      </span>
+                    )}
+                  </span>
                 </span>
-              </span>
-              <span className="dose-value">{ins.value.toFixed(1)}u</span>
-            </div>
-          ))}
+                <span className="dose-value">{ins.value.toFixed(1)}u</span>
+              </div>
+            ))}
+          </div>
         </div>
       ) : (
         <div className="app-dosing-banner">

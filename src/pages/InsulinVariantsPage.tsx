@@ -7,7 +7,7 @@ import { InsulinVariantManager } from "../managers/insulinVariantManager";
 import InsulinVariantDropdown from "../components/InsulinVariantDropdown";
 import { Bateman } from "../lib/bateman";
 import { round } from "../lib/util";
-import { EmptyState, PageHeader, PageLayout } from "../components/PageLayout";
+import { EmptyState, PageLayout } from "../components/PageLayout";
 
 export default function InsulinVariantsPage() {
   const [variants] = InsulinVariantStore.variants.useState();
@@ -90,12 +90,6 @@ export default function InsulinVariantsPage() {
 
   return (
     <PageLayout>
-      <PageHeader
-        eyebrow="Customization"
-        title="Insulin variants"
-        subtitle="Edit insulin characteristics in a more structured mobile layout without losing the detailed tuning fields."
-      />
-
       <Card>
         <Form onSubmit={handleFormSubmit}>
           <Form.Group controlId="insulin-variant-name" className="mb-0">

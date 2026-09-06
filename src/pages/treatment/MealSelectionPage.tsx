@@ -56,7 +56,7 @@ export default function MealSelectionPage() {
       <div className="d-flex gap-2 mb-3">
         <Button
           variant="primary"
-          className="flex-fill d-flex align-items-center justify-content-center gap-1.5 py-2.5 fw-semibold"
+          className="flex-fill d-flex align-items-center justify-content-center gap-2 py-2 fw-semibold"
           style={{ borderRadius: "0.85rem" }}
           onClick={addTemplate}
         >
@@ -65,7 +65,7 @@ export default function MealSelectionPage() {
         </Button>
         <Button
           variant="outline-secondary"
-          className="flex-fill d-flex align-items-center justify-content-center gap-1.5 py-2.5 fw-semibold"
+          className="flex-fill d-flex align-items-center justify-content-center gap-2 py-2 fw-semibold"
           style={{ borderRadius: "0.85rem" }}
           onClick={skip}
         >

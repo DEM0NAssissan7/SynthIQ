@@ -113,12 +113,6 @@ export default function RescuePage() {
 
   return (
     <PageLayout>
-      <PageHeader
-        eyebrow="Treatment"
-        title="Rescue treatment"
-        subtitle="Review suggested fast-acting carbohydrates and log rescue doses."
-      />
-
       {/* Recommendation */}
       <Card>
         <div className="app-card-title">
@@ -136,14 +130,17 @@ export default function RescuePage() {
         <HealthMonitorMessage />
         {HealthMonitorStore.lastRescue.value.value > 0 &&
           lastRescueMinutes < 60 && (
-            <div className="rounded-3 border p-2.5 mt-3 bg-body-tertiary small">
-              <div className="d-flex justify-content-between align-items-center">
-                <span className="text-muted">Last rescue</span>
-                <span className="fw-semibold">
-                  {HealthMonitorStore.lastRescue.value.value}{" "}
-                  {variant.unitLetter} — {lastRescueMinutes} min ago
+            <div className="app-dosing-banner mt-3">
+              <span className="dosing-label d-flex align-items-center gap-2">
+                <i className="bi bi-clock-history text-muted" />
+                <span>Last rescue</span>
+              </span>
+              <span className="dosing-value">
+                {HealthMonitorStore.lastRescue.value.value} {variant.unitLetter}
+                <span className="dosing-note">
+                  ({lastRescueMinutes} min ago)
                 </span>
-              </div>
+              </span>
             </div>
           )}
       </Card>

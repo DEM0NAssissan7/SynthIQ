@@ -6,7 +6,6 @@ import {
   getFormattedTime,
   getMinuteDiff,
   getPrettyTime,
-  getFullPrettyDate,
 } from "../../lib/timing";
 import { useNow } from "../../state/useNow";
 import MealSummary from "./MealSummary";
@@ -138,7 +137,11 @@ export const SessionSummary: React.FC<SessionSummaryProps> = ({
         <div className="app-stat-strip-item">
           <span className="stat-label">Date</span>
           <span className="stat-value">
-            {getFullPrettyDate(session.timestamp)}
+            {new Date(session.timestamp).toLocaleDateString(undefined, {
+              month: "2-digit",
+              day: "2-digit",
+              year: "numeric",
+            })}
           </span>
         </div>
       </div>
@@ -185,22 +188,27 @@ export const SessionSummary: React.FC<SessionSummaryProps> = ({
 
       {/* Treatment Windows */}
       {session.windows.length > 0 && (
-        <div className="d-flex flex-column gap-1 mt-1">
+        <div className="d-flex flex-column gap-2 mt-1">
           <div className="px-0.5">
             <span
               className="text-uppercase text-muted fw-bold"
-              style={{ fontSize: "0.64rem", letterSpacing: "0.04em" }}
+              style={{ fontSize: "0.74rem", letterSpacing: "0.05em" }}
             >
               Treatment Windows ({session.windows.length})
             </span>
           </div>
-          <div className="d-flex flex-column gap-1">
+          <div className="app-dose-list">
             {session.windows.map((window, i) => {
               const windowInsulin = session.insulins[i];
               return (
                 <div key={i} className="app-dose-item">
                   <span className="dose-name">
-                    <span className="fw-bold text-body me-1">W{i + 1}</span>
+                    <span
+                      className="badge bg-body-secondary text-body fw-bold rounded-pill px-2 py-0.5"
+                      style={{ fontSize: "0.78rem" }}
+                    >
+                      W{i + 1}
+                    </span>
                     <span>
                       {window.initialBG} → {window.finalBG} mg/dL
                     </span>
@@ -211,18 +219,18 @@ export const SessionSummary: React.FC<SessionSummaryProps> = ({
                       </span>
                     )}
                   </span>
-                  <span className="d-flex align-items-center gap-1.5 flex-shrink-0">
+                  <span className="d-flex align-items-center gap-2 flex-shrink-0">
                     {window.glucoses.length > 0 && (
                       <span
-                        className="text-warning-emphasis fw-semibold"
-                        style={{ fontSize: "0.72rem" }}
+                        className="badge bg-warning-subtle text-warning-emphasis fw-bold rounded-pill px-2 py-0.5"
+                        style={{ fontSize: "0.78rem" }}
                       >
                         +{window.glucoses.reduce((s, g) => s + g.value, 0)}g
                       </span>
                     )}
                     <span
-                      className="text-muted"
-                      style={{ fontSize: "0.72rem" }}
+                      className="text-muted fw-medium"
+                      style={{ fontSize: "0.85rem" }}
                     >
                       {getFormattedTime(Math.round(window.length * 60))}
                     </span>
@@ -236,20 +244,20 @@ export const SessionSummary: React.FC<SessionSummaryProps> = ({
 
       {/* Activities */}
       {session.activities.length > 0 && (
-        <div className="d-flex flex-column gap-1 mt-1">
+        <div className="d-flex flex-column gap-2 mt-1">
           <div className="px-0.5">
             <span
               className="text-uppercase text-muted fw-bold"
-              style={{ fontSize: "0.64rem", letterSpacing: "0.04em" }}
+              style={{ fontSize: "0.74rem", letterSpacing: "0.05em" }}
             >
               Activities
             </span>
           </div>
-          <div className="d-flex flex-column gap-1">
+          <div className="app-dose-list">
             {session.activities.map((a, i) => (
               <div key={i} className="app-dose-item">
                 <span className="dose-name">{a.name}</span>
-                <span className="dose-value fw-medium" style={{ fontSize: "0.78rem" }}>
+                <span className="dose-value fw-medium" style={{ fontSize: "0.92rem" }}>
                   {getFormattedTime(a.length)}
                 </span>
               </div>

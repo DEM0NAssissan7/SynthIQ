@@ -31,7 +31,7 @@ function SetupPage() {
   function promptAdvance() {
     if (
       confirm(
-        "Are you sure you want to skip Nightscout setup? You can always do this later in settings."
+        "Are you sure you want to skip Nightscout setup? You can always do this later in settings.",
       )
     ) {
       Backend.skipSetup();
@@ -129,7 +129,7 @@ function SetupPage() {
           return;
         }
         errorMsg(
-          `Client does not have nightscout read/write permissions - read: ${a.message.canRead}, write: ${a.message.canWrite}`
+          `Client does not have nightscout read/write permissions - read: ${a.message.canRead}, write: ${a.message.canWrite}`,
         );
       })
       .catch((e) => {
@@ -161,12 +161,14 @@ function SetupPage() {
             )}
             {nightscoutAuthLevel === NightscoutAuthLevel.Read && (
               <div className="text-muted">
-                Nightscout is reachable, but this client is missing write access.
+                Nightscout is reachable, but this client is missing write
+                access.
               </div>
             )}
             {nightscoutAuthLevel === NightscoutAuthLevel.Invalid && (
               <div className="text-muted">
-                Nightscout is not configured correctly yet or the server is not responding.
+                Nightscout is not configured correctly yet or the server is not
+                responding.
               </div>
             )}
             {nightscoutAuthLevel === NightscoutAuthLevel.Unchecked && (
@@ -201,7 +203,9 @@ function SetupPage() {
           <i className="bi bi-shield-lock"></i>
           <span>Connection details</span>
         </div>
-        <Form.Label className="small text-muted mb-1">Nightscout URL</Form.Label>
+        <Form.Label className="small text-muted mb-1">
+          Nightscout URL
+        </Form.Label>
         <InputGroup className="mb-3">
           <InputGroup.Text>
             <i className="bi bi-globe"></i>

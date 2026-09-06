@@ -4,7 +4,7 @@ import { useMemo, useState, type BaseSyntheticEvent } from "react";
 import { RescueVariantStore } from "../storage/rescueVariantStore";
 import { RescueVariantManager } from "../managers/rescueVariantManager";
 import type { RescueVariant } from "../models/types/rescueVariant";
-import { EmptyState, PageHeader, PageLayout } from "../components/PageLayout";
+import { EmptyState, PageLayout } from "../components/PageLayout";
 
 export default function RescueVariantsPage() {
   const [variants] = RescueVariantStore.variants.useState();
@@ -62,12 +62,6 @@ export default function RescueVariantsPage() {
 
   return (
     <PageLayout>
-      <PageHeader
-        eyebrow="Customization"
-        title="Rescue variants"
-        subtitle="Keep rescue options editable, but present them as calmer stacked cards for phone use."
-      />
-
       <Card>
         <Form onSubmit={handleFormSubmit}>
           <Form.Group controlId="rescue-variant-name" className="mb-0">

@@ -5,11 +5,7 @@ import AddedFoodsDisplay from "../../components/AddedFoodsDisplay";
 import BloodSugarInput from "../../components/BloodSugarInput";
 import FoodSearchDisplay from "../../components/FoodSearchDisplay";
 import MealAdditionalNutrients from "../../components/MealAdditionalNutrientsCard";
-import {
-  PageLayout,
-  PageActions,
-  PageHeader,
-} from "../../components/PageLayout";
+import { PageLayout, PageActions } from "../../components/PageLayout";
 import MealSummary from "../../components/summary/MealSummary";
 import WizardManager from "../../managers/wizardManager";
 import { useNow } from "../../state/useNow";
@@ -57,12 +53,6 @@ export default function MealPage() {
 
   return (
     <PageLayout>
-      <PageHeader
-        eyebrow="Meal"
-        title={template?.name || "Meal entry"}
-        subtitle="Search and add foods, customize portions, and monitor nutritional totals."
-      />
-
       <Card>
         <FoodSearchDisplay meal={meal} />
       </Card>
@@ -80,11 +70,7 @@ export default function MealPage() {
       </Card>
 
       <Card>
-        <MealSummary
-          template={template}
-          meal={meal}
-          mealName={template.name}
-        />
+        <MealSummary template={template} meal={meal} mealName={template.name} />
       </Card>
 
       <Card>

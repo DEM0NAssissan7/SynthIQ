@@ -11,7 +11,7 @@ export default function FoodDisplay({ food }: { food: Food }) {
           Per {prettyUnit}
         </div>
       </div>
-      <div className="d-flex align-items-center gap-1.5">
+      <div className="d-flex align-items-center gap-2">
         <span
           className="badge bg-primary-subtle text-primary rounded-pill px-2 py-0.5"
           style={{ fontSize: "0.72rem" }}

@@ -34,21 +34,44 @@ export default function LastBolusMessage() {
   );
 
   return (
-    <div className="d-flex flex-column gap-2">
-      <div className="app-stat-strip">
-        <div className="app-stat-strip-item">
-          <span className="stat-label">On Board</span>
-          <span className="stat-value">{formatDose(totalIOB)}u</span>
+    <div className="d-flex flex-column gap-2.5">
+      <div className="d-flex align-items-baseline justify-content-between px-1">
+        <div>
+          <div
+            className="text-uppercase fw-bold text-muted"
+            style={{ fontSize: "0.74rem", letterSpacing: "0.06em" }}
+          >
+            On Board (IOB)
+          </div>
+          <div className="d-flex align-items-baseline gap-1 mt-0.5">
+            <span
+              className="fw-bold text-body"
+              style={{ fontSize: "2.1rem", lineHeight: 1, letterSpacing: "-0.02em" }}
+            >
+              {formatDose(totalIOB)}
+            </span>
+            <span className="text-body-secondary fw-semibold" style={{ fontSize: "1.15rem" }}>
+              u
+            </span>
+          </div>
         </div>
-        <div className="app-stat-strip-item">
-          <span className="stat-label">Activity Rate</span>
-          <span className="stat-value">{formatDose(totalAbsorptionRate)} u/hr</span>
-        </div>
-        <div className="app-stat-strip-item" style={{ gridColumn: "span 2" }}>
-          <span className="stat-label">Last Dose</span>
-          <span className="stat-value">
-            {formatDose(latestBolus.value)}u · {getFormattedTime(getMinuteDiff(now, latestBolus.timestamp))} ago
-          </span>
+        <div className="text-end">
+          <div
+            className="text-uppercase fw-bold text-muted"
+            style={{ fontSize: "0.74rem", letterSpacing: "0.06em" }}
+          >
+            Activity Rate
+          </div>
+          <div className="fw-bold text-body mt-0.5" style={{ fontSize: "1.2rem", lineHeight: 1.2 }}>
+            {formatDose(totalAbsorptionRate)}{" "}
+            <span className="text-muted fw-normal" style={{ fontSize: "0.88rem" }}>
+              u/hr
+            </span>
+          </div>
+          <div className="text-muted small mt-1" style={{ fontSize: "0.82rem" }}>
+            Last: {formatDose(latestBolus.value)}u ·{" "}
+            {getFormattedTime(getMinuteDiff(now, latestBolus.timestamp))} ago
+          </div>
         </div>
       </div>
 
@@ -61,14 +84,22 @@ export default function LastBolusMessage() {
               className="app-dose-item"
             >
               <span className="dose-name">
-                <i className="bi bi-capsule-pill text-primary opacity-75" style={{ fontSize: "0.75rem" }} />
+                <i
+                  className="bi bi-capsule-pill text-primary opacity-75"
+                  style={{ fontSize: "0.85rem" }}
+                />
                 <span>
-                  {formatDose(insulin.value)}u {insulin.variant.name} ·{" "}
-                  {getFormattedTime(getMinuteDiff(now, insulin.timestamp))} ago
+                  {formatDose(insulin.value)}u {insulin.variant.name}
+                  <span className="dose-sub ms-1">
+                    · {getFormattedTime(getMinuteDiff(now, insulin.timestamp))} ago
+                  </span>
                 </span>
               </span>
-              <span className="dose-value fw-semibold" style={{ fontSize: "0.82rem" }}>
-                {formatDose(iob)}u IOB
+              <span className="dose-value">
+                {formatDose(iob)}u{" "}
+                <span className="text-muted fw-normal" style={{ fontSize: "0.82rem" }}>
+                  IOB
+                </span>
               </span>
             </div>
           );

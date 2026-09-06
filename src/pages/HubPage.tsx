@@ -1,6 +1,6 @@
 import { basalIsDue } from "../lib/healthMonitor";
 import { useNow } from "../state/useNow";
-import { ActionCard, PageHeader, PageLayout } from "../components/PageLayout";
+import { ActionCard, PageLayout } from "../components/PageLayout";
 import BasalCard from "../components/BasalCard";
 import { useMemo, useState } from "react";
 import { ToggleButton } from "react-bootstrap";
@@ -33,12 +33,6 @@ function HubPage() {
 
   return (
     <PageLayout maxWidth="34rem">
-      <PageHeader
-        eyebrow="Overview"
-        title="Status Hub"
-        subtitle="Real-time session monitoring, active insulin, and background basal status."
-      />
-
       {dueForBasal && (
         <BasalCard dueForBasal={dueForBasal} setDueForBasal={setDueForBasal} />
       )}
