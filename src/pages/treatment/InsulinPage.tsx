@@ -9,7 +9,7 @@ import {
   getOvercompensationInsulins,
 } from "../../lib/metabolism";
 import Card from "../../components/Card";
-import TemplateSummary from "../../components/summary/TemplateSummary";
+import MealSummary from "../../components/summary/MealSummary";
 import { WizardStore } from "../../storage/wizardStore";
 import { PreferencesStore } from "../../storage/preferencesStore";
 import { InsulinVariantManager } from "../../managers/insulinVariantManager";
@@ -26,6 +26,7 @@ import {
 export default function InsulinPage() {
   const navigate = useNavigate();
   const [session] = WizardStore.session.useState();
+  const [meal] = WizardStore.meal.useState();
   const [template] = WizardStore.template.useState();
   const [isPrebolus, setIsPrebolus] = WizardStore.isPrebolus.useState();
 
@@ -38,7 +39,6 @@ export default function InsulinPage() {
     [isPrebolus, session],
   );
 
-  const meal = isPrebolus ? WizardStore.meal.value : session.meal;
   const baseSession = useMemo(
     () => (meal ? template.getBaseSession(meal) : null),
     [template, meal],
@@ -223,17 +223,12 @@ export default function InsulinPage() {
 
   return (
     <PageLayout>
-      {meal && (
+      {!meal.isEmpty && (
         <Card>
-          <TemplateSummary
+          <MealSummary
             template={template}
-            session={session}
             meal={meal}
-            currentBG={
-              session.initialGlucose
-                ? undefined
-                : currentBG || PreferencesStore.targetBG.value
-            }
+            mealName={template.name}
           />
         </Card>
       )}

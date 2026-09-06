@@ -5,7 +5,7 @@ import BasalCard from "../components/BasalCard";
 import { useMemo, useState } from "react";
 import { ToggleButton } from "react-bootstrap";
 import LastBolusMessage from "../components/LastBolusMessage";
-import TemplateSummary from "../components/summary/TemplateSummary";
+import SessionSummary from "../components/summary/SessionSummary";
 import { WizardStore } from "../storage/wizardStore";
 import Card from "../components/Card";
 import { useNavigate } from "react-router";
@@ -45,7 +45,11 @@ function HubPage() {
 
       {session.started && (
         <Card>
-          <TemplateSummary session={session} template={activeTemplate} />
+          <SessionSummary
+            session={session}
+            template={activeTemplate}
+            contained={true}
+          />
         </Card>
       )}
       {!dueForBasal && (

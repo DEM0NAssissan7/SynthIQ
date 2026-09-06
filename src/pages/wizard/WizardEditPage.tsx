@@ -7,7 +7,7 @@ import InsulinManager from "../../components/InsulinManager";
 import MealAdditionalNutrients from "../../components/MealAdditionalNutrientsCard";
 import { Button } from "react-bootstrap";
 import BloodSugarInput from "../../components/BloodSugarInput";
-import TemplateSummary from "../../components/summary/TemplateSummary";
+import SessionSummary from "../../components/summary/SessionSummary";
 import { WizardStore } from "../../storage/wizardStore";
 import { PreferencesStore } from "../../storage/preferencesStore";
 import {
@@ -36,9 +36,7 @@ export default function WizardEditPage() {
         title="Edit session"
         subtitle="Adjust meal events, insulin, glucose, and the stored starting BG without losing the session context."
       />
-      <Card>
-        <TemplateSummary template={template} session={session} />
-      </Card>
+      <SessionSummary template={template} session={session} contained={true} />
       {meal && (
         <>
           <Card>

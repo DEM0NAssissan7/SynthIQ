@@ -6,10 +6,9 @@ import BloodSugarInput from "../../components/BloodSugarInput";
 import FoodSearchDisplay from "../../components/FoodSearchDisplay";
 import MealAdditionalNutrients from "../../components/MealAdditionalNutrientsCard";
 import { PageLayout, PageActions } from "../../components/PageLayout";
-import TemplateSummary from "../../components/summary/TemplateSummary";
+import MealSummary from "../../components/summary/MealSummary";
 import WizardManager from "../../managers/wizardManager";
 import { useNow } from "../../state/useNow";
-import { PreferencesStore } from "../../storage/preferencesStore";
 import { WizardStore } from "../../storage/wizardStore";
 import Card from "../../components/Card";
 
@@ -70,15 +69,10 @@ export default function MealPage() {
       <Card>
         <ListGroup>
           <ListGroup.Item>
-            <TemplateSummary
+            <MealSummary
               template={template}
-              session={session}
               meal={meal}
-              currentBG={
-                session.initialGlucose
-                  ? undefined
-                  : initialGlucose || PreferencesStore.targetBG.value
-              }
+              mealName={template.name}
             />
           </ListGroup.Item>
           <ListGroup.Item>
