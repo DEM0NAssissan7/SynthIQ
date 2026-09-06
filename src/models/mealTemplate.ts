@@ -364,7 +364,13 @@ export default class MealTemplate extends Subscribable implements Template {
     for (let i = 0; i < insulins.length; i++) {
       insulins[i].value += offsets[i].value;
     }
-    return insulins;
+    // Prune
+    const resultInsulins = [];
+    for (const insulin of insulins) {
+      if (insulin.value < 0.25) continue;
+      resultInsulins.push(insulin);
+    }
+    return resultInsulins;
   }
   getProfileInsulin(
     carbs: number,
@@ -379,10 +385,9 @@ export default class MealTemplate extends Subscribable implements Template {
     const carbsEffect = CalibrationStore.carbsEffect.value;
     const proteinEffect = CalibrationStore.proteinEffect.value;
 
-    const sessionMeal = session.meal;
-    if (!sessionMeal) return [];
+    if (!session.meal) return [];
     const profileRise =
-      sessionMeal.carbs * carbsEffect + sessionMeal.protein * proteinEffect;
+      session.meal.carbs * carbsEffect + session.meal.protein * proteinEffect;
 
     const optimalMealInsulins = session.optimalMealInsulins;
     const optimalMealInsulinsEffect = optimalMealInsulins.reduce(
@@ -396,8 +401,8 @@ export default class MealTemplate extends Subscribable implements Template {
     const summedFoods = meal.summedFoods;
     let uncommonCarbs = 0;
     let uncommonProtein = 0;
-    for (let food of summedFoods) {
-      if (sessionMeal.hasFood(food)) continue;
+    for (const food of summedFoods) {
+      if (session.meal.hasFood(food)) continue;
       // This food is new/unseen in the session meal
       uncommonCarbs += food.netCarbs;
       uncommonProtein += food.protein;
@@ -435,13 +440,13 @@ export default class MealTemplate extends Subscribable implements Template {
      */
     const uncommonFactor = 1 / profileScale - 1;
     const carbsRise =
-      (meal.carbs - sessionMeal.carbs + uncommonCarbs * uncommonFactor) *
+      (meal.carbs - session.meal.carbs + uncommonCarbs * uncommonFactor) *
       carbsEffect *
       profileScale;
     insulins[0].value += carbsRise / insulins[0].variant.effect; // Add extra carbs offset to first shot, as they typically only act on first shot timeframe
 
     const proteinRise =
-      (meal.protein - sessionMeal.protein + uncommonProtein * uncommonFactor) *
+      (meal.protein - session.meal.protein + uncommonProtein * uncommonFactor) *
       proteinEffect *
       profileScale;
     const proteinRisePerShot = proteinRise / insulins.length;
