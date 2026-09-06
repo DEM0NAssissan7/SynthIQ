@@ -89,16 +89,18 @@ export default function SessionHubContent() {
         <ActionCard
           icon="bi-fork-knife"
           eyebrow="Meal"
-          title={shouldTransition ? "New Meal" : "Add Meal"}
+          title={shouldTransition || !session.started ? "New meal" : "Add meal"}
           body={"Build and mark a new meal"}
           buttonLabel={
             meal.isEmpty
-              ? shouldTransition
+              ? shouldTransition || session.started
                 ? "New meal"
                 : "Add meal"
               : "Open Meal"
           }
-          buttonVariant={session.immature ? "danger" : "primary"}
+          buttonVariant={
+            session.immature && session.started ? "danger" : "primary"
+          }
           onClick={addMeal}
         />
       </ActionGrid>
