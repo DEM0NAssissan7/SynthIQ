@@ -90,6 +90,10 @@ export namespace ActivityManager {
 
   // Execution
   export function begin(navigate: NavigateFunction, initialBG: number) {
+    // In the special case that an activity is begun while the user is fasting, we trigger a transition
+    if (WizardManager.isFasting() && WizardManager.shouldTransitionSession()) {
+      WizardManager.transition(initialBG);
+    }
     ActivityStore.activity.value.initialBG = initialBG;
     ActivityStore.activity.write();
     navigateTo(navigate, ActivityPage.End);
@@ -100,11 +104,11 @@ export namespace ActivityManager {
   }
   export function end(navigate: NavigateFunction, finalBG: number) {
     const activity = ActivityStore.activity.value;
-    const template = ActivityStore.template.value;
 
     activity.finalBG = finalBG;
-    template.addActivity(activity);
     WizardManager.markActivity(activity); // Communicate with the wizard to store the activity
+    const template = ActivityStore.template.value;
+    template.addActivity(activity); // Update template afterwards in case a transition took place
     updateTemplate(template);
 
     cancel(navigate);

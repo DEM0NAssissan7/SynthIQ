@@ -36,16 +36,15 @@ import WizardManager from "../../managers/wizardManager";
 export default function RescuePage() {
   const [session] = WizardStore.session.useState();
   const [template] = WizardStore.template.useState();
+  const isFasting = WizardManager.isFasting();
 
-  const [currentBG, setCurrentBG] = useState(
-    session.initialGlucose
-      ? session.initialGlucose
-      : PreferencesStore.targetBG.value,
-  );
+  const [currentBG, setCurrentBG] = useState<number | null>(null);
   const [variant, setVariant] = useState(RescueVariantManager.getDefault());
 
   const correction = useMemo(() => {
-    return roundByHalf(getGlucoseCorrectionCaps(currentBG, variant), false);
+    return currentBG
+      ? roundByHalf(getGlucoseCorrectionCaps(currentBG, variant), false)
+      : 0;
   }, [currentBG, variant]);
   const [intelligentCorrection, setIntelligentCorrection] = useState(0);
 
@@ -65,7 +64,7 @@ export default function RescuePage() {
         roundByHalf(
           getIntelligentGlucoseCorrection(
             velocityHours,
-            currentBG,
+            currentBG ?? PreferencesStore.targetBG.value,
             actingMinutes,
             variant,
             readings,
@@ -92,8 +91,12 @@ export default function RescuePage() {
     navigate("/");
   }
   function markGlucoseTaken(amount: number, variant: RescueVariant) {
+    if (isFasting && !currentBG) {
+      alert(`You must input your current blood sugar for a fasting rescue`);
+      return;
+    }
     if (confirm(`Confirm that you have taken ${amount} ${variant.name}`)) {
-      WizardManager.markGlucose(amount, variant);
+      WizardManager.markGlucose(amount, variant, currentBG ?? -1);
       goBack();
     }
   }

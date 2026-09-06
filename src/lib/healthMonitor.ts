@@ -122,6 +122,22 @@ export function getLatestBolus() {
   if (recentBoluses.length === 0) return null;
   return recentBoluses[recentBoluses.length - 1];
 }
+export function getIOB() {
+  const onBoardInsulins = HealthMonitorStore.recentBoluses.value;
+  let totalOnBoard = 0;
+  for (const insulin of onBoardInsulins) {
+    totalOnBoard += insulin.value;
+  }
+  return totalOnBoard;
+}
+export function getEffectOnBoard() {
+  const onBoardInsulins = HealthMonitorStore.recentBoluses.value;
+  let effectOnBoard = 0;
+  for (const insulin of onBoardInsulins) {
+    effectOnBoard += insulin.value * insulin.variant.effect;
+  }
+  return effectOnBoard;
+}
 export function getTimeSinceLastBolus() {
   const now = new Date();
   const latestBasal = getLatestBolus();

@@ -12,14 +12,29 @@ import type Insulin from "../models/events/insulin";
 import { getFastingVelocity, getDailyBasal, addNewBasal } from "../lib/basal";
 import { HealthMonitorStore } from "../storage/healthMonitorStore";
 import { ActivityManager } from "./activityManager";
-import { addRecentBolus, setLastRescue } from "../lib/healthMonitor";
+import {
+  addRecentBolus,
+  getEffectOnBoard,
+  setLastRescue,
+} from "../lib/healthMonitor";
+import { PreferencesStore } from "../storage/preferencesStore";
 
 export default class WizardManager {
+  static isFasting(): boolean {
+    if (
+      WizardStore.session.value.length < PreferencesStore.minSessionLength.value
+    )
+      return false;
+    if (getEffectOnBoard() < PreferencesStore.insulinMinActivity.value)
+      return true;
+    return false;
+  }
+
   // This manager deals with the session automation
   static shouldTransitionSession(): boolean {
     const session = WizardStore.session.value;
     if (!session.started) return false;
-    return session.readyToTransition;
+    return session.readyToTransition || this.isFasting();
   }
   static transition(BG: number): Session {
     const oldSession = WizardStore.session.value;
@@ -149,7 +164,14 @@ export default class WizardManager {
   }
 
   // Glucose
-  static markGlucose(amount: number, variant: RescueVariant) {
+  static markGlucose(amount: number, variant: RescueVariant, BG: number) {
+    // There is a special case of taking glucose where we may actually want to use it to transition
+    // This is in the case that 1. we are fasting (no active insulins & past threshold time) 2. we are correcting a low
+    // We do this on glucose because it indicates the meal is no longer active & the basal insulin is what is crashin
+    if (this.isFasting() && this.shouldTransitionSession()) {
+      // We have to end the current session & open a new one BEFORE marking the glucose down
+      this.transition(BG);
+    }
     // We really don't want to mark glucose if we haven't taken insulin. The glucose would never be taken because of a meal. Meals raise glucose.
     const session: Session = WizardStore.session.value;
     const timestamp = new Date();
@@ -174,6 +196,7 @@ export default class WizardManager {
       activity.length,
     );
     const session = WizardStore.session.value;
+    if (!session.started) return;
     session.addActivity(activity);
     WizardStore.session.write();
   }
