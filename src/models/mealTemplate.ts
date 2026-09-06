@@ -37,6 +37,7 @@ export default class MealTemplate extends Subscribable implements Template {
     this._sessions.push(session);
     this.timestamp = session.timestamp; // We set the timestamp to be the latest added session timestamp
     this.addChildSubscribable(session);
+    this.notify();
   }
   get isFirstTime(): boolean {
     return this.sessions.length === 0;

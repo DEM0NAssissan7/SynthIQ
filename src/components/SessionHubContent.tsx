@@ -6,13 +6,14 @@ import LastBolusMessage from "./LastBolusMessage";
 import { WizardStore } from "../storage/wizardStore";
 import { ActionCard, ActionGrid } from "./PageLayout";
 import WizardManager from "../managers/wizardManager";
+import { PrivateStore } from "../storage/privateStore";
 
 export default function SessionHubContent() {
   const navigate = useNavigate();
   const [session] = WizardStore.session.useState();
   const [activeTemplate] = WizardStore.activeTemplate.useState();
   const [meal] = WizardStore.meal.useState();
-  console.log(meal);
+  if (PrivateStore.debugLogs.value) console.log(meal);
   const shouldTransition = WizardManager.shouldTransitionSession();
 
   function setGarbage(value: boolean) {

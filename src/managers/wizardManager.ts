@@ -77,6 +77,8 @@ export default class WizardManager {
       session.initialGlucose = BG;
       session.dailyBasal = dailyBasal;
       session.onBoardInsulins = onBoardInsulins;
+      session.notify();
+      WizardStore.session.write();
     }
   }
 

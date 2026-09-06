@@ -25,8 +25,9 @@ export default function WizardEditPage() {
   function finishEdit() {
     navigate("/hub");
   }
-  function setGlucose(_: number) {
-    // session.initialGlucose = a;
+  function setGlucose(val: number) {
+    session.initialGlucose = val;
+    WizardStore.session.write();
   }
   return (
     <PageLayout>

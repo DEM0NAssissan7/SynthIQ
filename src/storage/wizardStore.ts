@@ -31,6 +31,16 @@ export namespace WizardStore {
     MealTemplate.serialize,
     MealTemplate.deserialize,
   );
+  {
+    const callback = () => {
+      activeTemplate.write();
+    };
+    activeTemplate.subscribe((value: MealTemplate) => {
+      value.unsubscribe(callback);
+      value.subscribe(callback);
+    });
+    activeTemplate.notify();
+  }
 
   // Page
   export const page = node.add<WizardPage>(

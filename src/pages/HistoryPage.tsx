@@ -16,7 +16,7 @@ import {
 
 function getCSV(templates: MealTemplate[], liverOutput: number): string {
   let out =
-    "Template Name,Date,Carbs,Protein,Total Insulin Taken,# Insulin Doses,Rescue Doses Taken,InitialBG,FinalBG,Control Score (lower is better),Theoretical Meal Rise (mg/dL),Fasting Velocity (mg/dL per hour),Basal Units per Day (u/day),Sensitivity Index,Invalid\n";
+    "Template Name,Date,Carbs,Protein,Length (hours),Total Insulin Taken,# Insulin Doses,Rescue Doses Taken,InitialBG,FinalBG,Control Score (lower is better),Theoretical Meal Rise (mg/dL),Fasting Velocity (mg/dL per hour),Basal Units per Day (u/day),Sensitivity Index,Invalid\n";
   for (const t of templates) {
     for (const s of t.sessions) {
       out += `${t.name},${getFullPrettyDate(s.timestamp)},${s.carbs},${s.protein},${s.length},${s.insulin},${s.insulins.length},${s.glucose},${s.initialGlucose},${s.finalBG},${s.score},${s.theoreticalMealRise},${s.fastingVelocity},${s.dailyBasal},${s.getSensitivityIndex(liverOutput)},${s.isInvalid}\n`;

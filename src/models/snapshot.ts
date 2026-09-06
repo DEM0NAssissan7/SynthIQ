@@ -169,7 +169,13 @@ export default class Snapshot extends Subscribable {
     return this.isValid ? this.timeSorted[0] : null;
   }
   set initialBG(value: number) {
-    this.createContemporaryCalibration(value);
+    if (this.isValid && this.timeSorted[0].isCalibration) {
+      this.timeSorted[0].sugar = value;
+      this.invalidateCaches();
+      this.notify();
+    } else {
+      this.createContemporaryCalibration(value);
+    }
   }
 
   get finalBG(): SugarReading | null {

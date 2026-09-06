@@ -48,6 +48,7 @@ export default class Session extends Subscribable {
     // This timestamp marks when eating _begins_
     super();
     this.uuid = genUUID();
+    this.addChildSubscribable(this.snapshot);
   }
 
   // Meals
@@ -88,6 +89,7 @@ export default class Session extends Subscribable {
   set finalBG(sugar: number) {
     this.snapshot.finalBG = sugar;
     this.completed = true;
+    this.notify();
   }
   get endTimestamp() {
     return this.snapshot.finalBG ? this.snapshot.finalBG.timestamp : null;
@@ -97,6 +99,7 @@ export default class Session extends Subscribable {
   }
   set initialGlucose(sugar: number) {
     this.snapshot.initialBG = sugar;
+    this.notify();
   }
   get peakGlucose() {
     return this.snapshot.peakBG ? this.snapshot.peakBG.sugar : null;
@@ -481,6 +484,7 @@ export default class Session extends Subscribable {
       snapshot.pullReadings();
     }
     session.snapshot = snapshot;
+    session.addChildSubscribable(snapshot);
 
     const activities: Activity[] = o.activities
       ? o.activities.map((a: JSONObject) => Activity.deserialize(a))

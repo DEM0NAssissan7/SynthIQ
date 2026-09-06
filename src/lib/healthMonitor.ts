@@ -122,21 +122,19 @@ export function getLatestBolus() {
   if (recentBoluses.length === 0) return null;
   return recentBoluses[recentBoluses.length - 1];
 }
-export function getIOB() {
+export function getIOB(time = new Date()) {
   const onBoardInsulins = HealthMonitorStore.recentBoluses.value;
-  let totalOnBoard = 0;
-  for (const insulin of onBoardInsulins) {
-    totalOnBoard += insulin.value;
-  }
-  return totalOnBoard;
+  return onBoardInsulins.reduce(
+    (total, insulin) => total + insulin.iob(time),
+    0,
+  );
 }
-export function getEffectOnBoard() {
+export function getEffectOnBoard(time = new Date()) {
   const onBoardInsulins = HealthMonitorStore.recentBoluses.value;
-  let effectOnBoard = 0;
-  for (const insulin of onBoardInsulins) {
-    effectOnBoard += insulin.value * insulin.variant.effect;
-  }
-  return effectOnBoard;
+  return onBoardInsulins.reduce(
+    (total, insulin) => total + insulin.iob(time) * insulin.variant.effect,
+    0,
+  );
 }
 export function getTimeSinceLastBolus() {
   const now = new Date();
