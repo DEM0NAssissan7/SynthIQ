@@ -11,6 +11,7 @@ import WizardManager from "../../managers/wizardManager";
 import { useNow } from "../../state/useNow";
 import { WizardStore } from "../../storage/wizardStore";
 import Card from "../../components/Card";
+import { PreferencesStore } from "../../storage/preferencesStore";
 
 export default function MealPage() {
   const [template] = WizardStore.template.useState();
@@ -29,12 +30,12 @@ export default function MealPage() {
     navigate("/selectmeal");
   }
   function beginEating() {
-    if (!initialGlucose) {
+    if (!initialGlucose && showPreBolus) {
       alert(`You must input your current blood sugar`);
       return;
     }
     if (confirm("Are you ready to start eating?")) {
-      WizardManager.markMeal(initialGlucose);
+      WizardManager.markMeal(initialGlucose ?? PreferencesStore.targetBG.value);
       navigate(
         WizardStore.session.value.insulinMarked ? "/hub" : "/markinsulin",
       );
@@ -73,13 +74,15 @@ export default function MealPage() {
         <MealSummary template={template} meal={meal} mealName={template.name} />
       </Card>
 
-      <Card>
-        <BloodSugarInput
-          initialGlucose={initialGlucose}
-          setInitialGlucose={(g) => setInitialGlucose(g)}
-          pullFromNightscout={true}
-        />
-      </Card>
+      {showPreBolus && (
+        <Card>
+          <BloodSugarInput
+            initialGlucose={initialGlucose}
+            setInitialGlucose={(g) => setInitialGlucose(g)}
+            pullFromNightscout={true}
+          />
+        </Card>
+      )}
 
       <PageActions>
         {showPreBolus && (

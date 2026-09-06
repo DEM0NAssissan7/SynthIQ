@@ -4,10 +4,7 @@ import WizardManager from "../../managers/wizardManager";
 import { roundByHalf } from "../../lib/util";
 import { useNavigate } from "react-router";
 import BloodSugarInput from "../../components/BloodSugarInput";
-import {
-  getCorrectionInsulin,
-  getOvercompensationInsulins,
-} from "../../lib/metabolism";
+import { getCorrectionInsulin } from "../../lib/metabolism";
 import Card from "../../components/Card";
 import MealSummary from "../../components/summary/MealSummary";
 import { WizardStore } from "../../storage/wizardStore";
@@ -23,12 +20,44 @@ import {
   PageLayout,
 } from "../../components/PageLayout";
 
+interface DoseBreakdownItemProps {
+  name: string;
+  insulin: number;
+}
+function DoseBreakdownItem({ name, insulin }: DoseBreakdownItemProps) {
+  if (insulin === 0) return <></>;
+  return (
+    <div className="app-dose-item">
+      <span className="dose-name">
+        <i
+          className="bi bi-capsule-pill text-primary opacity-75"
+          style={{ fontSize: "0.85rem" }}
+        />
+        <span>
+          {name}
+          {/* <span className="dose-sub ms-1">hi</span> */}
+        </span>
+      </span>
+      <span className="dose-value">
+        {insulin < 0 ? "" : "+"}
+        {insulin.toFixed(1)}u
+      </span>
+    </div>
+  );
+}
+
 export default function InsulinPage() {
   const navigate = useNavigate();
   const [session] = WizardStore.session.useState();
-  const [meal] = WizardStore.meal.useState();
   const [template] = WizardStore.template.useState();
+  const [activeTemplate] = WizardStore.activeTemplate.useState();
   const [isPrebolus, setIsPrebolus] = WizardStore.isPrebolus.useState();
+
+  const [scratchpadMeal] = WizardStore.meal.useState();
+  const meal = useMemo(
+    () => (isPrebolus ? scratchpadMeal : session.meal),
+    [isPrebolus, scratchpadMeal, session],
+  );
 
   const isFirstPostMealInjection = useMemo(
     () =>
@@ -98,34 +127,6 @@ export default function InsulinPage() {
     : [];
   const shotIndex = isPrebolus ? 0 : session.insulins.length;
 
-  const overcompensationInsulins = useMemo(() => {
-    if (
-      isCorrectionOnly ||
-      (!isPrebolus && session.completed) ||
-      !meal ||
-      meal.isEmpty
-    )
-      return [];
-    return getOvercompensationInsulins(
-      currentBG && currentBG > 0 ? currentBG : PreferencesStore.targetBG.value,
-      predictedOptimalInsulins.length > 0
-        ? predictedOptimalInsulins.map((i) => i.variant)
-        : [variant],
-    );
-  }, [
-    isCorrectionOnly,
-    isPrebolus,
-    session.completed,
-    meal,
-    currentBG,
-    predictedOptimalInsulins,
-    variant,
-  ]);
-  const overshootInsulin =
-    shotIndex < overcompensationInsulins.length
-      ? overcompensationInsulins[shotIndex]
-      : 0;
-
   const continuedRiseInsulin = (() => {
     const fastingVelocity = getFastingVelocity(); // mg/dL per hour
     const insulinDuration = variant.duration; // hours
@@ -135,31 +136,51 @@ export default function InsulinPage() {
 
   const risenCorrectionInsulin = correctionInsulin + continuedRiseInsulin;
 
+  const mealDose = useMemo(() => {
+    // If we are correcting or if session is (somehow) complete, or no meal
+    if (
+      isCorrectionOnly ||
+      (!isPrebolus && session.completed) ||
+      !meal ||
+      meal.isEmpty
+    )
+      return 0;
+    // If this shot index is within the predicted optimal shots
+    if (shotIndex < predictedOptimalInsulins.length) {
+      return predictedOptimalInsulins[shotIndex].value;
+    }
+    // If we haven't taken any shots yet and predictedOptimalInsulins was empty, fall back to profile
+    if (shotIndex === 0) {
+      return template.getProfileInsulin(meal.carbs, meal.protein, variant);
+    }
+    // All predicted shots already taken, so no additional meal dose
+    return 0;
+  }, [
+    isCorrectionOnly,
+    isPrebolus,
+    session,
+    meal,
+    shotIndex,
+    predictedOptimalInsulins,
+    template,
+    variant,
+  ]);
+  const overshootInsulin = useMemo(() => {
+    if (!currentBG) return 0;
+    if (isCorrectionOnly || mealDose === 0) return 0;
+    const cappedCurrentBG = Math.min(
+      currentBG,
+      PreferencesStore.targetBG.value,
+    );
+    const baseTarget =
+      PreferencesStore.targetBG.value - PreferencesStore.overshootOffset.value;
+    return Math.max(cappedCurrentBG - baseTarget, 0) / variant.effect;
+  }, [currentBG]);
   const displayedInsulin = useMemo(() => {
     // Insulin dosing pipeline
     let dose = 0;
 
     // Stage 1: Find raw unadjusted meal insulin
-    const mealDose = (() => {
-      // If we are correcting or if session is (somehow) complete, or no meal
-      if (
-        isCorrectionOnly ||
-        (!isPrebolus && session.completed) ||
-        !meal ||
-        meal.isEmpty
-      )
-        return 0;
-      // If this shot index is within the predicted optimal shots
-      if (shotIndex < predictedOptimalInsulins.length) {
-        return predictedOptimalInsulins[shotIndex].value;
-      }
-      // If we haven't taken any shots yet and predictedOptimalInsulins was empty, fall back to profile
-      if (shotIndex === 0) {
-        return template.getProfileInsulin(meal.carbs, meal.protein, variant);
-      }
-      // All predicted shots already taken, so no additional meal dose
-      return 0;
-    })();
     dose += mealDose;
 
     // Stage 2: Account for current BG correction
@@ -171,18 +192,7 @@ export default function InsulinPage() {
     }
 
     return dose;
-  }, [
-    isCorrectionOnly,
-    isPrebolus,
-    session.completed,
-    meal,
-    shotIndex,
-    predictedOptimalInsulins,
-    template,
-    variant,
-    correctionInsulin,
-    overshootInsulin,
-  ]);
+  }, [mealDose, correctionInsulin, overshootInsulin]);
   const displayedRange: string = (() => {
     const correction = Math.max(roundByHalf(correctionInsulin), 0);
     const risenCorrection = Math.max(roundByHalf(risenCorrectionInsulin), 0);
@@ -223,12 +233,21 @@ export default function InsulinPage() {
 
   return (
     <PageLayout>
-      {!meal.isEmpty && (!session.insulinMarked || isPrebolus) && (
+      {meal && !meal.isEmpty && (!session.insulinMarked || isPrebolus) && (
         <Card>
           <MealSummary
             template={template}
             meal={meal}
             mealName={template.name}
+          />
+        </Card>
+      )}
+      {session.meal && !session.insulinMarked && (
+        <Card>
+          <MealSummary
+            template={activeTemplate}
+            meal={session.meal}
+            mealName={activeTemplate.name}
           />
         </Card>
       )}
@@ -274,6 +293,19 @@ export default function InsulinPage() {
             }
           />
         </MetricGrid>
+        <div className="d-flex flex-column gap-2 mt-1">
+          <div className="app-dose-list">
+            <DoseBreakdownItem name={"Meal"} insulin={mealDose} />
+            <DoseBreakdownItem
+              name={"Correction"}
+              insulin={correctionInsulin}
+            />
+            <DoseBreakdownItem
+              name={"Overcompensation"}
+              insulin={overshootInsulin}
+            />
+          </div>
+        </div>
       </Card>
 
       {/* Mark insulin */}
