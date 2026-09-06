@@ -223,7 +223,7 @@ export default function InsulinPage() {
 
   return (
     <PageLayout>
-      {!meal.isEmpty && !session.insulinMarked && (
+      {!meal.isEmpty && (!session.insulinMarked || isPrebolus) && (
         <Card>
           <MealSummary
             template={template}
