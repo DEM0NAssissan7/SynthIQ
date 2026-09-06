@@ -123,7 +123,7 @@ export default function RescuePage() {
             value={`${displayRange} ${variant.unitLetter}`}
           />
           <MetricPill label="Drop rate" value={dropRate} />
-          <MetricPill label="Dynamic ISF" value={`${dynamicISF}`} />
+          <MetricPill label="Dynamic ISF" value={`${Math.round(dynamicISF)}`} />
         </MetricGrid>
         <HealthMonitorMessage />
         {HealthMonitorStore.lastRescue.value.value > 0 &&
