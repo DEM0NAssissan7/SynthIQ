@@ -345,27 +345,11 @@ export default class Session extends Subscribable {
     return this._isGarbage;
   }
   get isInvalid(): boolean {
-    // Detect if any windows had enough glucose to cause hypoglycemia if it were not taken
-    const deltaBGThreshold =
-      ((this.initialGlucose ?? PreferencesStore.targetBG.value) -
-        PreferencesStore.dangerBG.value) *
-      1.414;
-    const tooMuchGlucose = (() => {
-      for (const window of this.windows) {
-        const glucoseEffect = window.glucoses.reduce(
-          (n, glucose) => n + glucose.value * glucose.variant.effect,
-          0,
-        );
-        if (glucoseEffect > deltaBGThreshold) return true;
-      }
-      return false;
-    })();
     return (
       this.isGarbage ||
       this.insulin <= 0 ||
       this.meal === null ||
       this.immature ||
-      tooMuchGlucose ||
       this.activities.length !== 0
     );
   }
