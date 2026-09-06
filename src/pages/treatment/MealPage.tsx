@@ -42,7 +42,7 @@ export default function MealPage() {
     }
   }
   function markInsulin() {
-    navigate("/prebolus");
+    navigate(session.readyToTransition ? "/prebolus" : "/markinsulin");
   }
 
   // Upon Startup
@@ -102,9 +102,13 @@ export default function MealPage() {
         <Button variant="danger" onClick={selectDifferent}>
           Select Different Meal
         </Button>
-        <Button variant="primary" onClick={markInsulin}>
-          Mark Pre-Bolus
-        </Button>
+        {(session.mealMarked ||
+          session.insulins.length === 0 ||
+          !session.started) && (
+          <Button variant="primary" onClick={markInsulin}>
+            {session.readyToTransition ? `Mark Pre-Bolus` : `Mark Insulin`}
+          </Button>
+        )}
         <Button variant="primary" onClick={beginEating}>
           Begin Eating
         </Button>
