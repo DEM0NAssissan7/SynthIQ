@@ -69,6 +69,9 @@ export default function TemplateNameSearch({
           </span>
           <Form.Control
             type="search"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck="false"
             placeholder="Search templates..."
             className="border-start-0 ps-1"
             value={query}

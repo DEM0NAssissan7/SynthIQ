@@ -134,7 +134,10 @@ export default function FoodSearchDisplay({ meal }: FoodSearchDisplayProps) {
               <i className="bi bi-search" />
             </span>
             <Form.Control
-              type="text"
+              type="search"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck="false"
               placeholder="Search any food..."
               className="border-start-0 ps-1"
               value={query}
@@ -238,6 +241,7 @@ export default function FoodSearchDisplay({ meal }: FoodSearchDisplayProps) {
                   <div className="input-group">
                     <Form.Control
                       type="number"
+                      inputMode="decimal"
                       step="any"
                       placeholder="0"
                       value={newCarbs}
@@ -262,6 +266,7 @@ export default function FoodSearchDisplay({ meal }: FoodSearchDisplayProps) {
                   <div className="input-group">
                     <Form.Control
                       type="number"
+                      inputMode="decimal"
                       step="any"
                       placeholder="0"
                       value={newFiber}
@@ -286,6 +291,7 @@ export default function FoodSearchDisplay({ meal }: FoodSearchDisplayProps) {
                   <div className="input-group">
                     <Form.Control
                       type="number"
+                      inputMode="decimal"
                       step="any"
                       placeholder="0"
                       value={newProtein}
@@ -310,6 +316,7 @@ export default function FoodSearchDisplay({ meal }: FoodSearchDisplayProps) {
                   <div className="input-group">
                     <Form.Control
                       type="number"
+                      inputMode="decimal"
                       step="any"
                       placeholder="0"
                       value={newFat}
@@ -334,6 +341,7 @@ export default function FoodSearchDisplay({ meal }: FoodSearchDisplayProps) {
               <div className="input-group">
                 <Form.Control
                   type="number"
+                  inputMode="decimal"
                   step="any"
                   placeholder="0"
                   value={newRise}
@@ -357,6 +365,7 @@ export default function FoodSearchDisplay({ meal }: FoodSearchDisplayProps) {
                 <div className="input-group">
                   <Form.Control
                     type="number"
+                    inputMode="decimal"
                     step="any"
                     placeholder={
                       newUnit === Unit.Food.HundredGrams ? "100" : "1"

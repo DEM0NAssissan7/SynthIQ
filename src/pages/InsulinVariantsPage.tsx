@@ -106,6 +106,8 @@ export default function InsulinVariantsPage() {
             <Form.Label className="mt-3">Duration (hours)</Form.Label>
             <Form.Control
               type="number"
+              inputMode="decimal"
+              step="any"
               placeholder="0"
               value={duration || ""}
               onInput={(e: BaseSyntheticEvent) => {
@@ -119,6 +121,8 @@ export default function InsulinVariantsPage() {
             </Form.Label>
             <Form.Control
               type="number"
+              inputMode="decimal"
+              step="any"
               placeholder="0"
               value={daysLife || ""}
               onInput={(e: BaseSyntheticEvent) => {
@@ -130,6 +134,8 @@ export default function InsulinVariantsPage() {
             <Form.Label className="mt-3">Effect (mg/dL per unit)</Form.Label>
             <Form.Control
               type="number"
+              inputMode="decimal"
+              step="any"
               placeholder="0"
               value={effect || ""}
               onInput={(e: BaseSyntheticEvent) => {
@@ -141,6 +147,8 @@ export default function InsulinVariantsPage() {
             <Form.Label className="mt-3">Ka (absorption constant)</Form.Label>
             <Form.Control
               type="number"
+              inputMode="decimal"
+              step="any"
               placeholder="0"
               value={ka || ""}
               onInput={(e: BaseSyntheticEvent) => {
@@ -152,6 +160,8 @@ export default function InsulinVariantsPage() {
             <Form.Label className="mt-3">Ke (elimination constant)</Form.Label>
             <Form.Control
               type="number"
+              inputMode="decimal"
+              step="any"
               placeholder="0"
               value={ke || ""}
               onInput={(e: BaseSyntheticEvent) => {

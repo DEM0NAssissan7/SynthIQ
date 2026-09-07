@@ -59,6 +59,8 @@ export default function DextrosePage() {
             <InputGroup>
               <Form.Control
                 type="number"
+                inputMode="decimal"
+                step="any"
                 value={powderGlucoseContent || ""}
                 onChange={(e) => {
                   const val = parseFloat(e.target.value);
@@ -73,6 +75,8 @@ export default function DextrosePage() {
             <InputGroup>
               <Form.Control
                 type="number"
+                inputMode="decimal"
+                step="any"
                 value={powderMassContent || ""}
                 onChange={(e) => {
                   const val = parseFloat(e.target.value);
@@ -96,6 +100,8 @@ export default function DextrosePage() {
             <InputGroup>
               <Form.Control
                 type="number"
+                inputMode="decimal"
+                step="any"
                 value={totalSolution || ""}
                 onChange={(e) => {
                   const val = parseFloat(e.target.value);
@@ -110,6 +116,8 @@ export default function DextrosePage() {
             <InputGroup>
               <Form.Control
                 type="number"
+                inputMode="decimal"
+                step="any"
                 value={concentrationGlucose || ""}
                 onChange={(e) => {
                   const val = parseFloat(e.target.value);
@@ -124,6 +132,8 @@ export default function DextrosePage() {
             <InputGroup>
               <Form.Control
                 type="number"
+                inputMode="decimal"
+                step="any"
                 value={concentrationVolume || ""}
                 onChange={(e) => {
                   const val = parseFloat(e.target.value);

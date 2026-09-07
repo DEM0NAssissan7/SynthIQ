@@ -48,18 +48,9 @@ $enable-shadows: true;
 }
 
 /* Base & Typography */
-html,
-body,
-#root,
-div[data-reactroot] {
-  min-height: 100%;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
-}
-
-#root {
-  display: flex;
-  flex-direction: column;
+html {
+  -webkit-text-size-adjust: 100%;
+  overflow-x: hidden;
 }
 
 body {
@@ -67,9 +58,24 @@ body {
   background-color: var(--app-bg);
   color: var(--app-text);
   min-height: 100vh;
+  min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* Global WebKit touch and interaction ergonomics */
+*,
+*::before,
+*::after {
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -77,8 +83,33 @@ button,
 input,
 select,
 textarea,
-a {
+a,
+[role="button"] {
   touch-action: manipulation;
+}
+
+/* Disable accidental text selection & callout previews on interactive elements */
+button,
+a,
+.btn,
+.nav-link,
+.app-bottom-nav-item,
+.app-topbar-header,
+.app-dose-item,
+.app-metric-pill,
+.app-number-option-btn,
+.app-grouped-item,
+.badge,
+.card-header,
+[role="button"] {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.min-vh-100 {
+  min-height: 100vh !important;
+  min-height: 100dvh !important;
 }
 
 /* Dark Mode Bootstrap Overrides */
@@ -139,11 +170,14 @@ a {
   backdrop-filter: blur(24px) saturate(190%);
   -webkit-backdrop-filter: blur(24px) saturate(190%);
   border-bottom: 1px solid var(--app-hairline);
-  padding-top: max(0.4rem, env(safe-area-inset-top, 0px));
-  padding-bottom: 0.4rem;
-  padding-left: env(safe-area-inset-left, 0px);
-  padding-right: env(safe-area-inset-right, 0px);
+  padding-top: max(0.45rem, env(safe-area-inset-top, 0px));
+  padding-bottom: 0.45rem;
+  padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
+  padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
   transition: background-color 0.2s ease, border-color 0.2s ease;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  will-change: transform;
 }
 
 .app-topbar-inner {
@@ -330,9 +364,13 @@ a {
   border-top: 1px solid var(--app-hairline);
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.04);
   padding-bottom: max(0.45rem, calc(0.35rem + env(safe-area-inset-bottom, 0px)));
-  padding-left: env(safe-area-inset-left, 0px);
-  padding-right: env(safe-area-inset-right, 0px);
+  padding-left: max(0.5rem, env(safe-area-inset-left, 0px));
+  padding-right: max(0.5rem, env(safe-area-inset-right, 0px));
   user-select: none;
+  -webkit-user-select: none;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  will-change: transform;
 }
 
 .app-bottom-nav-inner {
@@ -425,6 +463,9 @@ a {
   color: var(--app-text) !important;
   border-left: 1px solid var(--app-hairline);
   max-width: 360px !important;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
 
   @media (min-width: 576px) {
     border-top-left-radius: 20px;
@@ -590,12 +631,18 @@ a {
    App Shell & Card Polishing
    ========================================================================== */
 .app-shell {
-  padding: 0.75rem 0.75rem 0.5rem 0.75rem;
+  padding-top: 0.75rem;
+  padding-bottom: 0.5rem;
+  padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
+  padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
 }
 
 @media (min-width: 576px) {
   .app-shell {
-    padding: 1.25rem 1.5rem 1rem 1.5rem;
+    padding-top: 1.25rem;
+    padding-bottom: 1rem;
+    padding-left: max(1.5rem, env(safe-area-inset-left, 0px));
+    padding-right: max(1.5rem, env(safe-area-inset-right, 0px));
   }
 }
 
@@ -813,17 +860,37 @@ a {
   font-size: 0.95rem;
 }
 
-.form-control:focus,
-.form-select:focus {
-  border-color: var(--apple-tint);
-  box-shadow: 0 0 0 0.2rem rgba(var(--apple-tint-rgb), 0.2);
-  background-color: var(--app-surface);
-  color: var(--app-text);
-}
-
 .form-control,
 .form-select {
   min-height: 2.75rem;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* Prevent iOS Safari 16px auto-zoom */
+@media screen and (max-width: 768px) {
+  input,
+  select,
+  textarea,
+  .form-control,
+  .form-select {
+    font-size: 16px !important;
+  }
+}
+
+/* Remove number input spinners in WebKit */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Normalize search inputs in WebKit */
+input[type="search"]::-webkit-search-decoration,
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-results-button,
+input[type="search"]::-webkit-search-results-decoration {
+  -webkit-appearance: none;
 }
 
 .input-group > .btn,
@@ -872,8 +939,38 @@ a {
 }
 
 .app-table-wrap,
-.table-responsive {
+.table-responsive,
+.offcanvas-body,
+.modal-body {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* iOS Modal & Dialog Polish */
+.modal-dialog {
+  margin: 1.25rem auto;
+  max-width: calc(100% - 1.5rem);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.modal-content {
+  border-radius: 1.25rem;
+  border: 1px solid var(--app-border);
+  background-color: var(--app-surface);
+  color: var(--app-text);
+  box-shadow: var(--apple-card-shadow);
+  overflow: hidden;
+}
+
+.modal-header,
+.modal-footer {
+  border-color: var(--app-hairline);
+}
+
+.modal-backdrop {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .app-table {

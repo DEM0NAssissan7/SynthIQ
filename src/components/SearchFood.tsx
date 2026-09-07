@@ -47,6 +47,8 @@ export default function SearchFood({ food, addFood }: SearchFoodProps) {
           <div className="input-group food-input-group">
             <Form.Control
               type="number"
+              inputMode="decimal"
+              step="any"
               placeholder="0"
               value={amount || ""}
               onInput={(e: BaseSyntheticEvent) => {

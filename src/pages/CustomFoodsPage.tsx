@@ -103,6 +103,8 @@ export default function CustomFoodsPage() {
                 <Form.Label className="small text-muted mb-1">Carbs / {prettyUnit}</Form.Label>
                 <Form.Control
                   type="number"
+                  inputMode="decimal"
+                  step="any"
                   placeholder="0g"
                   value={carbsRate || ""}
                   onInput={(e: BaseSyntheticEvent) => {
@@ -114,6 +116,8 @@ export default function CustomFoodsPage() {
                 <Form.Label className="small text-muted mb-1">Fiber / {prettyUnit}</Form.Label>
                 <Form.Control
                   type="number"
+                  inputMode="decimal"
+                  step="any"
                   placeholder="0g"
                   value={fiberRate || ""}
                   onInput={(e: BaseSyntheticEvent) => {
@@ -125,6 +129,8 @@ export default function CustomFoodsPage() {
                 <Form.Label className="small text-muted mb-1">Protein / {prettyUnit}</Form.Label>
                 <Form.Control
                   type="number"
+                  inputMode="decimal"
+                  step="any"
                   placeholder="0g"
                   value={proteinRate || ""}
                   onInput={(e: BaseSyntheticEvent) => {
@@ -136,6 +142,8 @@ export default function CustomFoodsPage() {
                 <Form.Label className="small text-muted mb-1">Fat / {prettyUnit}</Form.Label>
                 <Form.Control
                   type="number"
+                  inputMode="decimal"
+                  step="any"
                   placeholder="0g"
                   value={fatRate || ""}
                   onInput={(e: BaseSyntheticEvent) => {
@@ -149,6 +157,8 @@ export default function CustomFoodsPage() {
                 </Form.Label>
                 <Form.Control
                   type="number"
+                  inputMode="decimal"
+                  step="any"
                   placeholder="0 mg/dL"
                   value={rise || ""}
                   onInput={(e: BaseSyntheticEvent) => {

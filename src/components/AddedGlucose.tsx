@@ -41,6 +41,8 @@ export default function AddedGlucose({ glucose, session }: AddedGlucoseProps) {
             </span>
             <Form.Control
               type="number"
+              inputMode="decimal"
+              step="any"
               placeholder="Caps/Carbs"
               className="text-center"
               onInput={(e: BaseSyntheticEvent) => {
@@ -58,6 +60,8 @@ export default function AddedGlucose({ glucose, session }: AddedGlucoseProps) {
 
             <Form.Control
               type="number"
+              inputMode="decimal"
+              step="any"
               placeholder="Delay (minutes after meal)"
               className="text-center"
               onChange={(e: BaseSyntheticEvent) => {

@@ -22,6 +22,8 @@ export default function NutritionOffset({
         </span>
         <Form.Control
           type="number"
+          inputMode="decimal"
+          step="any"
           placeholder="0"
           value={value || ""}
           onChange={(e) => {

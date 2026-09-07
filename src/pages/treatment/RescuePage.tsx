@@ -175,6 +175,8 @@ export default function RescuePage() {
           </InputGroup.Text>
           <Form.Control
             type="number"
+            inputMode="decimal"
+            step="any"
             placeholder={intelligentCorrection.toString()}
             aria-describedby="basic-addon1"
             value={inputGlucose}

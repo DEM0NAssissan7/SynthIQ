@@ -118,6 +118,8 @@ export default function BloodSugarInput({
         </span>
         <Form.Control
           type="number"
+          inputMode="decimal"
+          step="any"
           placeholder="mg/dL"
           value={initialGlucose || ""}
           className="border-start-0 border-end-0 fw-semibold"

@@ -211,7 +211,11 @@ function SetupPage() {
             <i className="bi bi-globe"></i>
           </InputGroup.Text>
           <Form.Control
-            type="text"
+            type="url"
+            inputMode="url"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck="false"
             placeholder={url || "Enter your nightscout server URL"}
             aria-label="URL"
             aria-describedby="basic-addon1"
@@ -225,6 +229,9 @@ function SetupPage() {
           </InputGroup.Text>
           <Form.Control
             type="text"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck="false"
             placeholder={apiSecret || "Enter your API key"}
             aria-label="API Key"
             aria-describedby="basic-addon2"

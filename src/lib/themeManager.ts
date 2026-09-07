@@ -22,6 +22,18 @@ export function applyTheme(
   if (typeof document === "undefined") return;
   const effectiveTheme = getEffectiveTheme(mode);
   document.documentElement.setAttribute("data-bs-theme", effectiveTheme);
+
+  // Sync theme-color with iOS Safari top bar & status bar
+  const themeHex = effectiveTheme === "dark" ? "#000000" : "#f2f2f7";
+  const themeMetaTags = document.querySelectorAll('meta[name="theme-color"]');
+  if (themeMetaTags.length > 0) {
+    themeMetaTags.forEach((tag) => tag.setAttribute("content", themeHex));
+  } else {
+    const meta = document.createElement("meta");
+    meta.name = "theme-color";
+    meta.content = themeHex;
+    document.head.appendChild(meta);
+  }
 }
 
 export function initThemeListener() {

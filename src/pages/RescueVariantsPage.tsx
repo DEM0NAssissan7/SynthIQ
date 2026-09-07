@@ -78,6 +78,8 @@ export default function RescueVariantsPage() {
             <Form.Label className="mt-3">Duration (minutes)</Form.Label>
             <Form.Control
               type="number"
+              inputMode="decimal"
+              step="any"
               placeholder="0"
               value={duration || ""}
               onInput={(e: BaseSyntheticEvent) => {
@@ -89,6 +91,8 @@ export default function RescueVariantsPage() {
             <Form.Label className="mt-3">Carbs (g per unit)</Form.Label>
             <Form.Control
               type="number"
+              inputMode="decimal"
+              step="any"
               placeholder="0"
               value={carbs || ""}
               onInput={(e: BaseSyntheticEvent) => {
@@ -100,6 +104,8 @@ export default function RescueVariantsPage() {
             <Form.Label className="mt-3">Effect (mg/dL per unit)</Form.Label>
             <Form.Control
               type="number"
+              inputMode="decimal"
+              step="any"
               placeholder="0"
               value={effect || ""}
               onInput={(e: BaseSyntheticEvent) => {

@@ -156,6 +156,8 @@ export default function BasalPage() {
             placeholder={lastShot.toString()}
             aria-label="Basal dose"
             type="number"
+            inputMode="decimal"
+            step="any"
             aria-describedby="basic-addon1"
             onChange={(e: any) => {
               const val = parseFloat(e.target.value);

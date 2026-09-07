@@ -48,6 +48,8 @@ function NumberSetting({ title, keyInterface, iconClass, unit }: Setting) {
         </InputGroup.Text>
         <Form.Control
           type="number"
+          inputMode="decimal"
+          step="any"
           placeholder={initialValue}
           value={displayValue}
           aria-describedby="basic-addon1"

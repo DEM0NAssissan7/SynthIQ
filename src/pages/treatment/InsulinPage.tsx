@@ -328,6 +328,8 @@ export default function InsulinPage() {
           </InputGroup.Text>
           <Form.Control
             type="number"
+            inputMode="decimal"
+            step="any"
             placeholder={
               correctionIsDisplayed
                 ? roundByHalf(correctionInsulin).toFixed(1)
