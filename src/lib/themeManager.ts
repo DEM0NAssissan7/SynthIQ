@@ -1,4 +1,5 @@
 import { PreferencesStore } from "../storage/preferencesStore";
+import { initDynamicTheme } from "./dynamicTheme";
 
 export type ThemeMode = "auto" | "dark" | "light";
 
@@ -23,17 +24,8 @@ export function applyTheme(
   const effectiveTheme = getEffectiveTheme(mode);
   document.documentElement.setAttribute("data-bs-theme", effectiveTheme);
 
-  // Sync theme-color with iOS Safari top bar & status bar
-  const themeHex = effectiveTheme === "dark" ? "#000000" : "#f2f2f7";
-  const themeMetaTags = document.querySelectorAll('meta[name="theme-color"]');
-  if (themeMetaTags.length > 0) {
-    themeMetaTags.forEach((tag) => tag.setAttribute("content", themeHex));
-  } else {
-    const meta = document.createElement("meta");
-    meta.name = "theme-color";
-    meta.content = themeHex;
-    document.head.appendChild(meta);
-  }
+  // Initialize and apply M3 dynamic tonal palette
+  initDynamicTheme(effectiveTheme === "dark");
 }
 
 export function initThemeListener() {

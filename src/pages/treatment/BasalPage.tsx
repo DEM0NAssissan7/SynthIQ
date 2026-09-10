@@ -4,6 +4,7 @@ import {
   MetricGrid,
   MetricPill,
   PageActions,
+  PageHeader,
   PageLayout,
 } from "../../components/PageLayout";
 import {
@@ -77,6 +78,7 @@ export default function BasalPage() {
 
   return (
     <PageLayout>
+      <PageHeader title="Basal Injection" eyebrow="Long-acting" />
       <Card>
         <MetricGrid>
           <MetricPill

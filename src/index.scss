@@ -3,47 +3,156 @@ $enable-shadows: true;
 @import "../node_modules/bootstrap/scss/bootstrap";
 @import "../node_modules/bootstrap-icons/font/bootstrap-icons.css";
 
-/* Apple Human Interface Guidelines - Tokens & Theme Variables */
+/* ==========================================================================
+   Material 3 Expressive Design System Tokens
+   Baseline Seed: Medical Blue (#006590)
+   Dynamic Color from Phone (Monet / AccentColor) injected via dynamicTheme.ts
+   ========================================================================== */
 :root,
 [data-bs-theme="light"] {
-  --app-bg: #f2f2f7;
-  --app-bg-accent: #e5e5ea;
-  --app-surface: #ffffff;
-  --app-surface-muted: #f2f2f7;
-  --app-surface-translucent: rgba(255, 255, 255, 0.84);
-  --app-border: rgba(60, 60, 67, 0.1);
-  --app-hairline: rgba(60, 60, 67, 0.14);
-  --app-text: #000000;
-  --app-text-muted: #8e8e93;
-  --apple-tint: #007aff;
-  --apple-tint-rgb: 0, 122, 255;
-  --apple-green: #34c759;
-  --apple-orange: #ff9500;
-  --apple-red: #ff3b30;
-  --apple-purple: #af52de;
-  --apple-teal: #30b0c7;
-  --apple-card-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 2px 6px -1px rgba(0, 0, 0, 0.03);
+  /* Medical Blue M3 Color Roles - Light */
+  --md-sys-color-primary: #006590;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #c8e6ff;
+  --md-sys-color-on-primary-container: #001e2f;
+
+  --md-sys-color-secondary: #4f606e;
+  --md-sys-color-on-secondary: #ffffff;
+  --md-sys-color-secondary-container: #d2e5f5;
+  --md-sys-color-on-secondary-container: #0b1d29;
+
+  --md-sys-color-tertiary: #64597b;
+  --md-sys-color-on-tertiary: #ffffff;
+  --md-sys-color-tertiary-container: #ebdcff;
+  --md-sys-color-on-tertiary-container: #201634;
+
+  --md-sys-color-error: #ba1a1a;
+  --md-sys-color-on-error: #ffffff;
+  --md-sys-color-error-container: #ffdad6;
+  --md-sys-color-on-error-container: #410002;
+
+  /* M3 Surface Container Hierarchy - Light */
+  --md-sys-color-surface: #f7f9ff;
+  --md-sys-color-on-surface: #171c20;
+  --md-sys-color-surface-variant: #dce3eb;
+  --md-sys-color-on-surface-variant: #41474d;
+  --md-sys-color-surface-container-lowest: #ffffff;
+  --md-sys-color-surface-container-low: #f1f4f9;
+  --md-sys-color-surface-container: #ebedf4;
+  --md-sys-color-surface-container-high: #e5e8ee;
+  --md-sys-color-surface-container-highest: #dfe2e8;
+
+  --md-sys-color-outline: #71787e;
+  --md-sys-color-outline-variant: #c1c7ce;
+
+  /* Semantic Health Status Colors (M3 Tonal Containers) */
+  --app-status-target: #006c4c;
+  --app-status-target-container: #89f8c7;
+  --app-status-target-on-container: #002114;
+
+  --app-status-elevated: #8b5000;
+  --app-status-elevated-container: #ffeed4;
+  --app-status-elevated-on-container: #381e00;
+
+  --app-status-low: #ba1a1a;
+  --app-status-low-container: #ffdad6;
+  --app-status-low-on-container: #410002;
+
+  /* M3 Shape Hierarchy */
+  --md-sys-shape-corner-none: 0px;
+  --md-sys-shape-corner-xs: 4px;
+  --md-sys-shape-corner-sm: 8px;
+  --md-sys-shape-corner-md: 12px;
+  --md-sys-shape-corner-lg: 16px;
+  --md-sys-shape-corner-xl: 28px;
+  --md-sys-shape-corner-full: 9999px;
+
+  /* M3 Dual Elevation Shadows */
+  --md-sys-elevation-0: none;
+  --md-sys-elevation-1: 0 1px 3px 1px rgba(0, 0, 0, 0.07), 0 1px 2px 0 rgba(0, 0, 0, 0.12);
+  --md-sys-elevation-2: 0 2px 6px 2px rgba(0, 0, 0, 0.07), 0 1px 2px 0 rgba(0, 0, 0, 0.12);
+  --md-sys-elevation-3: 0 4px 8px 3px rgba(0, 0, 0, 0.08), 0 1px 3px 0 rgba(0, 0, 0, 0.14);
+
+  /* State Layers */
+  --md-sys-state-hover-opacity: 0.08;
+  --md-sys-state-focus-opacity: 0.12;
+  --md-sys-state-pressed-opacity: 0.12;
+
+  /* App Aliases */
+  --app-bg: var(--md-sys-color-surface);
+  --app-surface: var(--md-sys-color-surface-container-low);
+  --app-surface-muted: var(--md-sys-color-surface-container);
+  --app-border: var(--md-sys-color-outline-variant);
+  --app-text: var(--md-sys-color-on-surface);
+  --app-text-muted: var(--md-sys-color-on-surface-variant);
+  --app-primary: var(--md-sys-color-primary);
+  --app-primary-container: var(--md-sys-color-primary-container);
   color-scheme: light;
 }
 
 [data-bs-theme="dark"] {
-  --app-bg: #000000;
-  --app-bg-accent: #151821;
-  --app-surface: #1c1c1e;
-  --app-surface-muted: #2c2c2e;
-  --app-surface-translucent: rgba(28, 28, 30, 0.84);
-  --app-border: rgba(255, 255, 255, 0.1);
-  --app-hairline: rgba(255, 255, 255, 0.14);
-  --app-text: #ffffff;
-  --app-text-muted: #98989d;
-  --apple-tint: #0a84ff;
-  --apple-tint-rgb: 10, 132, 255;
-  --apple-green: #30d158;
-  --apple-orange: #ff9f0a;
-  --apple-red: #ff453a;
-  --apple-purple: #bf5af2;
-  --apple-teal: #40c8e0;
-  --apple-card-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.4), 0 2px 8px -1px rgba(0, 0, 0, 0.2);
+  /* Medical Blue M3 Color Roles - Dark */
+  --md-sys-color-primary: #87cffc;
+  --md-sys-color-on-primary: #00344d;
+  --md-sys-color-primary-container: #004c6e;
+  --md-sys-color-on-primary-container: #c8e6ff;
+
+  --md-sys-color-secondary: #b6c9d8;
+  --md-sys-color-on-secondary: #21323f;
+  --md-sys-color-secondary-container: #374956;
+  --md-sys-color-on-secondary-container: #d2e5f5;
+
+  --md-sys-color-tertiary: #cebfeb;
+  --md-sys-color-on-tertiary: #352b4a;
+  --md-sys-color-tertiary-container: #4c4262;
+  --md-sys-color-on-tertiary-container: #ebdcff;
+
+  --md-sys-color-error: #ffb4ab;
+  --md-sys-color-on-error: #690005;
+  --md-sys-color-error-container: #93000a;
+  --md-sys-color-on-error-container: #ffdad6;
+
+  /* M3 Surface Container Hierarchy - Dark */
+  --md-sys-color-surface: #0f1417;
+  --md-sys-color-on-surface: #dfe3e8;
+  --md-sys-color-surface-variant: #41474d;
+  --md-sys-color-on-surface-variant: #c1c7ce;
+  --md-sys-color-surface-container-lowest: #0a0f12;
+  --md-sys-color-surface-container-low: #171c20;
+  --md-sys-color-surface-container: #1b2024;
+  --md-sys-color-surface-container-high: #262b2e;
+  --md-sys-color-surface-container-highest: #303539;
+
+  --md-sys-color-outline: #8b9298;
+  --md-sys-color-outline-variant: #41474d;
+
+  /* Semantic Health Status Colors (Dark) */
+  --app-status-target: #6cdbac;
+  --app-status-target-container: #005138;
+  --app-status-target-on-container: #89f8c7;
+
+  --app-status-elevated: #ffb86f;
+  --app-status-elevated-container: #4a2800;
+  --app-status-elevated-on-container: #ffddb4;
+
+  --app-status-low: #ffb4ab;
+  --app-status-low-container: #93000a;
+  --app-status-low-on-container: #ffdad6;
+
+  /* M3 Elevation Dual-Shadows - Dark */
+  --md-sys-elevation-0: none;
+  --md-sys-elevation-1: 0 1px 3px 1px rgba(0, 0, 0, 0.25), 0 1px 2px 0 rgba(0, 0, 0, 0.35);
+  --md-sys-elevation-2: 0 2px 6px 2px rgba(0, 0, 0, 0.25), 0 1px 2px 0 rgba(0, 0, 0, 0.35);
+  --md-sys-elevation-3: 0 4px 8px 3px rgba(0, 0, 0, 0.25), 0 1px 3px 0 rgba(0, 0, 0, 0.35);
+
+  --app-bg: var(--md-sys-color-surface);
+  --app-surface: var(--md-sys-color-surface-container-low);
+  --app-surface-muted: var(--md-sys-color-surface-container);
+  --app-border: var(--md-sys-color-outline-variant);
+  --app-text: var(--md-sys-color-on-surface);
+  --app-text-muted: var(--md-sys-color-on-surface-variant);
+  --app-primary: var(--md-sys-color-primary);
+  --app-primary-container: var(--md-sys-color-primary-container);
   color-scheme: dark;
 }
 
@@ -54,7 +163,7 @@ html {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "SF Pro", -apple-system-subheadline, system-ui, sans-serif;
+  font-family: "Roboto", "Google Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   background-color: var(--app-bg);
   color: var(--app-text);
   min-height: 100vh;
@@ -72,7 +181,7 @@ body {
   min-height: 100dvh;
 }
 
-/* Global WebKit touch and interaction ergonomics */
+/* Global touch and interaction ergonomics */
 *,
 *::before,
 *::after {
@@ -88,22 +197,17 @@ a,
   touch-action: manipulation;
 }
 
-/* Disable accidental text selection & callout previews on interactive elements */
 button,
 a,
 .btn,
 .nav-link,
 .app-bottom-nav-item,
-.app-topbar-header,
 .app-dose-item,
 .app-metric-pill,
 .app-number-option-btn,
-.app-grouped-item,
 .badge,
 .card-header,
 [role="button"] {
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
   user-select: none;
 }
 
@@ -112,36 +216,36 @@ a,
   min-height: 100dvh !important;
 }
 
-/* Dark Mode Bootstrap Overrides */
+/* Bootstrap Theme Bridge Overrides */
 [data-bs-theme="dark"] {
   .btn-light {
-    background-color: var(--app-surface-muted);
-    border-color: var(--app-border);
-    color: var(--app-text);
+    background-color: var(--md-sys-color-surface-container-high);
+    border-color: var(--md-sys-color-outline-variant);
+    color: var(--md-sys-color-on-surface);
 
     &:hover,
     &:focus,
     &:active {
-      background-color: var(--app-bg-accent);
-      border-color: var(--app-border);
-      color: var(--app-text);
+      background-color: var(--md-sys-color-surface-container-highest);
+      border-color: var(--md-sys-color-outline);
+      color: var(--md-sys-color-on-surface);
     }
   }
 
   .bg-light,
   .bg-light-subtle {
-    background-color: var(--app-surface-muted) !important;
-    color: var(--app-text) !important;
+    background-color: var(--md-sys-color-surface-container) !important;
+    color: var(--md-sys-color-on-surface) !important;
   }
 
   .bg-primary-subtle {
-    background-color: rgba(10, 132, 255, 0.16) !important;
-    color: #6ea8fe !important;
+    background-color: var(--md-sys-color-primary-container) !important;
+    color: var(--md-sys-color-on-primary-container) !important;
   }
 
   .bg-secondary-subtle {
-    background-color: rgba(142, 142, 147, 0.18) !important;
-    color: #aeaeb2 !important;
+    background-color: var(--md-sys-color-secondary-container) !important;
+    color: var(--md-sys-color-on-secondary-container) !important;
   }
 
   .table {
@@ -151,206 +255,42 @@ a,
   }
 
   .dropdown-menu {
-    --bs-dropdown-bg: var(--app-surface);
-    --bs-dropdown-border-color: var(--app-border);
+    --bs-dropdown-bg: var(--md-sys-color-surface-container-high);
+    --bs-dropdown-border-color: var(--md-sys-color-outline-variant);
     --bs-dropdown-link-color: var(--app-text);
-    --bs-dropdown-link-hover-bg: var(--app-surface-muted);
+    --bs-dropdown-link-hover-bg: var(--md-sys-color-surface-container-highest);
     --bs-dropdown-link-hover-color: var(--app-text);
   }
 }
 
-/* ==========================================================================
-   Apple Navigation Header (TopBar)
-   ========================================================================== */
-.app-topbar-header {
-  position: sticky;
-  top: 0;
-  z-index: 1020;
-  background: var(--app-surface-translucent);
-  backdrop-filter: blur(24px) saturate(190%);
-  -webkit-backdrop-filter: blur(24px) saturate(190%);
-  border-bottom: 1px solid var(--app-hairline);
-  padding-top: max(0.45rem, env(safe-area-inset-top, 0px));
-  padding-bottom: 0.45rem;
-  padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
-  padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
-  transition: background-color 0.2s ease, border-color 0.2s ease;
-  transform: translateZ(0);
-  -webkit-transform: translateZ(0);
-  will-change: transform;
-}
-
-.app-topbar-inner {
-  max-width: 680px;
-  margin: 0 auto;
-  padding: 0 1rem;
-  height: 44px;
-  display: flex;
+/* In-Page M3 Back Button */
+.md3-back-btn {
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-}
-
-.app-topbar-left {
-  display: flex;
-  align-items: center;
-  min-width: 0;
-}
-
-.app-header-brand {
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  text-decoration: none;
-  color: var(--app-text);
-  user-select: none;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--md-sys-shape-corner-full);
+  border: none;
+  background: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface);
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
 
   &:hover {
-    color: var(--app-text);
-  }
-}
-
-.app-header-logo {
-  width: 28px;
-  height: 28px;
-  border-radius: 7px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-  object-fit: contain;
-}
-
-.app-header-title {
-  font-size: 1.15rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1;
-}
-
-.app-header-back-btn {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  background: transparent;
-  border: none;
-  padding: 4px 6px 4px 0;
-  color: var(--apple-tint);
-  font-size: 0.95rem;
-  font-weight: 500;
-  cursor: pointer;
-  border-radius: 8px;
-  transition: opacity 0.15s ease, transform 0.1s ease;
-
-  i {
-    font-size: 1.15rem;
-    line-height: 1;
+    background-color: var(--md-sys-color-surface-container-highest);
   }
 
   &:active {
-    opacity: 0.6;
-    transform: scale(0.96);
-  }
-}
-
-.app-header-back-label {
-  letter-spacing: -0.01em;
-}
-
-.app-topbar-center {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-width: 0;
-}
-
-.app-topbar-page-title {
-  font-size: 0.95rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: var(--app-text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.app-header-status-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 9px;
-  border-radius: 9999px;
-  background: rgba(var(--apple-tint-rgb), 0.1);
-  color: var(--apple-tint);
-  font-size: 0.74rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-}
-
-.app-status-live-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background-color: var(--apple-green);
-  box-shadow: 0 0 6px var(--apple-green);
-  animation: appleLivePulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-@keyframes appleLivePulse {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.45;
-    transform: scale(0.85);
-  }
-}
-
-.app-topbar-right {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.app-header-basal-pill {
-  display: inline-flex;
-  align-items: center;
-  background: rgba(255, 149, 0, 0.14);
-  color: var(--apple-orange);
-  border: 1px solid rgba(255, 149, 0, 0.28);
-  border-radius: 9999px;
-  font-size: 0.72rem;
-  font-weight: 600;
-  padding: 3px 8px;
-  cursor: pointer;
-  transition: transform 0.12s ease;
-
-  &:active {
-    transform: scale(0.94);
-  }
-}
-
-.app-header-menu-btn {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  border: 1px solid var(--app-border);
-  background: var(--app-surface-muted);
-  color: var(--app-text);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.95rem;
-  cursor: pointer;
-  transition: all 0.15s ease;
-
-  &:active {
-    transform: scale(0.92);
-    background: var(--app-bg-accent);
+    background-color: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
   }
 }
 
 /* ==========================================================================
-   Apple Tab Bar (Bottom Navigation)
+   Material 3 Navigation Bar (80dp height) with Drawer Pull Handle
    ========================================================================== */
 .app-bottom-nav {
   position: fixed;
@@ -358,28 +298,53 @@ a,
   left: 0;
   right: 0;
   z-index: 1030;
-  background: var(--app-surface-translucent);
-  backdrop-filter: blur(28px) saturate(190%);
-  -webkit-backdrop-filter: blur(28px) saturate(190%);
-  border-top: 1px solid var(--app-hairline);
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.04);
-  padding-bottom: max(0.45rem, calc(0.35rem + env(safe-area-inset-bottom, 0px)));
+  background-color: var(--md-sys-color-surface-container);
+  border-top: 1px solid var(--md-sys-color-outline-variant);
+  box-shadow: var(--md-sys-elevation-2);
+  padding-bottom: max(0.4rem, env(safe-area-inset-bottom, 0px));
   padding-left: max(0.5rem, env(safe-area-inset-left, 0px));
   padding-right: max(0.5rem, env(safe-area-inset-right, 0px));
   user-select: none;
   -webkit-user-select: none;
-  transform: translateZ(0);
-  -webkit-transform: translateZ(0);
-  will-change: transform;
+  touch-action: pan-x;
+}
+
+.app-bottom-nav-drag-handle-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 12px;
+  padding-top: 4px;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.app-bottom-nav-drag-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: var(--md-sys-shape-corner-full);
+  background-color: var(--md-sys-color-outline-variant);
+  transition: background-color 0.2s ease, width 0.2s ease;
+
+  .app-bottom-nav-drag-handle-wrap:hover & {
+    background-color: var(--md-sys-color-on-surface-variant);
+    width: 44px;
+  }
 }
 
 .app-bottom-nav-inner {
-  max-width: 520px;
+  max-width: 600px;
   margin: 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-around;
-  padding: 0.25rem 0.5rem 0;
+  height: 68px;
+  padding: 0 0.5rem;
 }
 
 .app-bottom-nav-item {
@@ -391,247 +356,356 @@ a,
   background: transparent;
   border: none;
   outline: none;
-  padding: 4px 0 2px;
-  color: var(--app-text-muted);
+  padding: 4px 0;
+  color: var(--md-sys-color-on-surface-variant);
   text-decoration: none;
   cursor: pointer;
-  border-radius: 12px;
-  transition: color 0.15s ease, transform 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: var(--md-sys-shape-corner-full);
+  transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+  position: relative;
 
-  &:active {
-    transform: scale(0.91);
+  &:hover {
+    color: var(--md-sys-color-on-surface);
   }
 
   &.active {
-    color: var(--apple-tint);
+    color: var(--md-sys-color-on-surface);
+
+    .app-bottom-nav-indicator {
+      background-color: var(--md-sys-color-secondary-container);
+      color: var(--md-sys-color-on-secondary-container);
+      width: 64px;
+    }
 
     .app-bottom-nav-label {
-      font-weight: 600;
-      color: var(--apple-tint);
+      font-weight: 700;
+      color: var(--md-sys-color-on-surface);
     }
   }
 }
 
-.app-bottom-nav-icon-wrap {
-  position: relative;
-  height: 25px;
+.app-bottom-nav-indicator {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--md-sys-shape-corner-full);
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+  transition: all 0.25s cubic-bezier(0.2, 0, 0, 1);
+  color: inherit;
 
   i {
-    font-size: 1.35rem;
+    font-size: 1.25rem;
     line-height: 1;
-    transition: transform 0.15s ease;
   }
 }
 
 .app-bottom-nav-label {
-  font-size: 0.66rem;
+  font-size: 0.75rem;
   font-weight: 500;
-  letter-spacing: -0.01em;
-  margin-top: 2px;
+  letter-spacing: 0.01em;
+  margin-top: 4px;
   line-height: 1;
   color: inherit;
-  transition: color 0.15s ease, font-weight 0.15s ease;
+  transition: color 0.2s ease, font-weight 0.2s ease;
 }
 
 .app-bottom-nav-dot {
   position: absolute;
-  top: -1px;
-  right: -5px;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background-color: var(--apple-orange);
-  box-shadow: 0 0 0 2px var(--app-surface);
+  top: 2px;
+  right: 14px;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--md-sys-shape-corner-full);
+  background-color: var(--app-status-elevated);
+  box-shadow: 0 0 0 2px var(--md-sys-color-surface-container);
 
   &.active-dot {
-    background-color: var(--apple-tint);
+    background-color: var(--md-sys-color-primary);
   }
 
   &.meal-dot {
-    background-color: var(--apple-green);
+    background-color: var(--app-status-target);
   }
 }
 
 /* ==========================================================================
-   Apple iOS-Style Browse & Settings Drawer
+   Material 3 Bottom Drawer (Pull-Up Drawer / Modal Bottom Sheet)
    ========================================================================== */
-.app-menu-sheet {
-  background-color: var(--app-bg) !important;
-  color: var(--app-text) !important;
-  border-left: 1px solid var(--app-hairline);
-  max-width: 360px !important;
-  padding-top: env(safe-area-inset-top, 0px);
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-  padding-right: env(safe-area-inset-right, 0px);
-
-  @media (min-width: 576px) {
-    border-top-left-radius: 20px;
-    border-bottom-left-radius: 20px;
-  }
-
-  .btn-close {
-    filter: invert(var(--bs-theme-invert, 0));
-  }
-}
-
-[data-bs-theme="dark"] .app-menu-sheet .btn-close {
-  filter: invert(1);
-}
-
-.app-sheet-header {
-  padding: 1rem 1.25rem 0.5rem;
-}
-
-.app-sheet-title {
-  font-size: 1.15rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-
-.app-sheet-body {
-  padding: 0.5rem 1.25rem 2rem;
-}
-
-/* iOS Segmented Control */
-.app-segmented-control {
+.md3-sheet-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1045;
   display: flex;
-  background-color: var(--app-surface-muted);
-  padding: 3px;
-  border-radius: 12px;
-  gap: 2px;
+  flex-direction: column;
+  justify-content: flex-end;
+  pointer-events: none;
+  visibility: hidden;
+  transition: visibility 0s 320ms;
+
+  &.visible {
+    visibility: visible;
+    pointer-events: auto;
+    transition: visibility 0s 0s;
+  }
 }
 
-.app-segment-btn {
+.md3-sheet-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  transition: opacity 320ms cubic-bezier(0.2, 0, 0, 1);
+  pointer-events: none;
+
+  &.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  &.dragging {
+    transition: none;
+    pointer-events: auto;
+  }
+}
+
+.md3-bottom-sheet {
+  position: relative;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  background-color: var(--md-sys-color-surface-container-low);
+  color: var(--md-sys-color-on-surface);
+  border-top-left-radius: var(--md-sys-shape-corner-xl);
+  border-top-right-radius: var(--md-sys-shape-corner-xl);
+  border-top: 1px solid var(--md-sys-color-outline-variant);
+  box-shadow: var(--md-sys-elevation-3);
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 0px));
+  transform: translateY(100%);
+  transition: transform 320ms cubic-bezier(0.2, 0, 0, 1);
+  pointer-events: auto;
+  will-change: transform;
+  z-index: 1;
+
+  &.open {
+    transform: translateY(0);
+  }
+
+  &.dragging {
+    transition: none;
+  }
+}
+
+.md3-sheet-handle-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 12px 0 8px;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.md3-sheet-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: var(--md-sys-shape-corner-full);
+  background-color: var(--md-sys-color-outline-variant);
+  transition: background-color 0.2s ease, width 0.2s ease;
+
+  .md3-sheet-handle-wrap:hover & {
+    background-color: var(--md-sys-color-on-surface-variant);
+    width: 44px;
+  }
+}
+
+.md3-sheet-header {
+  padding: 0.5rem 1.5rem 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.md3-sheet-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--md-sys-color-on-surface);
+  margin: 0;
+}
+
+.md3-sheet-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--md-sys-color-on-surface-variant);
+  width: 36px;
+  height: 36px;
+  border-radius: var(--md-sys-shape-corner-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+
+  &:hover {
+    background-color: var(--md-sys-color-surface-container-high);
+    color: var(--md-sys-color-on-surface);
+  }
+}
+
+.md3-sheet-body {
+  padding: 0.5rem 1.5rem 2rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* M3 Segmented Button */
+.md3-segmented-button {
+  display: flex;
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: var(--md-sys-shape-corner-full);
+  overflow: hidden;
+  background: transparent;
+}
+
+.md3-segment-btn {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   background: transparent;
   border: none;
-  border-radius: 9px;
-  padding: 6px 0;
-  font-size: 0.8rem;
+  border-right: 1px solid var(--md-sys-color-outline);
+  padding: 8px 12px;
+  font-size: 0.85rem;
   font-weight: 500;
-  color: var(--app-text-muted);
+  color: var(--md-sys-color-on-surface-variant);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.2s ease;
+
+  &:last-child {
+    border-right: none;
+  }
 
   &.active {
-    background: var(--app-surface);
-    color: var(--app-text);
+    background-color: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
     font-weight: 600;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
-  }
-
-  &:active {
-    opacity: 0.8;
   }
 }
 
-/* iOS Inset Grouped Lists */
-.app-grouped-section {
+/* M3 Sheet Section & Items */
+.md3-sheet-section {
   display: flex;
   flex-direction: column;
+  margin-bottom: 1.25rem;
 }
 
-.app-grouped-header {
-  font-size: 0.72rem;
-  font-weight: 600;
+.md3-sheet-section-header {
+  font-size: 0.75rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--app-text-muted);
-  padding: 0 0.5rem 0.35rem;
+  letter-spacing: 0.08em;
+  color: var(--md-sys-color-primary);
+  margin-bottom: 0.5rem;
+  padding-left: 0.25rem;
 }
 
-.app-grouped-list {
-  background-color: var(--app-surface);
-  border-radius: 16px;
-  border: 1px solid var(--app-border);
-  overflow: hidden;
-  box-shadow: var(--apple-card-shadow);
+.md3-sheet-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.app-grouped-item {
+.md3-sheet-item {
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   padding: 10px 14px;
-  background: transparent;
+  background: var(--md-sys-color-surface-container);
   border: none;
-  border-bottom: 1px solid var(--app-border);
-  color: var(--app-text);
+  border-radius: var(--md-sys-shape-corner-lg);
+  color: var(--md-sys-color-on-surface);
   text-align: left;
   cursor: pointer;
-  transition: background-color 0.12s ease;
+  transition: background-color 0.15s ease, transform 0.15s ease;
 
-  &:last-child {
-    border-bottom: none;
+  &:hover {
+    background-color: var(--md-sys-color-surface-container-high);
   }
 
   &:active {
-    background-color: var(--app-surface-muted);
+    background-color: var(--md-sys-color-surface-container-highest);
   }
 }
 
-.app-grouped-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+.md3-sheet-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--md-sys-shape-corner-md);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
-  font-size: 0.95rem;
+  background-color: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+  font-size: 1.1rem;
   flex-shrink: 0;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12);
 }
 
-.app-grouped-content {
+.md3-sheet-content {
   flex: 1;
   min-width: 0;
 }
 
-.app-grouped-label {
-  font-size: 0.92rem;
+.md3-sheet-label {
+  font-size: 0.95rem;
   font-weight: 600;
-  letter-spacing: -0.01em;
   line-height: 1.25;
+  color: var(--md-sys-color-on-surface);
 }
 
-.app-grouped-desc {
-  font-size: 0.74rem;
-  color: var(--app-text-muted);
+.md3-sheet-desc {
+  font-size: 0.78rem;
+  color: var(--md-sys-color-on-surface-variant);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   margin-top: 1px;
 }
 
-.app-grouped-badge {
-  background-color: var(--apple-orange);
-  color: #ffffff;
-  font-size: 0.68rem;
+.md3-sheet-badge {
+  background-color: var(--md-sys-color-error);
+  color: var(--md-sys-color-on-error);
+  font-size: 0.7rem;
   font-weight: 700;
   padding: 2px 8px;
-  border-radius: 9999px;
-  letter-spacing: 0.02em;
-}
-
-.app-grouped-chevron {
-  color: var(--app-text-muted);
-  opacity: 0.45;
-  font-size: 0.8rem;
+  border-radius: var(--md-sys-shape-corner-full);
 }
 
 /* ==========================================================================
    App Shell & Card Polishing
    ========================================================================== */
 .app-shell {
-  padding-top: 0.75rem;
+  padding-top: max(1.1rem, calc(env(safe-area-inset-top, 0px) + 0.65rem));
   padding-bottom: 0.5rem;
   padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
   padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
@@ -639,7 +713,7 @@ a,
 
 @media (min-width: 576px) {
   .app-shell {
-    padding-top: 1.25rem;
+    padding-top: max(1.5rem, calc(env(safe-area-inset-top, 0px) + 0.9rem));
     padding-bottom: 1rem;
     padding-left: max(1.5rem, env(safe-area-inset-left, 0px));
     padding-right: max(1.5rem, env(safe-area-inset-right, 0px));
@@ -650,14 +724,14 @@ a,
   padding-top: 0.5rem;
   padding-left: 1rem;
   padding-right: 1rem;
-  padding-bottom: calc(5.2rem + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(5.8rem + env(safe-area-inset-bottom, 0px));
 }
 
 .app-version {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   letter-spacing: 0.04em;
-  color: var(--app-text-muted);
-  opacity: 0.75;
+  color: var(--md-sys-color-on-surface-variant);
+  opacity: 0.8;
   transition: opacity 0.15s ease-in-out;
 
   &:hover {
@@ -665,21 +739,22 @@ a,
   }
 }
 
-/* Apple Cards */
+/* Material 3 Expressive Cards */
 .card {
-  border-radius: 1.25rem;
-  border: 1px solid var(--app-border);
-  background: var(--app-surface);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  border-radius: var(--md-sys-shape-corner-lg);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  background: var(--md-sys-color-surface-container-low);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .app-card,
 .card.shadow-sm {
-  box-shadow: var(--apple-card-shadow) !important;
+  box-shadow: var(--md-sys-elevation-1) !important;
+  border: none;
 }
 
 .app-card .card-body {
-  padding: 1.15rem;
+  padding: 1.25rem;
 }
 
 .app-page {
@@ -804,60 +879,69 @@ a,
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  border-radius: 0.95rem;
-  background: rgba(var(--apple-tint-rgb), 0.12);
-  color: var(--apple-tint);
+  border-radius: var(--md-sys-shape-corner-lg);
+  background-color: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-primary);
 }
 
 .app-action-card[data-eyebrow="Rescue"] .app-action-icon {
-  background: rgba(255, 59, 48, 0.14);
-  color: var(--apple-red);
+  background-color: var(--app-status-low-container);
+  color: var(--app-status-low);
 }
 
 .app-action-card[data-eyebrow="Insulin"] .app-action-icon {
-  background: rgba(10, 132, 255, 0.14);
-  color: var(--apple-tint);
+  background-color: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-primary);
 }
 
 .app-action-card[data-eyebrow="Activity"] .app-action-icon {
-  background: rgba(48, 209, 88, 0.14);
-  color: var(--apple-green);
+  background-color: var(--app-status-target-container);
+  color: var(--app-status-target);
 }
 
 .app-action-card[data-eyebrow="Meal"] .app-action-icon {
-  background: rgba(255, 159, 10, 0.14);
-  color: var(--apple-orange);
+  background-color: var(--app-status-elevated-container);
+  color: var(--app-status-elevated);
 }
 
 .app-action-card[data-eyebrow="Edit"] .app-action-icon {
-  background: rgba(142, 142, 147, 0.16);
-  color: var(--app-text-muted);
+  background-color: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
 }
 
-/* Apple Form Controls & Buttons */
+/* Material 3 Expressive Form Controls & Buttons */
 .form-label {
   margin-bottom: 0.4rem;
   font-size: 0.82rem;
   font-weight: 600;
-  letter-spacing: -0.01em;
-  color: var(--app-text-muted);
+  letter-spacing: 0.01em;
+  color: var(--md-sys-color-on-surface-variant);
 }
 
 .form-control,
 .form-select,
 .input-group-text,
-.btn,
 .badge {
-  border-radius: 0.8rem;
+  border-radius: var(--md-sys-shape-corner-md);
+}
+
+.btn {
+  border-radius: var(--md-sys-shape-corner-full);
 }
 
 .form-control,
 .form-select,
 .input-group-text {
-  border-color: var(--app-border);
-  background-color: var(--app-surface);
-  color: var(--app-text);
+  border-color: var(--md-sys-color-outline-variant);
+  background-color: var(--md-sys-color-surface-container-low);
+  color: var(--md-sys-color-on-surface);
   font-size: 0.95rem;
+
+  &:focus {
+    border-color: var(--md-sys-color-primary);
+    box-shadow: 0 0 0 2px var(--md-sys-color-primary-container);
+    background-color: var(--md-sys-color-surface-container-lowest);
+  }
 }
 
 .form-control,
@@ -867,7 +951,7 @@ a,
   appearance: none;
 }
 
-/* Prevent iOS Safari 16px auto-zoom */
+/* Prevent mobile 16px auto-zoom */
 @media screen and (max-width: 768px) {
   input,
   select,
@@ -902,29 +986,62 @@ input[type="search"]::-webkit-search-results-decoration {
 
 .btn {
   font-weight: 600;
-  letter-spacing: -0.01em;
-  padding: 0.55rem 1.1rem;
-  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  letter-spacing: 0.01em;
+  padding: 0.55rem 1.25rem;
+  transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+
+  &:hover {
+    opacity: 0.94;
+  }
 
   &:active {
-    transform: scale(0.97);
+    opacity: 0.88;
   }
 }
 
 .btn-sm {
-  padding: 0.35rem 0.75rem;
+  padding: 0.35rem 0.85rem;
   font-size: 0.82rem;
-  border-radius: 0.65rem;
+  border-radius: var(--md-sys-shape-corner-full);
 }
 
 .btn-primary {
-  background-color: var(--apple-tint);
-  border-color: var(--apple-tint);
+  background-color: var(--md-sys-color-primary);
+  border-color: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
 
   &:hover,
   &:focus {
-    background-color: #0069d9;
-    border-color: #0062cc;
+    background-color: var(--md-sys-color-primary);
+    border-color: var(--md-sys-color-primary);
+    color: var(--md-sys-color-on-primary);
+    opacity: 0.94;
+  }
+}
+
+.btn-secondary {
+  background-color: var(--md-sys-color-secondary-container);
+  border-color: transparent;
+  color: var(--md-sys-color-on-secondary-container);
+
+  &:hover,
+  &:focus {
+    background-color: var(--md-sys-color-secondary-container);
+    border-color: transparent;
+    color: var(--md-sys-color-on-secondary-container);
+    opacity: 0.92;
+  }
+}
+
+.btn-outline-primary {
+  border-color: var(--md-sys-color-outline);
+  color: var(--md-sys-color-primary);
+
+  &:hover,
+  &:focus {
+    background-color: var(--md-sys-color-primary-container);
+    border-color: var(--md-sys-color-primary);
+    color: var(--md-sys-color-on-primary-container);
   }
 }
 
@@ -947,30 +1064,29 @@ input[type="search"]::-webkit-search-results-decoration {
   overscroll-behavior: contain;
 }
 
-/* iOS Modal & Dialog Polish */
+/* Material 3 Expressive Dialog & Modal Polish */
 .modal-dialog {
-  margin: 1.25rem auto;
-  max-width: calc(100% - 1.5rem);
+  margin: 1.5rem auto;
+  max-width: min(560px, calc(100% - 1.5rem));
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .modal-content {
-  border-radius: 1.25rem;
-  border: 1px solid var(--app-border);
-  background-color: var(--app-surface);
-  color: var(--app-text);
-  box-shadow: var(--apple-card-shadow);
+  border-radius: var(--md-sys-shape-corner-xl);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  background-color: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface);
+  box-shadow: var(--md-sys-elevation-3);
   overflow: hidden;
 }
 
 .modal-header,
 .modal-footer {
-  border-color: var(--app-hairline);
+  border-color: var(--md-sys-color-outline-variant);
 }
 
 .modal-backdrop {
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background-color: rgba(0, 0, 0, 0.45);
 }
 
 .app-table {
@@ -995,12 +1111,12 @@ input[type="search"]::-webkit-search-results-decoration {
 }
 
 /* ==========================================================================
-   Apple Compact Single-Line Number Option Selector
+   Material 3 Expressive Number Option Selector (Pill Chips)
    ========================================================================== */
 .app-number-options-row {
   display: flex;
   width: 100%;
-  gap: 0.35rem;
+  gap: 0.4rem;
   align-items: center;
   justify-content: space-between;
   flex-wrap: nowrap;
@@ -1009,35 +1125,37 @@ input[type="search"]::-webkit-search-results-decoration {
 .app-number-option-btn {
   flex: 1;
   min-width: 0;
-  padding: 0.35rem 0.2rem !important;
-  font-size: 0.8rem !important;
+  padding: 0.42rem 0.25rem !important;
+  font-size: 0.82rem !important;
   font-weight: 600 !important;
-  letter-spacing: -0.01em;
-  border-radius: 9px !important;
+  letter-spacing: 0.01em;
+  border-radius: var(--md-sys-shape-corner-full) !important;
   text-align: center;
   white-space: nowrap;
   line-height: 1.25;
-  border: 1px solid var(--app-border);
-  background-color: var(--app-surface-muted);
-  color: var(--app-text);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  background-color: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface);
   cursor: pointer;
-  transition: all 0.12s ease;
+  transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
 
   &:hover {
-    background-color: var(--app-bg-accent);
-    color: var(--app-text);
-    border-color: var(--app-border);
+    background-color: var(--md-sys-color-surface-container-highest);
+    color: var(--md-sys-color-on-surface);
+    border-color: var(--md-sys-color-outline);
   }
 
   &:active {
-    transform: scale(0.93);
+    background-color: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
   }
 
   &.is-selected {
-    background-color: rgba(var(--apple-tint-rgb), 0.14) !important;
-    border-color: var(--apple-tint) !important;
-    color: var(--apple-tint) !important;
+    background-color: var(--md-sys-color-primary-container) !important;
+    border-color: transparent !important;
+    color: var(--md-sys-color-on-primary-container) !important;
     font-weight: 700 !important;
+    box-shadow: var(--md-sys-elevation-1);
   }
 }
 
@@ -1079,10 +1197,10 @@ input[type="search"]::-webkit-search-results-decoration {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.5rem 0.75rem;
-  padding: 0.75rem 1rem;
-  background: var(--app-surface-muted);
-  border: 1px solid var(--app-border);
-  border-radius: 0.85rem;
+  padding: 0.85rem 1.1rem;
+  background: var(--md-sys-color-surface-container-low);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--md-sys-shape-corner-md);
 
   @media (max-width: 480px) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1097,11 +1215,11 @@ input[type="search"]::-webkit-search-results-decoration {
   min-width: 0;
 
   .stat-label {
-    font-size: 0.72rem;
+    font-size: 0.74rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--app-text-muted);
+    letter-spacing: 0.06em;
+    color: var(--md-sys-color-on-surface-variant);
     line-height: 1;
     margin-bottom: 0.25rem;
     white-space: nowrap;
@@ -1110,19 +1228,19 @@ input[type="search"]::-webkit-search-results-decoration {
   }
 
   .stat-value {
-    font-size: 1.12rem;
+    font-size: 1.15rem;
     font-weight: 700;
     letter-spacing: -0.015em;
-    color: var(--app-text);
+    color: var(--md-sys-color-on-surface);
     line-height: 1.2;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 
     .stat-sub {
-      font-size: 0.8rem;
+      font-size: 0.82rem;
       font-weight: 500;
-      color: var(--app-text-muted);
+      color: var(--md-sys-color-on-surface-variant);
       margin-left: 0.25rem;
     }
   }
@@ -1132,28 +1250,28 @@ input[type="search"]::-webkit-search-results-decoration {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.8rem 1.15rem;
-  background: var(--app-surface-muted);
-  border: 1px solid var(--app-border);
-  border-radius: 0.85rem;
+  padding: 0.85rem 1.15rem;
+  background: var(--md-sys-color-surface-container-low);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--md-sys-shape-corner-md);
   font-size: 0.92rem;
 
   .dosing-label {
     font-weight: 600;
     font-size: 0.9rem;
-    color: var(--app-text-muted);
+    color: var(--md-sys-color-on-surface-variant);
   }
 
   .dosing-value {
     font-weight: 700;
     font-size: 1.15rem;
-    color: var(--app-text);
+    color: var(--md-sys-color-on-surface);
   }
 
   .dosing-note {
     font-size: 0.82rem;
     font-weight: normal;
-    color: var(--app-text-muted);
+    color: var(--md-sys-color-on-surface-variant);
     margin-left: 0.35rem;
   }
 }
@@ -1168,10 +1286,11 @@ input[type="search"]::-webkit-search-results-decoration {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.38rem 0.75rem;
-  border-radius: 0.55rem;
-  background: var(--app-surface-muted);
-  font-size: 0.85rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: var(--md-sys-shape-corner-md);
+  background: var(--md-sys-color-surface-container);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  font-size: 0.88rem;
   line-height: 1.25;
 
   .dose-name {
@@ -1215,9 +1334,9 @@ input[type="search"]::-webkit-search-results-decoration {
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  padding: 0.65rem 0;
-  border-bottom: 1px solid var(--app-hairline);
-  transition: background-color 0.12s ease;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  transition: background-color 0.15s ease;
 
   &:first-child {
     padding-top: 0.35rem;
@@ -1237,14 +1356,14 @@ input[type="search"]::-webkit-search-results-decoration {
     font-size: 0.95rem;
     font-weight: 600;
     line-height: 1.25;
-    color: var(--app-text);
+    color: var(--md-sys-color-on-surface);
     white-space: normal;
     word-break: break-word;
   }
 
   .food-macros {
-    font-size: 0.8rem;
-    color: var(--app-text-muted);
+    font-size: 0.82rem;
+    color: var(--md-sys-color-on-surface-variant);
     line-height: 1.25;
     margin-top: 0.15rem;
     display: flex;
@@ -1256,42 +1375,42 @@ input[type="search"]::-webkit-search-results-decoration {
   .food-actions {
     display: flex;
     align-items: center;
-    gap: 0.35rem;
+    gap: 0.4rem;
     flex-shrink: 0;
   }
 
   .food-input-group {
-    width: 5.25rem;
+    width: 5.5rem;
     display: flex;
     align-items: center;
 
     .form-control {
-      min-height: 2.2rem !important;
-      height: 2.2rem !important;
+      min-height: 2.3rem !important;
+      height: 2.3rem !important;
       padding: 0.2rem 0.35rem !important;
       font-size: 0.95rem !important;
       font-weight: 600 !important;
       text-align: center;
-      background-color: var(--app-surface-muted);
-      border-color: var(--app-border);
-      border-radius: 0.5rem 0 0 0.5rem !important;
+      background-color: var(--md-sys-color-surface-container);
+      border-color: var(--md-sys-color-outline-variant);
+      border-radius: var(--md-sys-shape-corner-sm) 0 0 var(--md-sys-shape-corner-sm) !important;
     }
 
     .input-group-text {
-      min-height: 2.2rem !important;
-      height: 2.2rem !important;
+      min-height: 2.3rem !important;
+      height: 2.3rem !important;
       padding: 0 0.45rem !important;
       font-size: 0.78rem !important;
-      color: var(--app-text-muted);
-      background-color: var(--app-surface-muted);
-      border-color: var(--app-border);
-      border-radius: 0 0.5rem 0.5rem 0 !important;
+      color: var(--md-sys-color-on-surface-variant);
+      background-color: var(--md-sys-color-surface-container);
+      border-color: var(--md-sys-color-outline-variant);
+      border-radius: 0 var(--md-sys-shape-corner-sm) var(--md-sys-shape-corner-sm) 0 !important;
     }
   }
 
   .food-del-btn {
-    width: 2.2rem;
-    height: 2.2rem;
+    width: 2.3rem;
+    height: 2.3rem;
     margin-right: -0.35rem;
     padding: 0;
     display: inline-flex;
@@ -1299,15 +1418,15 @@ input[type="search"]::-webkit-search-results-decoration {
     justify-content: center;
     background: transparent;
     border: none;
-    border-radius: 0.5rem;
-    color: var(--app-text-muted);
+    border-radius: var(--md-sys-shape-corner-full);
+    color: var(--md-sys-color-on-surface-variant);
     font-size: 0.95rem;
     cursor: pointer;
-    transition: all 0.12s ease;
+    transition: all 0.15s ease;
 
     &:hover, &:active {
-      color: #ef4444;
-      background-color: rgba(239, 68, 68, 0.12);
+      color: var(--md-sys-color-error);
+      background-color: var(--md-sys-color-error-container);
     }
   }
 }
@@ -1325,23 +1444,23 @@ input[type="search"]::-webkit-search-results-decoration {
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  padding: 0.7rem 0;
-  border-bottom: 1px solid var(--app-hairline);
+  padding: 0.75rem 0.5rem;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
   cursor: pointer;
-  border-radius: 0.5rem;
-  transition: background-color 0.12s ease;
+  border-radius: var(--md-sys-shape-corner-md);
+  transition: background-color 0.15s ease;
 
   &:first-child {
-    padding-top: 0.35rem;
+    padding-top: 0.5rem;
   }
 
   &:last-child {
     border-bottom: none;
-    padding-bottom: 0;
+    padding-bottom: 0.5rem;
   }
 
   &:hover {
-    background-color: rgba(255, 255, 255, 0.02);
+    background-color: var(--md-sys-color-surface-container);
   }
 
   .template-main {
@@ -1353,13 +1472,13 @@ input[type="search"]::-webkit-search-results-decoration {
     font-size: 0.98rem;
     font-weight: 600;
     line-height: 1.25;
-    color: var(--app-text);
+    color: var(--md-sys-color-on-surface);
     margin-bottom: 0.2rem;
   }
 
   .template-meta {
     font-size: 0.78rem;
-    color: var(--app-text-muted);
+    color: var(--md-sys-color-on-surface-variant);
     line-height: 1.25;
     display: flex;
     flex-wrap: wrap;
@@ -1375,24 +1494,135 @@ input[type="search"]::-webkit-search-results-decoration {
   }
 
   .template-del-btn {
-    width: 2.1rem;
-    height: 2.1rem;
+    width: 2.2rem;
+    height: 2.2rem;
     padding: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     background: transparent;
     border: none;
-    border-radius: 0.5rem;
-    color: var(--app-text-muted);
+    border-radius: var(--md-sys-shape-corner-full);
+    color: var(--md-sys-color-on-surface-variant);
     font-size: 0.9rem;
     cursor: pointer;
-    transition: all 0.12s ease;
+    transition: all 0.15s ease;
 
     &:hover, &:active {
-      color: #ef4444;
-      background-color: rgba(239, 68, 68, 0.12);
+      color: var(--md-sys-color-error);
+      background-color: var(--md-sys-color-error-container);
     }
   }
 }
 
+/* ==========================================================================
+   Material 3 Expressive Component Utilities
+   ========================================================================== */
+
+/* M3 Chips */
+.md3-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  height: 32px;
+  border-radius: var(--md-sys-shape-corner-sm);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  background-color: var(--md-sys-color-surface-container-low);
+  color: var(--md-sys-color-on-surface);
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1;
+  transition: all 0.2s ease;
+
+  &.is-clickable {
+    cursor: pointer;
+    &:hover {
+      background-color: var(--md-sys-color-surface-container-high);
+      border-color: var(--md-sys-color-outline);
+    }
+    &:active {
+      background-color: var(--md-sys-color-surface-container-highest);
+    }
+  }
+
+  &.is-selected {
+    background-color: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+    border-color: transparent;
+  }
+}
+
+/* M3 Button Suite */
+.md3-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: var(--md-sys-shape-corner-full);
+  font-size: 0.88rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+
+  &.md3-btn-filled {
+    background-color: var(--md-sys-color-primary);
+    color: var(--md-sys-color-on-primary);
+    &:hover {
+      box-shadow: var(--md-sys-elevation-1);
+      opacity: 0.94;
+    }
+    &:active {
+      box-shadow: none;
+      opacity: 0.88;
+    }
+  }
+
+  &.md3-btn-tonal {
+    background-color: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+    &:hover {
+      box-shadow: var(--md-sys-elevation-1);
+    }
+    &:active {
+      box-shadow: none;
+    }
+  }
+
+  &.md3-btn-outlined {
+    background-color: transparent;
+    border: 1px solid var(--md-sys-color-outline);
+    color: var(--md-sys-color-primary);
+    &:hover {
+      background-color: var(--md-sys-color-primary-container);
+      border-color: var(--md-sys-color-primary);
+      color: var(--md-sys-color-on-primary-container);
+    }
+  }
+
+  &.md3-btn-elevated {
+    background-color: var(--md-sys-color-surface-container-low);
+    color: var(--md-sys-color-primary);
+    box-shadow: var(--md-sys-elevation-1);
+    &:hover {
+      box-shadow: var(--md-sys-elevation-2);
+    }
+    &:active {
+      box-shadow: var(--md-sys-elevation-1);
+    }
+  }
+
+  &.md3-btn-text {
+    background-color: transparent;
+    color: var(--md-sys-color-primary);
+    padding: 0 12px;
+    &:hover {
+      background-color: var(--md-sys-color-surface-container-high);
+    }
+  }
+}

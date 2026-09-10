@@ -4,7 +4,7 @@ import { useMemo, useState, type BaseSyntheticEvent } from "react";
 import { RescueVariantStore } from "../storage/rescueVariantStore";
 import { RescueVariantManager } from "../managers/rescueVariantManager";
 import type { RescueVariant } from "../models/types/rescueVariant";
-import { EmptyState, PageLayout } from "../components/PageLayout";
+import { EmptyState, PageHeader, PageLayout } from "../components/PageLayout";
 
 export default function RescueVariantsPage() {
   const [variants] = RescueVariantStore.variants.useState();
@@ -62,6 +62,7 @@ export default function RescueVariantsPage() {
 
   return (
     <PageLayout>
+      <PageHeader title="Rescue Variants" eyebrow="Hypo Treatments" />
       <Card>
         <Form onSubmit={handleFormSubmit}>
           <Form.Group controlId="rescue-variant-name" className="mb-0">

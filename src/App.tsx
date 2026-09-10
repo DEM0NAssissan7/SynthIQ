@@ -1,5 +1,4 @@
 import { Route, Routes } from "react-router";
-import TopBar from "./components/TopBar";
 import BottomNav from "./components/BottomNav";
 import HubPage from "./pages/HubPage";
 import SettingsPage from "./pages/SettingsPage";
@@ -108,7 +107,6 @@ function App() {
 
   return (
     <div className="d-flex flex-column min-vh-100" style={{ width: "100%" }}>
-      <TopBar />
       <div className="app-shell flex-grow-1">
         <Routes>
           <Route path="/" element={<HubPage />} />

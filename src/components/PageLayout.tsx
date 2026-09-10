@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Button, Card, Container } from "react-bootstrap";
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 
 interface PageLayoutProps {
   children: ReactNode;
@@ -12,6 +12,8 @@ interface PageHeaderProps {
   title: string;
   subtitle?: ReactNode;
   actions?: ReactNode;
+  showBack?: boolean;
+  onBack?: () => void;
 }
 
 export function PageLayout({ children, maxWidth = "36rem" }: PageLayoutProps) {
@@ -29,14 +31,50 @@ export function PageHeader({
   title,
   subtitle,
   actions,
+  showBack,
+  onBack,
 }: PageHeaderProps) {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const isMainTab =
+    location.pathname === "/" ||
+    location.pathname === "/hub" ||
+    location.pathname === "/insulin" ||
+    location.pathname === "/rescue" ||
+    location.pathname === "/meal";
+
+  const shouldShowBack = showBack !== undefined ? showBack : !isMainTab;
+
+  const handleBack = () => {
+    if (onBack) {
+      onBack();
+    } else if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate("/hub");
+    }
+  };
+
   return (
     <header className="app-header">
       {eyebrow && <div className="app-kicker">{eyebrow}</div>}
       <div className="d-flex flex-column gap-3">
-        <div>
-          <h1 className="app-title">{title}</h1>
-          {subtitle && <p className="app-subtitle">{subtitle}</p>}
+        <div className="d-flex align-items-center gap-2">
+          {shouldShowBack && (
+            <button
+              type="button"
+              className="md3-back-btn flex-shrink-0"
+              onClick={handleBack}
+              aria-label="Go back"
+            >
+              <i className="bi bi-arrow-left" />
+            </button>
+          )}
+          <div className="flex-grow-1">
+            <h1 className="app-title mb-0">{title}</h1>
+            {subtitle && <p className="app-subtitle mb-0 mt-1">{subtitle}</p>}
+          </div>
         </div>
         {actions && <div>{actions}</div>}
       </div>

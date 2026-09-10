@@ -25,7 +25,7 @@ import StorageBackends from "../registries/storageBackends";
 import { BasalStore } from "../storage/basalStore";
 import { MasterState } from "../models/types/masterState";
 import { downloadData, importData } from "../lib/dataTransfer";
-import { PageLayout } from "../components/PageLayout";
+import { PageHeader, PageLayout } from "../components/PageLayout";
 
 interface Setting {
   title: string;
@@ -201,6 +201,7 @@ export default function SettingsPage() {
 
   return (
     <PageLayout maxWidth="42rem">
+      <PageHeader title="Settings" eyebrow="Preferences" />
       <SettingsSection
         title="Data backup"
         subtitle="Export or import a full local backup."

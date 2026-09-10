@@ -64,28 +64,28 @@ export default function BloodSugarInput({
     if (initialGlucose < PreferencesStore.lowBG.value) {
       return {
         label: "Low",
-        color: "var(--apple-red)",
-        bg: "rgba(255, 59, 48, 0.12)",
+        color: "var(--app-status-low)",
+        bg: "rgba(186, 26, 26, 0.12)",
       };
     }
     if (initialGlucose > PreferencesStore.highBG.value) {
       return {
         label: "Elevated",
-        color: "var(--apple-orange)",
-        bg: "rgba(255, 149, 0, 0.12)",
+        color: "var(--app-status-elevated)",
+        bg: "rgba(168, 103, 0, 0.12)",
       };
     }
     if (Math.abs(initialGlucose - target) <= 15) {
       return {
         label: "On Target",
-        color: "var(--apple-green)",
-        bg: "rgba(52, 199, 89, 0.12)",
+        color: "var(--app-status-target)",
+        bg: "rgba(46, 125, 50, 0.12)",
       };
     }
     return {
       label: "In Range",
-      color: "var(--apple-green)",
-      bg: "rgba(52, 199, 89, 0.12)",
+      color: "var(--app-status-target)",
+      bg: "rgba(46, 125, 50, 0.12)",
     };
   }, [initialGlucose]);
 
@@ -112,7 +112,7 @@ export default function BloodSugarInput({
           <i
             className="bi bi-droplet-fill"
             style={{
-              color: glucoseStatus ? glucoseStatus.color : "var(--apple-tint)",
+              color: glucoseStatus ? glucoseStatus.color : "var(--md-sys-color-primary)",
             }}
           />
         </span>
