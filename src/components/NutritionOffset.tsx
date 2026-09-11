@@ -18,7 +18,11 @@ export default function NutritionOffset({
       <Form.Label className="small text-muted fw-semibold mb-1">{label}</Form.Label>
       <div className="input-group">
         <span className="input-group-text">
-          <i className={iconClassName}></i>
+          {iconClassName.startsWith("bi-") || iconClassName.startsWith("bi ") ? (
+            <i className={iconClassName}></i>
+          ) : (
+            <span className="material-symbols-rounded">{iconClassName}</span>
+          )}
         </span>
         <Form.Control
           type="number"

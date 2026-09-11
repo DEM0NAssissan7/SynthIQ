@@ -39,7 +39,12 @@ function HubPage() {
 
       <Card>
         <div className="app-card-title">
-          <i className="bi bi-droplet-fill text-primary" />
+          <span
+            className="material-symbols-rounded fill text-primary"
+            style={{ fontSize: "20px" }}
+          >
+            water_drop
+          </span>
           <span>Active insulin</span>
         </div>
         <LastBolusMessage />
@@ -60,7 +65,12 @@ function HubPage() {
       {session.started && (
         <Card>
           <div className="app-card-title">
-            <i className="bi bi-sliders text-secondary" />
+            <span
+              className="material-symbols-rounded text-secondary"
+              style={{ fontSize: "20px" }}
+            >
+              tune
+            </span>
             <span>Session controls</span>
           </div>
           <div className="d-grid gap-2">
@@ -75,7 +85,7 @@ function HubPage() {
               Exclude Session
             </ToggleButton>
             <ActionCard
-              icon="bi-pencil-square"
+              icon="edit_note"
               eyebrow="Edit"
               title="Edit session"
               body="Adjust stored foods, treatments, or glucose details for the current session."

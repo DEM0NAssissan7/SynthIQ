@@ -173,7 +173,7 @@ export default function MdModalBottomSheet({
               onClick={onHide}
               aria-label="Close"
             >
-              <i className="bi bi-x-lg" />
+              <span className="material-symbols-rounded" style={{ fontSize: "1.25rem" }}>close</span>
             </button>
           </div>
         )}

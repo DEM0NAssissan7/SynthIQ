@@ -115,7 +115,7 @@ export default function FoodSearchDisplay({ meal }: FoodSearchDisplayProps) {
         <Form.Group controlId="food-search" className="mb-0">
           <div className="d-flex justify-content-between align-items-center mb-2">
             <div className="app-card-title mb-0">
-              <i className="bi bi-search text-primary" />
+              <span className="material-symbols-rounded text-primary">search</span>
               <span>Food Search</span>
             </div>
             <Button
@@ -124,14 +124,14 @@ export default function FoodSearchDisplay({ meal }: FoodSearchDisplayProps) {
               className="p-0 text-decoration-none fw-semibold d-inline-flex align-items-center gap-1"
               onClick={openAddModal}
             >
-              <i className="bi bi-plus-circle-fill text-primary" />
+              <span className="material-symbols-rounded text-primary">add_circle</span>
               <span>New Food</span>
             </Button>
           </div>
 
           <div className="input-group">
             <span className="input-group-text bg-body-tertiary border-end-0 text-muted">
-              <i className="bi bi-search" />
+              <span className="material-symbols-rounded">search</span>
             </span>
             <Form.Control
               type="search"
@@ -151,7 +151,7 @@ export default function FoodSearchDisplay({ meal }: FoodSearchDisplayProps) {
                 onClick={() => setQuery("")}
                 title="Clear search"
               >
-                <i className="bi bi-x-lg" style={{ fontSize: "0.8rem" }} />
+                <span className="material-symbols-rounded" style={{ fontSize: "1.1rem" }}>close</span>
               </Button>
             )}
           </div>
@@ -179,7 +179,7 @@ export default function FoodSearchDisplay({ meal }: FoodSearchDisplayProps) {
                 onClick={openAddModal}
                 className="d-inline-flex align-items-center gap-1"
               >
-                <i className="bi bi-plus-circle" />
+                <span className="material-symbols-rounded">add_circle</span>
                 <span>Add &ldquo;{query}&rdquo; as custom food</span>
               </Button>
             </div>
@@ -196,7 +196,7 @@ export default function FoodSearchDisplay({ meal }: FoodSearchDisplayProps) {
       >
         <Modal.Header closeButton className="border-0 pb-0">
           <Modal.Title className="h5 fw-bold d-flex align-items-center gap-2">
-            <i className="bi bi-egg-fried text-primary" />
+            <span className="material-symbols-rounded text-primary">restaurant</span>
             <span>Create New Food</span>
           </Modal.Title>
         </Modal.Header>

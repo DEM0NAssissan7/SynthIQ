@@ -10,7 +10,7 @@ export default function AddedFoodsDisplay({ meal }: AddedFoodsDisplayProps) {
     <div>
       <div className="d-flex justify-content-between align-items-center mb-2">
         <div className="app-card-title mb-0">
-          <i className="bi bi-basket text-primary" />
+          <span className="material-symbols-rounded text-primary">shopping_basket</span>
           <span>Added Foods</span>
         </div>
         {meal.addedFoods.length > 0 && (

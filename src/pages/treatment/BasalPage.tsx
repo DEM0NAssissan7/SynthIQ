@@ -115,7 +115,7 @@ export default function BasalPage() {
 
       <Card>
         <div className="app-card-title">
-          <i className="bi bi-graph-up text-primary" />
+          <span className="material-symbols-rounded text-primary">trending_up</span>
           <span>Basal analysis</span>
         </div>
         <MetricGrid>
@@ -147,12 +147,12 @@ export default function BasalPage() {
 
       <Card>
         <div className="app-card-title">
-          <i className="bi bi-eyedropper text-primary" />
+          <span className="material-symbols-rounded text-primary">syringe</span>
           <span>Quick mark</span>
         </div>
         <InputGroup className="mb-3">
           <InputGroup.Text id="basic-addon1">
-            <i className="bi bi-eyedropper"></i>
+            <span className="material-symbols-rounded">syringe</span>
           </InputGroup.Text>
           <Form.Control
             placeholder={lastShot.toString()}
@@ -184,7 +184,7 @@ export default function BasalPage() {
 
       <Card>
         <div className="app-card-title">
-          <i className="bi bi-clock-history text-secondary" />
+          <span className="material-symbols-rounded text-secondary">history</span>
           <span>Previous doses</span>
         </div>
         <div className="d-flex flex-column gap-1">

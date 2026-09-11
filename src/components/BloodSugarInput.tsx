@@ -109,12 +109,15 @@ export default function BloodSugarInput({
 
       <div className="input-group">
         <span className="input-group-text border-end-0">
-          <i
-            className="bi bi-droplet-fill"
+          <span
+            className="material-symbols-rounded fill"
             style={{
+              fontSize: "20px",
               color: glucoseStatus ? glucoseStatus.color : "var(--md-sys-color-primary)",
             }}
-          />
+          >
+            water_drop
+          </span>
         </span>
         <Form.Control
           type="number"
@@ -139,9 +142,12 @@ export default function BloodSugarInput({
             className="d-inline-flex align-items-center gap-1 px-3"
             title="Fetch latest reading from Nightscout"
           >
-            <i
-              className={`bi bi-arrow-repeat ${isPulling ? "spin-animation" : ""}`}
-            />
+            <span
+              className={`material-symbols-rounded ${isPulling ? "spin-animation" : ""}`}
+              style={{ fontSize: "18px" }}
+            >
+              sync
+            </span>
             <span>Auto</span>
           </Button>
         )}

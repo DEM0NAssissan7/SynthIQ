@@ -39,6 +39,10 @@ export function initThemeListener() {
     applyTheme(newMode);
   });
 
+  PreferencesStore.themeSeedColor.subscribe(() => {
+    applyTheme();
+  });
+
   // Listen to OS system color scheme changes
   if (window.matchMedia) {
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");

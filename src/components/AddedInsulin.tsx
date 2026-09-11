@@ -37,7 +37,7 @@ export default function AddedInsulin({ insulin, session }: AddedInsulinProps) {
         <Form.Group controlId="insulin-amount" className="mb-3">
           <div className="input-group">
             <span className="input-group-text">
-              <i className="bi bi-capsule"></i>
+              <span className="material-symbols-rounded">syringe</span>
             </span>
             <Form.Control
               type="number"
@@ -53,7 +53,7 @@ export default function AddedInsulin({ insulin, session }: AddedInsulinProps) {
         <Form.Group controlId="insulin-time" className="mb-3">
           <div className="input-group">
             <span className="input-group-text">
-              <i className="bi bi-clock"></i>
+              <span className="material-symbols-rounded">schedule</span>
             </span>
 
             <Form.Control

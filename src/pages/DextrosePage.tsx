@@ -50,7 +50,7 @@ export default function DextrosePage() {
       />
       <Card>
         <div className="app-card-title">
-          <i className="bi bi-box-seam"></i>
+          <span className="material-symbols-rounded">inventory_2</span>
           <span>Powder concentration</span>
         </div>
         <div className="row g-2 align-items-center">
@@ -91,7 +91,7 @@ export default function DextrosePage() {
 
       <Card>
         <div className="app-card-title">
-          <i className="bi bi-droplet"></i>
+          <span className="material-symbols-rounded">water_drop</span>
           <span>Target solution</span>
         </div>
         <div className="row g-2">
@@ -148,7 +148,7 @@ export default function DextrosePage() {
 
       <Card>
         <div className="app-card-title">
-          <i className="bi bi-check2-circle"></i>
+          <span className="material-symbols-rounded">check_circle</span>
           <span>Mix result</span>
         </div>
         <MetricGrid>

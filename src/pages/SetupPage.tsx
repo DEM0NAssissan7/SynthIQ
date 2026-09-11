@@ -200,7 +200,7 @@ function SetupPage() {
       </Alert>
       <Card>
         <div className="app-card-title">
-          <i className="bi bi-shield-lock"></i>
+          <span className="material-symbols-rounded">lock</span>
           <span>Connection details</span>
         </div>
         <Form.Label className="small text-muted mb-1">
@@ -208,7 +208,7 @@ function SetupPage() {
         </Form.Label>
         <InputGroup className="mb-3">
           <InputGroup.Text>
-            <i className="bi bi-globe"></i>
+            <span className="material-symbols-rounded">public</span>
           </InputGroup.Text>
           <Form.Control
             type="url"
@@ -225,7 +225,7 @@ function SetupPage() {
         <Form.Label className="small text-muted mb-1">API key</Form.Label>
         <InputGroup className="mb-0">
           <InputGroup.Text>
-            <i className="bi bi-key"></i>
+            <span className="material-symbols-rounded">key</span>
           </InputGroup.Text>
           <Form.Control
             type="text"

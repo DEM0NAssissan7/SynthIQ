@@ -35,7 +35,17 @@ export default function MdChip({
       className={`md3-chip ${clickableClass} ${selectedClass} ${className}`.trim()}
       {...props}
     >
-      {typeof icon === "string" ? <i className={`bi ${icon}`} /> : icon}
+      {typeof icon === "string" ? (
+        icon.startsWith("bi-") ? (
+          <i className={`bi ${icon}`} />
+        ) : (
+          <span className="material-symbols-rounded" style={{ fontSize: "18px" }}>
+            {icon}
+          </span>
+        )
+      ) : (
+        icon
+      )}
       <span>{label}</span>
       {badge && <span className="ms-1 opacity-75">{badge}</span>}
     </div>

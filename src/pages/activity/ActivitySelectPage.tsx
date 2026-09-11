@@ -49,7 +49,7 @@ export default function ActivitySelectPage() {
       </Card>
       <ActionGrid>
         <ActionCard
-          icon="bi-plus-circle"
+          icon="add_circle"
           eyebrow="Template"
           title="Create a new activity template"
           body="Save a new activity pattern when the existing templates don’t fit what you’re about to do."
@@ -58,7 +58,7 @@ export default function ActivitySelectPage() {
         />
         {WizardStore.session.value.started && (
           <ActionCard
-            icon="bi-arrow-left-circle"
+            icon="arrow_back"
             eyebrow="Session"
             title="Return to session hub"
             body="Go back to the meal session without starting a new activity flow yet."

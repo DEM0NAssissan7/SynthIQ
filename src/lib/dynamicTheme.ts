@@ -5,7 +5,26 @@
  * Falls back to Medical Blue (#006590) when dynamic color is unavailable.
  */
 
+import { PreferencesStore } from "../storage/preferencesStore";
+
 export const MEDICAL_BLUE_SEED = "#006590";
+
+export interface M3SeedPreset {
+  id: string;
+  name: string;
+  hex: string;
+  desc?: string;
+}
+
+export const M3_SEED_PRESETS: M3SeedPreset[] = [
+  { id: "red", name: "Crimson Red", hex: "#ba1a1a", desc: "Material 3 Red" },
+  { id: "blue", name: "Medical Blue", hex: "#006590", desc: "Baseline Blue" },
+  { id: "indigo", name: "Ocean Indigo", hex: "#285ea7", desc: "Deep Ocean" },
+  { id: "pink", name: "Rose Pink", hex: "#b32b6e", desc: "Vibrant Rose" },
+  { id: "violet", name: "Deep Violet", hex: "#6750a4", desc: "Material Violet" },
+  { id: "green", name: "Forest Green", hex: "#386a20", desc: "Natural Green" },
+  { id: "amber", name: "Sunset Amber", hex: "#825500", desc: "Warm Amber" },
+];
 
 export interface M3Palette {
   primary: string;
@@ -237,6 +256,16 @@ export function generateM3TonalPalette(seedHex: string, isDark: boolean): M3Pale
   }
 }
 
+const SPOOFED_FALLBACKS = new Set([
+  "#000000",
+  "#ffffff",
+  "#0075ff", // Chromium kDefaultAccentColor
+  "#1a73e8", // Google Blue
+  "#0067b8", // Microsoft Edge Blue
+  "#0061e0", // Firefox default
+  "#0078d7", // Windows 10 default
+]);
+
 /**
  * Check if the browser or Android WebView provides a native Monet AccentColor
  */
@@ -258,8 +287,8 @@ export function detectDeviceSeedColor(): string | null {
       const match = computed.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
       if (match) {
         const hex = rgbToHex(Number(match[1]), Number(match[2]), Number(match[3]));
-        // Avoid generic black or pure white system defaults
-        if (hex !== "#000000" && hex !== "#ffffff") {
+        // Avoid generic black, pure white, or Chromium's hardcoded anti-fingerprinting fallbacks
+        if (!SPOOFED_FALLBACKS.has(hex.toLowerCase())) {
           return hex;
         }
       }
@@ -272,9 +301,42 @@ export function detectDeviceSeedColor(): string | null {
 }
 
 /**
+ * Resolves the active seed hex and dynamic status based on PreferencesStore
+ */
+export function resolveActiveSeed(
+  preferredSeed: string = PreferencesStore.themeSeedColor.value
+): { seedHex: string; isDynamic: boolean } {
+  if (!preferredSeed || preferredSeed === "system") {
+    const detected = detectDeviceSeedColor();
+    if (detected) {
+      return { seedHex: detected, isDynamic: true };
+    }
+    return { seedHex: MEDICAL_BLUE_SEED, isDynamic: false };
+  }
+
+  if (preferredSeed.startsWith("#")) {
+    return { seedHex: preferredSeed, isDynamic: false };
+  }
+
+  const preset = M3_SEED_PRESETS.find((p) => p.id === preferredSeed);
+  if (preset) {
+    return { seedHex: preset.hex, isDynamic: false };
+  }
+
+  return { seedHex: MEDICAL_BLUE_SEED, isDynamic: false };
+}
+
+/**
+ * Change the preferred seed color in PreferencesStore
+ */
+export function setThemeSeedColor(seed: string) {
+  PreferencesStore.themeSeedColor.value = seed;
+}
+
+/**
  * Apply the generated M3 palette as CSS custom properties on documentElement
  */
-export function applyM3PaletteToDocument(palette: M3Palette) {
+export function applyM3PaletteToDocument(palette: M3Palette, isDark?: boolean) {
   if (typeof document === "undefined") return;
   const root = document.documentElement;
 
@@ -319,35 +381,64 @@ export function applyM3PaletteToDocument(palette: M3Palette) {
   root.style.setProperty("--app-border", palette.outlineVariant);
   root.style.setProperty("--app-text", palette.onSurface);
   root.style.setProperty("--app-text-muted", palette.onSurfaceVariant);
+  root.style.setProperty("--app-primary", palette.primary);
+  root.style.setProperty("--app-primary-container", palette.primaryContainer);
 
-  // Sync meta theme-color with surface-container for Android status bar
+  // Bootstrap bridge
+  root.style.setProperty("--bs-primary", palette.primary);
+  const [pr, pg, pb] = hexToRgb(palette.primary);
+  root.style.setProperty("--bs-primary-rgb", `${pr}, ${pg}, ${pb}`);
+
+  // Sync meta theme-color with surface for Android status bar
   const metaTags = document.querySelectorAll('meta[name="theme-color"]');
-  metaTags.forEach((tag) => tag.setAttribute("content", palette.surfaceContainer));
+  metaTags.forEach((tag) => tag.setAttribute("content", palette.surface));
+
+  // Notify native Expo / React Native shell of theme update
+  if (typeof window !== "undefined" && (window as any).ReactNativeWebView) {
+    try {
+      const dark =
+        isDark !== undefined
+          ? isDark
+          : document.documentElement.getAttribute("data-bs-theme") === "dark";
+      (window as any).ReactNativeWebView.postMessage(
+        JSON.stringify({
+          type: "THEME_UPDATE",
+          isDark: dark,
+          surfaceColor: palette.surface,
+          navBarColor: palette.surfaceContainer,
+        })
+      );
+    } catch {
+      // Ignore
+    }
+  }
 }
 
 /**
  * Initialize dynamic theme listener and apply theme
  */
 export function initDynamicTheme(isDark: boolean): M3Palette {
-  const detected = detectDeviceSeedColor();
-  if (detected) {
-    currentActiveSeed = detected;
-    isDynamicActive = true;
-  } else {
-    currentActiveSeed = MEDICAL_BLUE_SEED;
-    isDynamicActive = false;
-  }
+  const { seedHex, isDynamic } = resolveActiveSeed();
+  currentActiveSeed = seedHex;
+  isDynamicActive = isDynamic;
 
   // Listen for ExpoApp Android native messages
-  if (typeof window !== "undefined") {
+  if (typeof window !== "undefined" && !(window as any).__hasAndroidThemeListener) {
+    (window as any).__hasAndroidThemeListener = true;
     window.addEventListener("message", (event) => {
       try {
         const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
         if (data && data.type === "ANDROID_DYNAMIC_COLOR" && data.seedColor) {
-          currentActiveSeed = data.seedColor;
-          isDynamicActive = true;
-          const newPalette = generateM3TonalPalette(currentActiveSeed, isDark);
-          applyM3PaletteToDocument(newPalette);
+          if (PreferencesStore.themeSeedColor.value === "system") {
+            currentActiveSeed = data.seedColor;
+            isDynamicActive = true;
+            const dark =
+              typeof document !== "undefined"
+                ? document.documentElement.getAttribute("data-bs-theme") === "dark"
+                : isDark;
+            const newPalette = generateM3TonalPalette(currentActiveSeed, dark);
+            applyM3PaletteToDocument(newPalette, dark);
+          }
         }
       } catch {
         // Ignore non-json messages
@@ -356,6 +447,6 @@ export function initDynamicTheme(isDark: boolean): M3Palette {
   }
 
   const palette = generateM3TonalPalette(currentActiveSeed, isDark);
-  applyM3PaletteToDocument(palette);
+  applyM3PaletteToDocument(palette, isDark);
   return palette;
 }

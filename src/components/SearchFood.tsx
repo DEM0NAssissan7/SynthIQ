@@ -67,7 +67,7 @@ export default function SearchFood({ food, addFood }: SearchFoodProps) {
           className="d-inline-flex align-items-center gap-1"
           style={{ height: "2.2rem", padding: "0 0.65rem", fontSize: "0.85rem" }}
         >
-          <i className="bi bi-plus-lg" />
+          <span className="material-symbols-rounded">add</span>
           <span>Add</span>
         </Button>
       </div>

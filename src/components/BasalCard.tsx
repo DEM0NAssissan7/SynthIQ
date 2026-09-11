@@ -59,7 +59,12 @@ export default function BasalCard({
       <div className="d-flex justify-content-between align-items-start gap-3 mb-2">
         <div>
           <div className="app-card-title mb-1">
-            <i className="bi bi-shield-check text-success" />
+            <span
+              className="material-symbols-rounded fill text-success"
+              style={{ fontSize: "20px" }}
+            >
+              shield_with_heart
+            </span>
             <span>Basal Status</span>
           </div>
           {dueForBasal && (
@@ -115,7 +120,7 @@ export default function BasalCard({
             : "Open basal page"}
         </Button>
         <Button
-          variant="outline-secondary"
+          variant="secondary"
           as={Link as any}
           to="/basal"
         >

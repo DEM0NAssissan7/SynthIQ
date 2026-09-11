@@ -60,7 +60,7 @@ export default function MealSelectionPage() {
           style={{ borderRadius: "0.85rem" }}
           onClick={addTemplate}
         >
-          <i className="bi bi-plus-lg" />
+          <span className="material-symbols-rounded">add</span>
           <span>New template</span>
         </Button>
         <Button
@@ -70,7 +70,7 @@ export default function MealSelectionPage() {
           onClick={skip}
         >
           <span>Skip naming</span>
-          <i className="bi bi-arrow-right" />
+          <span className="material-symbols-rounded">arrow_forward</span>
         </Button>
       </div>
 

@@ -115,7 +115,7 @@ export default function RescuePage() {
       {/* Recommendation */}
       <Card>
         <div className="app-card-title">
-          <i className="bi bi-shield-plus text-danger" />
+          <span className="material-symbols-rounded text-danger">health_and_safety</span>
           <span>Recommendation</span>
         </div>
         <MetricGrid>
@@ -131,7 +131,7 @@ export default function RescuePage() {
           lastRescueMinutes < 60 && (
             <div className="app-dosing-banner mt-3">
               <span className="dosing-label d-flex align-items-center gap-2">
-                <i className="bi bi-clock-history text-muted" />
+                <span className="material-symbols-rounded text-muted">history</span>
                 <span>Last rescue</span>
               </span>
               <span className="dosing-value">
@@ -147,7 +147,7 @@ export default function RescuePage() {
       {/* Mark rescue */}
       <Card>
         <div className="app-card-title">
-          <i className="bi bi-heart-pulse text-primary" />
+          <span className="material-symbols-rounded text-primary">bolt</span>
           <span>Mark rescue</span>
         </div>
         <BloodSugarInput
@@ -171,7 +171,7 @@ export default function RescuePage() {
         </Form.Select>
         <InputGroup className="mb-3">
           <InputGroup.Text id="basic-addon1">
-            <i className="bi bi-capsule"></i>
+            <span className="material-symbols-rounded">pill</span>
           </InputGroup.Text>
           <Form.Control
             type="number"

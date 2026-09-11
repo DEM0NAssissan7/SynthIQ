@@ -51,6 +51,14 @@ if (fs.existsSync(assetsDir)) {
   }
 }
 
+// Inject Material Symbols Rounded CDN if missing
+if (!html.includes("Material+Symbols+Rounded")) {
+  html = html.replace(
+    "</head>",
+    `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"></head>`
+  );
+}
+
 // Inject Bootstrap Icons CDN if missing
 if (!html.includes("bootstrap-icons")) {
   html = html.replace(

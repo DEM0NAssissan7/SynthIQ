@@ -64,7 +64,7 @@ export default function MealPage() {
 
       <Card>
         <div className="app-card-title">
-          <i className="bi bi-sliders text-primary" />
+          <span className="material-symbols-rounded text-primary">tune</span>
           <span>Additional Nutrition</span>
         </div>
         <MealAdditionalNutrients meal={meal} />

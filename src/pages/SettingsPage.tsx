@@ -26,6 +26,9 @@ import { BasalStore } from "../storage/basalStore";
 import { MasterState } from "../models/types/masterState";
 import { downloadData, importData } from "../lib/dataTransfer";
 import { PageHeader, PageLayout } from "../components/PageLayout";
+import MdPalettePicker from "../components/md3/MdPalettePicker";
+import MdSegmentedButton from "../components/md3/MdSegmentedButton";
+import type { ThemeMode } from "../lib/themeManager";
 
 interface Setting {
   title: string;
@@ -44,7 +47,11 @@ function NumberSetting({ title, keyInterface, iconClass, unit }: Setting) {
       <Form.Label htmlFor="basic-url">{title}</Form.Label>
       <InputGroup className="mb-3">
         <InputGroup.Text>
-          <i className={iconClass}></i>
+          {iconClass.startsWith("bi-") || iconClass.startsWith("bi ") ? (
+            <i className={iconClass}></i>
+          ) : (
+            <span className="material-symbols-rounded">{iconClass}</span>
+          )}
         </InputGroup.Text>
         <Form.Control
           type="number"
@@ -199,9 +206,29 @@ export default function SettingsPage() {
     setSelectedIndex(value.valueOf());
   }
 
+  const [themeMode, setThemeMode] = PreferencesStore.themeMode.useState();
+
   return (
     <PageLayout maxWidth="42rem">
       <PageHeader title="Settings" eyebrow="Preferences" />
+      <SettingsSection
+        title="Appearance & Theme"
+        subtitle="Configure Material 3 color system and display mode."
+      >
+        <div className="mb-3">
+          <Form.Label className="small text-muted mb-1">Color Mode</Form.Label>
+          <MdSegmentedButton
+            value={themeMode}
+            onChange={(mode) => setThemeMode(mode as ThemeMode)}
+            options={[
+              { value: "auto", label: "Auto", icon: "brightness_auto" },
+              { value: "light", label: "Light", icon: "light_mode" },
+              { value: "dark", label: "Dark", icon: "dark_mode" },
+            ]}
+          />
+        </div>
+        <MdPalettePicker />
+      </SettingsSection>
       <SettingsSection
         title="Data backup"
         subtitle="Export or import a full local backup."
@@ -250,31 +277,31 @@ export default function SettingsPage() {
         <NumberSetting
           keyInterface={PreferencesStore.highBG}
           title="High Blood Sugar Threshold"
-          iconClass="bi bi-arrow-up-circle"
+          iconClass="arrow_circle_up"
           unit="mg/dL"
         />
         <NumberSetting
           keyInterface={PreferencesStore.lowBG}
           title="Low Blood Sugar Threshold"
-          iconClass="bi bi-arrow-down-circle"
+          iconClass="arrow_circle_down"
           unit="mg/dL"
         />
         <NumberSetting
           keyInterface={PreferencesStore.dangerBG}
           title="Hypoglycemic Threshold"
-          iconClass="bi bi-exclamation-octagon"
+          iconClass="warning"
           unit="mg/dL"
         />
         <NumberSetting
           keyInterface={HealthMonitorStore.dropTime}
           title="Rescue Predicted Drop Time"
-          iconClass="bi bi-clock"
+          iconClass="schedule"
           unit="min"
         />
         <NumberSetting
           keyInterface={PreferencesStore.insulinMinActivity}
           title="Minimum Useful Insulin Effect"
-          iconClass="bi bi-capsule"
+          iconClass="medication"
           unit="mg/dL"
         />
       </SettingsSection>
@@ -307,13 +334,13 @@ export default function SettingsPage() {
         <NumberSetting
           keyInterface={CalibrationStore.carbsEffect}
           title="Carbs Effect (per gram)"
-          iconClass="bi bi-cake2"
+          iconClass="bakery_dining"
           unit="mg/dL"
         />
         <NumberSetting
           keyInterface={CalibrationStore.proteinEffect}
           title="Protein Effect (per gram)"
-          iconClass="bi bi-egg-fried"
+          iconClass="egg"
           unit="mg/dL"
         />
       </SettingsSection>
@@ -321,31 +348,31 @@ export default function SettingsPage() {
         <NumberSetting
           keyInterface={BackendStore.cgmDelay}
           title="CGM Delay (in minutes)"
-          iconClass="bi bi-clock"
+          iconClass="schedule"
           unit="min"
         />
         <NumberSetting
           keyInterface={PreferencesStore.overshootOffset}
           title="Bolus Target Overcompensation Offset"
-          iconClass="bi bi-arrow-down-short"
+          iconClass="south"
           unit="mg/dL"
         />
         <NumberSetting
           keyInterface={PreferencesStore.learningRate}
           title="Insulin Adjustment Learning Rate"
-          iconClass="bi bi-graph-up-arrow"
+          iconClass="trending_up"
           unit="%"
         />
         <NumberSetting
           keyInterface={PreferencesStore.maxSessionLife}
           title="Max Session Storage Life"
-          iconClass="bi bi-clock"
+          iconClass="schedule"
           unit="days"
         />
         <NumberSetting
           keyInterface={PreferencesStore.usableSessionLife}
           title="Usable Session Life"
-          iconClass="bi bi-clock"
+          iconClass="schedule"
           unit="days"
         />
       </SettingsSection>
@@ -353,13 +380,13 @@ export default function SettingsPage() {
         <NumberSetting
           keyInterface={HealthMonitorStore.basalShotsPerDay}
           title="Basal Injections Per Day"
-          iconClass="bi bi-capsule"
+          iconClass="syringe"
           unit="shots"
         />
         <NumberSetting
           keyInterface={HealthMonitorStore.basalShotTime}
           title="Basal Injection First Hour"
-          iconClass="bi bi-clock"
+          iconClass="schedule"
           unit=""
         />
       </SettingsSection>
@@ -367,13 +394,13 @@ export default function SettingsPage() {
         <NumberSetting
           keyInterface={BasalStore.minTimeSinceMeal}
           title="Meal Effective Time"
-          iconClass="bi bi-clock"
+          iconClass="schedule"
           unit="hours"
         />
         <NumberSetting
           keyInterface={PreferencesStore.sugarSaveTime}
           title="BG Box Expiration Time"
-          iconClass="bi bi-clock"
+          iconClass="schedule"
           unit="mins"
         />
       </SettingsSection>

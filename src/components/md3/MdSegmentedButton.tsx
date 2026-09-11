@@ -32,7 +32,13 @@ export default function MdSegmentedButton<T extends string | number>({
             aria-pressed={isActive}
           >
             {typeof opt.icon === "string" ? (
-              <i className={`bi ${opt.icon}`} />
+              opt.icon.startsWith("bi-") ? (
+                <i className={`bi ${opt.icon}`} />
+              ) : (
+                <span className="material-symbols-rounded" style={{ fontSize: "18px" }}>
+                  {opt.icon}
+                </span>
+              )
             ) : (
               opt.icon
             )}

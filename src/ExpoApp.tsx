@@ -10,9 +10,11 @@ import {
   ActivityIndicator,
   StatusBar,
   LogBox,
+  useColorScheme,
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
+import { NavigationBar } from "expo-navigation-bar";
 import { Paths } from "expo-file-system";
 import * as FileSystemLegacy from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
@@ -46,6 +48,28 @@ export default function ExpoApp() {
     return () => subscription.remove();
   }, []);
 
+  const colorScheme = useColorScheme();
+  const isSystemDark = colorScheme === "dark";
+  const [themeState, setThemeState] = useState<{
+    isDark: boolean;
+    surfaceColor: string;
+    navBarColor: string;
+  }>({
+    isDark: isSystemDark,
+    surfaceColor: isSystemDark ? "#111318" : "#ffffff",
+    navBarColor: isSystemDark ? "#1d2024" : "#f1f5f9",
+  });
+
+  useEffect(() => {
+    if (Platform.OS === "android") {
+      try {
+        NavigationBar.setStyle(themeState.isDark ? "dark" : "light");
+      } catch (err) {
+        console.warn("Failed to set NavigationBar:", err);
+      }
+    }
+  }, [themeState.isDark]);
+
   // Native Android / Mobile WebView Shell
   const [useLiveServer, setUseLiveServer] = useState<boolean>(false);
   const [serverUrl, setServerUrl] = useState<string>(DEFAULT_DEV_URL);
@@ -64,10 +88,51 @@ export default function ExpoApp() {
     setUseLiveServer(false);
   };
 
+  const syncThemeFromWebView = () => {
+    webViewRef.current?.injectJavaScript(`
+      (function() {
+        try {
+          var isDark = document.documentElement.getAttribute("data-bs-theme") === "dark";
+          var style = window.getComputedStyle(document.documentElement);
+          var surface = style.getPropertyValue("--md-sys-color-surface").trim() || (isDark ? "#111318" : "#ffffff");
+          var navBar = style.getPropertyValue("--md-sys-color-surface-container").trim() || (isDark ? "#1d2024" : "#f1f5f9");
+          if (window.ReactNativeWebView) {
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+              type: "THEME_UPDATE",
+              isDark: isDark,
+              surfaceColor: surface,
+              navBarColor: navBar
+            }));
+          }
+        } catch (e) {}
+      })();
+      true;
+    `);
+  };
+
   const handleWebViewMessage = async (event: any) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
-      if (!data || !data.type || !data.id) return;
+      if (!data || !data.type) return;
+
+      if (data.type === "THEME_UPDATE") {
+        const isDark = Boolean(data.isDark);
+        const surfaceColor = data.surfaceColor || (isDark ? "#111318" : "#ffffff");
+        const navBarColor = data.navBarColor || (isDark ? "#1d2024" : "#f1f5f9");
+        setThemeState({
+          isDark,
+          surfaceColor,
+          navBarColor,
+        });
+        if (Platform.OS === "android") {
+          try {
+            NavigationBar.setStyle(isDark ? "dark" : "light");
+          } catch (err) {
+            console.warn("Failed to set NavigationBar on THEME_UPDATE:", err);
+          }
+        }
+        return;
+      }
 
       if (data.type === "DOWNLOAD_START") {
         webViewRef.current = {
@@ -129,8 +194,18 @@ export default function ExpoApp() {
 
   return (
     <SafeAreaProvider>
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="light-content" backgroundColor="#0f172a" />
+      <SafeAreaView
+        edges={["top"]}
+        style={[styles.container, { backgroundColor: themeState.surfaceColor }]}
+      >
+        <StatusBar
+          barStyle={themeState.isDark ? "light-content" : "dark-content"}
+          backgroundColor={themeState.surfaceColor}
+          animated={true}
+        />
+        {Platform.OS === "android" && (
+          <NavigationBar style={themeState.isDark ? "dark" : "light"} />
+        )}
 
         {showConfig && (
           <View style={styles.configBar}>
@@ -156,7 +231,7 @@ export default function ExpoApp() {
               ref={webViewRef}
               key={useLiveServer ? currentUrl : "bundled-html"}
               source={webViewSource}
-              style={styles.webview}
+              style={[styles.webview, { backgroundColor: themeState.surfaceColor }]}
               javaScriptEnabled={true}
               domStorageEnabled={true}
               startInLoadingState={true}
@@ -166,14 +241,30 @@ export default function ExpoApp() {
               mixedContentMode="always"
               originWhitelist={["*"]}
               onMessage={handleWebViewMessage}
+              onLoadEnd={syncThemeFromWebView}
               onNavigationStateChange={(navState: any) => {
                 canGoBackRef.current = navState.canGoBack;
               }}
               onError={() => setHasError(true)}
               renderLoading={() => (
-                <View style={styles.centerContainer}>
-                  <ActivityIndicator size="large" color="#3b82f6" />
-                  <Text style={styles.loadingText}>Loading SynthIQ...</Text>
+                <View
+                  style={[
+                    styles.centerContainer,
+                    { backgroundColor: themeState.surfaceColor },
+                  ]}
+                >
+                  <ActivityIndicator
+                    size="large"
+                    color={themeState.isDark ? "#87cffc" : "#006590"}
+                  />
+                  <Text
+                    style={[
+                      styles.loadingText,
+                      { color: themeState.isDark ? "#f8fafc" : "#1e293b" },
+                    ]}
+                  >
+                    Loading SynthIQ...
+                  </Text>
                 </View>
               )}
             />
@@ -211,24 +302,20 @@ export default function ExpoApp() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0f172a",
   },
   webviewContainer: {
     flex: 1,
   },
   webview: {
     flex: 1,
-    backgroundColor: "#0f172a",
   },
   centerContainer: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: "#0f172a",
     justifyContent: "center",
     alignItems: "center",
     padding: 24,
   },
   loadingText: {
-    color: "#f8fafc",
     marginTop: 12,
     fontSize: 16,
   },

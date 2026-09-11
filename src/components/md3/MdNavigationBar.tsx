@@ -22,6 +22,7 @@ export function MdNavigationItem({
   ariaLabel,
 }: MdNavigationItemProps) {
   const displayIcon = isActive && activeIcon ? activeIcon : icon;
+  const isMaterialSymbol = !displayIcon.startsWith("bi-");
 
   return (
     <button
@@ -32,10 +33,16 @@ export function MdNavigationItem({
       aria-current={isActive ? "page" : undefined}
     >
       <div className="app-bottom-nav-indicator">
-        <i className={`bi ${displayIcon}`} />
+        {isMaterialSymbol ? (
+          <span className={`material-symbols-rounded ${isActive ? "fill" : ""}`}>
+            {displayIcon}
+          </span>
+        ) : (
+          <i className={`bi ${displayIcon}`} />
+        )}
         {badge === true && <span className={`app-bottom-nav-dot ${badgeClass}`} />}
         {typeof badge === "string" || typeof badge === "number" ? (
-          <span className="app-bottom-nav-dot" style={{ width: "auto", padding: "1px 4px", fontSize: "0.65rem" }}>
+          <span className="app-bottom-nav-badge-pill">
             {badge}
           </span>
         ) : null}

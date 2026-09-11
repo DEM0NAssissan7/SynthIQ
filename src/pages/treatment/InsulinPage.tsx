@@ -29,10 +29,12 @@ function DoseBreakdownItem({ name, insulin }: DoseBreakdownItemProps) {
   return (
     <div className="app-dose-item">
       <span className="dose-name">
-        <i
-          className="bi bi-capsule-pill text-primary opacity-75"
-          style={{ fontSize: "0.85rem" }}
-        />
+        <span
+          className="material-symbols-rounded text-primary"
+          style={{ fontSize: "1.1rem" }}
+        >
+          syringe
+        </span>
         <span>
           {name}
           {/* <span className="dose-sub ms-1">hi</span> */}
@@ -256,7 +258,7 @@ export default function InsulinPage() {
       <Card>
         <div className="d-flex justify-content-between align-items-center mb-2">
           <div className="app-card-title mb-0">
-            <i className="bi bi-droplet-half text-primary" />
+            <span className="material-symbols-rounded text-primary">water_drop</span>
             <span>Recommendation</span>
           </div>
           <Form.Check
@@ -311,7 +313,7 @@ export default function InsulinPage() {
       {/* Mark insulin */}
       <Card>
         <div className="app-card-title">
-          <i className="bi bi-capsule text-primary" />
+          <span className="material-symbols-rounded text-primary">syringe</span>
           <span>Mark insulin</span>
         </div>
         {(!isFirstPostMealInjection || isCorrectionOnly) && (
@@ -324,7 +326,7 @@ export default function InsulinPage() {
         <InsulinVariantDropdown setVariant={setVariant} variant={variant} />
         <InputGroup className="mb-3">
           <InputGroup.Text id="basic-addon1">
-            <i className="bi bi-capsule"></i>
+            <span className="material-symbols-rounded">syringe</span>
           </InputGroup.Text>
           <Form.Control
             type="number"

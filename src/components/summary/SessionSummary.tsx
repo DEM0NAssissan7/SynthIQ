@@ -274,7 +274,7 @@ export const SessionSummary: React.FC<SessionSummaryProps> = ({
               className="text-warning-emphasis d-flex align-items-center gap-1"
               style={{ fontSize: "0.75rem" }}
             >
-              <i className="bi bi-info-circle" />
+              <span className="material-symbols-rounded" style={{ fontSize: "1rem" }}>info</span>
               <span>First time using this template</span>
             </div>
           )}
@@ -283,7 +283,7 @@ export const SessionSummary: React.FC<SessionSummaryProps> = ({
               className="text-danger-emphasis d-flex align-items-center gap-1"
               style={{ fontSize: "0.75rem" }}
             >
-              <i className="bi bi-exclamation-triangle" />
+              <span className="material-symbols-rounded" style={{ fontSize: "1rem" }}>warning</span>
               <span>Session is currently invalid</span>
             </div>
           )}

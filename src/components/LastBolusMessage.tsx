@@ -84,10 +84,12 @@ export default function LastBolusMessage() {
               className="app-dose-item"
             >
               <span className="dose-name">
-                <i
-                  className="bi bi-capsule-pill text-primary opacity-75"
-                  style={{ fontSize: "0.85rem" }}
-                />
+                <span
+                  className="material-symbols-rounded text-primary"
+                  style={{ fontSize: "1.1rem" }}
+                >
+                  syringe
+                </span>
                 <span>
                   {formatDose(insulin.value)}u {insulin.variant.name}
                   <span className="dose-sub ms-1">

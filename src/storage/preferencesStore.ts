@@ -24,5 +24,6 @@ export namespace PreferencesStore {
     "themeMode",
     "auto",
   );
+  export const themeSeedColor = node.add<string>("themeSeedColor", "system");
   export const learningRate = node.add<number>("learningRate", 30);
 }

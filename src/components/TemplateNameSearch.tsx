@@ -50,7 +50,7 @@ export default function TemplateNameSearch({
     <div>
       <div className="d-flex justify-content-between align-items-center mb-2">
         <div className="app-card-title mb-0">
-          <i className="bi bi-collection text-primary" />
+          <span className="material-symbols-rounded text-primary">bookmarks</span>
           <span>Meal Templates</span>
         </div>
         <span
@@ -65,7 +65,7 @@ export default function TemplateNameSearch({
       <Form onSubmit={(e: BaseSyntheticEvent) => e.preventDefault()}>
         <div className="input-group mb-2">
           <span className="input-group-text bg-body-tertiary border-end-0 text-muted">
-            <i className="bi bi-search" />
+            <span className="material-symbols-rounded">search</span>
           </span>
           <Form.Control
             type="search"
@@ -85,7 +85,7 @@ export default function TemplateNameSearch({
               onClick={() => setQuery("")}
               title="Clear search"
             >
-              <i className="bi bi-x-lg" style={{ fontSize: "0.8rem" }} />
+              <span className="material-symbols-rounded" style={{ fontSize: "1.1rem" }}>close</span>
             </Button>
           )}
         </div>
@@ -139,7 +139,7 @@ export default function TemplateNameSearch({
                   title="Delete template"
                   aria-label={`Delete ${template.name}`}
                 >
-                  <i className="bi bi-trash3" />
+                  <span className="material-symbols-rounded">delete</span>
                 </button>
                 <button
                   type="button"
@@ -150,7 +150,7 @@ export default function TemplateNameSearch({
                   }}
                 >
                   <span>Use</span>
-                  <i className="bi bi-chevron-right" style={{ fontSize: "0.75rem" }} />
+                  <span className="material-symbols-rounded" style={{ fontSize: "1.1rem" }}>chevron_right</span>
                 </button>
               </div>
             </div>

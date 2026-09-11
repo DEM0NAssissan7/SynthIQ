@@ -69,7 +69,7 @@ export default function CustomFoodsPage() {
       />
       <Card>
         <div className="app-card-title">
-          <i className="bi bi-plus-circle"></i>
+          <span className="material-symbols-rounded">add_circle</span>
           <span>New custom food</span>
         </div>
         <Form onSubmit={handleFormSubmit}>
@@ -178,7 +178,7 @@ export default function CustomFoodsPage() {
       </Card>
       <Card>
         <div className="app-card-title">
-          <i className="bi bi-collection"></i>
+          <span className="material-symbols-rounded">bookmarks</span>
           <span>Saved foods</span>
         </div>
         {customFoods.length === 0 && (

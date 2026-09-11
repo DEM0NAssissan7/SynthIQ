@@ -14,6 +14,7 @@ import MdNavigationBar, { MdNavigationItem } from "./md3/MdNavigationBar";
 import MdModalBottomSheet from "./md3/MdModalBottomSheet";
 import MdSegmentedButton from "./md3/MdSegmentedButton";
 import MdChip from "./md3/MdChip";
+import MdPalettePicker from "./md3/MdPalettePicker";
 
 interface ToolItem {
   label: string;
@@ -153,14 +154,14 @@ export default function BottomNav() {
         {
           label: "Basal Injection",
           to: "/basal",
-          icon: "bi-shield-check",
+          icon: "syringe",
           desc: "Log daily long-acting background doses",
           badge: dueForBasal ? "Due" : undefined,
         },
         {
           label: "Physical Activity",
           to: "/activity",
-          icon: "bi-person-walking",
+          icon: "directions_run",
           desc: "Track workouts & glycemic impact",
         },
       ],
@@ -171,19 +172,19 @@ export default function BottomNav() {
         {
           label: "History & Logs",
           to: "/history",
-          icon: "bi-clock-history",
+          icon: "history",
           desc: "Browse past meals, boluses, and sessions",
         },
         {
           label: "Statistics & Profiles",
           to: "/statistics",
-          icon: "bi-graph-up-arrow",
+          icon: "analytics",
           desc: "Carb ratios, daily totals, and ISF analysis",
         },
         {
           label: "Supply Expirations",
           to: "/expirations",
-          icon: "bi-hourglass-split",
+          icon: "hourglass_empty",
           desc: "Monitor insulin vial & sensor timelines",
         },
       ],
@@ -194,25 +195,25 @@ export default function BottomNav() {
         {
           label: "Dextrose Calculator",
           to: "/dextrose",
-          icon: "bi-calculator",
+          icon: "calculate",
           desc: "Quick solution & powder dosing helper",
         },
         {
           label: "Custom Foods Library",
           to: "/customfoods",
-          icon: "bi-egg-fried",
+          icon: "menu_book",
           desc: "Manage personalized food macros",
         },
         {
           label: "Insulin Variants",
           to: "/insulinvariants",
-          icon: "bi-capsule",
+          icon: "medication_liquid",
           desc: "Configure bolus & basal profiles",
         },
         {
           label: "Rescue Variants",
           to: "/rescuevariants",
-          icon: "bi-bandaid",
+          icon: "bolt",
           desc: "Configure fast-acting carbs",
         },
       ],
@@ -223,19 +224,19 @@ export default function BottomNav() {
         {
           label: "Settings",
           to: "/settings",
-          icon: "bi-gear-fill",
+          icon: "settings",
           desc: "Targets, thresholds, calibration factors",
         },
         {
           label: "Nightscout Sync",
           to: "/setup",
-          icon: "bi-hdd-network-fill",
+          icon: "cloud_sync",
           desc: "Remote storage and token configurations",
         },
         {
           label: "Debug Console",
           to: "/debug",
-          icon: "bi-terminal",
+          icon: "terminal",
           desc: "Inspect live runtime stores & state",
         },
       ],
@@ -256,8 +257,8 @@ export default function BottomNav() {
         {/* Status Tab */}
         <MdNavigationItem
           label="Status"
-          icon="bi-heart-pulse"
-          activeIcon="bi-heart-pulse-fill"
+          icon="ecg_heart"
+          activeIcon="ecg_heart"
           isActive={isStatusActive}
           onClick={handleStatusClick}
           badge={dueForBasal}
@@ -267,8 +268,8 @@ export default function BottomNav() {
         {/* Insulin Tab */}
         <MdNavigationItem
           label="Insulin"
-          icon="bi-droplet"
-          activeIcon="bi-droplet-fill"
+          icon="syringe"
+          activeIcon="syringe"
           isActive={isInsulinActive}
           onClick={handleInsulinClick}
           badge={hasActiveBolus}
@@ -279,8 +280,8 @@ export default function BottomNav() {
         {/* Rescue Tab */}
         <MdNavigationItem
           label="Rescue"
-          icon="bi-life-preserver"
-          activeIcon="bi-life-preserver"
+          icon="bolt"
+          activeIcon="bolt"
           isActive={isRescueActive}
           onClick={handleRescueClick}
           ariaLabel="Rescue Glucose"
@@ -289,8 +290,8 @@ export default function BottomNav() {
         {/* Meal Tab */}
         <MdNavigationItem
           label="Meal"
-          icon="bi-cup-hot"
-          activeIcon="bi-cup-hot-fill"
+          icon="restaurant"
+          activeIcon="restaurant"
           isActive={isMealActive}
           onClick={handleMealClick}
           badge={!meal.isEmpty}
@@ -318,7 +319,7 @@ export default function BottomNav() {
         {/* Dynamic Theme Badge */}
         <div className="d-flex justify-content-between align-items-center mb-3">
           <MdChip
-            icon={isDynamicActive ? "bi-palette-fill" : "bi-droplet-half"}
+            icon={isDynamicActive ? "palette" : "water_drop"}
             label={
               isDynamicActive
                 ? "Material You: Phone Theme Active"
@@ -329,16 +330,21 @@ export default function BottomNav() {
         </div>
 
         {/* Theme Mode Segmented Button */}
-        <div className="mb-4">
+        <div className="mb-3">
           <MdSegmentedButton
             value={themeMode}
             onChange={(mode) => setThemeMode(mode as ThemeMode)}
             options={[
-              { value: "auto", label: "Auto", icon: "bi-circle-half" },
-              { value: "light", label: "Light", icon: "bi-sun-fill" },
-              { value: "dark", label: "Dark", icon: "bi-moon-fill" },
+              { value: "auto", label: "Auto", icon: "brightness_auto" },
+              { value: "light", label: "Light", icon: "light_mode" },
+              { value: "dark", label: "Dark", icon: "dark_mode" },
             ]}
           />
+        </div>
+
+        {/* Material You Palette Picker */}
+        <div className="mb-4">
+          <MdPalettePicker compact={false} />
         </div>
 
         {/* Categorized Tool Groups */}
@@ -354,7 +360,7 @@ export default function BottomNav() {
                   className="md3-sheet-item"
                 >
                   <div className="md3-sheet-icon">
-                    <i className={`bi ${item.icon}`} />
+                    <span className="material-symbols-rounded">{item.icon}</span>
                   </div>
                   <div className="md3-sheet-content">
                     <div className="md3-sheet-label">{item.label}</div>

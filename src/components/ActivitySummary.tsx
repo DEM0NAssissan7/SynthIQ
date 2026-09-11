@@ -59,7 +59,7 @@ export default function ActivitySummary({
       <div className="app-discrete-header">
         <div>
           <h2 className="app-discrete-title">
-            <i className="bi bi-person-walking text-primary" />
+            <span className="material-symbols-rounded text-primary">directions_walk</span>
             <span>{template.name}</span>
           </h2>
           <div className="app-discrete-subtitle">

@@ -68,7 +68,7 @@ export function PageHeader({
               onClick={handleBack}
               aria-label="Go back"
             >
-              <i className="bi bi-arrow-left" />
+              <span className="material-symbols-rounded">arrow_back</span>
             </button>
           )}
           <div className="flex-grow-1">
@@ -163,7 +163,13 @@ export function ActionCard({
       <Card.Body className="p-3 d-flex flex-column">
         <div className="d-flex align-items-start gap-3 flex-grow-1">
           <div className="app-action-icon">
-            <i className={`bi ${icon} fs-4`} />
+            {icon.startsWith("bi-") ? (
+              <i className={`bi ${icon} fs-4`} />
+            ) : (
+              <span className="material-symbols-rounded" style={{ fontSize: "28px" }}>
+                {icon}
+              </span>
+            )}
           </div>
           <div className="flex-grow-1">
             {eyebrow && <div className="app-kicker mb-1">{eyebrow}</div>}

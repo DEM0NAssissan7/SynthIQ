@@ -168,10 +168,12 @@ export const MealSummary: React.FC<MealSummaryProps> = ({
             {optimalInsulins.map((ins, idx) => (
               <div key={idx} className="app-dose-item">
                 <span className="dose-name">
-                  <i
-                    className="bi bi-capsule-pill text-primary opacity-75"
-                    style={{ fontSize: "0.85rem" }}
-                  />
+                  <span
+                    className="material-symbols-rounded text-primary"
+                    style={{ fontSize: "1.1rem" }}
+                  >
+                    syringe
+                  </span>
                   <span>
                     Dose {optimalInsulins.length > 1 ? idx + 1 : ""} (
                     {ins.variant.name})

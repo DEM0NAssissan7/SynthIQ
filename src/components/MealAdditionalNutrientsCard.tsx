@@ -14,7 +14,7 @@ export default function MealAdditionalNutrients({
           label="Extra Carbs"
           value={meal.carbsOffset}
           setValue={(a: number) => (meal.carbsOffset = a)}
-          iconClassName="bi bi-cookie"
+          iconClassName="bakery_dining"
         />
       </div>
       <div className="col-6">
@@ -22,7 +22,7 @@ export default function MealAdditionalNutrients({
           label="Extra Protein"
           value={meal.proteinOffset}
           setValue={(a: number) => (meal.proteinOffset = a)}
-          iconClassName="bi bi-egg-fried"
+          iconClassName="egg"
         />
       </div>
     </div>

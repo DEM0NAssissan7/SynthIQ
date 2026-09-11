@@ -66,7 +66,7 @@ export default function AddedFood({ food, meal }: SearchFoodProps) {
           title="Remove food"
           aria-label="Remove food"
         >
-          <i className="bi bi-trash3" />
+          <span className="material-symbols-rounded">delete</span>
         </button>
       </div>
     </div>
