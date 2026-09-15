@@ -5,6 +5,7 @@ import SearchFood from "./SearchFood";
 import type Meal from "../models/events/meal";
 import Unit, { getFoodUnitPrettyName } from "../models/unit";
 import { CustomStore } from "../storage/customStore";
+import MdIcon from "./md3/MdIcon";
 
 interface FoodSearchDisplayProps {
   meal: Meal;
@@ -115,7 +116,7 @@ export default function FoodSearchDisplay({ meal }: FoodSearchDisplayProps) {
         <Form.Group controlId="food-search" className="mb-0">
           <div className="d-flex justify-content-between align-items-center mb-2">
             <div className="app-card-title mb-0">
-              <span className="material-symbols-rounded text-primary">search</span>
+              <MdIcon name="search" className="text-primary" size={20} />
               <span>Food Search</span>
             </div>
             <Button
@@ -124,14 +125,14 @@ export default function FoodSearchDisplay({ meal }: FoodSearchDisplayProps) {
               className="p-0 text-decoration-none fw-semibold d-inline-flex align-items-center gap-1"
               onClick={openAddModal}
             >
-              <span className="material-symbols-rounded text-primary">add_circle</span>
+              <MdIcon name="add_circle" className="text-primary" size={18} />
               <span>New Food</span>
             </Button>
           </div>
 
           <div className="input-group">
             <span className="input-group-text bg-body-tertiary border-end-0 text-muted">
-              <span className="material-symbols-rounded">search</span>
+              <MdIcon name="search" size={18} />
             </span>
             <Form.Control
               type="search"
@@ -151,7 +152,7 @@ export default function FoodSearchDisplay({ meal }: FoodSearchDisplayProps) {
                 onClick={() => setQuery("")}
                 title="Clear search"
               >
-                <span className="material-symbols-rounded" style={{ fontSize: "1.1rem" }}>close</span>
+                <MdIcon name="close" size={18} />
               </Button>
             )}
           </div>
@@ -179,7 +180,7 @@ export default function FoodSearchDisplay({ meal }: FoodSearchDisplayProps) {
                 onClick={openAddModal}
                 className="d-inline-flex align-items-center gap-1"
               >
-                <span className="material-symbols-rounded">add_circle</span>
+                <MdIcon name="add_circle" size={18} />
                 <span>Add &ldquo;{query}&rdquo; as custom food</span>
               </Button>
             </div>
@@ -196,7 +197,7 @@ export default function FoodSearchDisplay({ meal }: FoodSearchDisplayProps) {
       >
         <Modal.Header closeButton className="border-0 pb-0">
           <Modal.Title className="h5 fw-bold d-flex align-items-center gap-2">
-            <span className="material-symbols-rounded text-primary">restaurant</span>
+            <MdIcon name="restaurant" className="text-primary" size={20} />
             <span>Create New Food</span>
           </Modal.Title>
         </Modal.Header>

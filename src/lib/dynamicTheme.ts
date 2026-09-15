@@ -278,10 +278,12 @@ export function detectDeviceSeedColor(): string | null {
     testEl.style.position = "absolute";
     testEl.style.left = "-9999px";
     testEl.style.top = "-9999px";
-    document.body.appendChild(testEl);
+    const parent = document.body || document.documentElement;
+    if (!parent) return null;
+    parent.appendChild(testEl);
 
     const computed = window.getComputedStyle(testEl).color;
-    document.body.removeChild(testEl);
+    parent.removeChild(testEl);
 
     if (computed && computed !== "rgba(0, 0, 0, 0)") {
       const match = computed.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
@@ -307,6 +309,15 @@ export function resolveActiveSeed(
   preferredSeed: string = PreferencesStore.themeSeedColor.value
 ): { seedHex: string; isDynamic: boolean } {
   if (!preferredSeed || preferredSeed === "system") {
+    if (
+      typeof window !== "undefined" &&
+      (window as any).__ANDROID_SYSTEM_SEED__
+    ) {
+      return {
+        seedHex: (window as any).__ANDROID_SYSTEM_SEED__,
+        isDynamic: true,
+      };
+    }
     const detected = detectDeviceSeedColor();
     if (detected) {
       return { seedHex: detected, isDynamic: true };

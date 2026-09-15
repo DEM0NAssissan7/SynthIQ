@@ -15,6 +15,7 @@ import MdModalBottomSheet from "./md3/MdModalBottomSheet";
 import MdSegmentedButton from "./md3/MdSegmentedButton";
 import MdChip from "./md3/MdChip";
 import MdPalettePicker from "./md3/MdPalettePicker";
+import MdIcon from "./md3/MdIcon";
 
 interface ToolItem {
   label: string;
@@ -360,7 +361,7 @@ export default function BottomNav() {
                   className="md3-sheet-item"
                 >
                   <div className="md3-sheet-icon">
-                    <span className="material-symbols-rounded">{item.icon}</span>
+                    <MdIcon name={item.icon} size={24} />
                   </div>
                   <div className="md3-sheet-content">
                     <div className="md3-sheet-label">{item.label}</div>

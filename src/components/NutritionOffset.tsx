@@ -1,4 +1,5 @@
 import { Form } from "react-bootstrap";
+import MdIcon from "./md3/MdIcon";
 
 interface NutritionOffsetProps {
   label: string;
@@ -21,7 +22,7 @@ export default function NutritionOffset({
           {iconClassName.startsWith("bi-") || iconClassName.startsWith("bi ") ? (
             <i className={iconClassName}></i>
           ) : (
-            <span className="material-symbols-rounded">{iconClassName}</span>
+            <MdIcon name={iconClassName} size={18} />
           )}
         </span>
         <Form.Control

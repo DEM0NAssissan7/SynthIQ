@@ -9,6 +9,7 @@ import SessionSummary from "../components/summary/SessionSummary";
 import { WizardStore } from "../storage/wizardStore";
 import Card from "../components/Card";
 import { useNavigate } from "react-router";
+import MdIcon from "../components/md3/MdIcon";
 
 function HubPage() {
   const now = useNow(60);
@@ -39,12 +40,12 @@ function HubPage() {
 
       <Card>
         <div className="app-card-title">
-          <span
-            className="material-symbols-rounded fill text-primary"
-            style={{ fontSize: "20px" }}
-          >
-            water_drop
-          </span>
+          <MdIcon
+            name="water_drop"
+            fill
+            className="text-primary"
+            size={20}
+          />
           <span>Active insulin</span>
         </div>
         <LastBolusMessage />
@@ -65,12 +66,11 @@ function HubPage() {
       {session.started && (
         <Card>
           <div className="app-card-title">
-            <span
-              className="material-symbols-rounded text-secondary"
-              style={{ fontSize: "20px" }}
-            >
-              tune
-            </span>
+            <MdIcon
+              name="tune"
+              className="text-secondary"
+              size={20}
+            />
             <span>Session controls</span>
           </div>
           <div className="d-grid gap-2">

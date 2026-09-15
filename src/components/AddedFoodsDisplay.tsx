@@ -1,6 +1,7 @@
 import AddedFood from "./AddedFood";
 import type Meal from "../models/events/meal";
 import { EmptyState } from "./PageLayout";
+import MdIcon from "./md3/MdIcon";
 
 interface AddedFoodsDisplayProps {
   meal: Meal;
@@ -10,7 +11,7 @@ export default function AddedFoodsDisplay({ meal }: AddedFoodsDisplayProps) {
     <div>
       <div className="d-flex justify-content-between align-items-center mb-2">
         <div className="app-card-title mb-0">
-          <span className="material-symbols-rounded text-primary">shopping_basket</span>
+          <MdIcon name="shopping_basket" className="text-primary" size={20} />
           <span>Added Foods</span>
         </div>
         {meal.addedFoods.length > 0 && (

@@ -2,6 +2,7 @@ import { getFormattedTime, getMinuteDiff } from "../lib/timing";
 import { round } from "../lib/util";
 import { HealthMonitorStore } from "../storage/healthMonitorStore";
 import { useNow } from "../state/useNow";
+import MdIcon from "./md3/MdIcon";
 function formatDose(value: number) {
   const rounded = round(value, 1);
   return Number.isInteger(rounded) ? `${rounded}` : rounded.toFixed(1);
@@ -84,12 +85,11 @@ export default function LastBolusMessage() {
               className="app-dose-item"
             >
               <span className="dose-name">
-                <span
-                  className="material-symbols-rounded text-primary"
-                  style={{ fontSize: "1.1rem" }}
-                >
-                  syringe
-                </span>
+                <MdIcon
+                  name="syringe"
+                  className="text-primary"
+                  size={18}
+                />
                 <span>
                   {formatDose(insulin.value)}u {insulin.variant.name}
                   <span className="dose-sub ms-1">

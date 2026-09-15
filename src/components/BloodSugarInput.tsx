@@ -6,6 +6,7 @@ import { CacheStore } from "../storage/cacheStore";
 import { getMinuteDiff } from "../lib/timing";
 import { PreferencesStore } from "../storage/preferencesStore";
 import SugarReading from "../models/types/sugarReading";
+import MdIcon from "./md3/MdIcon";
 
 interface BloodSugarInputProps {
   initialGlucose: number | null;
@@ -109,15 +110,16 @@ export default function BloodSugarInput({
 
       <div className="input-group">
         <span className="input-group-text border-end-0">
-          <span
-            className="material-symbols-rounded fill"
+          <MdIcon
+            name="water_drop"
+            fill={true}
+            size={20}
             style={{
-              fontSize: "20px",
-              color: glucoseStatus ? glucoseStatus.color : "var(--md-sys-color-primary)",
+              color: glucoseStatus
+                ? glucoseStatus.color
+                : "var(--md-sys-color-primary)",
             }}
-          >
-            water_drop
-          </span>
+          />
         </span>
         <Form.Control
           type="number"
@@ -142,12 +144,11 @@ export default function BloodSugarInput({
             className="d-inline-flex align-items-center gap-1 px-3"
             title="Fetch latest reading from Nightscout"
           >
-            <span
-              className={`material-symbols-rounded ${isPulling ? "spin-animation" : ""}`}
-              style={{ fontSize: "18px" }}
-            >
-              sync
-            </span>
+            <MdIcon
+              name="sync"
+              size={18}
+              className={isPulling ? "spin-animation" : ""}
+            />
             <span>Auto</span>
           </Button>
         )}

@@ -7,6 +7,7 @@ import { BasalStore } from "../storage/basalStore";
 import { HealthMonitorStore } from "../storage/healthMonitorStore";
 import WizardManager from "../managers/wizardManager";
 import Card from "./Card";
+import MdIcon from "./md3/MdIcon";
 
 function formatDose(value: number) {
   const rounded = round(value, 1);
@@ -59,12 +60,12 @@ export default function BasalCard({
       <div className="d-flex justify-content-between align-items-start gap-3 mb-2">
         <div>
           <div className="app-card-title mb-1">
-            <span
-              className="material-symbols-rounded fill text-success"
-              style={{ fontSize: "20px" }}
-            >
-              shield_with_heart
-            </span>
+            <MdIcon
+              name="shield_with_heart"
+              fill={true}
+              size={20}
+              className="text-success"
+            />
             <span>Basal Status</span>
           </div>
           {dueForBasal && (

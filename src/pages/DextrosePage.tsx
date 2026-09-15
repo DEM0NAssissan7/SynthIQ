@@ -9,6 +9,7 @@ import {
   PageHeader,
   PageLayout,
 } from "../components/PageLayout";
+import MdIcon from "../components/md3/MdIcon";
 
 export default function DextrosePage() {
   const [powderGlucoseContent, setPowderGlucoseContent] =
@@ -50,7 +51,7 @@ export default function DextrosePage() {
       />
       <Card>
         <div className="app-card-title">
-          <span className="material-symbols-rounded">inventory_2</span>
+          <MdIcon name="inventory_2" size={20} />
           <span>Powder concentration</span>
         </div>
         <div className="row g-2 align-items-center">
@@ -91,7 +92,7 @@ export default function DextrosePage() {
 
       <Card>
         <div className="app-card-title">
-          <span className="material-symbols-rounded">water_drop</span>
+          <MdIcon name="water_drop" size={20} />
           <span>Target solution</span>
         </div>
         <div className="row g-2">
@@ -148,7 +149,7 @@ export default function DextrosePage() {
 
       <Card>
         <div className="app-card-title">
-          <span className="material-symbols-rounded">check_circle</span>
+          <MdIcon name="check_circle" size={20} />
           <span>Mix result</span>
         </div>
         <MetricGrid>

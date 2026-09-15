@@ -6,6 +6,7 @@ import { BackendStore } from "../storage/backendStore";
 import { PrivateStore } from "../storage/privateStore";
 import Card from "../components/Card";
 import { PageActions, PageHeader, PageLayout } from "../components/PageLayout";
+import MdIcon from "../components/md3/MdIcon";
 
 const autoHideTime = 4000;
 
@@ -200,7 +201,7 @@ function SetupPage() {
       </Alert>
       <Card>
         <div className="app-card-title">
-          <span className="material-symbols-rounded">lock</span>
+          <MdIcon name="lock" size={20} />
           <span>Connection details</span>
         </div>
         <Form.Label className="small text-muted mb-1">
@@ -208,7 +209,7 @@ function SetupPage() {
         </Form.Label>
         <InputGroup className="mb-3">
           <InputGroup.Text>
-            <span className="material-symbols-rounded">public</span>
+            <MdIcon name="public" size={18} />
           </InputGroup.Text>
           <Form.Control
             type="url"
@@ -225,7 +226,7 @@ function SetupPage() {
         <Form.Label className="small text-muted mb-1">API key</Form.Label>
         <InputGroup className="mb-0">
           <InputGroup.Text>
-            <span className="material-symbols-rounded">key</span>
+            <MdIcon name="key" size={18} />
           </InputGroup.Text>
           <Form.Control
             type="text"

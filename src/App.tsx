@@ -60,19 +60,6 @@ function App() {
 
   const now = useNow(60);
   useEffect(() => {
-    // Inject Bootstrap Icons CDN for Web runtime
-    if (typeof document !== "undefined") {
-      const linkId = "bootstrap-icons-cdn";
-      if (!document.getElementById(linkId)) {
-        const link = document.createElement("link");
-        link.id = linkId;
-        link.rel = "stylesheet";
-        link.href =
-          "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css";
-        document.head.appendChild(link);
-      }
-    }
-
     // Update health monitor status cache
     updateHealthMonitorStatus();
 

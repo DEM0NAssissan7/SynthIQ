@@ -4,6 +4,7 @@ import { getHoursMinutes, round } from "../lib/util";
 import type Session from "../models/session";
 import useGlucose from "../state/useGlucose";
 import type Glucose from "../models/events/glucose";
+import MdIcon from "./md3/MdIcon";
 
 interface AddedGlucoseProps {
   glucose: Glucose;
@@ -37,7 +38,7 @@ export default function AddedGlucose({ glucose, session }: AddedGlucoseProps) {
         <Form.Group controlId="amount" className="mb-3">
           <div className="input-group">
             <span className="input-group-text">
-              <span className="material-symbols-rounded">pill</span>
+              <MdIcon name="pill" size={18} />
             </span>
             <Form.Control
               type="number"
@@ -55,7 +56,7 @@ export default function AddedGlucose({ glucose, session }: AddedGlucoseProps) {
         <Form.Group controlId="time" className="mb-3">
           <div className="input-group">
             <span className="input-group-text">
-              <span className="material-symbols-rounded">schedule</span>
+              <MdIcon name="schedule" size={18} />
             </span>
 
             <Form.Control

@@ -18,6 +18,7 @@ import { NavigationBar } from "expo-navigation-bar";
 import { Paths } from "expo-file-system";
 import * as FileSystemLegacy from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
+import { useMaterial3Theme } from "@pchmn/expo-material3-theme";
 import { BUNDLED_HTML } from "./bundledHtml";
 
 // Suppress benign JS circular dependency warnings in Metro
@@ -48,17 +49,30 @@ export default function ExpoApp() {
     return () => subscription.remove();
   }, []);
 
+  const { theme } = useMaterial3Theme({ fallbackSourceColor: "#006590" });
   const colorScheme = useColorScheme();
   const isSystemDark = colorScheme === "dark";
+  const activeScheme = theme ? (isSystemDark ? theme.dark : theme.light) : null;
+
   const [themeState, setThemeState] = useState<{
     isDark: boolean;
     surfaceColor: string;
     navBarColor: string;
   }>({
     isDark: isSystemDark,
-    surfaceColor: isSystemDark ? "#111318" : "#ffffff",
-    navBarColor: isSystemDark ? "#1d2024" : "#f1f5f9",
+    surfaceColor: activeScheme?.surface || (isSystemDark ? "#111318" : "#ffffff"),
+    navBarColor: activeScheme?.surfaceContainer || (isSystemDark ? "#1d2024" : "#f1f5f9"),
   });
+
+  useEffect(() => {
+    if (activeScheme) {
+      setThemeState({
+        isDark: isSystemDark,
+        surfaceColor: activeScheme.surface,
+        navBarColor: activeScheme.surfaceContainer,
+      });
+    }
+  }, [theme, isSystemDark]);
 
   useEffect(() => {
     if (Platform.OS === "android") {
@@ -89,6 +103,21 @@ export default function ExpoApp() {
   };
 
   const syncThemeFromWebView = () => {
+    const seed = theme?.light?.primary || null;
+    if (seed) {
+      webViewRef.current?.injectJavaScript(`
+        (function() {
+          try {
+            window.postMessage(JSON.stringify({
+              type: "ANDROID_DYNAMIC_COLOR",
+              seedColor: ${JSON.stringify(seed)}
+            }), "*");
+          } catch (e) {}
+        })();
+        true;
+      `);
+    }
+
     webViewRef.current?.injectJavaScript(`
       (function() {
         try {
@@ -240,6 +269,7 @@ export default function ExpoApp() {
               allowFileAccessFromFileURLs={true}
               mixedContentMode="always"
               originWhitelist={["*"]}
+              injectedJavaScriptBeforeContentLoaded={`window.__ANDROID_SYSTEM_SEED__ = ${JSON.stringify(theme?.light?.primary || null)}; true;`}
               onMessage={handleWebViewMessage}
               onLoadEnd={syncThemeFromWebView}
               onNavigationStateChange={(navState: any) => {

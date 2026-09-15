@@ -5,6 +5,7 @@ import type Food from "../models/food";
 import useFood from "../state/useFood";
 import { round } from "../lib/util";
 import type Meal from "../models/events/meal";
+import MdIcon from "./md3/MdIcon";
 
 interface SearchFoodProps {
   food: Food;
@@ -66,7 +67,7 @@ export default function AddedFood({ food, meal }: SearchFoodProps) {
           title="Remove food"
           aria-label="Remove food"
         >
-          <span className="material-symbols-rounded">delete</span>
+          <MdIcon name="delete" size={18} />
         </button>
       </div>
     </div>

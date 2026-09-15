@@ -5,6 +5,7 @@ import {
   type ReactNode,
   type PointerEvent as ReactPointerEvent,
 } from "react";
+import MdIcon from "./MdIcon";
 
 export interface MdModalBottomSheetProps {
   show: boolean;
@@ -173,7 +174,7 @@ export default function MdModalBottomSheet({
               onClick={onHide}
               aria-label="Close"
             >
-              <span className="material-symbols-rounded" style={{ fontSize: "1.25rem" }}>close</span>
+              <MdIcon name="close" size={20} />
             </button>
           </div>
         )}

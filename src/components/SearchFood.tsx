@@ -3,6 +3,7 @@ import { getFoodUnitPrettyName } from "../models/unit";
 import { type BaseSyntheticEvent } from "react";
 import type Food from "../models/food";
 import useFood from "../state/useFood";
+import MdIcon from "./md3/MdIcon";
 
 interface SearchFoodProps {
   food: Food;
@@ -67,7 +68,7 @@ export default function SearchFood({ food, addFood }: SearchFoodProps) {
           className="d-inline-flex align-items-center gap-1"
           style={{ height: "2.2rem", padding: "0 0.65rem", fontSize: "0.85rem" }}
         >
-          <span className="material-symbols-rounded">add</span>
+          <MdIcon name="add" size={18} />
           <span>Add</span>
         </Button>
       </div>

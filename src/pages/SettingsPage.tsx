@@ -28,6 +28,7 @@ import { downloadData, importData } from "../lib/dataTransfer";
 import { PageHeader, PageLayout } from "../components/PageLayout";
 import MdPalettePicker from "../components/md3/MdPalettePicker";
 import MdSegmentedButton from "../components/md3/MdSegmentedButton";
+import MdIcon from "../components/md3/MdIcon";
 import type { ThemeMode } from "../lib/themeManager";
 
 interface Setting {
@@ -50,7 +51,7 @@ function NumberSetting({ title, keyInterface, iconClass, unit }: Setting) {
           {iconClass.startsWith("bi-") || iconClass.startsWith("bi ") ? (
             <i className={iconClass}></i>
           ) : (
-            <span className="material-symbols-rounded">{iconClass}</span>
+            <MdIcon name={iconClass} size={18} />
           )}
         </InputGroup.Text>
         <Form.Control

@@ -3,6 +3,7 @@ import { Button, Form } from "react-bootstrap";
 import { getFullPrettyDate } from "../lib/timing";
 import type { Template } from "../models/types/interfaces";
 import { EmptyState } from "./PageLayout";
+import MdIcon from "./md3/MdIcon";
 
 export default function TemplateNameSearch({
   onInput,
@@ -50,7 +51,7 @@ export default function TemplateNameSearch({
     <div>
       <div className="d-flex justify-content-between align-items-center mb-2">
         <div className="app-card-title mb-0">
-          <span className="material-symbols-rounded text-primary">bookmarks</span>
+          <MdIcon name="bookmarks" className="text-primary" size={20} />
           <span>Meal Templates</span>
         </div>
         <span
@@ -65,7 +66,7 @@ export default function TemplateNameSearch({
       <Form onSubmit={(e: BaseSyntheticEvent) => e.preventDefault()}>
         <div className="input-group mb-2">
           <span className="input-group-text bg-body-tertiary border-end-0 text-muted">
-            <span className="material-symbols-rounded">search</span>
+            <MdIcon name="search" size={18} />
           </span>
           <Form.Control
             type="search"
@@ -85,7 +86,7 @@ export default function TemplateNameSearch({
               onClick={() => setQuery("")}
               title="Clear search"
             >
-              <span className="material-symbols-rounded" style={{ fontSize: "1.1rem" }}>close</span>
+              <MdIcon name="close" size={18} />
             </Button>
           )}
         </div>
@@ -139,7 +140,7 @@ export default function TemplateNameSearch({
                   title="Delete template"
                   aria-label={`Delete ${template.name}`}
                 >
-                  <span className="material-symbols-rounded">delete</span>
+                  <MdIcon name="delete" size={18} />
                 </button>
                 <button
                   type="button"
@@ -150,7 +151,7 @@ export default function TemplateNameSearch({
                   }}
                 >
                   <span>Use</span>
-                  <span className="material-symbols-rounded" style={{ fontSize: "1.1rem" }}>chevron_right</span>
+                  <MdIcon name="chevron_right" size={18} />
                 </button>
               </div>
             </div>

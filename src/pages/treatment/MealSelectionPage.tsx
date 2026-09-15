@@ -5,6 +5,7 @@ import Card from "../../components/Card";
 import WizardManager from "../../managers/wizardManager";
 import { WizardStore } from "../../storage/wizardStore";
 import { PageLayout } from "../../components/PageLayout";
+import MdIcon from "../../components/md3/MdIcon";
 
 export default function MealSelectionPage() {
   const navigate = useNavigate();
@@ -60,7 +61,7 @@ export default function MealSelectionPage() {
           style={{ borderRadius: "0.85rem" }}
           onClick={addTemplate}
         >
-          <span className="material-symbols-rounded">add</span>
+          <MdIcon name="add" size={18} />
           <span>New template</span>
         </Button>
         <Button
@@ -70,7 +71,7 @@ export default function MealSelectionPage() {
           onClick={skip}
         >
           <span>Skip naming</span>
-          <span className="material-symbols-rounded">arrow_forward</span>
+          <MdIcon name="arrow_forward" size={18} />
         </Button>
       </div>
 

@@ -12,6 +12,7 @@ import { useNow } from "../../state/useNow";
 import { WizardStore } from "../../storage/wizardStore";
 import Card from "../../components/Card";
 import { PreferencesStore } from "../../storage/preferencesStore";
+import MdIcon from "../../components/md3/MdIcon";
 
 export default function MealPage() {
   const [template] = WizardStore.template.useState();
@@ -64,7 +65,7 @@ export default function MealPage() {
 
       <Card>
         <div className="app-card-title">
-          <span className="material-symbols-rounded text-primary">tune</span>
+          <MdIcon name="tune" className="text-primary" size={20} />
           <span>Additional Nutrition</span>
         </div>
         <MealAdditionalNutrients meal={meal} />

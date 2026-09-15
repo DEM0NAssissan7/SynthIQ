@@ -28,6 +28,7 @@ import {
   PageLayout,
 } from "../../components/PageLayout";
 import WizardManager from "../../managers/wizardManager";
+import MdIcon from "../../components/md3/MdIcon";
 import { estimateDynamicISF } from "../../lib/helpers/estimateDynamicISF";
 
 export default function RescuePage() {
@@ -115,7 +116,7 @@ export default function RescuePage() {
       {/* Recommendation */}
       <Card>
         <div className="app-card-title">
-          <span className="material-symbols-rounded text-danger">health_and_safety</span>
+          <MdIcon name="health_and_safety" className="text-danger" size={20} />
           <span>Recommendation</span>
         </div>
         <MetricGrid>
@@ -131,7 +132,7 @@ export default function RescuePage() {
           lastRescueMinutes < 60 && (
             <div className="app-dosing-banner mt-3">
               <span className="dosing-label d-flex align-items-center gap-2">
-                <span className="material-symbols-rounded text-muted">history</span>
+                <MdIcon name="history" className="text-muted" size={18} />
                 <span>Last rescue</span>
               </span>
               <span className="dosing-value">
@@ -147,7 +148,7 @@ export default function RescuePage() {
       {/* Mark rescue */}
       <Card>
         <div className="app-card-title">
-          <span className="material-symbols-rounded text-primary">bolt</span>
+          <MdIcon name="bolt" className="text-primary" size={20} />
           <span>Mark rescue</span>
         </div>
         <BloodSugarInput
@@ -171,7 +172,7 @@ export default function RescuePage() {
         </Form.Select>
         <InputGroup className="mb-3">
           <InputGroup.Text id="basic-addon1">
-            <span className="material-symbols-rounded">pill</span>
+            <MdIcon name="pill" size={18} />
           </InputGroup.Text>
           <Form.Control
             type="number"

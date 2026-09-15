@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import MdIcon from "./MdIcon";
 
 export interface MdNavigationItemProps {
   label: string;
@@ -34,9 +35,7 @@ export function MdNavigationItem({
     >
       <div className="app-bottom-nav-indicator">
         {isMaterialSymbol ? (
-          <span className={`material-symbols-rounded ${isActive ? "fill" : ""}`}>
-            {displayIcon}
-          </span>
+          <MdIcon name={displayIcon} fill={isActive} size={24} />
         ) : (
           <i className={`bi ${displayIcon}`} />
         )}

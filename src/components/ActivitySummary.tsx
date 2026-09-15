@@ -7,6 +7,7 @@ import { roundByHalf } from "../lib/util";
 import { InsulinVariantManager } from "../managers/insulinVariantManager";
 import { RescueVariantManager } from "../managers/rescueVariantManager";
 import { getGlucoseCorrectionCaps } from "../lib/metabolism";
+import MdIcon from "./md3/MdIcon";
 
 interface ActivitySummaryProps {
   activity: Activity;
@@ -59,7 +60,7 @@ export default function ActivitySummary({
       <div className="app-discrete-header">
         <div>
           <h2 className="app-discrete-title">
-            <span className="material-symbols-rounded text-primary">directions_walk</span>
+            <MdIcon name="directions_walk" className="text-primary" size={20} />
             <span>{template.name}</span>
           </h2>
           <div className="app-discrete-subtitle">

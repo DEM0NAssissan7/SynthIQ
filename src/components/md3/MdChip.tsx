@@ -1,4 +1,5 @@
 import type { HTMLAttributes, ReactNode } from "react";
+import MdIcon from "./MdIcon";
 
 interface MdChipProps extends HTMLAttributes<HTMLDivElement> {
   label: ReactNode;
@@ -39,9 +40,7 @@ export default function MdChip({
         icon.startsWith("bi-") ? (
           <i className={`bi ${icon}`} />
         ) : (
-          <span className="material-symbols-rounded" style={{ fontSize: "18px" }}>
-            {icon}
-          </span>
+          <MdIcon name={icon} size={18} />
         )
       ) : (
         icon

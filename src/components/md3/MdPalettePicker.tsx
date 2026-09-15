@@ -6,6 +6,7 @@ import {
   getActiveSeedColor,
   setThemeSeedColor,
 } from "../../lib/dynamicTheme";
+import MdIcon from "./MdIcon";
 
 interface MdPalettePickerProps {
   className?: string;
@@ -57,13 +58,8 @@ export default function MdPalettePicker({
           Material You Palette
         </span>
         {isDynamicActive && (
-          <span className="badge rounded-pill bg-success-subtle text-success border border-success-subtle small px-2 py-1">
-            <span
-              className="material-symbols-rounded align-middle me-1"
-              style={{ fontSize: "14px" }}
-            >
-              check_circle
-            </span>
+          <span className="badge rounded-pill bg-success-subtle text-success border border-success-subtle small px-2 py-1 d-inline-flex align-items-center gap-1">
+            <MdIcon name="check_circle" size={14} />
             System Synced
           </span>
         )}
@@ -89,12 +85,7 @@ export default function MdPalettePicker({
                 style={{ backgroundColor: preset.hex }}
               >
                 {isSelected && (
-                  <span
-                    className="material-symbols-rounded"
-                    style={{ fontSize: "18px", color: "#ffffff" }}
-                  >
-                    check
-                  </span>
+                  <MdIcon name="check" size={18} style={{ color: "#ffffff" }} />
                 )}
               </div>
               <span className="md3-palette-label">{preset.name}</span>
@@ -113,12 +104,7 @@ export default function MdPalettePicker({
           }`}
           title="Auto-detect from OS wallpaper (ChromeOS/Android/PWA)"
         >
-          <span
-            className="material-symbols-rounded"
-            style={{ fontSize: "18px" }}
-          >
-            auto_awesome
-          </span>
+          <MdIcon name="auto_awesome" size={18} />
           <span>System (Auto)</span>
         </button>
 
@@ -148,11 +134,8 @@ export default function MdPalettePicker({
       {!compact && (
         <div className="md3-palette-hint small text-muted mt-2 p-2 rounded-3">
           <div className="d-flex gap-2 align-items-start">
-            <span
-              className="material-symbols-rounded text-primary"
-              style={{ fontSize: "18px", marginTop: "1px" }}
-            >
-              info
+            <span className="text-primary" style={{ marginTop: "2px" }}>
+              <MdIcon name="info" size={18} />
             </span>
             <span>
               Chromium protects privacy by isolating web tabs from OS wallpaper colors.

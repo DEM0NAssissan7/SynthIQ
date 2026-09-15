@@ -51,21 +51,7 @@ if (fs.existsSync(assetsDir)) {
   }
 }
 
-// Inject Material Symbols Rounded CDN if missing
-if (!html.includes("Material+Symbols+Rounded")) {
-  html = html.replace(
-    "</head>",
-    `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"></head>`
-  );
-}
 
-// Inject Bootstrap Icons CDN if missing
-if (!html.includes("bootstrap-icons")) {
-  html = html.replace(
-    "</head>",
-    `<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"></head>`
-  );
-}
 
 const targetPath = path.join(__dirname, "../src/bundledHtml.ts");
 const tsContent = `// Auto-generated standalone HTML bundle for Android WebView

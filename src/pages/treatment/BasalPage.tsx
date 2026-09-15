@@ -7,6 +7,7 @@ import {
   PageHeader,
   PageLayout,
 } from "../../components/PageLayout";
+import MdIcon from "../../components/md3/MdIcon";
 import {
   dosingChangeComplete,
   getBasalSensitivity,
@@ -115,7 +116,7 @@ export default function BasalPage() {
 
       <Card>
         <div className="app-card-title">
-          <span className="material-symbols-rounded text-primary">trending_up</span>
+          <MdIcon name="trending_up" className="text-primary" size={20} />
           <span>Basal analysis</span>
         </div>
         <MetricGrid>
@@ -147,12 +148,12 @@ export default function BasalPage() {
 
       <Card>
         <div className="app-card-title">
-          <span className="material-symbols-rounded text-primary">syringe</span>
+          <MdIcon name="syringe" className="text-primary" size={20} />
           <span>Quick mark</span>
         </div>
         <InputGroup className="mb-3">
           <InputGroup.Text id="basic-addon1">
-            <span className="material-symbols-rounded">syringe</span>
+            <MdIcon name="syringe" size={18} />
           </InputGroup.Text>
           <Form.Control
             placeholder={lastShot.toString()}
@@ -184,7 +185,7 @@ export default function BasalPage() {
 
       <Card>
         <div className="app-card-title">
-          <span className="material-symbols-rounded text-secondary">history</span>
+          <MdIcon name="history" className="text-secondary" size={20} />
           <span>Previous doses</span>
         </div>
         <div className="d-flex flex-column gap-1">

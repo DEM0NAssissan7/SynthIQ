@@ -4,6 +4,7 @@ import { getHoursMinutes, round } from "../lib/util";
 import type Insulin from "../models/events/insulin";
 import type Session from "../models/session";
 import useInsulin from "../state/useInsulin";
+import MdIcon from "./md3/MdIcon";
 
 interface AddedInsulinProps {
   insulin: Insulin;
@@ -37,7 +38,7 @@ export default function AddedInsulin({ insulin, session }: AddedInsulinProps) {
         <Form.Group controlId="insulin-amount" className="mb-3">
           <div className="input-group">
             <span className="input-group-text">
-              <span className="material-symbols-rounded">syringe</span>
+              <MdIcon name="syringe" size={18} />
             </span>
             <Form.Control
               type="number"
@@ -53,7 +54,7 @@ export default function AddedInsulin({ insulin, session }: AddedInsulinProps) {
         <Form.Group controlId="insulin-time" className="mb-3">
           <div className="input-group">
             <span className="input-group-text">
-              <span className="material-symbols-rounded">schedule</span>
+              <MdIcon name="schedule" size={18} />
             </span>
 
             <Form.Control

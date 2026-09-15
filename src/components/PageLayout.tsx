@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Button, Card, Container } from "react-bootstrap";
 import { useLocation, useNavigate } from "react-router";
+import MdIcon from "./md3/MdIcon";
 
 interface PageLayoutProps {
   children: ReactNode;
@@ -68,7 +69,7 @@ export function PageHeader({
               onClick={handleBack}
               aria-label="Go back"
             >
-              <span className="material-symbols-rounded">arrow_back</span>
+              <MdIcon name="arrow_back" size={24} />
             </button>
           )}
           <div className="flex-grow-1">
@@ -166,9 +167,7 @@ export function ActionCard({
             {icon.startsWith("bi-") ? (
               <i className={`bi ${icon} fs-4`} />
             ) : (
-              <span className="material-symbols-rounded" style={{ fontSize: "28px" }}>
-                {icon}
-              </span>
+              <MdIcon name={icon} size={28} />
             )}
           </div>
           <div className="flex-grow-1">

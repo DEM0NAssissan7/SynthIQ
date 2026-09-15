@@ -6,6 +6,7 @@ import { useMemo, useState, type BaseSyntheticEvent } from "react";
 import Unit, { getFoodUnitPrettyName } from "../models/unit";
 import { CustomStore } from "../storage/customStore";
 import { EmptyState, PageHeader, PageLayout } from "../components/PageLayout";
+import MdIcon from "../components/md3/MdIcon";
 
 export default function CustomFoodsPage() {
   const [customFoods] = CustomStore.foods.useState();
@@ -69,7 +70,7 @@ export default function CustomFoodsPage() {
       />
       <Card>
         <div className="app-card-title">
-          <span className="material-symbols-rounded">add_circle</span>
+          <MdIcon name="add_circle" size={20} />
           <span>New custom food</span>
         </div>
         <Form onSubmit={handleFormSubmit}>
@@ -178,7 +179,7 @@ export default function CustomFoodsPage() {
       </Card>
       <Card>
         <div className="app-card-title">
-          <span className="material-symbols-rounded">bookmarks</span>
+          <MdIcon name="bookmarks" size={20} />
           <span>Saved foods</span>
         </div>
         {customFoods.length === 0 && (

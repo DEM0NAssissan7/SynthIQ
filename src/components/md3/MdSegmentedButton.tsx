@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import MdIcon from "./MdIcon";
 
 export interface SegmentOption<T extends string | number> {
   value: T;
@@ -35,9 +36,7 @@ export default function MdSegmentedButton<T extends string | number>({
               opt.icon.startsWith("bi-") ? (
                 <i className={`bi ${opt.icon}`} />
               ) : (
-                <span className="material-symbols-rounded" style={{ fontSize: "18px" }}>
-                  {opt.icon}
-                </span>
+                <MdIcon name={opt.icon} size={18} />
               )
             ) : (
               opt.icon

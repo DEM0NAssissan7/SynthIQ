@@ -19,6 +19,7 @@ import {
   PageActions,
   PageLayout,
 } from "../../components/PageLayout";
+import MdIcon from "../../components/md3/MdIcon";
 
 interface DoseBreakdownItemProps {
   name: string;
@@ -29,12 +30,11 @@ function DoseBreakdownItem({ name, insulin }: DoseBreakdownItemProps) {
   return (
     <div className="app-dose-item">
       <span className="dose-name">
-        <span
-          className="material-symbols-rounded text-primary"
-          style={{ fontSize: "1.1rem" }}
-        >
-          syringe
-        </span>
+        <MdIcon
+          name="syringe"
+          className="text-primary"
+          size={18}
+        />
         <span>
           {name}
           {/* <span className="dose-sub ms-1">hi</span> */}
@@ -258,7 +258,7 @@ export default function InsulinPage() {
       <Card>
         <div className="d-flex justify-content-between align-items-center mb-2">
           <div className="app-card-title mb-0">
-            <span className="material-symbols-rounded text-primary">water_drop</span>
+            <MdIcon name="water_drop" className="text-primary" size={20} />
             <span>Recommendation</span>
           </div>
           <Form.Check
@@ -313,7 +313,7 @@ export default function InsulinPage() {
       {/* Mark insulin */}
       <Card>
         <div className="app-card-title">
-          <span className="material-symbols-rounded text-primary">syringe</span>
+          <MdIcon name="syringe" className="text-primary" size={20} />
           <span>Mark insulin</span>
         </div>
         {(!isFirstPostMealInjection || isCorrectionOnly) && (
@@ -326,7 +326,7 @@ export default function InsulinPage() {
         <InsulinVariantDropdown setVariant={setVariant} variant={variant} />
         <InputGroup className="mb-3">
           <InputGroup.Text id="basic-addon1">
-            <span className="material-symbols-rounded">syringe</span>
+            <MdIcon name="syringe" size={18} />
           </InputGroup.Text>
           <Form.Control
             type="number"

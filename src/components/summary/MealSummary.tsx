@@ -8,6 +8,7 @@ import Insulin from "../../models/events/insulin";
 import { useNow } from "../../state/useNow";
 import { getFullPrettyDate } from "../../lib/timing";
 import Card from "../Card";
+import MdIcon from "../md3/MdIcon";
 
 export interface MealSummaryProps {
   meal: Meal;
@@ -168,12 +169,11 @@ export const MealSummary: React.FC<MealSummaryProps> = ({
             {optimalInsulins.map((ins, idx) => (
               <div key={idx} className="app-dose-item">
                 <span className="dose-name">
-                  <span
-                    className="material-symbols-rounded text-primary"
-                    style={{ fontSize: "1.1rem" }}
-                  >
-                    syringe
-                  </span>
+                  <MdIcon
+                    name="syringe"
+                    className="text-primary"
+                    size={18}
+                  />
                   <span>
                     Dose {optimalInsulins.length > 1 ? idx + 1 : ""} (
                     {ins.variant.name})

@@ -1,5 +1,4 @@
 import { createRoot } from "react-dom/client";
-import "material-symbols/rounded.css";
 import "./index.scss";
 import App from "./App.tsx";
 
