@@ -136,12 +136,17 @@ export default class Snapshot extends Subscribable {
   private createContemporaryCalibration(value: number) {
     this.addReading(new SugarReading(value, new Date(), true));
   }
-  private deduplicate() {
+  deduplicate() {
     const deduplicated: SugarReading[] = [];
     this.rawReadings.forEach((reading) => {
       const readingTime = reading.timestamp.getTime();
-      for (const r of deduplicated) {
-        if (readingTime === r.timestamp.getTime()) return;
+      const existing = deduplicated.find(
+        (r) => r.timestamp.getTime() === readingTime,
+      );
+      if (existing) {
+        // If either reading was marked as calibration, keep calibration flag
+        if (reading.isCalibration) existing.isCalibration = true;
+        return;
       }
       deduplicated.push(reading);
     });
@@ -153,14 +158,24 @@ export default class Snapshot extends Subscribable {
     // Pull readings from backend
     if (!this.initialBG || !this.finalBG)
       throw new Error(`Cannot pull glucose readings: snapshot incomplete`);
-    const remoteReadings = await RemoteReadings.getReadings(
-      this.initialBG.timestamp,
-      this.finalBG.timestamp,
-    );
-    const rawReadings = remoteReadings.map((r) => getReadingFromNightscout(r));
-    if (PrivateStore.debugLogs.value) console.log(rawReadings);
-    rawReadings.forEach((r) => this.addReading(r, false));
-    this.notify();
+    try {
+      const remoteReadings = await RemoteReadings.getReadings(
+        this.initialBG.timestamp,
+        this.finalBG.timestamp,
+      );
+      const rawReadings = remoteReadings
+        .filter((r) => r && (r.sgv != null || r.mbg != null))
+        .map((r) => getReadingFromNightscout(r))
+        .filter((r) => !isNaN(r.sugar) && !isNaN(r.timestamp.getTime()));
+      if (PrivateStore.debugLogs.value) console.log(rawReadings);
+      rawReadings.forEach((r) => this.addReading(r, false));
+      this.deduplicate();
+      this.notify();
+    } catch (e) {
+      if (PrivateStore.debugLogs.value) {
+        console.error("Snapshot.pullReadings error:", e);
+      }
+    }
   }
 
   get initialBG(): SugarReading | null {

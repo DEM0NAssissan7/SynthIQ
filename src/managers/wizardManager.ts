@@ -47,7 +47,15 @@ export default class WizardManager {
     // Finalize and archive previous session if one was running
     if (oldSession.started && !oldSession.completed) {
       oldSession.finalBG = BG;
-      oldSession.snapshot.pullReadings();
+      oldSession.snapshot
+        .pullReadings()
+        .then(() => {
+          this.replaceTemplateToArray();
+          RemoteSessions.storeSession(oldSession);
+        })
+        .catch((e) =>
+          console.error("Error pulling readings on session transition:", e),
+        );
       if (oldSession.immature) {
         oldSession.isGarbage = true;
         newSession.isGarbage = true;
@@ -297,7 +305,12 @@ export default class WizardManager {
   static endSession(finalBG: number) {
     const session = WizardStore.session.value;
     session.finalBG = finalBG;
-    session.snapshot.pullReadings();
+    session.snapshot
+      .pullReadings()
+      .then(() => {
+        this.replaceTemplateToArray();
+      })
+      .catch((e) => console.error("Error pulling readings on endSession:", e));
   }
   static resetTemplate() {
     this.addSessionToActiveTemplate(WizardStore.session.value);

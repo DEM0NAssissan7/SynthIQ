@@ -33,14 +33,18 @@ export default class SugarReading {
 }
 
 export function getReadingFromNightscout(o: {
-  sgv: number; // Sensor Glucose Value
-  mbg: number; // Meter Blood Glucose (more accurate)
-  date: string;
+  sgv?: number; // Sensor Glucose Value
+  mbg?: number; // Meter Blood Glucose (more accurate)
+  date?: string | number;
+  dateString?: string;
+  type?: string;
 }): SugarReading {
-  const isCalibration = !!o.mbg;
+  const isCalibration = o.type === "mbg" || o.type === "cal" || (!!o.mbg && !o.sgv);
+  const val = o.mbg ?? o.sgv ?? 0;
+  const rawDate = o.dateString ?? o.date ?? 0;
   return new SugarReading(
-    round(o.mbg ?? o.sgv, 0),
-    new Date(o.date),
+    round(Number(val), 0),
+    new Date(rawDate),
     isCalibration,
   );
 }

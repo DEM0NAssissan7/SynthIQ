@@ -45,7 +45,7 @@ export default function BloodSugarInput({
     setIsPulling(true);
     RemoteReadings.getCurrentSugar()
       .then((g) => {
-        setGlucose(g.sugar, g.isCalibration || force);
+        if (g) setGlucose(g.sugar, g.isCalibration || force);
       })
       .finally(() => {
         setTimeout(() => setIsPulling(false), 400);

@@ -145,7 +145,8 @@ export namespace InsulinOptimizer {
     getInsulinVariant: (variant: InsulinVariant) => InsulinVariant,
     getRescueVariant: (variant: RescueVariant) => RescueVariant,
   ): [Insulin[], TreatmentWindow[]] {
-    if (windows.length === 0 || returnInsulins.length === 0) return [[], []];
+    if (windows.length === 0 || returnInsulins.length === 0)
+      return [returnInsulins, windows];
 
     // Set optimization target
     const targetBG = windows[0].initialBG; // Anchor to a target BG insteado of reducing per-window deltas
