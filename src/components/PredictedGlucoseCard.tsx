@@ -15,7 +15,7 @@ import { getBGVelocity, populateReadingCache } from "../lib/healthMonitor";
 import { round } from "../lib/util";
 
 export default function PredictedGlucoseCard() {
-  const now = useNow(1);
+  const now = useNow(5);
   const [readings] = HealthMonitorStore.readingsCache.useState();
   const [boluses] = HealthMonitorStore.recentBoluses.useState();
   const [targetBG] = PreferencesStore.targetBG.useState();
@@ -94,7 +94,7 @@ export default function PredictedGlucoseCard() {
         bg: "rgba(168, 103, 0, 0.12)",
       };
     }
-    if (Math.abs(predictedBG - target) <= 15) {
+    if (Math.abs(predictedBG - target) <= 10) {
       return {
         label: "On Target",
         color: "var(--app-status-target)",
