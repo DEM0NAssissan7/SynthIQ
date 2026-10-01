@@ -4,10 +4,11 @@
  * limit of Bateman.F as t approaches infinity is 1
  */
 export namespace Bateman {
-  export const completionConstant = 0.93;
+  export const completionConstant = 0.94;
   export function f(t: number, ka: number, ke: number) {
     if (t <= 0) return 0;
-    if (!Number.isFinite(ka) || !Number.isFinite(ke) || ka <= 0 || ke <= 0) return 0;
+    if (!Number.isFinite(ka) || !Number.isFinite(ke) || ka <= 0 || ke <= 0)
+      return 0;
     if (Math.abs(ka - ke) < 1e-12) {
       // Equal-rate case: use the CDF G(t) = Γ(2, kt) → k²·t·exp(-kt)
       const k = ka;
@@ -19,7 +20,8 @@ export namespace Bateman {
 
   export function F(t: number, ka: number, ke: number) {
     if (t <= 0) return 0;
-    if (!Number.isFinite(ka) || !Number.isFinite(ke) || ka <= 0 || ke <= 0) return 0;
+    if (!Number.isFinite(ka) || !Number.isFinite(ke) || ka <= 0 || ke <= 0)
+      return 0;
     if (Math.abs(ka - ke) < 1e-12) {
       // Equal-rate case: F(t) = 1 - (1 + kt)·exp(-kt)
       const k = ka;

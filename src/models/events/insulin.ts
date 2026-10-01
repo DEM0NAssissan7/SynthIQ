@@ -1,6 +1,5 @@
 import { getHourDiff } from "../../lib/timing";
 import { InsulinVariantManager } from "../../managers/insulinVariantManager";
-import { PreferencesStore } from "../../storage/preferencesStore";
 import { InsulinVariant } from "../types/insulinVariant";
 import type { Deserializer, Serializer } from "../types/types";
 import MetaEvent from "./metaEvent";
@@ -45,21 +44,15 @@ export default class Insulin extends MetaEvent implements ScalarMetaEvent {
 
   // Insulin Activity
   getActivityStatus(time: Date): boolean {
-    const iob = this.iob(time);
-    return (
-      iob * this.variant.effect >= PreferencesStore.insulinMinActivity.value
-    );
+    // Active while within 5 elimination half-lives (variant.duration)
+    return this.getHours(time) < this.variant.duration;
   }
   get isActive(): boolean {
     return this.getActivityStatus(new Date());
   }
   get duration(): number {
-    // This function return how long the insulin lasted in the system (retrospectively)
-    const completionPercent =
-      1 -
-      PreferencesStore.insulinMinActivity.value /
-        (this.value * this.variant.effect);
-    return this.variant.findCompletionTime(completionPercent);
+    // Fixed pharmacokinetic duration of the variant (independent of dose size)
+    return this.variant.duration;
   }
 
   // Serialization

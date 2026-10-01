@@ -299,12 +299,6 @@ export default function SettingsPage() {
           iconClass="schedule"
           unit="min"
         />
-        <NumberSetting
-          keyInterface={PreferencesStore.insulinMinActivity}
-          title="Minimum Useful Insulin Effect"
-          iconClass="medication"
-          unit="mg/dL"
-        />
         <ToggleSetting
           title="Predicted Blood Sugar Decimal Precision"
           keyInterface={PreferencesStore.decimalPredictedBG}

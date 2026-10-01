@@ -12,11 +12,7 @@ import type Insulin from "../models/events/insulin";
 import { getFastingVelocity, getDailyBasal, addNewBasal } from "../lib/basal";
 import { HealthMonitorStore } from "../storage/healthMonitorStore";
 import { ActivityManager } from "./activityManager";
-import {
-  addRecentBolus,
-  getEffectOnBoard,
-  setLastRescue,
-} from "../lib/healthMonitor";
+import { addRecentBolus, setLastRescue } from "../lib/healthMonitor";
 import { PreferencesStore } from "../storage/preferencesStore";
 
 export default class WizardManager {
@@ -25,9 +21,11 @@ export default class WizardManager {
       WizardStore.session.value.length < PreferencesStore.minSessionLength.value
     )
       return false;
-    if (getEffectOnBoard() < PreferencesStore.insulinMinActivity.value)
-      return true;
-    return false;
+    // Fasting when no boluses are currently active (< 5 half-lives remaining)
+    const hasActiveBolus = HealthMonitorStore.recentBoluses.value.some(
+      (b) => b.isActive,
+    );
+    return !hasActiveBolus;
   }
 
   // This manager deals with the session automation
