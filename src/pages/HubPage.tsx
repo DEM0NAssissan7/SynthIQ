@@ -2,7 +2,7 @@ import { basalIsDue } from "../lib/healthMonitor";
 import { useNow } from "../state/useNow";
 import { ActionCard, PageLayout } from "../components/PageLayout";
 import BasalCard from "../components/BasalCard";
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { ToggleButton } from "react-bootstrap";
 import LastBolusMessage from "../components/LastBolusMessage";
 import SessionSummary from "../components/summary/SessionSummary";
@@ -10,6 +10,7 @@ import { WizardStore } from "../storage/wizardStore";
 import Card from "../components/Card";
 import { useNavigate } from "react-router";
 import MdIcon from "../components/md3/MdIcon";
+import PredictedGlucoseCard from "../components/PredictedGlucoseCard";
 
 function HubPage() {
   const now = useNow(60);
@@ -19,7 +20,7 @@ function HubPage() {
   const navigate = useNavigate();
 
   const [dueForBasal, setDueForBasal] = useState(basalIsDue());
-  useMemo(() => {
+  useEffect(() => {
     setDueForBasal(basalIsDue());
   }, [now]);
   function editSession() {
@@ -34,6 +35,8 @@ function HubPage() {
 
   return (
     <PageLayout maxWidth="34rem">
+      <PredictedGlucoseCard />
+
       {dueForBasal && (
         <BasalCard dueForBasal={dueForBasal} setDueForBasal={setDueForBasal} />
       )}

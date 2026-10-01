@@ -210,6 +210,62 @@ body {
   transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1), fill 0.2s ease;
 }
 
+.spin-animation {
+  animation: app-spin 0.9s linear infinite;
+}
+
+@keyframes app-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Rolling Counter (Odometer / Reel) */
+.rolling-counter {
+  display: inline-flex;
+  align-items: baseline;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  user-select: none;
+}
+
+.rolling-digit-box {
+  display: inline-block;
+  height: 1.05em;
+  overflow: hidden;
+  vertical-align: top;
+  line-height: 1.05;
+  position: relative;
+}
+
+.rolling-digit-strip {
+  display: flex;
+  flex-direction: column;
+  will-change: transform;
+}
+
+.rolling-digit-strip-animating {
+  transition: transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.rolling-digit-item {
+  height: 1.05em;
+  line-height: 1.05;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.rolling-char {
+  display: inline-block;
+  line-height: 1.05;
+  vertical-align: top;
+}
+
 #root {
   display: flex;
   flex-direction: column;

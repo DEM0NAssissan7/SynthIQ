@@ -305,6 +305,10 @@ export default function SettingsPage() {
           iconClass="medication"
           unit="mg/dL"
         />
+        <ToggleSetting
+          title="Predicted Blood Sugar Decimal Precision"
+          keyInterface={PreferencesStore.decimalPredictedBG}
+        />
       </SettingsSection>
       <SettingsSection
         title="Sync mode"

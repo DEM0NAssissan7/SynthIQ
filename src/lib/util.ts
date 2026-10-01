@@ -50,6 +50,7 @@ export class MathUtil {
     return retval;
   }
   static mean(data: number[]): number {
+    if (data.length === 0) return 0;
     return this.sum(data) / data.length;
   }
   static median(data: number[]): number {

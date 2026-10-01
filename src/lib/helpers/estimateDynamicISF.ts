@@ -8,6 +8,8 @@ export function estimateDynamicISF(
 ): number {
   // The method here is to calculate what the total drop in
   const dynamicISFs: number[] = [];
+  if (readings.length === 0) return 0;
+  if (insulins.length === 0) return 0;
   const sortedReadings = readings
     .slice()
     .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
@@ -33,5 +35,6 @@ export function estimateDynamicISF(
     if (dynamicISF > 100) continue; // If this is pure garbage, discard it
     dynamicISFs.push(dynamicISF);
   }
-  return MathUtil.median(dynamicISFs); // Return the median ISF for all shots (note: median returns 0 for no values)
+  if (dynamicISFs.length === 0) return 0;
+  return MathUtil.median(dynamicISFs); // Return the median ISF for all shots (returns 0 for no values)
 }

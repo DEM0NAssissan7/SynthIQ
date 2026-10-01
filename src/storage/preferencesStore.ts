@@ -26,4 +26,5 @@ export namespace PreferencesStore {
   );
   export const themeSeedColor = node.add<string>("themeSeedColor", "system");
   export const learningRate = node.add<number>("learningRate", 30);
+  export const decimalPredictedBG = node.add("decimalPredictedBG", false);
 }

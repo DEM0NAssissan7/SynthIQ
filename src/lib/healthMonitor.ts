@@ -51,12 +51,12 @@ export async function populateReadingCache() {
 /** This function returns (mg/dL) / hr.
  * It describes how quickly blood sugar is moving based on the CGM readings
  */
-export function getBGVelocity() {
+export function getBGVelocity(count = 3) {
   const readings = HealthMonitorStore.readingsCache.value;
   const velocities = getBGVelocities(readings);
   if (velocities.length === 0) return 0;
   // We give the mean of all the velocities to smooth out jumps
-  return MathUtil.mean(velocities);
+  return MathUtil.mean(velocities.slice(0, count));
 }
 /**
  * Gives a time (in minutes) that the user will end up at or below critical blood sugar
