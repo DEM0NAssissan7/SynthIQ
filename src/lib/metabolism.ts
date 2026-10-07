@@ -1,4 +1,5 @@
 import { InsulinVariantManager } from "../managers/insulinVariantManager";
+import type Glucose from "../models/events/glucose";
 import type Insulin from "../models/events/insulin";
 import type { InsulinVariant } from "../models/types/insulinVariant";
 import type { RescueVariant } from "../models/types/rescueVariant";
@@ -53,6 +54,7 @@ export function getIntelligentGlucoseCorrection(
   variant: RescueVariant,
   readings: SugarReading[],
   insulinsOnBoard: Insulin[],
+  rescues: Glucose[],
 ) {
   /**
    * We consider the current BG velocity to last another 'actingMinutes' minutes (i.e. the max duration it takes for a rescue dose takes to work).
@@ -65,7 +67,7 @@ export function getIntelligentGlucoseCorrection(
   let velocityPredictedDrop = velocity * velocityHorizon;
   if (!Number.isFinite(velocityPredictedDrop)) velocityPredictedDrop = 0;
 
-  const dynamicISF = estimateDynamicISF(readings, insulinsOnBoard);
+  const dynamicISF = estimateDynamicISF(readings, insulinsOnBoard, rescues);
   const now = new Date();
   const future = getTimestampFromOffset(now, actingMinutes / 60);
   let insulinPredictedDrop = insulinsOnBoard.reduce(

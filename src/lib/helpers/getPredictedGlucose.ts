@@ -4,12 +4,12 @@
 
 import type SugarReading from "../../models/types/sugarReading";
 import Unit from "../../models/unit";
-import { BackendStore } from "../../storage/backendStore";
 import { HealthMonitorStore } from "../../storage/healthMonitorStore";
 import { getBGVelocity } from "../healthMonitor";
 import { getHourDiff } from "../timing";
 import { convertDimensions } from "../util";
 import { estimateDynamicISF } from "./estimateDynamicISF";
+import { hasTreatmentOverlap } from "./hasOverlap";
 
 export function getLatestReading(): SugarReading | null {
   const readingsCache = HealthMonitorStore.readingsCache.value;
@@ -25,13 +25,19 @@ export function getLatestReading(): SugarReading | null {
 export function getPredictedDelta(timestampA: Date, timestampB: Date): number {
   const readingsCache = HealthMonitorStore.readingsCache.value;
   const onBoardInsulins = HealthMonitorStore.recentBoluses.value;
-  const lastRescue = HealthMonitorStore.lastRescue.value;
-  const CGMDelay = BackendStore.cgmDelay.value; // CGM delay in minutes
-  const isRescueBound =
-    lastRescue.timestamp.getTime() +
-      CGMDelay * convertDimensions(Unit.Time.Minute, Unit.Time.Millis) <
-    timestampB.getTime();
-  const dynamicISF = estimateDynamicISF(readingsCache, onBoardInsulins);
+  const rescues = HealthMonitorStore.lastRescues.value;
+  let isRescueBound = false;
+  for (const rescue of rescues) {
+    isRescueBound =
+      hasTreatmentOverlap(timestampA, rescue, Unit.Time.Minute) ||
+      hasTreatmentOverlap(timestampB, rescue, Unit.Time.Minute);
+    if (isRescueBound) break;
+  }
+  const dynamicISF = estimateDynamicISF(
+    readingsCache,
+    onBoardInsulins,
+    rescues,
+  );
   const velocity = getBGVelocity(isRescueBound ? 2 : undefined);
 
   const velocityPredictedDelta = velocity * getHourDiff(timestampB, timestampA);

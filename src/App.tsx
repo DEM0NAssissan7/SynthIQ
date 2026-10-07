@@ -10,10 +10,7 @@ import StatisticsPage from "./pages/StatisticsPage";
 
 import WizardEditPage from "./pages/wizard/WizardEditPage";
 import RescuePage from "./pages/treatment/RescuePage";
-import {
-  cleanInactivePreviousBoluses,
-  updateHealthMonitorStatus,
-} from "./lib/healthMonitor";
+import { updateHealthMonitorStatus } from "./lib/healthMonitor";
 import Backend from "./lib/remote/backend";
 import RemoteStorage from "./lib/remote/storage";
 import BasalPage from "./pages/treatment/BasalPage";
@@ -62,9 +59,6 @@ function App() {
   useEffect(() => {
     // Update health monitor status cache
     updateHealthMonitorStatus();
-
-    // Clean up inactive boluses
-    cleanInactivePreviousBoluses();
 
     (async () => {
       // Synchronize master/slave state (if set)

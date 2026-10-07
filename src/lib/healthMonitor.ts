@@ -35,8 +35,9 @@ import type { InsulinVariant } from "../models/types/insulinVariant";
 
 /** Poll nightscout to fill the reading cache */
 export async function populateReadingCache() {
-  const readingsCacheSize = HealthMonitorStore.readingsCacheSize.value;
-  const rawReadings = await RemoteReadings.getLatestReadings(readingsCacheSize);
+  const rawReadings = await RemoteReadings.getLatestReadings(
+    HealthMonitorStore.readingsCacheSize,
+  );
   if (rawReadings) {
     const readings = rawReadings.map((r: any) =>
       getReadingFromNightscout(r),
@@ -75,18 +76,28 @@ export function setLastRescue(
   variant: RescueVariant,
   timestamp = new Date(),
 ) {
-  HealthMonitorStore.lastRescue.value = new Glucose(amount, timestamp, variant);
+  const glucose = new Glucose(amount, timestamp, variant);
+  HealthMonitorStore.lastRescues.value = [
+    glucose,
+    ...HealthMonitorStore.lastRescues.value,
+  ].slice(0, Math.max(0, HealthMonitorStore.numLastRescues));
 }
 
+export function getLastRescue(): Glucose | null {
+  const lastRescues = HealthMonitorStore.lastRescues.value;
+  if (lastRescues.length === 0) return null;
+  return lastRescues[0];
+}
 export function getLastRescueMinutes() {
-  const minuteDiff = round(
-    getMinuteDiff(new Date(), HealthMonitorStore.lastRescue.value.timestamp),
-    0,
-  );
+  const lastRescue = getLastRescue();
+  if (!lastRescue) return Infinity;
+  const minuteDiff = round(getMinuteDiff(new Date(), lastRescue.timestamp), 0);
   return minuteDiff;
 }
 export function getLastRescueCaps() {
-  return HealthMonitorStore.lastRescue.value.value;
+  const lastRescue = getLastRescue();
+  if (!lastRescue) return 0;
+  return lastRescue.value;
 }
 
 function getLatestBasal() {
@@ -106,21 +117,16 @@ export function addRecentBolus(
   timestamp = new Date(),
 ) {
   HealthMonitorStore.recentBoluses.value = [
-    ...HealthMonitorStore.recentBoluses.value,
     new Insulin(units, timestamp, variant),
-  ];
-}
-export function cleanInactivePreviousBoluses() {
-  const recentBoluses = HealthMonitorStore.recentBoluses.value;
-  // Filter by only currently active boluses
-  HealthMonitorStore.recentBoluses.value = recentBoluses.filter(
-    (insulin) => insulin.isActive,
-  );
+    ...HealthMonitorStore.recentBoluses.value,
+  ].slice(0, HealthMonitorStore.numRecentBoluses);
 }
 export function getLatestBolus() {
   const recentBoluses = HealthMonitorStore.recentBoluses.value;
   if (recentBoluses.length === 0) return null;
-  return recentBoluses[recentBoluses.length - 1];
+  return recentBoluses
+    .slice()
+    .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
 }
 export function getIOB(time = new Date()) {
   const onBoardInsulins = HealthMonitorStore.recentBoluses.value;

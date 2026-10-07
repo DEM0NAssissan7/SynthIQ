@@ -13,6 +13,7 @@ import {
   populateReadingCache,
   getBGVelocity,
   getLastRescueMinutes,
+  getLastRescue,
 } from "../../lib/healthMonitor";
 import { HealthMonitorStore } from "../../storage/healthMonitorStore";
 import { PreferencesStore } from "../../storage/preferencesStore";
@@ -38,6 +39,7 @@ export default function RescuePage() {
   const [variant, setVariant] = useState(RescueVariantManager.getDefault());
   const [readings] = HealthMonitorStore.readingsCache.useState();
   const [insulinsOnBoard] = HealthMonitorStore.recentBoluses.useState();
+  const [rescues] = HealthMonitorStore.lastRescues.useState();
 
   const correction = useMemo(() => {
     return currentBG
@@ -67,16 +69,17 @@ export default function RescuePage() {
             variant,
             readings,
             insulinsOnBoard,
+            rescues,
           ),
           true,
         ),
       );
     });
     setIntelligentCorrection(correction); // Fallback if there is no CGM data
-  }, [currentBG, variant, updated, correction]);
+  }, [currentBG, variant, updated, correction, rescues]);
   const dynamicISF = useMemo(
-    () => estimateDynamicISF(readings, insulinsOnBoard),
-    [readings, insulinsOnBoard],
+    () => estimateDynamicISF(readings, insulinsOnBoard, rescues),
+    [readings, insulinsOnBoard, rescues],
   );
 
   const displayRange =
@@ -87,6 +90,7 @@ export default function RescuePage() {
   const dropVelocity = getBGVelocity();
   const dropRate = `${Math.round(Math.abs(dropVelocity) / 60)} pts/min`;
   const lastRescueMinutes = getLastRescueMinutes();
+  const lastRescue = getLastRescue();
 
   const navigate = useNavigate();
   function goBack() {
@@ -128,21 +132,18 @@ export default function RescuePage() {
           <MetricPill label="Dynamic ISF" value={`${Math.round(dynamicISF)}`} />
         </MetricGrid>
         <HealthMonitorMessage />
-        {HealthMonitorStore.lastRescue.value.value > 0 &&
-          lastRescueMinutes < 60 && (
-            <div className="app-dosing-banner mt-3">
-              <span className="dosing-label d-flex align-items-center gap-2">
-                <MdIcon name="history" className="text-muted" size={18} />
-                <span>Last rescue</span>
-              </span>
-              <span className="dosing-value">
-                {HealthMonitorStore.lastRescue.value.value} {variant.unitLetter}
-                <span className="dosing-note">
-                  ({lastRescueMinutes} min ago)
-                </span>
-              </span>
-            </div>
-          )}
+        {lastRescue && lastRescue.value > 0 && lastRescueMinutes < 60 && (
+          <div className="app-dosing-banner mt-3">
+            <span className="dosing-label d-flex align-items-center gap-2">
+              <MdIcon name="history" className="text-muted" size={18} />
+              <span>Last rescue</span>
+            </span>
+            <span className="dosing-value">
+              {lastRescue.value} {lastRescue.variant.unitLetter}
+              <span className="dosing-note">({lastRescueMinutes} min ago)</span>
+            </span>
+          </div>
+        )}
       </Card>
 
       {/* Mark rescue */}
