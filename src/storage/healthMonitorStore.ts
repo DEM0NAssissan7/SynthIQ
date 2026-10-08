@@ -37,7 +37,7 @@ export namespace HealthMonitorStore {
     (a) => getStatusName(a),
     (s) => getStatusFromName(s),
   );
-  export const readingsCacheSize = 24;
+  export const readingsCacheSize = 12;
   export const currentBG = node.add("currentBG", 83);
   export const timeBetweenShots = node.add("timeBetweenShots", 15);
   export const dropTime = node.add("dropTime", 20);
