@@ -28,9 +28,14 @@ function HubPage() {
   }
   function setGarbage(value: boolean) {
     if (value === true) {
-      if (confirm("Do you want to mark this session as unreliable?"))
+      if (confirm("Do you want to mark this session as unreliable?")) {
         session.isGarbage = value;
-    } else session.isGarbage = value;
+        WizardStore.session.write();
+      }
+    } else {
+      session.isGarbage = value;
+      WizardStore.session.write();
+    }
   }
 
   return (

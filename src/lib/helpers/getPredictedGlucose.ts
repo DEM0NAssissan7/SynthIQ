@@ -34,7 +34,6 @@ export function getPredictedGlucose(
    */
   // First we look into the past to get our weighted avg velocity
   let velocity: number | null = null;
-  let refBG: number | null = null;
   for (let i = 0; i < sortedReadings.length - 1; i++) {
     const reading = sortedReadings[i];
     const nextReading = sortedReadings[i + 1];
@@ -44,7 +43,6 @@ export function getPredictedGlucose(
     if (dt <= 0) continue;
     if (velocity === null) {
       velocity = (nextReading.sugar - reading.sugar) / dt;
-      refBG = nextReading.sugar;
       continue;
     }
 
@@ -61,16 +59,23 @@ export function getPredictedGlucose(
     const deltaBG = smoothedBG - reading.sugar;
     const decayedPriorVelocity: number = velocity * Math.pow(PHI, periods);
     velocity = (deltaBG / dt) * beta + decayedPriorVelocity * (1 - beta);
-    refBG = smoothedBG;
   }
-  if (velocity === null || refBG === null) return null;
+  if (velocity === null || !Number.isFinite(velocity)) return null;
 
-  // Predict future BG
-  const finalTimestamp = sortedReadings[sortedReadings.length - 1].timestamp;
+  // Predict future BG anchored to the latest actual reading
+  const finalReading = sortedReadings[sortedReadings.length - 1];
+  const finalTimestamp = finalReading.timestamp;
   const deltaTime =
     (timestamp.getTime() - finalTimestamp.getTime()) *
     convertDimensions(Unit.Time.Millis, Unit.Time.Minute);
+
+  if (deltaTime <= 0) {
+    return finalReading.sugar;
+  }
+
   const predicted =
-    refBG + getIntegratedDelta(velocity * PERIOD, deltaTime / PERIOD, PHI);
-  return predicted;
+    finalReading.sugar +
+    getIntegratedDelta(velocity * PERIOD, deltaTime / PERIOD, PHI);
+
+  return Number.isFinite(predicted) ? predicted : finalReading.sugar;
 }

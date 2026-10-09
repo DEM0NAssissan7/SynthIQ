@@ -62,9 +62,20 @@ export function getLatestReading(): SugarReading | null {
 /** This function returns (mg/dL) / hr.
  * It describes how quickly blood sugar is moving based on the CGM readings
  */
-export function getBGVelocity(count = 3) {
-  const readings = HealthMonitorStore.readingsCache.value;
-  const velocities = getBGVelocities(readings);
+export function getBGVelocity(
+  readingsOrCount?: SugarReading[] | number,
+  maybeCount: number = 3,
+) {
+  let readings: SugarReading[] | undefined;
+  let count = 3;
+  if (Array.isArray(readingsOrCount)) {
+    readings = readingsOrCount;
+    count = maybeCount;
+  } else if (typeof readingsOrCount === "number") {
+    count = readingsOrCount;
+  }
+  const list = readings ?? HealthMonitorStore.readingsCache.value;
+  const velocities = getBGVelocities(list);
   if (velocities.length === 0) return 0;
   // We give the mean of all the velocities to smooth out jumps
   return MathUtil.mean(velocities.slice(0, count));

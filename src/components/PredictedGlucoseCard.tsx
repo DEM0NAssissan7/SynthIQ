@@ -44,13 +44,13 @@ export default function PredictedGlucoseCard() {
   }, [now, readings]);
 
   const delta = useMemo(() => {
-    if (!anchor || !predictedBG) return 0;
+    if (!anchor || predictedBG === null || !Number.isFinite(predictedBG))
+      return 0;
     return predictedBG - anchor.sugar;
   }, [predictedBG, anchor]);
 
   const velocity = useMemo(() => {
-    void readings;
-    return getBGVelocity();
+    return getBGVelocity(readings);
   }, [readings]);
 
   const minutesAgo = useMemo(() => {

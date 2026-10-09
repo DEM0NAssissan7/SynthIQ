@@ -15,35 +15,61 @@ const DIGITS = [
 const BASE_INDEX = 10;
 
 function RollingDigitColumn({ digit }: { digit: number }) {
-  const [index, setIndex] = useState(BASE_INDEX + digit);
-  const [animating, setAnimating] = useState(true);
-  const prevDigitRef = useRef(digit);
+  const safeDigit = Math.max(0, Math.min(9, Math.floor(digit || 0)));
+  const [index, setIndex] = useState(BASE_INDEX + safeDigit);
+  const [animating, setAnimating] = useState(false);
+  const prevDigitRef = useRef(safeDigit);
 
   useEffect(() => {
     const prev = prevDigitRef.current;
-    if (prev === digit) return;
-    prevDigitRef.current = digit;
+    if (prev === safeDigit) return;
+    prevDigitRef.current = safeDigit;
 
-    let delta = digit - prev;
+    // If tab is in background or prefers reduced motion, update silently without transition
+    if (
+      typeof document !== "undefined" &&
+      (document.hidden ||
+        window.matchMedia?.("(prefers-reduced-motion: reduce)").matches)
+    ) {
+      setAnimating(false);
+      setIndex(BASE_INDEX + safeDigit);
+      return;
+    }
+
+    let delta = safeDigit - prev;
     if (delta > 5) delta -= 10;
     if (delta < -5) delta += 10;
 
     setAnimating(true);
-    setIndex((curr) => curr + delta);
-  }, [digit]);
+    setIndex((curr) => {
+      const next = curr + delta;
+      return Math.max(0, Math.min(DIGITS.length - 1, next));
+    });
 
-  const handleTransitionEnd = () => {
+    // Safety timeout: if onTransitionEnd is skipped (backgrounded tab, dropped frame), normalize
+    const timer = setTimeout(() => {
+      setAnimating(false);
+      setIndex(BASE_INDEX + safeDigit);
+    }, 700);
+
+    return () => clearTimeout(timer);
+  }, [safeDigit]);
+
+  const handleTransitionEnd = (e: React.TransitionEvent<HTMLSpanElement>) => {
+    if (e.target !== e.currentTarget) return;
     // Normalize index silently back to middle range without animation
     setAnimating(false);
-    setIndex(BASE_INDEX + digit);
+    setIndex(BASE_INDEX + safeDigit);
   };
+
+  const clampedIndex = Math.max(0, Math.min(DIGITS.length - 1, index));
 
   return (
     <span className="rolling-digit-box">
       <span
         className={`rolling-digit-strip ${animating ? "rolling-digit-strip-animating" : ""}`}
         style={{
-          transform: `translateY(-${(index / DIGITS.length) * 100}%)`,
+          transform: `translateY(-${(clampedIndex / DIGITS.length) * 100}%)`,
         }}
         onTransitionEnd={handleTransitionEnd}
       >
