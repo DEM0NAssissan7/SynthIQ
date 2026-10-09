@@ -5,11 +5,7 @@ import RollingCounter from "./RollingCounter";
 import { HealthMonitorStore } from "../storage/healthMonitorStore";
 import { PreferencesStore } from "../storage/preferencesStore";
 import { useNow } from "../state/useNow";
-import {
-  getLatestReading,
-  getPredictedDelta,
-  getPredictedGlucose,
-} from "../lib/helpers/getPredictedGlucose";
+import { getPredictedGlucose } from "../lib/helpers/getPredictedGlucose";
 import { getFormattedTime, getHourDiff, getMinuteDiff } from "../lib/timing";
 import { getBGVelocity, populateReadingCache } from "../lib/healthMonitor";
 import { round } from "../lib/util";
@@ -17,7 +13,6 @@ import { round } from "../lib/util";
 export default function PredictedGlucoseCard() {
   const now = useNow(5);
   const [readings] = HealthMonitorStore.readingsCache.useState();
-  const [boluses] = HealthMonitorStore.recentBoluses.useState();
   const [targetBG] = PreferencesStore.targetBG.useState();
   const [lowBG] = PreferencesStore.lowBG.useState();
   const [highBG] = PreferencesStore.highBG.useState();
@@ -39,22 +34,19 @@ export default function PredictedGlucoseCard() {
   };
 
   const anchor = useMemo(() => {
-    void readings;
-    return getLatestReading();
+    return readings
+      .slice()
+      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
   }, [readings]);
 
   const predictedBG = useMemo(() => {
-    void readings;
-    void boluses;
-    return getPredictedGlucose(now);
-  }, [now, readings, boluses]);
+    return getPredictedGlucose(readings, now);
+  }, [now, readings]);
 
   const delta = useMemo(() => {
-    void readings;
-    void boluses;
-    if (!anchor) return 0;
-    return getPredictedDelta(anchor.timestamp, now);
-  }, [now, readings, boluses, anchor]);
+    if (!anchor || !predictedBG) return 0;
+    return predictedBG - anchor.sugar;
+  }, [predictedBG, anchor]);
 
   const velocity = useMemo(() => {
     void readings;

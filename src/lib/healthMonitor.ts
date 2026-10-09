@@ -48,6 +48,16 @@ export async function populateReadingCache() {
   }
   return null;
 }
+export function getLatestReading(): SugarReading | null {
+  const readingsCache = HealthMonitorStore.readingsCache.value;
+  if (readingsCache.length === 0) return null;
+  let latestReading: SugarReading = readingsCache[0];
+  for (const reading of readingsCache) {
+    if (reading.timestamp.getTime() > latestReading.timestamp.getTime())
+      latestReading = reading;
+  }
+  return latestReading;
+}
 
 /** This function returns (mg/dL) / hr.
  * It describes how quickly blood sugar is moving based on the CGM readings

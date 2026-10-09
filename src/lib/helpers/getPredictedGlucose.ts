@@ -4,73 +4,74 @@
 
 import type SugarReading from "../../models/types/sugarReading";
 import Unit from "../../models/unit";
-import { HealthMonitorStore } from "../../storage/healthMonitorStore";
-import { getBGVelocity } from "../healthMonitor";
-import { getHourDiff } from "../timing";
 import { convertDimensions } from "../util";
-import { estimateDynamicISF } from "./estimateDynamicISF";
-import { hasTreatmentOverlap } from "./hasOverlap";
 
-export function getLatestReading(): SugarReading | null {
-  const readingsCache = HealthMonitorStore.readingsCache.value;
-  if (readingsCache.length === 0) return null;
-  let latestReading: SugarReading = readingsCache[0];
-  for (const reading of readingsCache) {
-    if (reading.timestamp.getTime() > latestReading.timestamp.getTime())
-      latestReading = reading;
-  }
-  return latestReading;
-}
+const ALPHA = 0.85; // CGM Smoothing factor (1 is no smoothing)
+const BETA = 0.35; // Velocity change damping factor (1 means velocity changes instantly)
+const PHI = 0.8; // Moving velocity decay constant (1 means no velocity decay)
+const PERIOD = 5;
 
-export function getPredictedDelta(timestampA: Date, timestampB: Date): number {
-  const readingsCache = HealthMonitorStore.readingsCache.value;
-  const onBoardInsulins = HealthMonitorStore.recentBoluses.value;
-  const rescues = HealthMonitorStore.lastRescues.value;
-  let isRescueBound = false;
-  for (const rescue of rescues) {
-    isRescueBound =
-      hasTreatmentOverlap(timestampA, rescue, Unit.Time.Minute) ||
-      hasTreatmentOverlap(timestampB, rescue, Unit.Time.Minute);
-    if (isRescueBound) break;
-  }
-  const dynamicISF = estimateDynamicISF(
-    readingsCache,
-    onBoardInsulins,
-    rescues,
+function getIntegratedDelta(
+  velocityPerPeriod: number,
+  periods: number,
+  phi: number,
+): number {
+  if (periods <= 0) return 0;
+  // Closed-form integral: v0 * (phi / (1 - phi)) * (1 - phi^periods)
+  return (
+    velocityPerPeriod * (phi / (1.0 - phi)) * (1.0 - Math.pow(phi, periods))
   );
-  const velocity = getBGVelocity(isRescueBound ? 2 : undefined);
-
-  const velocityPredictedDelta = velocity * getHourDiff(timestampB, timestampA);
-  const insulinPredictedDelta = isRescueBound
-    ? 0
-    : onBoardInsulins.reduce(
-        (n, insulin) =>
-          n - insulin.batemanIntegral(timestampA, timestampB) * dynamicISF,
-        0,
-      );
-
-  if (velocityPredictedDelta <= 0)
-    // Case 1: Both are falling - use the lowest dropping from the two of them
-    return Math.min(velocityPredictedDelta, insulinPredictedDelta);
-
-  // Case 2: Velocity says BG is rising - the insulin drop fights it
-  return velocityPredictedDelta + insulinPredictedDelta;
 }
 
-export function getPredictedGlucose(timestamp: Date): number | null {
-  const anchor = getLatestReading();
-  if (!anchor) return null;
-  // We run an integration sampling every 10 seconds
-  const interval = 10 * convertDimensions(Unit.Time.Second, Unit.Time.Millis);
-  let deltaSum = 0;
-  for (
-    let i = anchor.timestamp.getTime();
-    i < timestamp.getTime();
-    i += interval
-  ) {
-    const timestampA = new Date(anchor.timestamp.getTime() + i);
-    const timestampB = new Date(anchor.timestamp.getTime() + i + interval);
-    deltaSum += getPredictedDelta(timestampA, timestampB);
+export function getPredictedGlucose(
+  readings: SugarReading[],
+  timestamp: Date,
+): number | null {
+  if (readings.length < 2) return null;
+  const sortedReadings = readings
+    .slice()
+    .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+  /**
+   * The model works with a moving average
+   */
+  // First we look into the past to get our weighted avg velocity
+  let velocity: number | null = null;
+  let refBG: number | null = null;
+  for (let i = 0; i < sortedReadings.length - 1; i++) {
+    const reading = sortedReadings[i];
+    const nextReading = sortedReadings[i + 1];
+    const dt =
+      (nextReading.timestamp.getTime() - reading.timestamp.getTime()) *
+      convertDimensions(Unit.Time.Millis, Unit.Time.Minute);
+    if (dt <= 0) continue;
+    if (velocity === null) {
+      velocity = (nextReading.sugar - reading.sugar) / dt;
+      continue;
+    }
+
+    // Coefficient scaling
+    const periods = dt / PERIOD;
+    const alpha = 1 - Math.pow(1 - ALPHA, periods);
+    const beta = 1 - Math.pow(1 - BETA, periods);
+
+    const modelPredictedBG =
+      reading.sugar + getIntegratedDelta(velocity * PERIOD, periods, PHI);
+    const smoothedBG: number =
+      nextReading.sugar * alpha + modelPredictedBG * (1 - alpha);
+
+    const deltaBG = smoothedBG - reading.sugar;
+    const decayedPriorVelocity: number = velocity * Math.pow(PHI, periods);
+    velocity = (deltaBG / dt) * beta + decayedPriorVelocity * (1 - beta);
+    refBG = smoothedBG;
   }
-  return anchor.sugar + deltaSum;
+  if (!velocity || !refBG) return null;
+
+  // Predict future BG
+  const finalTimestamp = sortedReadings[sortedReadings.length - 1].timestamp;
+  const deltaTime =
+    (timestamp.getTime() - finalTimestamp.getTime()) *
+    convertDimensions(Unit.Time.Millis, Unit.Time.Minute);
+  const predicted =
+    refBG + getIntegratedDelta(velocity * PERIOD, deltaTime / PERIOD, PHI);
+  return predicted;
 }
