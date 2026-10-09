@@ -13685,4 +13685,32 @@ input[type=search]::-webkit-search-results-decoration {
   line-height: 1.4;
 }
 
+.pwa-update-toast {
+  position: fixed;
+  bottom: calc(var(--bottom-nav-height, 72px) + 16px);
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--md-sys-color-inverse-surface, #1e293b);
+  color: var(--md-sys-color-inverse-on-surface, #ffffff);
+  padding: 10px 20px;
+  border-radius: 9999px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(8px);
+  z-index: 9999;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s ease, transform 0.25s ease, visibility 0.25s;
+  pointer-events: none;
+  text-align: center;
+  max-width: 90vw;
+  white-space: nowrap;
+}
+.pwa-update-toast.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
 /*# sourceMappingURL=index.css.map */
