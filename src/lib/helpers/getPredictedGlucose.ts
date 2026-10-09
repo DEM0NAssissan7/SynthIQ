@@ -18,9 +18,7 @@ function getIntegratedDelta(
 ): number {
   if (periods <= 0) return 0;
   // Closed-form integral: v0 * (phi / (1 - phi)) * (1 - phi^periods)
-  return (
-    velocityPerPeriod * (phi / (1.0 - phi)) * (1.0 - Math.pow(phi, periods))
-  );
+  return (velocityPerPeriod / (1.0 - phi)) * (1.0 - Math.pow(phi, periods));
 }
 
 export function getPredictedGlucose(
@@ -46,6 +44,7 @@ export function getPredictedGlucose(
     if (dt <= 0) continue;
     if (velocity === null) {
       velocity = (nextReading.sugar - reading.sugar) / dt;
+      refBG = nextReading.sugar;
       continue;
     }
 
@@ -64,7 +63,7 @@ export function getPredictedGlucose(
     velocity = (deltaBG / dt) * beta + decayedPriorVelocity * (1 - beta);
     refBG = smoothedBG;
   }
-  if (!velocity || !refBG) return null;
+  if (velocity === null || refBG === null) return null;
 
   // Predict future BG
   const finalTimestamp = sortedReadings[sortedReadings.length - 1].timestamp;
