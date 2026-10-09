@@ -1,58 +1,58 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import { VitePWA } from 'vite-plugin-pwa'
-import { execSync } from 'node:child_process'
-import fs from 'node:fs'
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import { VitePWA } from "vite-plugin-pwa";
+import { execSync } from "node:child_process";
+import fs from "node:fs";
 
 function getVersion(): string {
   try {
     const pkg = JSON.parse(
-      fs.readFileSync(new URL('./package.json', import.meta.url), 'utf-8')
-    )
-    return pkg.version || '0.2.0'
+      fs.readFileSync(new URL("./package.json", import.meta.url), "utf-8"),
+    );
+    return pkg.version || "0.2.1";
   } catch {
-    return '0.2.0'
+    return "0.2.1";
   }
 }
 
 function getCommitHash(): string {
   try {
-    return execSync('git rev-parse --short HEAD').toString().trim()
+    return execSync("git rev-parse --short HEAD").toString().trim();
   } catch {
-    return ''
+    return "";
   }
 }
 
-const appVersion = process.env.VITE_APP_VERSION || getVersion()
-const commitHash = process.env.VITE_COMMIT_HASH || getCommitHash()
+const appVersion = process.env.VITE_APP_VERSION || getVersion();
+const commitHash = process.env.VITE_COMMIT_HASH || getCommitHash();
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
-      injectRegister: 'auto',
-      includeAssets: ['favicon.png', 'manifest.json'],
+      registerType: "autoUpdate",
+      injectRegister: "auto",
+      includeAssets: ["favicon.png", "manifest.json"],
       manifest: {
-        name: 'SynthIQ',
-        short_name: 'SynthIQ',
-        description: 'Web-based diabetic command center',
-        theme_color: '#0f172a',
-        background_color: '#0f172a',
-        display: 'standalone',
-        start_url: '/',
+        name: "SynthIQ",
+        short_name: "SynthIQ",
+        description: "Web-based diabetic command center",
+        theme_color: "#0f172a",
+        background_color: "#0f172a",
+        display: "standalone",
+        start_url: "/",
         icons: [
           {
-            src: '/favicon.png',
-            sizes: '512x512',
-            type: 'image/png',
+            src: "/favicon.png",
+            sizes: "512x512",
+            type: "image/png",
           },
         ],
       },
       workbox: {
         maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,woff}'],
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2,woff}"],
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,
@@ -63,6 +63,4 @@ export default defineConfig({
     __APP_VERSION__: JSON.stringify(appVersion),
     __COMMIT_HASH__: JSON.stringify(commitHash),
   },
-})
-
-
+});
