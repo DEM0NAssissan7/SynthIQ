@@ -9,6 +9,7 @@ function estimateDynamicMetabolicActivity(
   readings: SugarReading[],
   insulins: Insulin[],
   rescues: Glucose[],
+  clamp = true,
 ): [number, number] {
   if (readings.length === 0) return [0, 0];
   const sortedReadings = readings
@@ -63,8 +64,8 @@ function estimateDynamicMetabolicActivity(
   const fastingBGRate =
     sumFastingDt !== 0 ? sumFastingDeltaBG / sumFastingDt : 0;
 
-  // Safeguard
-  if (sumUnits === 0 || sumDeltaBG > 0) return [0, fastingBGRate];
+  // Clamping
+  if (clamp && (sumUnits === 0 || sumDeltaBG > 0)) return [0, fastingBGRate];
 
   /**
    * Now that we have the raw deltas and the fasting BG rates,
