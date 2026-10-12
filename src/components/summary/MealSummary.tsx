@@ -9,14 +9,21 @@ import { useNow } from "../../state/useNow";
 import { getFullPrettyDate } from "../../lib/timing";
 import Card from "../Card";
 import MdIcon from "../md3/MdIcon";
+import type Session from "../../models/session";
+import {
+  deriveInsulinPipelines,
+  getProfileInsulin,
+} from "../../lib/insulinPipeline";
 
 export interface MealSummaryProps {
   meal: Meal;
   mealName: string;
+  session?: Session;
   template: MealTemplate;
   contained?: boolean;
   className?: string;
   statusBadge?: React.ReactNode;
+  currentBG?: number | null;
 }
 
 function formatDose(value: number) {
@@ -27,30 +34,28 @@ function formatDose(value: number) {
 export const MealSummary: React.FC<MealSummaryProps> = ({
   meal,
   mealName,
+  session,
   template,
   contained = false,
   className = "",
   statusBadge,
+  currentBG = null,
 }) => {
   const now = useNow(60);
   const defaultVariant = InsulinVariantManager.getDefault();
   const displayName = mealName || template?.name || "Meal";
   const baseSession = template?.getBaseSession(meal);
+  const initialBG = useMemo(
+    () => (session ? (session.initialGlucose ?? currentBG) : currentBG),
+    [session, currentBG],
+  );
 
   // Calculate Profile Insulin (with template or direct from calibration store)
   const { profileInsulin, profileCarbInsulin, profileProteinInsulin } =
     useMemo(() => {
       if (template) {
-        const carbsIns = template.getProfileInsulin(
-          meal.carbs,
-          0,
-          defaultVariant,
-        );
-        const proteinIns = template.getProfileInsulin(
-          0,
-          meal.protein,
-          defaultVariant,
-        );
+        const carbsIns = getProfileInsulin(meal.carbs, 0, defaultVariant);
+        const proteinIns = getProfileInsulin(0, meal.protein, defaultVariant);
         return {
           profileInsulin: carbsIns + proteinIns,
           profileCarbInsulin: carbsIns,
@@ -72,12 +77,24 @@ export const MealSummary: React.FC<MealSummaryProps> = ({
   // Calculate Optimal Insulins
   const optimalInsulins: Insulin[] | null = useMemo(() => {
     if (!template) return null;
-    const vectorized = template.vectorizeInsulin(meal, baseSession);
+    const [_, vectorized] = deriveInsulinPipelines(
+      initialBG,
+      meal,
+      baseSession,
+    );
     if (vectorized && vectorized.length > 0 && !template.isFirstTime) {
       return vectorized;
     }
     return null;
-  }, [template, meal, profileInsulin, now, defaultVariant, baseSession]);
+  }, [
+    template,
+    meal,
+    profileInsulin,
+    now,
+    defaultVariant,
+    baseSession,
+    initialBG,
+  ]);
 
   const totalOptimalInsulin = useMemo(() => {
     return (
@@ -169,11 +186,7 @@ export const MealSummary: React.FC<MealSummaryProps> = ({
             {optimalInsulins.map((ins, idx) => (
               <div key={idx} className="app-dose-item">
                 <span className="dose-name">
-                  <MdIcon
-                    name="syringe"
-                    className="text-primary"
-                    size={18}
-                  />
+                  <MdIcon name="syringe" className="text-primary" size={18} />
                   <span>
                     Dose {optimalInsulins.length > 1 ? idx + 1 : ""} (
                     {ins.variant.name})

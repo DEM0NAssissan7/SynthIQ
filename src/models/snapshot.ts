@@ -84,6 +84,12 @@ export default class Snapshot extends Subscribable {
     }
     return retval;
   }
+  // This should ONLY be used on duplicated snapshots - never on real, observed data. This is purely a software helper.
+  shift(value: number) {
+    this.rawReadings.forEach((r) => (r.sugar += value));
+    this.invalidateCaches();
+    this.notify();
+  }
   get readings(): SugarReading[] {
     // This is for when we implement smoothing
     if (this.readingsCache.length === 0) {

@@ -1,14 +1,18 @@
-import Insulin from "../../models/events/insulin";
-import type { TreatmentWindow } from "../../models/types/treatmentWindow";
-import { InsulinVariant } from "../../models/types/insulinVariant";
-import { RescueVariant } from "../../models/types/rescueVariant";
-import { useVariantGetters } from "./useVariantGetters";
-import { PreferencesStore } from "../../storage/preferencesStore";
-import Glucose from "../../models/events/glucose";
-import { morphInsulins } from "./createWindow";
-import { convertDimensions } from "../util";
-import Unit from "../../models/unit";
-import { InsulinVariantManager } from "../../managers/insulinVariantManager";
+import Insulin from "../models/events/insulin";
+import {
+  windowDeepCopy,
+  type TreatmentWindow,
+} from "../models/types/treatmentWindow";
+import { InsulinVariant } from "../models/types/insulinVariant";
+import { RescueVariant } from "../models/types/rescueVariant";
+import { useVariantGetters } from "./helpers/useVariantGetters";
+import { PreferencesStore } from "../storage/preferencesStore";
+import Glucose from "../models/events/glucose";
+import { morphInsulins } from "./helpers/createWindow";
+import { convertDimensions } from "./util";
+import Unit from "../models/unit";
+import { InsulinVariantManager } from "../managers/insulinVariantManager";
+import { PrivateStore } from "../storage/privateStore";
 
 export namespace InsulinOptimizer {
   // Helpers
@@ -56,7 +60,7 @@ export namespace InsulinOptimizer {
     windows: TreatmentWindow[],
     perpetratorIndex: number,
     perpetratorInsulin: Insulin,
-    targetBG: number,
+    minBG: number,
     getInsulinVariant: (variant: InsulinVariant) => InsulinVariant,
   ): number[] {
     const firstWindow = windows[perpetratorIndex];
@@ -70,7 +74,7 @@ export namespace InsulinOptimizer {
         );
 
       // Now we get onto the business-end
-      const wideDeltaBG = thisWindow.finalBG - targetBG;
+      const wideDeltaBG = thisWindow.finalBG - minBG;
       // Now we we find the total theoretical insulin effect from whatever is ahead of the perpetrator
       let totalAuxillaryInsulinEffect = 0;
       for (let j = perpetratorIndex + 1; j <= i; j++) {
@@ -140,17 +144,22 @@ export namespace InsulinOptimizer {
    * @returns An array of Insulin[] and Windows[] equal in size to input, but all doses have been adjusted
    */
   function balance(
-    returnInsulins: Insulin[],
-    windows: TreatmentWindow[],
+    _insulins: Insulin[],
+    _windows: TreatmentWindow[],
+    target: number | null,
+    min: number | null,
     getInsulinVariant: (variant: InsulinVariant) => InsulinVariant,
     getRescueVariant: (variant: RescueVariant) => RescueVariant,
   ): [Insulin[], TreatmentWindow[]] {
-    if (windows.length === 0 || returnInsulins.length === 0)
-      return [returnInsulins, windows];
+    const windows = _windows.map((w) => windowDeepCopy(w));
+    if (windows.length === 0 || _insulins.length === 0)
+      return [_insulins, windows];
 
     // Set optimization target
-    const targetBG = windows[0].initialBG; // Anchor to a target BG insteado of reducing per-window deltas
-    const insulins = insulinsDeepCopy(returnInsulins);
+    const targetBG = target ?? windows[0].initialBG; // Anchor to a target BG insteado of reducing per-window deltas
+    const minBG = target && min ? min : targetBG;
+    const returnInsulins = insulinsDeepCopy(_insulins);
+    const insulins = insulinsDeepCopy(_insulins);
     const deltaInsulins = insulinsDeepCopy(insulins);
     // Initialize all delta insulins to zero
     deltaInsulins.forEach((i) => (i.value = 0));
@@ -175,18 +184,21 @@ export namespace InsulinOptimizer {
         true,
       );
       if (insulinEffectRatio <= 0) continue;
-      const neededDelta = totalDeltaInsulin / insulinEffectRatio;
+      const neededDeltaInsulin = totalDeltaInsulin / insulinEffectRatio;
       // Now we look into the future windows/doses to see what they will allow us to do before pushing them over (into negative deltaBG)
       remorph(windows, insulins); // Remorph the windows to use the actual values of insulin (all previous insulins < i modifications do persist here)
       const maxAllowedDeltaUnits: number[] = getMaxAllowedDeltaUnits(
         windows,
         i,
         deltaInsulin,
-        targetBG,
+        minBG,
         getInsulinVariant,
       );
       // Apply it to our model
-      const unconstrainedDelta = Math.min(neededDelta, ...maxAllowedDeltaUnits);
+      const unconstrainedDelta = Math.min(
+        neededDeltaInsulin,
+        ...maxAllowedDeltaUnits,
+      );
       const constrainedDelta = Math.max(unconstrainedDelta, -insulins[i].value);
       deltaInsulin.value = constrainedDelta; // Prevent making own dose less than itself
       insulins[i].value += constrainedDelta; // Modify scratchpad with constrained dose
@@ -267,20 +279,40 @@ export namespace InsulinOptimizer {
 
     return [windowA, windowB];
   }
+  export function pruneInsulins(insulins: Insulin[]) {
+    return insulins.filter((i) => i.value > 0.01);
+  }
 
   export function getOptimalInsulins(
     _insulins: Insulin[],
-    windows: TreatmentWindow[],
+    originalWindows: TreatmentWindow[],
+    initialBG: number | null,
+    learningRate: number,
     insulinVariants: InsulinVariant[],
     rescueVariants: RescueVariant[],
-  ): [Insulin[], TreatmentWindow[], Insulin[], Insulin[]] {
+    doPrune = true,
+  ): [Insulin[], TreatmentWindow[], Insulin[]] {
+    const windows = originalWindows.map((w) => windowDeepCopy(w));
+    const targetBG = initialBG ? PreferencesStore.targetBG.value : null;
+    const minBG = PreferencesStore.lowBG.value;
+    const bgOffset = initialBG ? initialBG - windows[0].initialBG : 0;
+    console.log("BG OFFSET:", bgOffset, "TARGET:", targetBG);
+
     const { getInsulinVariant, getRescueVariant } = useVariantGetters(
       insulinVariants,
       rescueVariants,
     );
     // Create a deep copy of insulins
     let insulins = insulinsDeepCopy(_insulins);
-    // Phase 1: Figure out where to put new splits
+
+    // Phase 1: Adjust windows by the offset difference of the current startingBG vs the session's startingBG
+    windows.forEach((w) => {
+      w.initialBG += bgOffset;
+      w.finalBG += bgOffset;
+      w.snapshot.shift(bgOffset);
+    });
+
+    // Phase 2: Figure out where to put new splits
     for (let i = 0; i < windows.length; i++) {
       const window = windows[i];
       if (!needsAdditionalDose(window, getRescueVariant)) continue;
@@ -317,46 +349,73 @@ export namespace InsulinOptimizer {
       i++;
     }
 
-    // Phase 2: Now that we have the new splits that we want, we run
+    // Phase 3: Now that we have the new splits that we want, we run
     // the balancer to let it adjust the new phantom insulins to their theoretical
-    // optimal value
+    // optimal value. We run this against the offset windows
     const originalInsulins = insulinsDeepCopy(insulins);
-    const [newInsulins, newWindows] = balance(
+    const [liveInsulins, liveWindows] = balance(
       insulins,
       windows,
+      targetBG,
+      minBG,
       getInsulinVariant,
       getRescueVariant,
     );
-    windows = newWindows;
-    /*
     if (PrivateStore.debugLogs.value)
-      if (newInsulins.filter((insulin) => insulin.value < 0).length > 0)
+      if (liveInsulins.filter((insulin) => insulin.value < 0).length > 0)
         console.warn(
-          `[InsulinOptimizer]: Insulins contain a negative dose`,
-          windows,
+          `[InsulinOptimizer]: Live insulins contain a negative dose`,
+          liveWindows,
           insulins,
           _insulins,
         );
-        */
-    /*
     if (PrivateStore.debugLogs.value)
-      console.log(originalInsulins, newInsulins, windows);*/
+      console.log(
+        "Live:",
+        originalInsulins,
+        liveInsulins,
+        originalWindows,
+        liveWindows,
+      );
 
-    // Phase 3: Apply learning rate and prune any zero-doses
-    const learningRate = PreferencesStore.learningRate.value / 100; // The stored learningRate is a percentage - convert to fraction
+    // Phase 4: We run the balancer to isolate the pure meal insulin response
+    const [mealInsulins, mealWindows] = balance(
+      originalInsulins,
+      originalWindows,
+      null,
+      null,
+      getInsulinVariant,
+      getRescueVariant,
+    );
+    if (PrivateStore.debugLogs.value)
+      console.log("Meal:", mealInsulins, mealWindows);
+    if (initialBG === null)
+      return [
+        doPrune ? pruneInsulins(mealInsulins) : mealInsulins,
+        mealWindows,
+        doPrune ? pruneInsulins(mealInsulins) : mealInsulins,
+      ];
+
+    // Phase 5: Apply learning rate and prune any zero-doses
     const resultInsulins: Insulin[] = [];
-    for (let i = 0; i < newInsulins.length; i++) {
+    for (let i = 0; i < liveInsulins.length; i++) {
       const original = originalInsulins[i];
-      const balanced = newInsulins[i];
-      if (!balanced || !original) continue;
-      const delta = balanced.value - original.value;
-      const damped = original.value + delta * learningRate;
-      if (damped <= 0.01) continue; // Pruning
+      const meal = mealInsulins[i];
+      const live = liveInsulins[i];
+      if (!meal || !original || !live) continue;
+      const finalUnits =
+        live.value - (1 - learningRate) * (meal.value - original.value);
+      console.log(live.value, finalUnits);
       resultInsulins.push(
-        new Insulin(damped, balanced.timestamp, balanced.variant),
+        new Insulin(finalUnits, live.timestamp, live.variant),
       );
     }
+    console.log(resultInsulins);
 
-    return [resultInsulins, windows, newInsulins, originalInsulins];
+    return [
+      doPrune ? pruneInsulins(resultInsulins) : resultInsulins,
+      liveWindows,
+      doPrune ? pruneInsulins(mealInsulins) : resultInsulins,
+    ];
   }
 }

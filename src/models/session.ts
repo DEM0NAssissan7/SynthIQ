@@ -18,7 +18,7 @@ import { InsulinVariantStore } from "../storage/insulinVariantStore";
 import { RescueVariantStore } from "../storage/rescueVariantStore";
 import { useVariantGetters } from "../lib/helpers/useVariantGetters";
 import type { TreatmentWindow } from "./types/treatmentWindow";
-import { InsulinOptimizer } from "../lib/helpers/insulinOptimizer";
+import { InsulinOptimizer } from "../lib/insulinOptimizer";
 import { createWindows } from "../lib/helpers/createWindow";
 import SugarReading from "./types/sugarReading";
 import { PrivateStore } from "../storage/privateStore";
@@ -170,23 +170,31 @@ export default class Session extends Subscribable {
     if (!this.initialGlucose) return [];
     return createWindows(this.insulins, this.snapshot, this.glucoses);
   }
-  getOptimalMealInsulins(
+  getOptimalInsulins(
     insulinVariants: InsulinVariant[],
     rescueVariants: RescueVariant[],
+    currentBG: number | null = null,
   ): Insulin[] {
     const [optimalInsulins] = InsulinOptimizer.getOptimalInsulins(
       this.insulins,
       this.windows,
+      currentBG,
+      PreferencesStore.learningRate.value / 100,
       insulinVariants,
       rescueVariants,
     );
     return optimalInsulins;
   }
   get optimalMealInsulins(): Insulin[] {
-    return this.getOptimalMealInsulins(
+    const [optimalInsulins] = InsulinOptimizer.getOptimalInsulins(
+      this.insulins,
+      this.windows,
+      null,
+      1,
       InsulinVariantStore.variants.value,
       RescueVariantStore.variants.value,
     );
+    return optimalInsulins;
   }
 
   get optimalMealInsulin(): number {
@@ -239,10 +247,7 @@ export default class Session extends Subscribable {
       insulinVariants,
       rescueVariants,
     );
-    const optimalMealInsulins = this.getOptimalMealInsulins(
-      insulinVariants,
-      rescueVariants,
-    );
+    const optimalMealInsulins = this.optimalMealInsulins;
     const rise = optimalMealInsulins.reduce(
       (n, insulin) =>
         insulin.value * getInsulinVariant(insulin.variant).effect + n,

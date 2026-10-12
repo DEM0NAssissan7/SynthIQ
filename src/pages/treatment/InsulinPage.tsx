@@ -23,6 +23,10 @@ import { estimateConstDeltaBG } from "../../lib/helpers/estimateConstDeltaBG";
 import { useNow } from "../../state/useNow";
 import { HealthMonitorStore } from "../../storage/healthMonitorStore";
 import { getTimestampFromOffset } from "../../lib/timing";
+import {
+  deriveInsulinPipelines,
+  evaluateInsulinPipeline,
+} from "../../lib/insulinPipeline";
 
 interface DoseBreakdownItemProps {
   name: string;
@@ -127,10 +131,37 @@ export default function InsulinPage() {
     return currentBG ? getCorrectionInsulin(currentBG, variant) : 0;
   }, [currentBG, variant]);
 
-  const predictedOptimalInsulins = meal
-    ? template.vectorizeInsulin(meal, baseSession)
-    : [];
+  const overshootInsulin = useMemo(() => {
+    if (!currentBG) return 0;
+    if (isCorrectionOnly) return 0;
+    const cappedCurrentBG = Math.min(
+      currentBG,
+      PreferencesStore.targetBG.value,
+    );
+    const baseTarget =
+      PreferencesStore.targetBG.value - PreferencesStore.overshootOffset.value;
+    return Math.max(cappedCurrentBG - baseTarget, 0) / variant.effect;
+  }, [currentBG]);
+  const [pipelines, optimalInsulins] = useMemo(
+    () =>
+      meal
+        ? deriveInsulinPipelines(
+            isPrebolus ? currentBG : (session.initialGlucose ?? currentBG),
+            meal,
+            baseSession,
+            ["Overshoot", overshootInsulin],
+          )
+        : [[], []],
+    [meal, isPrebolus, currentBG, session, baseSession, overshootInsulin],
+  );
   const shotIndex = isPrebolus ? 0 : session.insulins.length;
+  const pipeline = useMemo(() => pipelines[shotIndex], [pipelines, shotIndex]);
+  console.log(
+    pipelines,
+    isPrebolus,
+    currentBG,
+    isPrebolus ? currentBG : (session.initialGlucose ?? currentBG),
+  );
 
   const projectedDuration = useMemo(() => variant.duration * 0.7, [variant]);
   const continuedRise = useMemo(() => {
@@ -151,63 +182,10 @@ export default function InsulinPage() {
 
   const risenCorrectionInsulin = correctionInsulin + continuedRiseInsulin;
 
-  const mealDose = useMemo(() => {
-    // If we are correcting or if session is (somehow) complete, or no meal
-    if (
-      isCorrectionOnly ||
-      (!isPrebolus && session.completed) ||
-      !meal ||
-      meal.isEmpty
-    )
-      return 0;
-    // If this shot index is within the predicted optimal shots
-    if (shotIndex < predictedOptimalInsulins.length) {
-      return predictedOptimalInsulins[shotIndex].value;
-    }
-    // If we haven't taken any shots yet and predictedOptimalInsulins was empty, fall back to profile
-    if (shotIndex === 0) {
-      return template.getProfileInsulin(meal.carbs, meal.protein, variant);
-    }
-    // All predicted shots already taken, so no additional meal dose
-    return 0;
-  }, [
-    isCorrectionOnly,
-    isPrebolus,
-    session,
-    meal,
-    shotIndex,
-    predictedOptimalInsulins,
-    template,
-    variant,
-  ]);
-  const overshootInsulin = useMemo(() => {
-    if (!currentBG) return 0;
-    if (isCorrectionOnly || mealDose === 0) return 0;
-    const cappedCurrentBG = Math.min(
-      currentBG,
-      PreferencesStore.targetBG.value,
-    );
-    const baseTarget =
-      PreferencesStore.targetBG.value - PreferencesStore.overshootOffset.value;
-    return Math.max(cappedCurrentBG - baseTarget, 0) / variant.effect;
-  }, [currentBG]);
-  const displayedInsulin = useMemo(() => {
-    // Insulin dosing pipeline
-    let dose = 0;
-
-    // Stage 1: Find raw unadjusted meal insulin
-    dose += mealDose;
-
-    // Stage 2: Account for current BG correction
-    dose += correctionInsulin;
-
-    // Stage 3: Apply overcompensation offset (only for active meal shots)
-    if (mealDose > 0) {
-      dose += overshootInsulin;
-    }
-
-    return dose;
-  }, [mealDose, correctionInsulin, overshootInsulin]);
+  const displayedInsulin = useMemo(
+    () => evaluateInsulinPipeline(pipeline),
+    [pipeline],
+  );
   const displayedRange: string = (() => {
     const correction = Math.max(roundByHalf(correctionInsulin), 0);
     const risenCorrection = Math.max(roundByHalf(risenCorrectionInsulin), 0);
@@ -241,8 +219,7 @@ export default function InsulinPage() {
   // Set usage state based on the current session state
   useEffect(() => {
     setVariant(
-      predictedOptimalInsulins[shotIndex]?.variant ??
-        InsulinVariantManager.getDefault(),
+      optimalInsulins[shotIndex]?.variant ?? InsulinVariantManager.getDefault(),
     );
   }, []);
 
@@ -254,6 +231,8 @@ export default function InsulinPage() {
             template={template}
             meal={meal}
             mealName={template.name}
+            session={session}
+            currentBG={currentGlucose}
           />
         </Card>
       )}
@@ -263,6 +242,8 @@ export default function InsulinPage() {
             template={activeTemplate}
             meal={session.meal}
             mealName={activeTemplate.name}
+            session={session}
+            currentBG={currentGlucose}
           />
         </Card>
       )}
@@ -299,30 +280,28 @@ export default function InsulinPage() {
                       : "Correction only"
             }
           />
-          <MetricPill
-            label="Suggested dose"
-            value={
-              correctionIsDisplayed
-                ? displayedRange
-                : `${roundByHalf(displayedInsulin)}u`
-            }
-          />
-          <MetricPill
-            label="Predicted Rise"
-            value={`${continuedRise > 0 ? "+" : ""}${continuedRise.toFixed(0)}mg/dL`}
-          />
+          {!isPrebolus && (
+            <>
+              <MetricPill
+                label="Suggested dose"
+                value={
+                  correctionIsDisplayed
+                    ? displayedRange
+                    : `${roundByHalf(displayedInsulin)}u`
+                }
+              />
+              <MetricPill
+                label="Predicted Rise"
+                value={`${continuedRise > 0 ? "+" : ""}${continuedRise.toFixed(0)}mg/dL`}
+              />
+            </>
+          )}
         </MetricGrid>
         <div className="d-flex flex-column gap-2 mt-1">
           <div className="app-dose-list">
-            <DoseBreakdownItem name={"Meal"} insulin={mealDose} />
-            <DoseBreakdownItem
-              name={"Correction"}
-              insulin={correctionInsulin}
-            />
-            <DoseBreakdownItem
-              name={"Overcompensation"}
-              insulin={overshootInsulin}
-            />
+            {pipeline.map((step) => (
+              <DoseBreakdownItem name={step[0]} insulin={step[1]} />
+            ))}
           </div>
         </div>
       </Card>

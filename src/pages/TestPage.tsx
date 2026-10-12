@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { InsulinOptimizer } from "../lib/helpers/insulinOptimizer";
+import { InsulinOptimizer } from "../lib/insulinOptimizer";
 import WizardManager from "../managers/wizardManager";
 import {
   LineChart,
@@ -55,7 +55,9 @@ export default function TestPage() {
       );
       if (needsSync.length === 0) return;
       setSyncing(true);
-      setSyncStatus(`Auto-syncing CGM readings for ${needsSync.length} session(s)...`);
+      setSyncStatus(
+        `Auto-syncing CGM readings for ${needsSync.length} session(s)...`,
+      );
       let updatedCount = 0;
       for (const session of needsSync) {
         if (cancelled) break;
@@ -82,7 +84,9 @@ export default function TestPage() {
 
   const handleManualSync = async () => {
     if (!BackendStore.url.value) {
-      alert("Nightscout URL is not configured. Please check your Nightscout setup.");
+      alert(
+        "Nightscout URL is not configured. Please check your Nightscout setup.",
+      );
       return;
     }
     setSyncing(true);
@@ -101,7 +105,9 @@ export default function TestPage() {
       );
     } catch (e) {
       console.error("Manual sync failed:", e);
-      setSyncStatus("Failed to sync readings from Nightscout. Check network and credentials.");
+      setSyncStatus(
+        "Failed to sync readings from Nightscout. Check network and credentials.",
+      );
     } finally {
       setSyncing(false);
     }
@@ -110,14 +116,15 @@ export default function TestPage() {
   const insulinVariants = InsulinVariantStore.variants.value;
   const rescueVariants = RescueVariantStore.variants.value;
   const info: [Session, Insulin[], Insulin[]][] = sessions.map((session) => {
-    const [, , optimalInsulins, originalInsulins] =
-      InsulinOptimizer.getOptimalInsulins(
-        session.insulins,
-        session.windows,
-        insulinVariants,
-        rescueVariants,
-      );
-    return [session, optimalInsulins, originalInsulins];
+    const [, , optimalInsulins] = InsulinOptimizer.getOptimalInsulins(
+      session.insulins,
+      session.windows,
+      null,
+      1,
+      insulinVariants,
+      rescueVariants,
+    );
+    return [session, optimalInsulins, session.insulins];
   });
 
   // Craft the CGM graph and the deltaCGM graph
@@ -145,7 +152,8 @@ export default function TestPage() {
         const reading = new SugarReading(r.sugar, r.timestamp, r.isCalibration);
         deltaInsulins.forEach((i) => {
           reading.sugar -=
-            i.batemanIntegral(i.timestamp, reading.timestamp) * i.variant.effect;
+            i.batemanIntegral(i.timestamp, reading.timestamp) *
+            i.variant.effect;
         });
         session.glucoses.forEach((g) => {
           if (g.timestamp.getTime() <= reading.timestamp.getTime())
@@ -153,7 +161,8 @@ export default function TestPage() {
         });
         return reading;
       });
-      const initialBGoffset = readings[0].sugar - PreferencesStore.targetBG.value;
+      const initialBGoffset =
+        readings[0].sugar - PreferencesStore.targetBG.value;
       return {
         session,
         data: readings.map((reading, i) => {
@@ -190,7 +199,13 @@ export default function TestPage() {
               variant="tonal"
               disabled={syncing}
               onClick={handleManualSync}
-              icon={<MdIcon name={syncing ? "sync" : "cloud_sync"} size={18} className={syncing ? "rotate-anim" : ""} />}
+              icon={
+                <MdIcon
+                  name={syncing ? "sync" : "cloud_sync"}
+                  size={18}
+                  className={syncing ? "rotate-anim" : ""}
+                />
+              }
             >
               {syncing ? "Syncing..." : "Sync Nightscout"}
             </MdButton>
@@ -204,19 +219,52 @@ export default function TestPage() {
         )}
         <div className="mt-3 pt-2 border-top d-flex flex-wrap gap-3 small text-muted align-items-center">
           <span className="d-inline-flex align-items-center gap-1">
-            <span style={{ display: "inline-block", width: 14, height: 3, backgroundColor: "#626262", borderRadius: 1 }} />
+            <span
+              style={{
+                display: "inline-block",
+                width: 14,
+                height: 3,
+                backgroundColor: "#626262",
+                borderRadius: 1,
+              }}
+            />
             Session CGM Traces
           </span>
           <span className="d-inline-flex align-items-center gap-1">
-            <span style={{ display: "inline-block", width: 8, height: 8, backgroundColor: "#ff9800", borderRadius: "50%", border: "1.5px solid #fff", boxShadow: "0 0 0 1px #ff9800" }} />
+            <span
+              style={{
+                display: "inline-block",
+                width: 8,
+                height: 8,
+                backgroundColor: "#ff9800",
+                borderRadius: "50%",
+                border: "1.5px solid #fff",
+                boxShadow: "0 0 0 1px #ff9800",
+              }}
+            />
             Calibrations (Fingersticks)
           </span>
           <span className="d-inline-flex align-items-center gap-1">
-            <span style={{ display: "inline-block", width: 14, height: 3, backgroundColor: "#3e7dcf", borderRadius: 1 }} />
+            <span
+              style={{
+                display: "inline-block",
+                width: 14,
+                height: 3,
+                backgroundColor: "#3e7dcf",
+                borderRadius: 1,
+              }}
+            />
             Model Optimal
           </span>
           <span className="d-inline-flex align-items-center gap-1">
-            <span style={{ display: "inline-block", width: 14, height: 2, borderTop: "2px dashed #bd2727" }} />
+            <span
+              style={{
+                display: "inline-block",
+                width: 14,
+                height: 2,
+                borderTop: "2px dashed #bd2727",
+              }}
+            />
             Insulin Delta
           </span>
         </div>
@@ -230,7 +278,9 @@ export default function TestPage() {
         </Card>
       ) : (
         data.map(({ session, data: chartData, insulins }) => {
-          const calibrationCount = chartData.filter((d) => d.isCalibration).length;
+          const calibrationCount = chartData.filter(
+            (d) => d.isCalibration,
+          ).length;
           const cgmCount = chartData.length - calibrationCount;
           const template = templates.find((t) =>
             t.sessions.some((s) => s.uuid === session.uuid),
@@ -240,11 +290,13 @@ export default function TestPage() {
             <Card key={session.uuid} className="mb-3">
               <div className="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-1">
                 <div>
-                  <span className="fw-semibold">
-                    {title}
-                  </span>
+                  <span className="fw-semibold">{title}</span>
                   <span className="text-muted small ms-2">
-                    {session.timestamp.toLocaleDateString()} {session.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    {session.timestamp.toLocaleDateString()}{" "}
+                    {session.timestamp.toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
                   </span>
                 </div>
                 <div className="d-flex align-items-center gap-2 small">
@@ -277,7 +329,9 @@ export default function TestPage() {
                       `${round(Number(value), 1)} mg/dL`,
                       name === "session" ? "CGM Reading" : "Model Optimal",
                     ]}
-                    labelFormatter={(label: any) => `Time: ${round(Number(label), 2)}h`}
+                    labelFormatter={(label: any) =>
+                      `Time: ${round(Number(label), 2)}h`
+                    }
                   />
                   {insulins.map(([x, value], idx) => (
                     <ReferenceLine

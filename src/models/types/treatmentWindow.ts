@@ -1,6 +1,6 @@
-import type Glucose from "../events/glucose";
-import type Insulin from "../events/insulin";
-import type Snapshot from "../snapshot";
+import Glucose from "../events/glucose";
+import Insulin from "../events/insulin";
+import Snapshot from "../snapshot";
 
 export interface TreatmentWindow {
   snapshot: Snapshot;
@@ -11,4 +11,21 @@ export interface TreatmentWindow {
   finalBG: number;
   endTime: Date;
   length: number;
+}
+
+export function windowDeepCopy(window: TreatmentWindow): TreatmentWindow {
+  return {
+    snapshot: Snapshot.deserialize(Snapshot.serialize(window.snapshot)),
+    initialBG: window.initialBG,
+    startTime: new Date(window.startTime),
+    insulins: window.insulins.map((i) =>
+      Insulin.deserialize(Insulin.serialize(i)),
+    ),
+    glucoses: window.glucoses.map((g) =>
+      Glucose.deserialize(Glucose.serialize(g)),
+    ),
+    finalBG: window.finalBG,
+    endTime: new Date(window.endTime),
+    length: window.length,
+  };
 }

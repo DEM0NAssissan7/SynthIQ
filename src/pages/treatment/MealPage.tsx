@@ -72,7 +72,12 @@ export default function MealPage() {
       </Card>
 
       <Card>
-        <MealSummary template={template} meal={meal} mealName={template.name} />
+        <MealSummary
+          template={template}
+          meal={meal}
+          mealName={template.name}
+          currentBG={initialGlucose}
+        />
       </Card>
 
       {showPreBolus && (

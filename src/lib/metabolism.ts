@@ -4,11 +4,17 @@ import type Insulin from "../models/events/insulin";
 import type { InsulinVariant } from "../models/types/insulinVariant";
 import type { RescueVariant } from "../models/types/rescueVariant";
 import type SugarReading from "../models/types/sugarReading";
+import Unit from "../models/unit";
 import { CalibrationStore } from "../storage/calibrationStore";
 import { PreferencesStore } from "../storage/preferencesStore";
 import { WizardStore } from "../storage/wizardStore";
 import { estimateDynamicISF } from "./helpers/estimateDynamicISF";
+import {
+  getPredictedGlucose,
+  getRefReading,
+} from "./helpers/getPredictedGlucose";
 import { getTimestampFromOffset } from "./timing";
+import { convertDimensions } from "./util";
 
 // Insulin
 export function getCorrectionInsulin(glucose: number, variant: InsulinVariant) {
@@ -48,7 +54,6 @@ export function getGlucoseCorrectionCaps(
   return Math.max(correction, 0);
 }
 export function getIntelligentGlucoseCorrection(
-  velocityHours: number, // User BG Velocity in pts/hr
   currentBG: number,
   actingMinutes: number, // How far to look in the future
   variant: RescueVariant,
@@ -62,14 +67,20 @@ export function getIntelligentGlucoseCorrection(
    * For example, if the sugar is moving at a rate of 30 mg/dL per hr, we assume it's gonna
    * end up going down by 15mg/dL (30 minutes = 1/2 hour), so we add that into the
    */
-  const velocity = velocityHours / 60;
-  const velocityHorizon = Math.min(actingMinutes, 30);
-  let velocityPredictedDrop = velocity * velocityHorizon;
+  const now = new Date();
+  const future = getTimestampFromOffset(
+    now,
+    actingMinutes * convertDimensions(Unit.Time.Minute, Unit.Time.Hour),
+  );
+  const refReading = getRefReading(readings);
+  const predictedGlucose = getPredictedGlucose(readings, future);
+  let velocityPredictedDrop =
+    predictedGlucose !== null && refReading !== null
+      ? predictedGlucose - refReading.sugar
+      : 0;
   if (!Number.isFinite(velocityPredictedDrop)) velocityPredictedDrop = 0;
 
   const dynamicISF = estimateDynamicISF(readings, insulinsOnBoard, rescues);
-  const now = new Date();
-  const future = getTimestampFromOffset(now, actingMinutes / 60);
   let insulinPredictedDrop = insulinsOnBoard.reduce(
     (n, insulin) => n - insulin.batemanIntegral(now, future) * dynamicISF,
     0,
@@ -79,7 +90,7 @@ export function getIntelligentGlucoseCorrection(
   // Choose the largest drop as the safest bet for the user if we are dropping
   // If we are rising, have the rise counteract the predicted drop from insulin
   const predictedDrop =
-    velocity < 0
+    velocityPredictedDrop < 0
       ? Math.min(velocityPredictedDrop, insulinPredictedDrop)
       : velocityPredictedDrop + insulinPredictedDrop;
 

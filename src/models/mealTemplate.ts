@@ -6,11 +6,8 @@ import {
 import { sessionsWeightedAverage } from "../lib/templateHelpers";
 import { timeOfDayOffset } from "../lib/timing";
 import { clamp, genUUID, MathUtil } from "../lib/util";
-import { InsulinVariantManager } from "../managers/insulinVariantManager";
 import { BasalStore } from "../storage/basalStore";
-import { CalibrationStore } from "../storage/calibrationStore";
 import { PreferencesStore } from "../storage/preferencesStore";
-import Insulin from "./events/insulin";
 import Meal from "./events/meal";
 import Session from "./session";
 import Subscribable from "./subscribable";
@@ -343,121 +340,6 @@ export default class MealTemplate extends Subscribable implements Template {
     // Pick the most recent session among the top candidates
     candidates.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
     return candidates[0];
-  }
-  // Dosing helpers
-  vectorizeInsulin(meal: Meal, session: Session | null): Insulin[] {
-    // If session is null
-    if (!session) {
-      const defaultVariant = InsulinVariantManager.getDefault();
-      const profileInsulin = this.getProfileInsulin(
-        meal.carbs,
-        meal.protein,
-        defaultVariant,
-      );
-      return [new Insulin(profileInsulin, new Date(), defaultVariant)];
-    }
-    // Otherwise, magic
-    let insulins = session.optimalMealInsulins.map(
-      (i) => new Insulin(i.value, i.timestamp, i.variant),
-    );
-    const offsets = this.getInsulinOffsets(session, meal);
-    for (let i = 0; i < insulins.length; i++) {
-      insulins[i].value += offsets[i].value;
-    }
-    // Prune
-    const resultInsulins = [];
-    for (const insulin of insulins) {
-      if (insulin.value < 0.25) continue;
-      resultInsulins.push(insulin);
-    }
-    return resultInsulins;
-  }
-  getProfileInsulin(
-    carbs: number,
-    protein: number,
-    variant = InsulinVariantManager.getDefault(),
-  ) {
-    const carbsRise = carbs * CalibrationStore.carbsEffect.value;
-    const proteinRise = protein * CalibrationStore.proteinEffect.value;
-    return (carbsRise + proteinRise) / variant.effect;
-  }
-  getInsulinOffsets(session: Session, meal: Meal) {
-    const carbsEffect = CalibrationStore.carbsEffect.value;
-    const proteinEffect = CalibrationStore.proteinEffect.value;
-
-    if (!session.meal) return [];
-    const profileRise =
-      session.meal.carbs * carbsEffect + session.meal.protein * proteinEffect;
-
-    const optimalMealInsulins = session.optimalMealInsulins;
-    const optimalMealInsulinsEffect = optimalMealInsulins.reduce(
-      (n, i) => n + i.value * i.variant.effect,
-      0,
-    ); // We get the perceived effect of the insulins only because we are going to be applying to heterogenous effects between shots
-    const profileScale =
-      profileRise > 0 ? optimalMealInsulinsEffect / profileRise : 1; // Slope for profile
-
-    // Separate out the rises partialy for foods we know vs. ones we don't
-    const summedFoods = meal.summedFoods;
-    let uncommonCarbs = 0;
-    let uncommonProtein = 0;
-    for (const food of summedFoods) {
-      if (session.meal.hasFood(food)) continue;
-      // This food is new/unseen in the session meal
-      uncommonCarbs += food.netCarbs;
-      uncommonProtein += food.protein;
-    }
-
-    const insulins = optimalMealInsulins.map(
-      (i) => new Insulin(0, i.timestamp, i.variant),
-    );
-    if (insulins.length === 0) return []; // Safety
-    /**
-     * Factor used to "unscale" nutrients from foods NOT present in the original session.
-     *
-     * Goal:
-     * - Foods that existed in sessionMeal → scaled by profileScale (session-calibrated)
-     * - New foods (uncommon)              → use raw profile (NO scaling)
-     *
-     * Problem:
-     * We multiply the entire delta by profileScale later, which would incorrectly
-     * scale new foods as well.
-     *
-     * Solution:
-     * Pre-adjust uncommonCarbs / uncommonProtein so that after applying profileScale,
-     * they end up effectively unscaled.
-     *
-     * Algebra (s = profileScale):
-     * (delta + uncommon * (1/s - 1)) * s
-     * = delta*s + uncommon
-     *
-     * → Known food deltas are scaled
-     * → Uncommon foods remain unscaled
-     *
-     * Sanity check:
-     * If only uncommon foods exist:
-     * (x + x*(1/s - 1)) * s = (x + x/s - x) * s = (x/s) * s = x
-     */
-    const uncommonFactor = 1 / profileScale - 1;
-    const carbsRise =
-      (meal.carbs - session.meal.carbs + uncommonCarbs * uncommonFactor) *
-      carbsEffect *
-      profileScale;
-    insulins[0].value += carbsRise / insulins[0].variant.effect; // Add extra carbs offset to first shot, as they typically only act on first shot timeframe
-
-    const proteinRise =
-      (meal.protein - session.meal.protein + uncommonProtein * uncommonFactor) *
-      proteinEffect *
-      profileScale;
-    const proteinRisePerShot = proteinRise / insulins.length;
-    insulins.forEach((i) => (i.value += proteinRisePerShot / i.variant.effect)); // Distribute protein between all shots
-    return insulins;
-  }
-  getMealInsulinOffset(session: Session, meal: Meal) {
-    let insulin = 0;
-    const offsets = this.getInsulinOffsets(session, meal);
-    offsets.forEach((offset) => (insulin += offset.value));
-    return insulin;
   }
 
   // Serialization

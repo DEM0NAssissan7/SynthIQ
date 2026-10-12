@@ -21,6 +21,14 @@ function getIntegratedDelta(
   return (velocityPerPeriod / (1.0 - phi)) * (1.0 - Math.pow(phi, periods));
 }
 
+export function getRefReading(readings: SugarReading[]): SugarReading | null {
+  const sortedReadings = readings
+    .slice()
+    .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+  if (sortedReadings.length === 0) return null;
+  return sortedReadings[sortedReadings.length - 1];
+}
+
 export function getPredictedGlucose(
   readings: SugarReading[],
   timestamp: Date,
@@ -63,7 +71,8 @@ export function getPredictedGlucose(
   if (velocity === null || !Number.isFinite(velocity)) return null;
 
   // Predict future BG anchored to the latest actual reading
-  const finalReading = sortedReadings[sortedReadings.length - 1];
+  const finalReading = getRefReading(readings);
+  if (!finalReading) return null;
   const finalTimestamp = finalReading.timestamp;
   const deltaTime =
     (timestamp.getTime() - finalTimestamp.getTime()) *

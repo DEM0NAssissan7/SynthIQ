@@ -55,7 +55,6 @@ export default function RescuePage() {
   }, [now]);
   useEffect(() => {
     populateReadingCache().then(() => {
-      const velocityHours = getBGVelocity();
       const actingMinutes = HealthMonitorStore.dropTime.value;
       const readings = HealthMonitorStore.readingsCache.value;
       const insulinsOnBoard = HealthMonitorStore.recentBoluses.value;
@@ -63,7 +62,6 @@ export default function RescuePage() {
       setIntelligentCorrection(
         roundByHalf(
           getIntelligentGlucoseCorrection(
-            velocityHours,
             currentBG ?? PreferencesStore.targetBG.value,
             actingMinutes,
             variant,
@@ -88,7 +86,7 @@ export default function RescuePage() {
       : `${Math.min(correction, intelligentCorrection)} - ${Math.max(correction, intelligentCorrection)}`;
 
   const dropVelocity = getBGVelocity();
-  const dropRate = `${Math.round(Math.abs(dropVelocity) / 60)} pts/min`;
+  const dropRate = `${Math.round(Math.abs(dropVelocity))} pts/hr`;
   const lastRescueMinutes = getLastRescueMinutes();
   const lastRescue = getLastRescue();
 
