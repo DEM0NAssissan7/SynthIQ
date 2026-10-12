@@ -12,7 +12,6 @@ import { PreferencesStore } from "../../storage/preferencesStore";
 import { InsulinVariantManager } from "../../managers/insulinVariantManager";
 import { NumberOptionSelector } from "../../components/NumberOptionSelector";
 import InsulinVariantDropdown from "../../components/InsulinVariantDropdown";
-import { getFastingVelocity } from "../../lib/basal";
 import {
   MetricGrid,
   MetricPill,
@@ -20,6 +19,10 @@ import {
   PageLayout,
 } from "../../components/PageLayout";
 import MdIcon from "../../components/md3/MdIcon";
+import { estimateConstDeltaBG } from "../../lib/helpers/estimateConstDeltaBG";
+import { useNow } from "../../state/useNow";
+import { HealthMonitorStore } from "../../storage/healthMonitorStore";
+import { getTimestampFromOffset } from "../../lib/timing";
 
 interface DoseBreakdownItemProps {
   name: string;
@@ -30,11 +33,7 @@ function DoseBreakdownItem({ name, insulin }: DoseBreakdownItemProps) {
   return (
     <div className="app-dose-item">
       <span className="dose-name">
-        <MdIcon
-          name="syringe"
-          className="text-primary"
-          size={18}
-        />
+        <MdIcon name="syringe" className="text-primary" size={18} />
         <span>
           {name}
           {/* <span className="dose-sub ms-1">hi</span> */}
@@ -54,6 +53,10 @@ export default function InsulinPage() {
   const [template] = WizardStore.template.useState();
   const [activeTemplate] = WizardStore.activeTemplate.useState();
   const [isPrebolus, setIsPrebolus] = WizardStore.isPrebolus.useState();
+  const now = useNow();
+  const [readings] = HealthMonitorStore.readingsCache.useState();
+  const [recentBoluses] = HealthMonitorStore.recentBoluses.useState();
+  const [rescues] = HealthMonitorStore.lastRescues.useState();
 
   const [scratchpadMeal] = WizardStore.meal.useState();
   const meal = useMemo(
@@ -129,12 +132,22 @@ export default function InsulinPage() {
     : [];
   const shotIndex = isPrebolus ? 0 : session.insulins.length;
 
-  const continuedRiseInsulin = (() => {
-    const fastingVelocity = getFastingVelocity(); // mg/dL per hour
-    const insulinDuration = variant.duration; // hours
-    const rise = fastingVelocity * insulinDuration;
-    return rise / variant.effect;
-  })();
+  const projectedDuration = useMemo(() => variant.duration * 0.7, [variant]);
+  const continuedRise = useMemo(() => {
+    const future = getTimestampFromOffset(now, projectedDuration);
+    const rise = estimateConstDeltaBG(
+      readings,
+      recentBoluses,
+      rescues,
+      now,
+      future,
+    );
+    return rise;
+  }, [now, projectedDuration, readings, recentBoluses, rescues]);
+  const continuedRiseInsulin = useMemo(() => {
+    const fractionAbsorbed = variant.unitBatemanIntegral(0, projectedDuration);
+    return continuedRise / fractionAbsorbed / variant.effect;
+  }, [projectedDuration, continuedRise, variant]);
 
   const risenCorrectionInsulin = correctionInsulin + continuedRiseInsulin;
 
@@ -293,6 +306,10 @@ export default function InsulinPage() {
                 ? displayedRange
                 : `${roundByHalf(displayedInsulin)}u`
             }
+          />
+          <MetricPill
+            label="Predicted Rise"
+            value={`${continuedRise > 0 ? "+" : ""}${continuedRise.toFixed(0)}mg/dL`}
           />
         </MetricGrid>
         <div className="d-flex flex-column gap-2 mt-1">
