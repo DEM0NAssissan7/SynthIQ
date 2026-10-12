@@ -177,5 +177,6 @@ export function deriveInsulinPipelines(
 }
 
 export function evaluateInsulinPipeline(pipeline: InsulinPipeline) {
+  if (!pipeline || pipeline.length === 0) return 0;
   return pipeline.reduce((n, step) => n + step[1], 0);
 }

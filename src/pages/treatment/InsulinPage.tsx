@@ -26,6 +26,7 @@ import { getTimestampFromOffset } from "../../lib/timing";
 import {
   deriveInsulinPipelines,
   evaluateInsulinPipeline,
+  type InsulinPipeline,
 } from "../../lib/insulinPipeline";
 
 interface DoseBreakdownItemProps {
@@ -155,7 +156,18 @@ export default function InsulinPage() {
     [meal, isPrebolus, currentBG, session, baseSession, overshootInsulin],
   );
   const shotIndex = isPrebolus ? 0 : session.insulins.length;
-  const pipeline = useMemo(() => pipelines[shotIndex], [pipelines, shotIndex]);
+  const fallbackPipeline = useMemo(
+    () =>
+      [
+        ["Correction", correctionInsulin],
+        ["Overshoot", overshootInsulin],
+      ] as InsulinPipeline,
+    [correctionInsulin, overshootInsulin],
+  );
+  const pipeline = useMemo(
+    () => (pipelines.length > 0 ? pipelines[shotIndex] : fallbackPipeline),
+    [pipelines, shotIndex, fallbackPipeline],
+  );
   console.log(
     pipelines,
     isPrebolus,
@@ -231,7 +243,6 @@ export default function InsulinPage() {
             template={template}
             meal={meal}
             mealName={template.name}
-            session={session}
             currentBG={currentGlucose}
           />
         </Card>
@@ -291,7 +302,7 @@ export default function InsulinPage() {
                 }
               />
               <MetricPill
-                label="Predicted Rise"
+                label={`Predicted ${continuedRise > 0 ? "Rise" : "Drop"} (${projectedDuration.toFixed(1)}hrs)`}
                 value={`${continuedRise > 0 ? "+" : ""}${continuedRise.toFixed(0)}mg/dL`}
               />
             </>
