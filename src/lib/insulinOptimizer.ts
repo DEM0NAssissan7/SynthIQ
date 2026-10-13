@@ -213,20 +213,6 @@ export namespace InsulinOptimizer {
     remorph(windows, insulins);
     return [returnInsulins, windows];
   }
-  function needsAdditionalDose(
-    window: TreatmentWindow,
-    getRescueVariant: (variant: RescueVariant) => RescueVariant,
-  ) {
-    const glucoseEffect = window.glucoses.reduce(
-      (n, glucose) =>
-        n + glucose.value * getRescueVariant(glucose.variant).effect,
-      0,
-    );
-    return (
-      window.finalBG >= PreferencesStore.highBG.value &&
-      glucoseEffect >= window.initialBG - PreferencesStore.lowBG.value
-    );
-  }
   /**
    * This is basically window mitosis
    * Every element of a window needs to be duplicated and adjusted evenly
@@ -327,7 +313,6 @@ export namespace InsulinOptimizer {
     // Phase 2: Figure out where to put new splits
     for (let i = 0; i < windows.length; i++) {
       const window = windows[i];
-      if (!needsAdditionalDose(window, getRescueVariant)) continue;
 
       // Now that we know it needs a new dose, we need to make sure
       // It's possible to actually add a dose where we need it
@@ -391,6 +376,11 @@ export namespace InsulinOptimizer {
       );
 
     // Phase 4: We run the balancer to isolate the pure meal insulin response
+    windows.forEach((w) => {
+      w.initialBG -= bgOffset;
+      w.finalBG -= bgOffset;
+      w.snapshot.shift(-bgOffset);
+    });
     const [mealInsulins, mealWindows] = balance(
       originalInsulins,
       windows,
