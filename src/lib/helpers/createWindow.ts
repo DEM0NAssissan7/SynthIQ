@@ -76,7 +76,7 @@ export function createWindows(
       snapshot.endTime,
     );
     const window: TreatmentWindow = {
-      snapshot: snapshot,
+      snapshot: Snapshot.deserialize(Snapshot.serialize(snapshot)),
       initialBG: snapshot.initialBG.sugar,
       startTime: snapshot.startTime,
       insulins: morphedInsulins,
