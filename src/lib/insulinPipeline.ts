@@ -190,7 +190,10 @@ export function deriveInsulinPipelines(
       ),
   );
 
-  return [pipelines, compositeInsulins];
+  return [
+    pipelines.filter((p) => evaluateInsulinPipeline(p) > 0),
+    compositeInsulins.filter((i) => i.value > 0),
+  ];
 }
 
 export function evaluateInsulinPipeline(pipeline: InsulinPipeline) {
