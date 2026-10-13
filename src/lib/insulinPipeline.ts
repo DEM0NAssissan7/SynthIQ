@@ -122,7 +122,8 @@ export function deriveInsulinPipelines(
   const [baseOptimalInsulins, _, isolatedMealInsulins] =
     InsulinOptimizer.getOptimalInsulins(
       baseSession.insulins,
-      baseSession.windows,
+      baseSession.snapshot,
+      baseSession.glucoses,
       BG,
       PreferencesStore.learningRate.value / 100,
       InsulinVariantStore.variants.value,

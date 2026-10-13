@@ -118,7 +118,8 @@ export default function TestPage() {
   const info: [Session, Insulin[], Insulin[]][] = sessions.map((session) => {
     const [, , optimalInsulins] = InsulinOptimizer.getOptimalInsulins(
       session.insulins,
-      session.windows,
+      session.snapshot,
+      session.glucoses,
       null,
       1,
       insulinVariants,

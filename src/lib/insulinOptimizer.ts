@@ -8,11 +8,13 @@ import { RescueVariant } from "../models/types/rescueVariant";
 import { useVariantGetters } from "./helpers/useVariantGetters";
 import { PreferencesStore } from "../storage/preferencesStore";
 import Glucose from "../models/events/glucose";
-import { morphInsulins } from "./helpers/createWindow";
+import { createWindows, morphInsulins } from "./helpers/createWindow";
 import { convertDimensions } from "./util";
 import Unit from "../models/unit";
 import { InsulinVariantManager } from "../managers/insulinVariantManager";
 import { PrivateStore } from "../storage/privateStore";
+import type Snapshot from "../models/snapshot";
+import { HealthMonitorStore } from "../storage/healthMonitorStore";
 
 export namespace InsulinOptimizer {
   // Helpers
@@ -285,25 +287,35 @@ export namespace InsulinOptimizer {
 
   export function getOptimalInsulins(
     _insulins: Insulin[],
-    originalWindows: TreatmentWindow[],
+    snapshot: Snapshot,
+    glucoses: Glucose[],
     initialBG: number | null,
     learningRate: number,
     insulinVariants: InsulinVariant[],
     rescueVariants: RescueVariant[],
     doPrune = true,
   ): [Insulin[], TreatmentWindow[], Insulin[]] {
-    const windows = originalWindows.map((w) => windowDeepCopy(w));
-    const targetBG = initialBG ? PreferencesStore.targetBG.value : null;
-    const minBG = PreferencesStore.lowBG.value;
-    const bgOffset = initialBG ? initialBG - windows[0].initialBG : 0;
-    console.log("BG OFFSET:", bgOffset, "TARGET:", targetBG);
-
     const { getInsulinVariant, getRescueVariant } = useVariantGetters(
       insulinVariants,
       rescueVariants,
     );
     // Create a deep copy of insulins
     let insulins = insulinsDeepCopy(_insulins);
+    // Filter out insulins that weren't absorbed enough
+    if (insulins.length > 1)
+      insulins = insulins.filter(
+        (i) =>
+          i.batemanIntegral(snapshot.startTime, snapshot.endTime, true) >=
+          HealthMonitorStore.insulinMinFraction,
+      );
+
+    // Create the windows
+    const windows = createWindows(insulins, snapshot, glucoses);
+    // Set parameters
+    const targetBG = initialBG ? PreferencesStore.targetBG.value : null;
+    const minBG = PreferencesStore.lowBG.value;
+    const bgOffset = initialBG ? initialBG - windows[0].initialBG : 0;
+    console.log("BG OFFSET:", bgOffset, "TARGET:", targetBG);
 
     // Phase 1: Adjust windows by the offset difference of the current startingBG vs the session's startingBG
     windows.forEach((w) => {
@@ -374,14 +386,14 @@ export namespace InsulinOptimizer {
         "Live:",
         originalInsulins,
         liveInsulins,
-        originalWindows,
+        windows,
         liveWindows,
       );
 
     // Phase 4: We run the balancer to isolate the pure meal insulin response
     const [mealInsulins, mealWindows] = balance(
       originalInsulins,
-      originalWindows,
+      windows,
       null,
       null,
       getInsulinVariant,

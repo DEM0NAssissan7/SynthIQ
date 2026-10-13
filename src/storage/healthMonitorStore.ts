@@ -43,4 +43,5 @@ export namespace HealthMonitorStore {
   export const dropTime = node.add("dropTime", 20);
   export const basalShotsPerDay = node.add("basalShotsPerDay", 1);
   export const basalShotTime = node.add("basalShotTime", 8);
+  export const insulinMinFraction = 0.3;
 }

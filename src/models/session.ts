@@ -177,7 +177,8 @@ export default class Session extends Subscribable {
   ): Insulin[] {
     const [optimalInsulins] = InsulinOptimizer.getOptimalInsulins(
       this.insulins,
-      this.windows,
+      this.snapshot,
+      this.glucoses,
       currentBG,
       PreferencesStore.learningRate.value / 100,
       insulinVariants,
@@ -188,7 +189,8 @@ export default class Session extends Subscribable {
   get optimalMealInsulins(): Insulin[] {
     const [optimalInsulins] = InsulinOptimizer.getOptimalInsulins(
       this.insulins,
-      this.windows,
+      this.snapshot,
+      this.glucoses,
       null,
       1,
       InsulinVariantStore.variants.value,
