@@ -40,7 +40,7 @@ function getExtraProfileDelta(
     referenceMeal.carbs,
     referenceMeal.protein,
   );
-  const profileScale = mealRise / profileMealRise;
+  const profileScale = profileMealRise !== 0 ? mealRise / profileMealRise : 0;
 
   const sharedFoods = meal.foods.filter((f) => referenceMeal.hasFood(f));
   const unsharedFoods = meal.foods.filter((f) => !referenceMeal.hasFood(f));
@@ -130,10 +130,11 @@ export function deriveInsulinPipelines(
       RescueVariantStore.variants.value,
       false,
     );
-  if (baseOptimalInsulins.length === 0) return fallback;
+  const prunedOptimalInsulins =
+    InsulinOptimizer.pruneInsulins(baseOptimalInsulins);
+  if (prunedOptimalInsulins.length === 0) return fallback;
 
-  baseOptimalInsulins.forEach((insulin, i) => {
-    if (insulin.value < 0.01) return;
+  prunedOptimalInsulins.forEach((insulin, i) => {
     const mealInsulin = isolatedMealInsulins[i];
     if (!mealInsulin) {
       pipelines.push([["Meal", insulin.value]]);
@@ -147,16 +148,16 @@ export function deriveInsulinPipelines(
   });
 
   // We try to make a "best guess" as to where the meal *should* land
-  const prunedInsulins = InsulinOptimizer.pruneInsulins(baseOptimalInsulins);
   const [extraCarbsRise, extraProteinRise] = getExtraProfileDelta(
     meal,
     baseSession,
   );
-  let profileOffsets = prunedInsulins.map((_) => 0);
-  profileOffsets[0] = extraCarbsRise / prunedInsulins[0].variant.effect;
-  const extraProteinRisePerShot = extraProteinRise / prunedInsulins.length;
+  let profileOffsets = prunedOptimalInsulins.map((_) => 0);
+  profileOffsets[0] = extraCarbsRise / prunedOptimalInsulins[0].variant.effect;
+  const extraProteinRisePerShot =
+    extraProteinRise / prunedOptimalInsulins.length;
   // Distribute protein out equally for each shot
-  prunedInsulins.forEach(
+  prunedOptimalInsulins.forEach(
     (insulin, i) =>
       (profileOffsets[i] += extraProteinRisePerShot / insulin.variant.effect),
   );
@@ -180,7 +181,7 @@ export function deriveInsulinPipelines(
   });
 
   // Composite into insulins
-  const compositeInsulins = prunedInsulins.map(
+  const compositeInsulins = prunedOptimalInsulins.map(
     (insulin, i) =>
       new Insulin(
         evaluateInsulinPipeline(pipelines[i]),
