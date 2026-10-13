@@ -44,4 +44,5 @@ export namespace HealthMonitorStore {
   export const basalShotsPerDay = node.add("basalShotsPerDay", 1);
   export const basalShotTime = node.add("basalShotTime", 8);
   export const insulinMinFraction = 0.3;
+  export const maxHoursBetweenSessions = node.add("maxHoursBetweenSessions", 3);
 }

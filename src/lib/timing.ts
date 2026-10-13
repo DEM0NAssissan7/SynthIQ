@@ -72,22 +72,17 @@ export function getFullPrettyDate(timestamp: Date): string {
   const year = date.getFullYear();
   return `${month}/${day}/${year} (${getPrettyTime(timestamp)})`;
 }
-export function timeOfDayOffset(d1: Date, d2: Date): number {
-  // Get hours and minutes for both dates
-  const minutes1 = d1.getHours() * 60 + d1.getMinutes();
-  const minutes2 = d2.getHours() * 60 + d2.getMinutes();
+export function getCircularHourDistance(dateA: Date, dateB: Date): number {
+  // Pull hours as floats so partial hours/minutes are accounted for
+  const h1 =
+    dateA.getHours() + dateA.getMinutes() / 60 + dateA.getSeconds() / 3600;
+  const h2 =
+    dateB.getHours() + dateB.getMinutes() / 60 + dateB.getSeconds() / 3600;
 
-  // Compute absolute difference
-  let diffMinutes = Math.abs(minutes2 - minutes1);
+  const diff = Math.abs(h1 - h2);
 
-  // Handle wrap-around at midnight (e.g., 23:00 → 02:15)
-  if (diffMinutes > 720) {
-    // 12 hours in minutes
-    diffMinutes = 1440 - diffMinutes; // 24h - diff
-  }
-
-  // Convert to hours (with decimals)
-  return diffMinutes / 60;
+  // The shorter path around a 24-hour circle
+  return Math.min(diff, 24 - diff);
 }
 
 export function getFormattedTime(_minutes: number): string {

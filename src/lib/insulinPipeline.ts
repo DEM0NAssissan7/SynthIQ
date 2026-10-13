@@ -135,6 +135,10 @@ export function deriveInsulinPipelines(
   baseOptimalInsulins.forEach((insulin, i) => {
     if (insulin.value < 0.01) return;
     const mealInsulin = isolatedMealInsulins[i];
+    if (!mealInsulin) {
+      pipelines.push([["Meal", insulin.value]]);
+      return;
+    }
     const correctionOffset = insulin.value - mealInsulin.value;
     pipelines.push([
       ["Meal", mealInsulin.value],
@@ -163,6 +167,17 @@ export function deriveInsulinPipelines(
 
   // Finally, add extra steps
   pipelines.forEach((steps) => steps.push(...extraElements));
+
+  // Filter through each step and get rid of pointless steps
+  pipelines.forEach((steps) => {
+    for (let i = 0; i < steps.length; i++) {
+      const [_, value] = steps[i];
+      if (Math.abs(value) < 0.1) {
+        steps.splice(i, 1);
+        i--;
+      }
+    }
+  });
 
   // Composite into insulins
   const compositeInsulins = prunedInsulins.map(

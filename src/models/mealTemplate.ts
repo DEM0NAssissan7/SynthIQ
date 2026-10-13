@@ -1,12 +1,11 @@
-import { getBasalSensitivity } from "../lib/basal";
 import {
   getSimilarSessionsDistances,
   type SessionAndScore,
 } from "../lib/helpers/getSimilarSessionsDistances";
 import { sessionsWeightedAverage } from "../lib/templateHelpers";
-import { timeOfDayOffset } from "../lib/timing";
-import { clamp, genUUID, MathUtil } from "../lib/util";
-import { BasalStore } from "../storage/basalStore";
+import { getCircularHourDistance } from "../lib/timing";
+import { genUUID, MathUtil } from "../lib/util";
+import { HealthMonitorStore } from "../storage/healthMonitorStore";
 import { PreferencesStore } from "../storage/preferencesStore";
 import Meal from "./events/meal";
 import Session from "./session";
@@ -170,138 +169,6 @@ export default class MealTemplate extends Subscribable implements Template {
     );
   }
 
-  // Meal Vectorization
-  vectorizer(
-    timestamp: Date,
-    fastingVelocity: number,
-    dailyBasal: number,
-  ): Session[] | null {
-    if (this.isFirstTime) return null;
-    const validSessions = this.validSessions;
-    if (validSessions.length === 0) return null; // Do not vectorize if we don't have any valid sessions
-
-    let sessions = this.freshSessions;
-
-    // K is the number of neighbors to select
-    const K = Math.min(
-      clamp(Math.floor(this.sessions.length / 3), 3, 9),
-      this.sessions.length,
-    ); // Adaptive number of desired sessions based on number of valid sessions
-
-    // Discard expired sessions unless we don't have enough to fulfill K
-    const expiredSessions = this.expiredSessions
-      .slice()
-      .sort((a, b) => a.age - b.age); // Sort by age to pull the newest ones first
-    sessions = sessions.filter((s) => !s.expired); // Filter out expired sessions
-    if (sessions.length < K) {
-      // Salvage the latest expired sessions
-      sessions.push(...expiredSessions.slice(0, K - sessions.length));
-    }
-
-    const getSafeScale = (absDistances: number[]) => {
-      if (absDistances.length === 0) return 1e-6;
-      const median = MathUtil.median(absDistances);
-      if (median > 0) return median;
-      const mean = MathUtil.mean(absDistances);
-      if (mean > 0) return mean;
-      const positives = absDistances.filter((x) => x > 0);
-      return positives.length ? Math.min(...positives) : 1e-3;
-    };
-
-    // Query-centered per-axis scales = median/mean absolute differences (safe-guarded)
-    const timeOfDayScale = getSafeScale(
-      sessions.map((s) => Math.abs(timeOfDayOffset(timestamp, s.timestamp))),
-    );
-    const estimatedLiverOutput = BasalStore.estimatedLiverOutput.value ?? 0;
-    const sensitivityIndex = getBasalSensitivity(
-      estimatedLiverOutput,
-      fastingVelocity,
-      dailyBasal,
-    ); // mg/dL per unit
-    const sensitivityIndexScale = getSafeScale(
-      sessions.map((s) =>
-        Math.abs(
-          sensitivityIndex - (s.getSensitivityIndex(estimatedLiverOutput) ?? 0),
-        ),
-      ),
-    );
-
-    // Get the closest X sessions
-    let sessionDistances: SessionAndScore[] = [];
-    for (let s of sessions) {
-      if (!s.initialGlucose) continue;
-      sessionDistances.push([
-        s,
-        (timeOfDayOffset(timestamp, s.timestamp) / timeOfDayScale) ** 2 + // Squared euclidean distance
-          ((sensitivityIndex -
-            (s.getSensitivityIndex(estimatedLiverOutput) ?? 0)) /
-            sensitivityIndexScale) **
-            2,
-      ]);
-    }
-    sessionDistances.sort((a, b) => a[1] - b[1]);
-
-    const nearSessions: Session[] = sessionDistances
-      .slice(0, K)
-      .map((a) => a[0]);
-    if (nearSessions.length === 0) return null;
-
-    // Eliminate outliers
-    const kept: Session[] = [];
-    const medianMealInsulin = MathUtil.median(
-      nearSessions.map((s) => s.mealInsulin),
-    );
-    const mealInsulinMAD = getSafeScale(
-      nearSessions.map((s) => Math.abs(s.mealInsulin - medianMealInsulin)),
-    );
-
-    const TAU = 1.5; // or 2.0 if you want looser
-    const cutoff = TAU * mealInsulinMAD;
-    for (let i = 0; i < nearSessions.length; i++) {
-      const s = nearSessions[i];
-      // Get rid of outliers
-      if (Math.abs(s.mealInsulin - medianMealInsulin) <= cutoff) {
-        kept.push(s);
-        continue;
-      }
-    }
-
-    let result = kept;
-    if (result.length === 0) result = nearSessions;
-    return result.sort((a, b) => a.age - b.age);
-  }
-  getClosestSession(
-    timestamp: Date,
-    fastingVelocity: number,
-    dailyBasal: number,
-  ): Session | null {
-    const closestSessions = this.vectorizer(
-      timestamp,
-      fastingVelocity,
-      dailyBasal,
-    );
-    if (!closestSessions) return null;
-    return closestSessions[0];
-  }
-  getOptimalSession(
-    timestamp: Date,
-    fastingVelocity: number,
-    dailyBasal: number,
-  ): Session | null {
-    const closestSessions = this.vectorizer(
-      timestamp,
-      fastingVelocity,
-      dailyBasal,
-    );
-    if (!closestSessions) return null;
-    // Choose the most typically controlled session (to avoid outliars)
-    const medianScore = MathUtil.median(closestSessions.map((a) => a.score));
-    return closestSessions.sort((a, b) => {
-      const MADA = Math.abs(a.score - medianScore);
-      const MADB = Math.abs(b.score - medianScore);
-      return MADA - MADB;
-    })[0];
-  }
   getSimilarSessionsDistances(meal: Meal): SessionAndScore[] | null {
     if (this.isFirstTime) return null;
 
@@ -309,7 +176,7 @@ export default class MealTemplate extends Subscribable implements Template {
     if (sessions.length === 0) return null;
     return getSimilarSessionsDistances(meal, sessions);
   }
-  getBaseSession(meal: Meal): Session | null {
+  getBaseSession(meal: Meal, timestamp = new Date()): Session | null {
     const sessionsDistances = this.getSimilarSessionsDistances(meal);
     if (!sessionsDistances || sessionsDistances.length === 0) return null;
 
@@ -326,14 +193,17 @@ export default class MealTemplate extends Subscribable implements Template {
 
     // Safe spread factor (at least 1e-3)
     const spreadAllowance = Math.max(mad, 1e-3);
-    const maxAcceptableDistance = bestDistance + spreadAllowance;
+    const maxAcceptableDistance = bestDistance * 2 + spreadAllowance;
 
     // Gather all sessions falling within the acceptable neighborhood of the best match
-    const candidates: Session[] = [];
-    for (const [session, dist] of sortedDistances) {
-      if (dist > maxAcceptableDistance) break;
-      candidates.push(session);
-    }
+    const candidates: Session[] = sortedDistances
+      .filter(([_, dist]) => dist <= maxAcceptableDistance)
+      .map((a) => a[0])
+      .filter(
+        (session) =>
+          getCircularHourDistance(session.timestamp, timestamp) <=
+          HealthMonitorStore.maxHoursBetweenSessions.value,
+      );
 
     if (candidates.length === 0) return sortedDistances[0][0];
 

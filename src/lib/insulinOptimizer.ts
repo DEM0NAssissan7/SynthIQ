@@ -400,7 +400,7 @@ export namespace InsulinOptimizer {
       getRescueVariant,
     );
     if (PrivateStore.debugLogs.value)
-      console.log("Meal:", mealInsulins, mealWindows);
+      console.log("Meal:", mealInsulins, liveInsulins, mealWindows);
     if (initialBG === null)
       return [
         doPrune ? pruneInsulins(mealInsulins) : mealInsulins,
@@ -427,7 +427,7 @@ export namespace InsulinOptimizer {
     return [
       doPrune ? pruneInsulins(resultInsulins) : resultInsulins,
       liveWindows,
-      doPrune ? pruneInsulins(mealInsulins) : resultInsulins,
+      doPrune ? pruneInsulins(mealInsulins) : mealInsulins,
     ];
   }
 }
