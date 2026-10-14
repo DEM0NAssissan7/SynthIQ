@@ -308,13 +308,15 @@ export default function InsulinPage() {
             </>
           )}
         </MetricGrid>
-        <div className="d-flex flex-column gap-2 mt-1">
-          <div className="app-dose-list">
-            {pipeline.map((step) => (
-              <DoseBreakdownItem name={step[0]} insulin={step[1]} />
-            ))}
+        {pipeline && (
+          <div className="d-flex flex-column gap-2 mt-1">
+            <div className="app-dose-list">
+              {pipeline.map((step) => (
+                <DoseBreakdownItem name={step[0]} insulin={step[1]} />
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </Card>
 
       {/* Mark insulin */}
