@@ -33,7 +33,21 @@ interface GlucoseChartPoint {
   isFuture?: boolean;
 }
 
-function GlucoseTooltip({ active, payload, anchor, now }: any) {
+interface GlucoseTooltipProps {
+  active?: boolean;
+  payload?: any[];
+  anchor: SugarReading | null;
+  now: Date;
+  decimalPredictedBG: boolean;
+}
+
+function GlucoseTooltip({
+  active,
+  payload,
+  anchor,
+  now,
+  decimalPredictedBG,
+}: GlucoseTooltipProps) {
   if (!active || !payload || !payload.length) return null;
   const point: GlucoseChartPoint = payload[0]?.payload;
   if (!point) return null;
@@ -74,6 +88,22 @@ function GlucoseTooltip({ active, payload, anchor, now }: any) {
     badgeBg = "var(--app-primary-container)";
   }
 
+  const valStr =
+    val !== null && Number.isFinite(val)
+      ? decimalPredictedBG
+        ? round(val, 1).toFixed(1)
+        : Math.round(val).toString()
+      : "--";
+
+  const deltaStr = (() => {
+    if (delta === null || !Number.isFinite(delta)) return null;
+    const abs = Math.abs(delta);
+    const numStr = decimalPredictedBG
+      ? abs.toFixed(1)
+      : Math.round(abs).toString();
+    return delta > 0 ? `+${numStr}` : delta < 0 ? `-${numStr}` : numStr;
+  })();
+
   return (
     <div
       className="p-2 rounded-3 shadow-sm border"
@@ -92,26 +122,24 @@ function GlucoseTooltip({ active, payload, anchor, now }: any) {
         </span>
       </div>
       <div className="d-flex align-items-baseline gap-1">
-        <span className="fw-bold fs-5">
-          {val !== null ? round(val, 1) : "--"}
-        </span>
+        <span className="fw-bold fs-5">{valStr}</span>
         <span className="text-muted small" style={{ fontSize: "0.75rem" }}>
           mg/dL
         </span>
-        {delta !== null && (
+        {deltaStr !== null && (
           <span
             className="small ms-auto fw-semibold"
             style={{
               fontSize: "0.75rem",
               color:
-                delta > 0
+                delta! > 0
                   ? "var(--app-status-elevated)"
-                  : delta < 0
+                  : delta! < 0
                     ? "var(--app-status-target)"
                     : "var(--app-text-muted)",
             }}
           >
-            {delta > 0 ? `+${round(delta, 1)}` : round(delta, 1)}
+            {deltaStr}
           </span>
         )}
       </div>
@@ -303,6 +331,8 @@ export default function PredictedGlucoseCard() {
 
     const data: GlucoseChartPoint[] = [];
 
+    const precision = decimalPredictedBG ? 1 : 0;
+
     // 1. Historical points up to latest reading
     for (let i = 0; i < sortedReadings.length - 1; i++) {
       const r = sortedReadings[i];
@@ -318,7 +348,9 @@ export default function PredictedGlucoseCard() {
     data.push({
       time: latestTime,
       actual: latestReading.sugar,
-      predicted: latestReading.sugar,
+      predicted: decimalPredictedBG
+        ? round(latestReading.sugar, 1)
+        : Math.round(latestReading.sugar),
       isCalibration: latestReading.isCalibration,
       isAnchor: true,
     });
@@ -339,7 +371,7 @@ export default function PredictedGlucoseCard() {
         data.push({
           time: nowMs,
           actual: null,
-          predicted: round(predNow, 1),
+          predicted: round(predNow, precision),
           isNow: true,
         });
       }
@@ -360,7 +392,7 @@ export default function PredictedGlucoseCard() {
           data.push({
             time: nextT,
             actual: null,
-            predicted: round(pred, 1),
+            predicted: round(pred, precision),
             isFuture: true,
           });
         }
@@ -433,6 +465,7 @@ export default function PredictedGlucoseCard() {
     highBG,
     recentBoluses,
     recentRescues,
+    decimalPredictedBG,
   ]);
 
   // Measure container width
@@ -696,7 +729,13 @@ export default function PredictedGlucoseCard() {
             </button>
             <span className="text-muted small" style={{ fontSize: "0.75rem" }}>
               {Number.isFinite(delta)
-                ? `Net Δ ${delta > 0 ? `+${round(delta, 1)}` : round(delta, 1)} mg/dL`
+                ? `Net Δ ${(() => {
+                    const abs = Math.abs(delta);
+                    const numStr = decimalPredictedBG
+                      ? abs.toFixed(1)
+                      : Math.round(abs).toString();
+                    return delta > 0 ? `+${numStr}` : delta < 0 ? `-${numStr}` : numStr;
+                  })()} mg/dL`
                 : ""}
             </span>
           </div>
@@ -876,7 +915,13 @@ export default function PredictedGlucoseCard() {
                         />
 
                         <Tooltip
-                          content={<GlucoseTooltip anchor={anchor} now={now} />}
+                          content={
+                            <GlucoseTooltip
+                              anchor={anchor}
+                              now={now}
+                              decimalPredictedBG={decimalPredictedBG}
+                            />
+                          }
                           isAnimationActive={false}
                         />
 
@@ -919,13 +964,18 @@ export default function PredictedGlucoseCard() {
                   <span className="text-muted">Trend: </span>
                   <span className="fw-semibold">
                     {velocity > 0 ? "+" : ""}
-                    {round(velocity, 1)} mg/dL/hr
+                    {decimalPredictedBG
+                      ? round(velocity, 1).toFixed(1)
+                      : Math.round(velocity).toString()}{" "}
+                    mg/dL/hr
                   </span>
                 </div>
                 <div>
                   <span className="text-muted">+30m: </span>
                   <span className="fw-bold">
-                    {pred30 !== null ? `${round(pred30, 0)} mg/dL` : "--"}
+                    {pred30 !== null
+                      ? `${decimalPredictedBG ? round(pred30, 1).toFixed(1) : Math.round(pred30).toString()} mg/dL`
+                      : "--"}
                   </span>
                   {delta30 !== null && (
                     <span
@@ -937,18 +987,26 @@ export default function PredictedGlucoseCard() {
                             : "var(--app-status-target)",
                       }}
                     >
-                      (
-                      {delta30 > 0
-                        ? `+${round(delta30, 0)}`
-                        : round(delta30, 0)}
-                      )
+                      ({(() => {
+                        const abs = Math.abs(delta30);
+                        const str = decimalPredictedBG
+                          ? abs.toFixed(1)
+                          : Math.round(abs).toString();
+                        return delta30 > 0
+                          ? `+${str}`
+                          : delta30 < 0
+                            ? `-${str}`
+                            : str;
+                      })()})
                     </span>
                   )}
                 </div>
                 <div>
                   <span className="text-muted">+60m: </span>
                   <span className="fw-bold">
-                    {pred60 !== null ? `${round(pred60, 0)} mg/dL` : "--"}
+                    {pred60 !== null
+                      ? `${decimalPredictedBG ? round(pred60, 1).toFixed(1) : Math.round(pred60).toString()} mg/dL`
+                      : "--"}
                   </span>
                   {delta60 !== null && (
                     <span
@@ -960,11 +1018,17 @@ export default function PredictedGlucoseCard() {
                             : "var(--app-status-target)",
                       }}
                     >
-                      (
-                      {delta60 > 0
-                        ? `+${round(delta60, 0)}`
-                        : round(delta60, 0)}
-                      )
+                      ({(() => {
+                        const abs = Math.abs(delta60);
+                        const str = decimalPredictedBG
+                          ? abs.toFixed(1)
+                          : Math.round(abs).toString();
+                        return delta60 > 0
+                          ? `+${str}`
+                          : delta60 < 0
+                            ? `-${str}`
+                            : str;
+                      })()})
                     </span>
                   )}
                 </div>
