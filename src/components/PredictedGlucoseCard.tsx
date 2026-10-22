@@ -314,25 +314,6 @@ export default function PredictedGlucoseCard() {
     return Math.max(0, getMinuteDiff(now, anchor.timestamp));
   }, [now, anchor]);
 
-  // Predictions at milestones
-  const pred30 = useMemo(() => {
-    return getPredictedGlucose(
-      readings,
-      new Date(now.getTime() + 30 * 60 * 1000),
-      recentBoluses,
-      recentRescues,
-    );
-  }, [readings, now, recentBoluses, recentRescues]);
-
-  const pred60 = useMemo(() => {
-    return getPredictedGlucose(
-      readings,
-      new Date(now.getTime() + 60 * 60 * 1000),
-      recentBoluses,
-      recentRescues,
-    );
-  }, [readings, now, recentBoluses, recentRescues]);
-
   const currentTrend = useMemo(() => {
     if (!anchor || predictedBG === null) return null;
     return getDeltaTrend({
@@ -347,48 +328,6 @@ export default function PredictedGlucoseCard() {
   }, [
     anchor,
     predictedBG,
-    targetBG,
-    lowBG,
-    dangerBG,
-    decimalPredictedBG,
-    minutesAgo,
-  ]);
-
-  const trend30 = useMemo(() => {
-    if (!anchor || pred30 === null) return null;
-    return getDeltaTrend({
-      startBG: anchor.sugar,
-      predictedBG: pred30,
-      targetBG: targetBG || 110,
-      lowBG: lowBG || 70,
-      dangerBG: dangerBG || 55,
-      decimal: decimalPredictedBG,
-      durationMinutes: minutesAgo + 30,
-    });
-  }, [
-    anchor,
-    pred30,
-    targetBG,
-    lowBG,
-    dangerBG,
-    decimalPredictedBG,
-    minutesAgo,
-  ]);
-
-  const trend60 = useMemo(() => {
-    if (!anchor || pred60 === null) return null;
-    return getDeltaTrend({
-      startBG: anchor.sugar,
-      predictedBG: pred60,
-      targetBG: targetBG || 110,
-      lowBG: lowBG || 70,
-      dangerBG: dangerBG || 55,
-      decimal: decimalPredictedBG,
-      durationMinutes: minutesAgo + 60,
-    });
-  }, [
-    anchor,
-    pred60,
     targetBG,
     lowBG,
     dangerBG,
@@ -423,6 +362,16 @@ export default function PredictedGlucoseCard() {
       percentWithinVariance: Number.isFinite(result.percentWithinVariance)
         ? result.percentWithinVariance
         : 0,
+      meanDeviation30min:
+        result.meanDeviation30min !== undefined &&
+        Number.isFinite(result.meanDeviation30min)
+          ? result.meanDeviation30min
+          : null,
+      meanDeviation60min:
+        result.meanDeviation60min !== undefined &&
+        Number.isFinite(result.meanDeviation60min)
+          ? result.meanDeviation60min
+          : null,
     };
   }, [readings, recentBoluses, recentRescues]);
 
@@ -437,11 +386,28 @@ export default function PredictedGlucoseCard() {
     const pctVarianceStr = decimalPredictedBG
       ? round(accuracy.percentWithinVariance, 1).toFixed(1)
       : Math.round(accuracy.percentWithinVariance).toString();
+
+    const mad30Str =
+      accuracy.meanDeviation30min !== null && accuracy.meanDeviation30min > 0
+        ? decimalPredictedBG
+          ? round(accuracy.meanDeviation30min, 1).toFixed(1)
+          : Math.round(accuracy.meanDeviation30min).toString()
+        : null;
+
+    const mad60Str =
+      accuracy.meanDeviation60min !== null && accuracy.meanDeviation60min > 0
+        ? decimalPredictedBG
+          ? round(accuracy.meanDeviation60min, 1).toFixed(1)
+          : Math.round(accuracy.meanDeviation60min).toString()
+        : null;
+
     return {
       mad: `±${madStr}`,
       pctCorrect: `${pctCorrectStr}%`,
       pctWithinVariance: `${pctVarianceStr}%`,
       pillCombined: `±${madStr} mg/dL · ${pctVarianceStr}%`,
+      mad30: mad30Str ? `±${mad30Str}` : null,
+      mad60: mad60Str ? `±${mad60Str}` : null,
     };
   }, [accuracy, decimalPredictedBG]);
 
@@ -1173,7 +1139,7 @@ export default function PredictedGlucoseCard() {
                 </div>
               </div>
 
-              {/* Milestone Predictions & Accuracy Summary */}
+              {/* Prediction Accuracy Summary */}
               <div
                 className="d-flex justify-content-between align-items-center pt-2 mt-0.5 border-top border-secondary-subtle gap-2 flex-wrap px-1"
                 style={{ fontSize: "0.76rem" }}
@@ -1191,35 +1157,19 @@ export default function PredictedGlucoseCard() {
                 )}
                 <div>
                   <span className="text-muted">+30m: </span>
-                  <span className="fw-bold">
-                    {pred30 !== null
-                      ? `${decimalPredictedBG ? round(pred30, 1).toFixed(1) : Math.round(pred30).toString()} mg/dL`
+                  <span className="fw-semibold">
+                    {formattedAccuracy?.mad30
+                      ? `${formattedAccuracy.mad30} mg/dL`
                       : "--"}
                   </span>
-                  {trend30 && (
-                    <span
-                      className="ms-1 small fw-semibold"
-                      style={{ color: trend30.color }}
-                    >
-                      ({trend30.formatted})
-                    </span>
-                  )}
                 </div>
                 <div>
                   <span className="text-muted">+60m: </span>
-                  <span className="fw-bold">
-                    {pred60 !== null
-                      ? `${decimalPredictedBG ? round(pred60, 1).toFixed(1) : Math.round(pred60).toString()} mg/dL`
+                  <span className="fw-semibold">
+                    {formattedAccuracy?.mad60
+                      ? `${formattedAccuracy.mad60} mg/dL`
                       : "--"}
                   </span>
-                  {trend60 && (
-                    <span
-                      className="ms-1 small fw-semibold"
-                      style={{ color: trend60.color }}
-                    >
-                      ({trend60.formatted})
-                    </span>
-                  )}
                 </div>
               </div>
             </div>

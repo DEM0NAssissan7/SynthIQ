@@ -159,22 +159,67 @@ export function getPredictedGlucoseAccuracy(
     totalPredictions++;
     if (Math.round(deviation) === 0) correctPredictionsCount++;
   }
-  const meanDeviation = MathUtil.mean(deviations);
-  const percentWithinVariance =
+  const immediateMeanDeviation = MathUtil.mean(deviations);
+  const immediatePercentWithinVariance =
     deviations.length !== 0
       ? (100 *
           deviations.reduce(
-            (n, d) => (Math.abs(d) - meanDeviation <= 0 ? n + 1 : n),
+            (n, d) => (Math.abs(d) - immediateMeanDeviation <= 0 ? n + 1 : n),
             0,
           )) /
         deviations.length
       : 0;
+  const immediatePercentPerfect =
+    totalPredictions !== 0
+      ? (correctPredictionsCount / totalPredictions) * 100
+      : 0;
+
+  // Now calculate the 30-minute and 60-minute deviations
+  const getDeviations = (minutesAhead: number) => {
+    const deviations: number[] = [];
+    for (let i = 1; i < readings.length; i++) {
+      const truncatedReadings = readings.slice(0, i);
+      // Where we are
+      const baseReading = readings[i - 1];
+      if (!baseReading) continue;
+      const targetFuture = getTimestampFromOffset(
+        baseReading.timestamp,
+        minutesAhead / 60,
+      );
+      // Find the reading we have available that is closest to the future timestamp without being behind it
+      const targetReading = (() => {
+        for (let j = i; j < readings.length; j++) {
+          const reading = readings[j];
+          if (reading.timestamp.getTime() < targetFuture.getTime()) continue;
+          return reading;
+        }
+        return null;
+      })();
+      if (!targetReading) return deviations;
+      const prediction = getPredictedGlucose(
+        truncatedReadings,
+        targetReading.timestamp,
+        insulins,
+        rescues,
+      );
+      if (!prediction) continue;
+      const actual = targetReading.sugar;
+      const deviation = prediction - actual;
+      deviations.push(Math.abs(deviation));
+    }
+    return deviations;
+  };
+
+  const deviations30min = getDeviations(30);
+  const meanDeviation30min = MathUtil.mean(deviations30min);
+  const deviations60min = getDeviations(60);
+  const meanDeviation60min = MathUtil.mean(deviations60min);
+
   return {
-    meanAvgDeviation: meanDeviation,
-    percentCorrect:
-      totalPredictions !== 0
-        ? (correctPredictionsCount / totalPredictions) * 100
-        : 0,
-    percentWithinVariance: percentWithinVariance,
+    meanAvgDeviation: immediateMeanDeviation,
+    percentCorrect: immediatePercentPerfect,
+    percentWithinVariance: immediatePercentWithinVariance,
+    meanDeviation30min: meanDeviation30min,
+    meanDeviation60min: meanDeviation60min,
   };
 }
