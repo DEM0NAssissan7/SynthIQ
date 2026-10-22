@@ -36,12 +36,104 @@ interface GlucoseChartPoint {
   isFuture?: boolean;
 }
 
+interface DeltaTrend {
+  delta: number;
+  formatted: string;
+  color: string;
+  isTowardTarget: boolean;
+  isRapidDrop: boolean;
+}
+
+function getDeltaTrend({
+  startBG,
+  predictedBG,
+  targetBG = 110,
+  lowBG = 70,
+  dangerBG = 55,
+  decimal = false,
+  durationMinutes,
+}: {
+  startBG: number;
+  predictedBG: number | null;
+  targetBG?: number;
+  lowBG?: number;
+  dangerBG?: number;
+  decimal?: boolean;
+  durationMinutes?: number;
+}): DeltaTrend | null {
+  if (
+    predictedBG === null ||
+    !Number.isFinite(predictedBG) ||
+    !Number.isFinite(startBG)
+  ) {
+    return null;
+  }
+
+  const delta = predictedBG - startBG;
+  const abs = Math.abs(delta);
+  const numStr = decimal ? abs.toFixed(1) : Math.round(abs).toString();
+  const formatted =
+    delta > 0 ? `+${numStr}` : delta < 0 ? `-${numStr}` : numStr;
+
+  // Threshold for effectively unchanged
+  const epsilon = decimal ? 0.05 : 0.5;
+  if (abs < epsilon) {
+    return {
+      delta,
+      formatted,
+      color: "var(--app-text-muted)",
+      isTowardTarget: true,
+      isRapidDrop: false,
+    };
+  }
+
+  // Distance from target
+  const startDist = Math.abs(startBG - targetBG);
+  const endDist = Math.abs(predictedBG - targetBG);
+  const isTowardTarget = endDist < startDist;
+
+  // Hourly drop rate (if duration is known)
+  const durationHours =
+    durationMinutes && durationMinutes > 0 ? durationMinutes / 60 : 0;
+  const dropRatePerHour =
+    durationHours > 0 && delta < 0 ? Math.abs(delta) / durationHours : 0;
+
+  // Rapid/dangerous drop criteria:
+  // Heading downwards and moving away from target (or crossing into hypo),
+  // and either dropping rapidly (>= 60 mg/dL/hr, i.e. >= 1 pt/min) or landing below lowBG
+  const isHeadingAwayDownwards =
+    delta < 0 && (predictedBG < targetBG || !isTowardTarget);
+  const isHypoRisk = predictedBG < lowBG;
+  const isRapidRate = dropRatePerHour >= 60;
+  const isRapidDrop = isHeadingAwayDownwards && (isHypoRisk || isRapidRate);
+
+  let color: string;
+  if (isRapidDrop || predictedBG <= dangerBG) {
+    color = "var(--app-status-low)"; // Red
+  } else if (isTowardTarget && !isHypoRisk) {
+    color = "var(--app-status-target)"; // Green
+  } else {
+    color = "var(--app-status-elevated)"; // Yellow
+  }
+
+  return {
+    delta,
+    formatted,
+    color,
+    isTowardTarget,
+    isRapidDrop,
+  };
+}
+
 interface GlucoseTooltipProps {
   active?: boolean;
   payload?: any[];
   anchor: SugarReading | null;
   now: Date;
   decimalPredictedBG: boolean;
+  targetBG?: number;
+  lowBG?: number;
+  dangerBG?: number;
 }
 
 function GlucoseTooltip({
@@ -50,6 +142,9 @@ function GlucoseTooltip({
   anchor,
   now,
   decimalPredictedBG,
+  targetBG = 110,
+  lowBG = 70,
+  dangerBG = 55,
 }: GlucoseTooltipProps) {
   if (!active || !payload || !payload.length) return null;
   const point: GlucoseChartPoint = payload[0]?.payload;
@@ -61,8 +156,6 @@ function GlucoseTooltip({
     minute: "2-digit",
   });
   const val = point.predicted ?? point.actual;
-  const delta =
-    anchor && val !== null && Number.isFinite(val) ? val - anchor.sugar : null;
 
   const diffMin = Math.round((point.time - now.getTime()) / 60000);
   let relTime = "Now";
@@ -98,14 +191,25 @@ function GlucoseTooltip({
         : Math.round(val).toString()
       : "--";
 
-  const deltaStr = (() => {
-    if (delta === null || !Number.isFinite(delta)) return null;
-    const abs = Math.abs(delta);
-    const numStr = decimalPredictedBG
-      ? abs.toFixed(1)
-      : Math.round(abs).toString();
-    return delta > 0 ? `+${numStr}` : delta < 0 ? `-${numStr}` : numStr;
-  })();
+  const durationMin = anchor
+    ? Math.max(
+        1,
+        Math.round(Math.abs(point.time - anchor.timestamp.getTime()) / 60000),
+      )
+    : undefined;
+
+  const trend =
+    anchor && val !== null
+      ? getDeltaTrend({
+          startBG: anchor.sugar,
+          predictedBG: val,
+          targetBG,
+          lowBG,
+          dangerBG,
+          decimal: decimalPredictedBG,
+          durationMinutes: durationMin,
+        })
+      : null;
 
   return (
     <div
@@ -129,20 +233,15 @@ function GlucoseTooltip({
         <span className="text-muted small" style={{ fontSize: "0.75rem" }}>
           mg/dL
         </span>
-        {deltaStr !== null && (
+        {trend && (
           <span
             className="small ms-auto fw-semibold"
             style={{
               fontSize: "0.75rem",
-              color:
-                delta! > 0
-                  ? "var(--app-status-elevated)"
-                  : delta! < 0
-                    ? "var(--app-status-target)"
-                    : "var(--app-text-muted)",
+              color: trend.color,
             }}
           >
-            {deltaStr}
+            {trend.formatted}
           </span>
         )}
       </div>
@@ -168,6 +267,7 @@ export default function PredictedGlucoseCard() {
   const [targetBG] = PreferencesStore.targetBG.useState();
   const [lowBG] = PreferencesStore.lowBG.useState();
   const [highBG] = PreferencesStore.highBG.useState();
+  const [dangerBG] = PreferencesStore.dangerBG.useState();
   const [decimalPredictedBG] = PreferencesStore.decimalPredictedBG.useState();
   const [cgmDelayRaw] = BackendStore.cgmDelay.useState();
   const cgmDelay = cgmDelayRaw && cgmDelayRaw > 0 ? cgmDelayRaw : 5;
@@ -205,12 +305,6 @@ export default function PredictedGlucoseCard() {
     return getPredictedGlucose(readings, now, recentBoluses, recentRescues);
   }, [now, readings, recentBoluses, recentRescues]);
 
-  const delta = useMemo(() => {
-    if (!anchor || predictedBG === null || !Number.isFinite(predictedBG))
-      return 0;
-    return predictedBG - anchor.sugar;
-  }, [predictedBG, anchor]);
-
   const velocity = useMemo(() => {
     return getBGVelocity(readings);
   }, [readings]);
@@ -239,15 +333,68 @@ export default function PredictedGlucoseCard() {
     );
   }, [readings, now, recentBoluses, recentRescues]);
 
-  const delta30 = useMemo(() => {
-    if (!anchor || pred30 === null || !Number.isFinite(pred30)) return null;
-    return pred30 - anchor.sugar;
-  }, [pred30, anchor]);
+  const currentTrend = useMemo(() => {
+    if (!anchor || predictedBG === null) return null;
+    return getDeltaTrend({
+      startBG: anchor.sugar,
+      predictedBG,
+      targetBG: targetBG || 110,
+      lowBG: lowBG || 70,
+      dangerBG: dangerBG || 55,
+      decimal: decimalPredictedBG,
+      durationMinutes: Math.max(minutesAgo, 1),
+    });
+  }, [
+    anchor,
+    predictedBG,
+    targetBG,
+    lowBG,
+    dangerBG,
+    decimalPredictedBG,
+    minutesAgo,
+  ]);
 
-  const delta60 = useMemo(() => {
-    if (!anchor || pred60 === null || !Number.isFinite(pred60)) return null;
-    return pred60 - anchor.sugar;
-  }, [pred60, anchor]);
+  const trend30 = useMemo(() => {
+    if (!anchor || pred30 === null) return null;
+    return getDeltaTrend({
+      startBG: anchor.sugar,
+      predictedBG: pred30,
+      targetBG: targetBG || 110,
+      lowBG: lowBG || 70,
+      dangerBG: dangerBG || 55,
+      decimal: decimalPredictedBG,
+      durationMinutes: minutesAgo + 30,
+    });
+  }, [
+    anchor,
+    pred30,
+    targetBG,
+    lowBG,
+    dangerBG,
+    decimalPredictedBG,
+    minutesAgo,
+  ]);
+
+  const trend60 = useMemo(() => {
+    if (!anchor || pred60 === null) return null;
+    return getDeltaTrend({
+      startBG: anchor.sugar,
+      predictedBG: pred60,
+      targetBG: targetBG || 110,
+      lowBG: lowBG || 70,
+      dangerBG: dangerBG || 55,
+      decimal: decimalPredictedBG,
+      durationMinutes: minutesAgo + 60,
+    });
+  }, [
+    anchor,
+    pred60,
+    targetBG,
+    lowBG,
+    dangerBG,
+    decimalPredictedBG,
+    minutesAgo,
+  ]);
 
   // Prediction accuracy (Mean Average Deviation, Percent Correct, and Percent Within Variance over past 2h)
   const accuracy = useMemo(() => {
@@ -333,15 +480,6 @@ export default function PredictedGlucoseCard() {
       bg: "rgba(46, 125, 50, 0.12)",
     };
   }, [predictedBG, targetBG, lowBG, highBG]);
-
-  const formattedDelta = useMemo(() => {
-    if (!Number.isFinite(delta) || delta === 0) return null;
-    const abs = Math.abs(delta);
-    const numStr = decimalPredictedBG
-      ? abs.toFixed(1)
-      : Math.round(abs).toString();
-    return delta > 0 ? `+${numStr}` : `-${numStr}`;
-  }, [delta, decimalPredictedBG]);
 
   // Generate chart data series
   const { graphData, minVal, maxVal, xTicks, yTicks } = useMemo(() => {
@@ -725,20 +863,19 @@ export default function PredictedGlucoseCard() {
                 >
                   mg/dL
                 </span>
-                {formattedDelta !== null && (
-                  <span
-                    className="small fw-semibold ms-1"
-                    style={{
-                      fontSize: "0.82rem",
-                      color:
-                        delta > 0
-                          ? "var(--app-status-elevated)"
-                          : "var(--app-status-target)",
-                    }}
-                  >
-                    ({formattedDelta})
-                  </span>
-                )}
+                {currentTrend &&
+                  currentTrend.formatted !== "0" &&
+                  currentTrend.formatted !== "0.0" && (
+                    <span
+                      className="small fw-semibold ms-1"
+                      style={{
+                        fontSize: "0.82rem",
+                        color: currentTrend.color,
+                      }}
+                    >
+                      ({currentTrend.formatted})
+                    </span>
+                  )}
               </div>
             </div>
 
@@ -799,19 +936,22 @@ export default function PredictedGlucoseCard() {
               />
             </button>
             <span className="text-muted small" style={{ fontSize: "0.75rem" }}>
-              {Number.isFinite(delta)
-                ? `Net Δ ${(() => {
-                    const abs = Math.abs(delta);
-                    const numStr = decimalPredictedBG
-                      ? abs.toFixed(1)
-                      : Math.round(abs).toString();
-                    return delta > 0
-                      ? `+${numStr}`
-                      : delta < 0
-                        ? `-${numStr}`
-                        : numStr;
-                  })()} mg/dL`
-                : ""}
+              {currentTrend ? (
+                <>
+                  Net Δ{" "}
+                  <span
+                    style={{
+                      color: currentTrend.color,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {currentTrend.formatted}
+                  </span>{" "}
+                  mg/dL
+                </>
+              ) : (
+                ""
+              )}
             </span>
           </div>
 
@@ -995,6 +1135,9 @@ export default function PredictedGlucoseCard() {
                               anchor={anchor}
                               now={now}
                               decimalPredictedBG={decimalPredictedBG}
+                              targetBG={targetBG || 110}
+                              lowBG={lowBG || 70}
+                              dangerBG={dangerBG || 55}
                             />
                           }
                           isAnimationActive={false}
@@ -1053,29 +1196,12 @@ export default function PredictedGlucoseCard() {
                       ? `${decimalPredictedBG ? round(pred30, 1).toFixed(1) : Math.round(pred30).toString()} mg/dL`
                       : "--"}
                   </span>
-                  {delta30 !== null && (
+                  {trend30 && (
                     <span
-                      className="ms-1 small"
-                      style={{
-                        color:
-                          delta30 > 0
-                            ? "var(--app-status-elevated)"
-                            : "var(--app-status-target)",
-                      }}
+                      className="ms-1 small fw-semibold"
+                      style={{ color: trend30.color }}
                     >
-                      (
-                      {(() => {
-                        const abs = Math.abs(delta30);
-                        const str = decimalPredictedBG
-                          ? abs.toFixed(1)
-                          : Math.round(abs).toString();
-                        return delta30 > 0
-                          ? `+${str}`
-                          : delta30 < 0
-                            ? `-${str}`
-                            : str;
-                      })()}
-                      )
+                      ({trend30.formatted})
                     </span>
                   )}
                 </div>
@@ -1086,29 +1212,12 @@ export default function PredictedGlucoseCard() {
                       ? `${decimalPredictedBG ? round(pred60, 1).toFixed(1) : Math.round(pred60).toString()} mg/dL`
                       : "--"}
                   </span>
-                  {delta60 !== null && (
+                  {trend60 && (
                     <span
-                      className="ms-1 small"
-                      style={{
-                        color:
-                          delta60 > 0
-                            ? "var(--app-status-elevated)"
-                            : "var(--app-status-target)",
-                      }}
+                      className="ms-1 small fw-semibold"
+                      style={{ color: trend60.color }}
                     >
-                      (
-                      {(() => {
-                        const abs = Math.abs(delta60);
-                        const str = decimalPredictedBG
-                          ? abs.toFixed(1)
-                          : Math.round(abs).toString();
-                        return delta60 > 0
-                          ? `+${str}`
-                          : delta60 < 0
-                            ? `-${str}`
-                            : str;
-                      })()}
-                      )
+                      ({trend60.formatted})
                     </span>
                   )}
                 </div>
