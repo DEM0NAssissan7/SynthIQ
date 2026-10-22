@@ -60,9 +60,10 @@ function estimateDynamicMetabolicActivity(
     sumUnits += unitsAbsorbed;
     sumDt += dt;
   }
+  console.log(sumFastingDeltaBG, sumFastingDt, sumDeltaBG, sumUnits, sumDt);
   // Calculate constant background BG rate drop
   const fastingBGRate =
-    sumFastingDt !== 0 ? sumFastingDeltaBG / sumFastingDt : 0;
+    sumFastingDt > 0.25 ? sumFastingDeltaBG / sumFastingDt : 0;
 
   // Clamping
   if (clamp && (sumUnits === 0 || sumDeltaBG > 0)) return [0, fastingBGRate];
@@ -78,6 +79,8 @@ function estimateDynamicMetabolicActivity(
   if (adjustedDeltaBG > 0) adjustedDeltaBG = sumDeltaBG;
 
   const dynamicISF = -adjustedDeltaBG / sumUnits; // Make it negative because ISF is a positive value
+  // If dynamic ISF comes out to be some ridiculous number, we discard it
+  if (dynamicISF > 500) return [0, fastingBGRate];
   return [dynamicISF, fastingBGRate];
 }
 
