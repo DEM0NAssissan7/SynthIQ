@@ -8,7 +8,6 @@ import Unit from "../models/unit";
 import { CalibrationStore } from "../storage/calibrationStore";
 import { PreferencesStore } from "../storage/preferencesStore";
 import { WizardStore } from "../storage/wizardStore";
-import { estimateDynamicISF } from "./helpers/estimateDynamicISF";
 import {
   getPredictedGlucose,
   getRefReading,
@@ -79,25 +78,11 @@ export function getIntelligentGlucoseCorrection(
     insulinsOnBoard,
     rescues,
   );
-  let velocityPredictedDrop =
+  let predictedDrop =
     predictedGlucose !== null && refReading !== null
       ? predictedGlucose - refReading.sugar
       : 0;
-  if (!Number.isFinite(velocityPredictedDrop)) velocityPredictedDrop = 0;
-
-  const dynamicISF = estimateDynamicISF(readings, insulinsOnBoard, rescues);
-  let insulinPredictedDrop = insulinsOnBoard.reduce(
-    (n, insulin) => n - insulin.batemanIntegral(now, future) * dynamicISF,
-    0,
-  );
-  if (!Number.isFinite(insulinPredictedDrop)) insulinPredictedDrop = 0;
-
-  // Choose the largest drop as the safest bet for the user if we are dropping
-  // If we are rising, have the rise counteract the predicted drop from insulin
-  const predictedDrop =
-    velocityPredictedDrop < 0
-      ? Math.min(velocityPredictedDrop, insulinPredictedDrop)
-      : velocityPredictedDrop + insulinPredictedDrop;
+  if (!Number.isFinite(predictedDrop)) predictedDrop = 0;
 
   return getGlucoseCorrectionCaps(currentBG + predictedDrop, variant); // We add predictedDrop because if the sugar is dropping, the velocity will be negative (along with predictedDrop being negative too)
 }
