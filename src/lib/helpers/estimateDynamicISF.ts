@@ -69,7 +69,6 @@ function estimateDynamicMetabolicActivity(
     sumUnits += unitsAbsorbed;
     sumDt += dt;
   }
-  console.log(sumFastingDeltaBG, sumFastingDt, sumDeltaBG, sumUnits, sumDt);
   // Calculate constant background BG rate drop
   const fastingBGRate =
     sumFastingDt > 0.25 ? sumFastingDeltaBG / sumFastingDt : 0;
