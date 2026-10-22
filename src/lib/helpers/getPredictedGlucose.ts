@@ -2,9 +2,12 @@
  * Uses current metabolic information to make a prediction about the user BG level at any given time
  */
 
+import type Glucose from "../../models/events/glucose";
+import type Insulin from "../../models/events/insulin";
 import type SugarReading from "../../models/types/sugarReading";
 import Unit from "../../models/unit";
 import { convertDimensions } from "../util";
+import { estimateDynamicISF } from "./estimateDynamicISF";
 
 const ALPHA = 0.85; // CGM Smoothing factor (1 is no smoothing)
 const BETA = 0.35; // Velocity change damping factor (1 means velocity changes instantly)
@@ -32,6 +35,8 @@ export function getRefReading(readings: SugarReading[]): SugarReading | null {
 export function getPredictedGlucose(
   readings: SugarReading[],
   timestamp: Date,
+  insulins: Insulin[],
+  rescues: Glucose[],
 ): number | null {
   if (readings.length < 2) return null;
   const sortedReadings = readings
@@ -85,6 +90,24 @@ export function getPredictedGlucose(
   const predicted =
     finalReading.sugar +
     getIntegratedDelta(velocity * PERIOD, deltaTime / PERIOD, PHI);
+  if (!Number.isFinite(predicted)) return finalReading.sugar;
 
-  return Number.isFinite(predicted) ? predicted : finalReading.sugar;
+  // Now (if applicable) we look at the dynamicISF and the readings
+  if (insulins && rescues) {
+    const dynamicISF = estimateDynamicISF(readings, insulins, rescues);
+    // Extrapolate insulin absorption into the future
+    const predictedUnitsAbsorbed = insulins.reduce(
+      (n, i) => n + i.batemanIntegral(finalTimestamp, timestamp),
+      0,
+    );
+    // Apply the dynamic ISF
+    const insulinPredictedGlucose =
+      finalReading.sugar - predictedUnitsAbsorbed * dynamicISF;
+    if (
+      insulinPredictedGlucose < predicted &&
+      Number.isFinite(insulinPredictedGlucose)
+    )
+      return insulinPredictedGlucose;
+  }
+  return predicted;
 }

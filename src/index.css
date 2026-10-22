@@ -13713,4 +13713,22 @@ input[type=search]::-webkit-search-results-decoration {
   transform: translateX(-50%) translateY(0);
 }
 
+.glucose-graph-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--md-sys-color-outline-variant) transparent;
+}
+.glucose-graph-scroll::-webkit-scrollbar {
+  height: 4px;
+}
+.glucose-graph-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.glucose-graph-scroll::-webkit-scrollbar-thumb {
+  background-color: var(--md-sys-color-outline-variant);
+  border-radius: 4px;
+}
+
 /*# sourceMappingURL=index.css.map */

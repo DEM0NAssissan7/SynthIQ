@@ -2,6 +2,7 @@ import type Glucose from "../../models/events/glucose";
 import type Insulin from "../../models/events/insulin";
 import type SugarReading from "../../models/types/sugarReading";
 import Unit from "../../models/unit";
+import { getTimestampFromOffset } from "../timing";
 import { convertDimensions } from "../util";
 import { hasTreatmentOverlap } from "./hasOverlap";
 
@@ -10,11 +11,19 @@ function estimateDynamicMetabolicActivity(
   insulins: Insulin[],
   rescues: Glucose[],
   clamp = true,
+  lookbackHours = 1,
 ): [number, number] {
   if (readings.length === 0) return [0, 0];
   const sortedReadings = readings
     .slice()
     .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+
+  const lastReading = sortedReadings[sortedReadings.length - 1];
+  if (!lastReading) return [0, 0];
+  const cutoff = getTimestampFromOffset(lastReading.timestamp, -lookbackHours);
+  const filteredReadings = sortedReadings.filter(
+    (r) => r.timestamp.getTime() >= cutoff.getTime(),
+  );
 
   // Now we sample the insulins from the specified start time, ignoring any windows containing rescues
   let sumFastingDeltaBG = 0;
@@ -22,9 +31,9 @@ function estimateDynamicMetabolicActivity(
   let sumDeltaBG = 0;
   let sumUnits = 0;
   let sumDt = 0;
-  for (let i = 0; i < sortedReadings.length - 1; i++) {
-    const reading = sortedReadings[i];
-    const nextReading = sortedReadings[i + 1];
+  for (let i = 0; i < filteredReadings.length - 1; i++) {
+    const reading = filteredReadings[i];
+    const nextReading = filteredReadings[i + 1];
 
     const dt =
       (nextReading.timestamp.getTime() - reading.timestamp.getTime()) *
@@ -60,6 +69,7 @@ function estimateDynamicMetabolicActivity(
     sumUnits += unitsAbsorbed;
     sumDt += dt;
   }
+  console.log(sumFastingDeltaBG, sumFastingDt, sumDeltaBG, sumUnits, sumDt);
   // Calculate constant background BG rate drop
   const fastingBGRate =
     sumFastingDt > 0.25 ? sumFastingDeltaBG / sumFastingDt : 0;

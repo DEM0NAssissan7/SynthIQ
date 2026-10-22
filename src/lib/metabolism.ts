@@ -73,7 +73,12 @@ export function getIntelligentGlucoseCorrection(
     actingMinutes * convertDimensions(Unit.Time.Minute, Unit.Time.Hour),
   );
   const refReading = getRefReading(readings);
-  const predictedGlucose = getPredictedGlucose(readings, future);
+  const predictedGlucose = getPredictedGlucose(
+    readings,
+    future,
+    insulinsOnBoard,
+    rescues,
+  );
   let velocityPredictedDrop =
     predictedGlucose !== null && refReading !== null
       ? predictedGlucose - refReading.sugar
