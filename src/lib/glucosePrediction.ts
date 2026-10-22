@@ -2,12 +2,13 @@
  * Uses current metabolic information to make a prediction about the user BG level at any given time
  */
 
-import type Glucose from "../../models/events/glucose";
-import type Insulin from "../../models/events/insulin";
-import type SugarReading from "../../models/types/sugarReading";
-import Unit from "../../models/unit";
-import { convertDimensions } from "../util";
-import { estimateDynamicISF } from "./estimateDynamicISF";
+import type Glucose from "../models/events/glucose";
+import type Insulin from "../models/events/insulin";
+import type SugarReading from "../models/types/sugarReading";
+import Unit from "../models/unit";
+import { convertDimensions, MathUtil } from "./util";
+import { estimateDynamicISF } from "./helpers/estimateDynamicISF";
+import { getTimestampFromOffset } from "./timing";
 
 const ALPHA = 0.85; // CGM Smoothing factor (1 is no smoothing)
 const BETA = 0.35; // Velocity change damping factor (1 means velocity changes instantly)
@@ -118,4 +119,62 @@ export function getPredictedGlucose(
       return finalReading.sugar + (predictedDelta + insulinPredictedDelta);
   }
   return predicted;
+}
+
+// Prediction accuracy querying
+export function getPredictedGlucoseAccuracy(
+  _readings: SugarReading[],
+  insulins: Insulin[],
+  rescues: Glucose[],
+  timeframe: number, // How far to look back (hours)
+) {
+  if (_readings.length <= 0) return null;
+  const sortedReadings = _readings
+    .slice()
+    .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+
+  const lastReading = sortedReadings[sortedReadings.length - 1];
+  const cutoff = getTimestampFromOffset(lastReading.timestamp, -timeframe);
+  const readings = _readings.filter(
+    (r) => r.timestamp.getTime() >= cutoff.getTime(),
+  );
+  if (readings.length < 2) return null;
+  const deviations: number[] = [];
+  let correctPredictionsCount = 0;
+  let totalPredictions = 0;
+  for (let i = 1; i < readings.length - 1; i++) {
+    const truncatedReadings = readings.slice(0, i);
+    const nextReading = readings[i];
+    if (!nextReading) continue;
+    const predicted = getPredictedGlucose(
+      truncatedReadings,
+      nextReading.timestamp,
+      insulins,
+      rescues,
+    );
+    if (!predicted) continue;
+    const actual = nextReading.sugar;
+    const deviation = predicted - actual;
+    deviations.push(Math.abs(deviation));
+    totalPredictions++;
+    if (Math.round(deviation) === 0) correctPredictionsCount++;
+  }
+  const meanDeviation = MathUtil.mean(deviations);
+  const percentWithinVariance =
+    deviations.length !== 0
+      ? (100 *
+          deviations.reduce(
+            (n, d) => (Math.abs(d) - meanDeviation <= 0 ? n + 1 : n),
+            0,
+          )) /
+        deviations.length
+      : 0;
+  return {
+    meanAvgDeviation: meanDeviation,
+    percentCorrect:
+      totalPredictions !== 0
+        ? (correctPredictionsCount / totalPredictions) * 100
+        : 0,
+    percentWithinVariance: percentWithinVariance,
+  };
 }

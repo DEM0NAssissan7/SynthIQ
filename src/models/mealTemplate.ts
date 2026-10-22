@@ -180,6 +180,14 @@ export default class MealTemplate extends Subscribable implements Template {
     const sessionsDistances = this.getSimilarSessionsDistances(meal);
     if (!sessionsDistances || sessionsDistances.length === 0) return null;
 
+    let filteredSessionsDistances = sessionsDistances.filter(
+      (a) =>
+        getCircularHourDistance(a[0].timestamp, timestamp) <=
+        HealthMonitorStore.maxHoursBetweenSessions.value,
+    );
+    if (filteredSessionsDistances.length === 0)
+      filteredSessionsDistances = sessionsDistances;
+
     // Ensure ascending order by distance score
     const sortedDistances = sessionsDistances
       .slice()
@@ -198,12 +206,7 @@ export default class MealTemplate extends Subscribable implements Template {
     // Gather all sessions falling within the acceptable neighborhood of the best match
     const candidates: Session[] = sortedDistances
       .filter(([_, dist]) => dist <= maxAcceptableDistance)
-      .map((a) => a[0])
-      .filter(
-        (session) =>
-          getCircularHourDistance(session.timestamp, timestamp) <=
-          HealthMonitorStore.maxHoursBetweenSessions.value,
-      );
+      .map((a) => a[0]);
 
     if (candidates.length === 0) return sortedDistances[0][0];
 

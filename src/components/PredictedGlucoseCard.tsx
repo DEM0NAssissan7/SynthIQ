@@ -6,7 +6,10 @@ import { HealthMonitorStore } from "../storage/healthMonitorStore";
 import { PreferencesStore } from "../storage/preferencesStore";
 import { BackendStore } from "../storage/backendStore";
 import { useNow } from "../state/useNow";
-import { getPredictedGlucose } from "../lib/helpers/getPredictedGlucose";
+import {
+  getPredictedGlucose,
+  getPredictedGlucoseAccuracy,
+} from "../lib/glucosePrediction";
 import { getFormattedTime, getMinuteDiff } from "../lib/timing";
 import { getBGVelocity, populateReadingCache } from "../lib/healthMonitor";
 import { round } from "../lib/util";
@@ -245,6 +248,55 @@ export default function PredictedGlucoseCard() {
     if (!anchor || pred60 === null || !Number.isFinite(pred60)) return null;
     return pred60 - anchor.sugar;
   }, [pred60, anchor]);
+
+  // Prediction accuracy (Mean Average Deviation, Percent Correct, and Percent Within Variance over past 2h)
+  const accuracy = useMemo(() => {
+    if (!readings || readings.length < 3) return null;
+    const chronological = readings
+      .slice()
+      .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+    const result = getPredictedGlucoseAccuracy(
+      chronological,
+      recentBoluses,
+      recentRescues,
+      2,
+    );
+    if (
+      !result ||
+      !Number.isFinite(result.meanAvgDeviation) ||
+      result.meanAvgDeviation <= 0
+    ) {
+      return null;
+    }
+    return {
+      meanAvgDeviation: result.meanAvgDeviation,
+      percentCorrect: Number.isFinite(result.percentCorrect)
+        ? result.percentCorrect
+        : 0,
+      percentWithinVariance: Number.isFinite(result.percentWithinVariance)
+        ? result.percentWithinVariance
+        : 0,
+    };
+  }, [readings, recentBoluses, recentRescues]);
+
+  const formattedAccuracy = useMemo(() => {
+    if (!accuracy) return null;
+    const madStr = decimalPredictedBG
+      ? round(accuracy.meanAvgDeviation, 1).toFixed(1)
+      : Math.round(accuracy.meanAvgDeviation).toString();
+    const pctCorrectStr = decimalPredictedBG
+      ? round(accuracy.percentCorrect, 1).toFixed(1)
+      : Math.round(accuracy.percentCorrect).toString();
+    const pctVarianceStr = decimalPredictedBG
+      ? round(accuracy.percentWithinVariance, 1).toFixed(1)
+      : Math.round(accuracy.percentWithinVariance).toString();
+    return {
+      mad: `±${madStr}`,
+      pctCorrect: `${pctCorrectStr}%`,
+      pctWithinVariance: `${pctVarianceStr}%`,
+      pillCombined: `±${madStr} mg/dL · ${pctVarianceStr}%`,
+    };
+  }, [accuracy, decimalPredictedBG]);
 
   const glucoseStatus = useMemo(() => {
     if (
@@ -632,10 +684,29 @@ export default function PredictedGlucoseCard() {
           <div className="d-flex align-items-baseline justify-content-between px-1">
             <div>
               <div
-                className="text-uppercase fw-bold text-muted"
+                className="d-flex align-items-center gap-1.5 flex-wrap"
                 style={{ fontSize: "0.74rem", letterSpacing: "0.06em" }}
               >
-                Now (Estimated)
+                <span className="text-uppercase fw-bold text-muted">
+                  Now (Estimated)
+                </span>
+                {formattedAccuracy && (
+                  <span
+                    className="badge rounded-pill fw-medium"
+                    style={{
+                      fontSize: "0.68rem",
+                      padding: "0.15rem 0.45rem",
+                      backgroundColor: "rgba(100, 100, 100, 0.08)",
+                      color: "var(--app-text-muted)",
+                      border: "1px solid var(--app-border)",
+                      letterSpacing: "normal",
+                      lineHeight: 1.2,
+                    }}
+                    title={`Mean Average Deviation: ${formattedAccuracy.mad} mg/dL, Within Variance: ${formattedAccuracy.pctWithinVariance}`}
+                  >
+                    {formattedAccuracy.pillCombined}
+                  </span>
+                )}
               </div>
               <div className="d-flex align-items-baseline gap-1 mt-0.5">
                 <RollingCounter
@@ -734,7 +805,11 @@ export default function PredictedGlucoseCard() {
                     const numStr = decimalPredictedBG
                       ? abs.toFixed(1)
                       : Math.round(abs).toString();
-                    return delta > 0 ? `+${numStr}` : delta < 0 ? `-${numStr}` : numStr;
+                    return delta > 0
+                      ? `+${numStr}`
+                      : delta < 0
+                        ? `-${numStr}`
+                        : numStr;
                   })()} mg/dL`
                 : ""}
             </span>
@@ -955,21 +1030,22 @@ export default function PredictedGlucoseCard() {
                 </div>
               </div>
 
-              {/* Milestone Predictions & Trend Summary */}
+              {/* Milestone Predictions & Accuracy Summary */}
               <div
                 className="d-flex justify-content-between align-items-center pt-2 mt-0.5 border-top border-secondary-subtle gap-2 flex-wrap px-1"
                 style={{ fontSize: "0.76rem" }}
               >
-                <div>
-                  <span className="text-muted">Trend: </span>
-                  <span className="fw-semibold">
-                    {velocity > 0 ? "+" : ""}
-                    {decimalPredictedBG
-                      ? round(velocity, 1).toFixed(1)
-                      : Math.round(velocity).toString()}{" "}
-                    mg/dL/hr
-                  </span>
-                </div>
+                {formattedAccuracy && (
+                  <div>
+                    <span className="text-muted">Accuracy: </span>
+                    <span className="fw-semibold">
+                      {formattedAccuracy.mad} mg/dL
+                    </span>
+                    <span className="text-muted ms-1 small">
+                      ({formattedAccuracy.pctCorrect})
+                    </span>
+                  </div>
+                )}
                 <div>
                   <span className="text-muted">+30m: </span>
                   <span className="fw-bold">
@@ -987,7 +1063,8 @@ export default function PredictedGlucoseCard() {
                             : "var(--app-status-target)",
                       }}
                     >
-                      ({(() => {
+                      (
+                      {(() => {
                         const abs = Math.abs(delta30);
                         const str = decimalPredictedBG
                           ? abs.toFixed(1)
@@ -997,7 +1074,8 @@ export default function PredictedGlucoseCard() {
                           : delta30 < 0
                             ? `-${str}`
                             : str;
-                      })()})
+                      })()}
+                      )
                     </span>
                   )}
                 </div>
@@ -1018,7 +1096,8 @@ export default function PredictedGlucoseCard() {
                             : "var(--app-status-target)",
                       }}
                     >
-                      ({(() => {
+                      (
+                      {(() => {
                         const abs = Math.abs(delta60);
                         const str = decimalPredictedBG
                           ? abs.toFixed(1)
@@ -1028,7 +1107,8 @@ export default function PredictedGlucoseCard() {
                           : delta60 < 0
                             ? `-${str}`
                             : str;
-                      })()})
+                      })()}
+                      )
                     </span>
                   )}
                 </div>

@@ -8,10 +8,7 @@ import Unit from "../models/unit";
 import { CalibrationStore } from "../storage/calibrationStore";
 import { PreferencesStore } from "../storage/preferencesStore";
 import { WizardStore } from "../storage/wizardStore";
-import {
-  getPredictedGlucose,
-  getRefReading,
-} from "./helpers/getPredictedGlucose";
+import { getPredictedGlucose, getRefReading } from "./glucosePrediction";
 import { getTimestampFromOffset } from "./timing";
 import { convertDimensions } from "./util";
 
