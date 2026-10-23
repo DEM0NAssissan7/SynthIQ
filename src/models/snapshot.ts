@@ -342,7 +342,7 @@ export default class Snapshot extends Subscribable {
       },
     );
     readings.forEach((r) => snapshot.addReading(r, false));
-    snapshot.deduplicate();
+    //snapshot.deduplicate();
     return snapshot;
   };
 }
