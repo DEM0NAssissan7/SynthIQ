@@ -24,14 +24,19 @@ export default class Snapshot extends Subscribable {
   private readingsCache: SugarReading[] = [];
   private timeSortedCache: SugarReading[] = [];
   private valueSortedCache: SugarReading[] = [];
+  private deduplicated = false;
   private invalidateCaches() {
     this.readingsCache = [];
     this.timeSortedCache = [];
     this.valueSortedCache = [];
   }
-  addReading(r: SugarReading, doNotify = true) {
-    this.rawReadings.push(r);
+  add(...r: SugarReading[]) {
+    this.rawReadings.push(...r);
     this.invalidateCaches();
+    this.deduplicated = false;
+  }
+  addReading(r: SugarReading, doNotify = true) {
+    this.add(r);
     if (doNotify) this.notify();
   }
   absorb(snapshot: Snapshot) {
@@ -49,7 +54,7 @@ export default class Snapshot extends Subscribable {
       const readingTime = reading.timestamp.getTime();
       if (readingTime < timeA) continue;
       if (readingTime > timeB) break;
-      snapshot.addReading(reading, false);
+      snapshot.rawReadings.push(reading);
     }
     return snapshot;
   }
@@ -154,6 +159,7 @@ export default class Snapshot extends Subscribable {
     this.addReading(new SugarReading(value, new Date(), true));
   }
   deduplicate() {
+    if (this.deduplicated) return;
     const deduplicated: SugarReading[] = [];
     this.rawReadings.forEach((reading) => {
       const readingTime = reading.timestamp.getTime();
@@ -169,6 +175,7 @@ export default class Snapshot extends Subscribable {
     });
     this.rawReadings = deduplicated;
     this.invalidateCaches();
+    this.deduplicated = true;
   }
 
   async pullReadings() {
@@ -288,6 +295,8 @@ export default class Snapshot extends Subscribable {
   // Timestamp stuff
   get startTime(): Date {
     const timeSorted = this.timeSorted;
+    if (timeSorted.length === 0)
+      throw new Error(`Cannot get start time: no readings`);
     const reading = timeSorted[0];
     if (!reading) throw new Error(`Cannot get start time: unknown error`);
     return reading.timestamp;
@@ -338,6 +347,7 @@ export default class Snapshot extends Subscribable {
       }),
       baseTime: baseTime,
       timeJump: timeJump,
+      deduplicated: s.deduplicated,
     };
   };
   static deserialize: Deserializer<Snapshot> = (o) => {
@@ -353,8 +363,8 @@ export default class Snapshot extends Subscribable {
         return reading;
       },
     );
-    readings.forEach((r) => snapshot.addReading(r, false));
-    //snapshot.deduplicate();
+    snapshot.add(...readings);
+    snapshot.deduplicated = o.deduplicated ?? false;
     return snapshot;
   };
 }
