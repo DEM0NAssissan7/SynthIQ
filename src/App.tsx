@@ -34,6 +34,7 @@ import ExpirationPage from "./pages/ExpirationPage";
 import DebugPage from "./pages/DebugPage";
 import { initThemeListener } from "./lib/themeManager";
 import TestPage from "./pages/TestPage";
+import ForecastAccuracyPage from "./pages/ForecastAccuracyPage";
 import { VERSION_STRING } from "./version";
 import { initPwaUpdater, checkPwaUpdate } from "./lib/pwaUpdater";
 import MealSelectionPage from "./pages/treatment/MealSelectionPage";
@@ -103,6 +104,7 @@ function App() {
           <Route path="/history" element={<HistoryPage />} />
           <Route path="/expirations" element={<ExpirationPage />} />
           <Route path="/test" element={<TestPage />} />
+          <Route path="/forecastaccuracy" element={<ForecastAccuracyPage />} />
 
           {/* Treatments */}
           <Route path="/meal" element={<MealPage />} />

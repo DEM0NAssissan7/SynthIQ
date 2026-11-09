@@ -240,6 +240,12 @@ export default function BottomNav() {
           icon: "terminal",
           desc: "Inspect live runtime stores & state",
         },
+        {
+          label: "Forecast Accuracy",
+          to: "/forecastaccuracy",
+          icon: "query_stats",
+          desc: "Replay past sessions against the dose forecast",
+        },
       ],
     },
   ];

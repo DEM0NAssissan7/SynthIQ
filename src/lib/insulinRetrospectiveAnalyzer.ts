@@ -145,7 +145,7 @@ export namespace InsulinRetrospectiveOptimizer {
    * @param rescueVariants All rescue variants able to query
    * @returns An array of Insulin[] and Windows[] equal in size to input, but all doses have been adjusted
    */
-  function balance(
+  export function balance(
     _insulins: Insulin[],
     _windows: TreatmentWindow[],
     target: number | null,

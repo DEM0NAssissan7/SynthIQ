@@ -9,7 +9,7 @@
  */
 
 import type Glucose from "../models/events/glucose";
-import type Insulin from "../models/events/insulin";
+import Insulin from "../models/events/insulin";
 import type Session from "../models/session";
 import type Snapshot from "../models/snapshot";
 import type { InsulinVariant } from "../models/types/insulinVariant";
@@ -92,6 +92,9 @@ export function forecastUnits(
   refTimestamp: Date,
   timestamp: Date,
   variant: InsulinVariant,
+  targetBG: number = PreferencesStore.targetBG.value,
+  lowBG: number = PreferencesStore.lowBG.value +
+    PreferencesStore.lowBuffer.value,
 ) {
   const actualDelta = BG - initialBG;
   const tNow = getHourDiff(timestamp, refTimestamp);
@@ -125,8 +128,6 @@ export function forecastUnits(
     BG + refMeal(mealTime(tNow), mealTime(t)) - treatments(tNow, t);
 
   // Our definition of our target dose is to not go low while taking as much insulin now as possible, or hitting the targetBG dead-on
-  const targetBG = PreferencesStore.targetBG.value;
-  const lowBG = PreferencesStore.lowBG.value;
   const maxUnitsAt = (t: number) => {
     const bg = estimatedBG(t);
     const fractionAbsorbed = variant.unitBatemanIntegral(0, t - tNow);
@@ -156,4 +157,49 @@ export function forecastUnits(
     (variant.effect * variant.unitBatemanIntegral(0, variant.duration));
   const units = Math.max(0, Math.min(desiredUnits, maxUnits));
   return units;
+}
+
+/**
+ * The doses a session "should've" had according to forecastUnits, with full hindsight.
+ * The session is its own reference, so the forecast knows exactly how its meal behaved.
+ * We solve one dose at a time, in a virtual world where every earlier dose was injected
+ * exactly as solved and no rescues were needed.
+ * @returns One insulin per dose in the session, in time order
+ */
+export function retrospectiveForecast(
+  session: Session,
+  targetBG: number = PreferencesStore.targetBG.value,
+  lowBG: number = PreferencesStore.lowBG.value +
+    PreferencesStore.lowBuffer.value,
+): Insulin[] {
+  const refTimestamp = session.timestamp;
+  const initialBG =
+    session.initialGlucose ?? session.snapshot.getSmoothed(refTimestamp);
+  const doses = [...session.insulins].sort(
+    (a, b) => a.timestamp.getTime() - b.timestamp.getTime(),
+  );
+
+  const virtualInsulins: Insulin[] = [];
+  for (const { timestamp, variant } of doses) {
+    const t = getHourDiff(timestamp, refTimestamp);
+    // What BG would've been: the real trace, swapping the real treatments for the virtual ones
+    const virtualBG =
+      session.snapshot.getSmoothed(timestamp) +
+      mealDeltaBG(0, t, session.insulins, session.glucoses, null, refTimestamp) -
+      mealDeltaBG(0, t, virtualInsulins, [], null, refTimestamp);
+    const units = forecastUnits(
+      session,
+      virtualInsulins,
+      [],
+      initialBG,
+      virtualBG,
+      refTimestamp,
+      timestamp,
+      variant,
+      targetBG,
+      lowBG,
+    );
+    virtualInsulins.push(new Insulin(units, timestamp, variant));
+  }
+  return virtualInsulins;
 }

@@ -10,6 +10,7 @@ export namespace PreferencesStore {
   export const endingHours = node.add("endingHours", 1);
   export const targetBG = node.add("targetBG", 83);
   export const lowBG = node.add("lowBG", 70);
+  export const lowBuffer = node.add("lowBuffer", 5);
   export const dangerBG = node.add("dangerBG", 55);
   export const highBG = node.add("highBG", 125);
   export const insulinStepSize = node.add("insulinStepSize", 1);
