@@ -159,7 +159,7 @@ export function ActionCard({
   return (
     <Card
       data-eyebrow={eyebrow}
-      className={`h-100 border-0 shadow-sm app-action-card ${className}`.trim()}
+      className={`border-0 shadow-sm app-action-card ${className}`.trim()}
     >
       <Card.Body className="p-3 d-flex flex-column">
         <div className="d-flex align-items-start gap-3 flex-grow-1">
