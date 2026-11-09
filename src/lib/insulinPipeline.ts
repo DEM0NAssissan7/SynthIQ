@@ -187,7 +187,6 @@ export function deriveInsulinPipeline(
   }
 
   const currentBG = BG ?? targetBG;
-  const initialBG = session?.initialGlucose ?? currentBG;
 
   // Shifting both BGs keeps the observed delta (and so the meal's progress) intact
   const forecast = (offset: number) =>
@@ -195,7 +194,6 @@ export function deriveInsulinPipeline(
       baseSessions,
       takenInsulins,
       session?.glucoses ?? [],
-      initialBG + offset,
       currentBG + offset,
       session?.timestamp ?? timestamp,
       timestamp,

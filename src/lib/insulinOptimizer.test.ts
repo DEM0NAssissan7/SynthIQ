@@ -5,7 +5,11 @@ import Session from "../models/session";
 import { InsulinVariant } from "../models/types/insulinVariant";
 import SugarReading from "../models/types/sugarReading";
 import { createWindows } from "./helpers/createWindow";
-import { forecastUnits, retrospectiveForecast } from "./insulinOptimizer";
+import {
+  forecastDose,
+  forecastUnits,
+  retrospectiveForecast,
+} from "./insulinOptimizer";
 import { InsulinRetrospectiveOptimizer } from "./insulinRetrospectiveAnalyzer";
 
 const HOUR_MS = 3_600_000;
@@ -82,9 +86,12 @@ describe("forecastUnits matches balance", () => {
   it.each(scenarios)("$name", (scenario) => {
     const session = createSession(scenario);
     const balanced = solveBalance(session);
-    const forecast = retrospectiveForecast(session, [session], TARGET_BG, LOW_BG).map(
-      (insulin) => insulin.value,
-    );
+    const forecast = retrospectiveForecast(
+      session,
+      [session],
+      TARGET_BG,
+      LOW_BG,
+    ).map((insulin) => insulin.value);
 
     const results = balanced.map((units, i) => ({
       hours: scenario.doses[i][0],
@@ -104,7 +111,49 @@ describe("forecastUnits dose limits", () => {
   const SAFE_LOW = 77;
   const slowVariant = new InsulinVariant("Slow", 50, 28, 1, 0.4);
   const forecastAt = (session: Session, BG: number, targetBG = 100) =>
-    forecastUnits([session], [], [], BG, BG, t0, t0, slowVariant, targetBG, SAFE_LOW);
+    forecastUnits(
+      [session],
+      [],
+      [],
+      BG,
+      t0,
+      t0,
+      slowVariant,
+      targetBG,
+      SAFE_LOW,
+    );
+
+  it("reports the moment the low limit stopped a dose", () => {
+    const reference = createSession({
+      name: "reference",
+      doses: [],
+      readings: [
+        [0, 100],
+        [0.5, 97],
+        [3, 180],
+        [5, 180],
+      ],
+    });
+    const dose = forecastDose(
+      [reference],
+      [],
+      [],
+      78,
+      t0,
+      t0,
+      slowVariant,
+      83,
+      SAFE_LOW,
+    );
+
+    expect(dose.units).toBe(0);
+    expect(dose.desiredUnits).toBeGreaterThan(0);
+    expect(dose.maxUnits).toBeLessThan(0);
+    expect(dose.limitBG).toBeLessThan(SAFE_LOW);
+    expect(dose.limitFloor).toBe(SAFE_LOW);
+    expect(dose.limitHours).toBeGreaterThan(0);
+    expect(dose.limitHours).toBeLessThan(1);
+  });
 
   it("still gives nothing when BG is low and no meal is coming", () => {
     const reference = createSession({

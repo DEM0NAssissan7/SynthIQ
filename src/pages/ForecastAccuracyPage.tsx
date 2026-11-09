@@ -345,6 +345,46 @@ export default function ForecastAccuracyPage() {
           </Card>
 
           <Card>
+            <div className="app-card-title">Why first doses were 0u</div>
+            <p className="mb-2">
+              The forecast gave no first dose on{" "}
+              <strong>
+                {report.firstDoseLimits.zero} of {report.firstDoseLimits.total}
+              </strong>{" "}
+              meals.
+            </p>
+            <ul className="small mb-0 ps-3">
+              <li>
+                {report.firstDoseLimits.zeroByLowLimit} wanted a dose, but the
+                low limit stopped it.
+              </li>
+              <li>
+                {report.firstDoseLimits.zeroNothingNeeded} didn&apos;t need one:
+                blood sugar was already on course to land at or under target.
+              </li>
+              <li>
+                {report.firstDoseLimits.zeroByProfile} were cancelled by the
+                food adjustment.
+              </li>
+              {report.firstDoseLimits.medianLimitHours !== null && (
+                <li>
+                  When the low limit stopped a dose, it typically wanted{" "}
+                  {num(report.firstDoseLimits.medianDesiredUnits, 1)}u. The
+                  problem moment was{" "}
+                  {num(report.firstDoseLimits.medianLimitHours! * 60, 0)}{" "}
+                  minutes after the dose, with blood sugar predicted at{" "}
+                  {num(report.firstDoseLimits.medianLimitBG, 0)} against a limit
+                  of {num(report.firstDoseLimits.medianLimitFloor, 0)}.
+                </li>
+              )}
+              <li>
+                Another {report.firstDoseLimits.reducedByLowLimit} first doses
+                were made smaller by the low limit.
+              </li>
+            </ul>
+          </Card>
+
+          <Card>
             <div className="app-card-title">About this run</div>
             <ul className="small mb-0 ps-3">
               <li>

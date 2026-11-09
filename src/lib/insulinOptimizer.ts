@@ -13,82 +13,67 @@ import Insulin from "../models/events/insulin";
 import type Session from "../models/session";
 import type Snapshot from "../models/snapshot";
 import type { InsulinVariant } from "../models/types/insulinVariant";
+import Unit from "../models/unit";
 import { PreferencesStore } from "../storage/preferencesStore";
-import {
-  getHourDiff,
-  getTimestampFromOffset,
-  timestampIsBetween,
-} from "./timing";
-import { MathUtil } from "./util";
+import { getHourDiff, getTimestampFromOffset } from "./timing";
+import { convertDimensions, MathUtil } from "./util";
 
 export function mealDeltaBG(
-  tA: number, // Hours
-  tB: number, // Hours
+  refTimestamp: Date,
+  t: number, // Hours
   insulins: Insulin[],
   glucoses: Glucose[],
   snapshot: Snapshot | null,
-  refTimestamp: Date,
 ) {
-  const timestampA = getTimestampFromOffset(refTimestamp, tA);
-  const timestampB = getTimestampFromOffset(refTimestamp, tB);
+  const timestamp = getTimestampFromOffset(refTimestamp, t);
 
   const insulinEffect = insulins.reduce(
     (n, insulin) =>
       n +
-      insulin.batemanIntegral(timestampA, timestampB) * insulin.variant.effect,
+      insulin.batemanIntegral(refTimestamp, timestamp) * insulin.variant.effect,
     0,
   );
-  const rescueEffect = glucoses.reduce(
-    (a, g) =>
-      timestampIsBetween(g.timestamp, timestampA, timestampB)
-        ? a + g.value * g.variant.effect
-        : a,
-    0,
-  );
+  const rescueEffect = glucoses.reduce((total, g) => {
+    const minutes =
+      (timestamp.getTime() - g.timestamp.getTime()) *
+      convertDimensions(Unit.Time.Millis, Unit.Time.Minute);
+    if (minutes <= 0) return total;
+    const absorbed = Math.min(minutes / g.variant.duration, 1);
+    return total + absorbed * g.value * g.variant.effect;
+  }, 0);
+
   let deltaBG = 0;
   if (snapshot !== null) {
-    const initialBG = snapshot.getSmoothed(timestampA);
-    const finalBG = snapshot.getSmoothed(timestampB);
+    const initialBG = snapshot.getSmoothed(refTimestamp);
+    const finalBG = snapshot.getSmoothed(timestamp);
     deltaBG = finalBG - initialBG;
   }
   return deltaBG + insulinEffect - rescueEffect;
 }
-/**
- * Finds the earliest x in [start, end] where fn(x) reaches target.
- * Returns null if fn never reaches it within the range.
- */
-function solveFor(
-  target: number,
-  fn: (x: number) => number,
-  start: number,
-  end: number,
-  step = 5 / 60,
-  tolerance = 30 / 3600,
-): number | null {
-  if (fn(start) >= target) return start;
-
-  // 1. Coarse scan: find the first step where fn crosses the target
-  let lo = start;
-  let hi = Math.min(start + step, end);
-  while (fn(hi) < target) {
-    if (hi >= end) return null;
-    lo = hi;
-    hi = Math.min(hi + step, end);
-  }
-
-  // 2. Bisect inside that one step down to tolerance
-  while (hi - lo > tolerance) {
-    const mid = (lo + hi) / 2;
-    if (fn(mid) >= target) hi = mid;
-    else lo = mid;
-  }
-  return hi;
+export interface ForecastDose {
+  units: number;
+  desiredUnits: number; // What it would take to land on target
+  maxUnits: number; // The most the low limit allows
+  landingBG: number; // Estimated BG one insulin duration from now, with no further dose
+  limitHours: number; // Hours from now to the moment that sets maxUnits
+  limitBG: number; // Estimated BG at that moment, with no further dose
+  limitFloor: number; // The BG we aren't allowed to go under
+  limitFraction: number; // How much of this dose would've absorbed by then
 }
-export function forecastUnits(
+function sessionMealDeltaBG(t: number, session: Session) {
+  return mealDeltaBG(
+    session.timestamp,
+    t,
+    session.insulins,
+    session.glucoses,
+    session.snapshot,
+  );
+}
+
+export function forecastDose(
   baseSessions: Session[],
   takenInsulins: Insulin[],
   takenRescues: Glucose[],
-  initialBG: number,
   BG: number,
   refTimestamp: Date,
   timestamp: Date,
@@ -96,40 +81,26 @@ export function forecastUnits(
   targetBG: number = PreferencesStore.targetBG.value,
   lowBG: number = PreferencesStore.lowBG.value +
     PreferencesStore.lowBuffer.value,
-) {
-  const actualDelta = BG - initialBG;
+): ForecastDose {
   const tNow = getHourDiff(timestamp, refTimestamp);
   // We pull out the average curve from all the sessions we have
   const allDeltas = (a: number, b: number) =>
-    baseSessions.map((s) =>
-      mealDeltaBG(a, b, s.insulins, s.glucoses, s.snapshot, s.timestamp),
+    baseSessions.map(
+      (s) => sessionMealDeltaBG(b, s) - sessionMealDeltaBG(a, s),
     );
-  const compositeRef = (a: number, b: number) =>
-    MathUtil.median(allDeltas(a, b));
+  const compositeRef = (a: number, b: number) => MathUtil.mean(allDeltas(a, b));
   // const refEnd = MathUtil.mean(baseSessions.map((s) => s.length));
 
   // This session's treatments on the REAL clock: (insulin pull - rescue push)
   const treatments = (a: number, b: number) =>
-    mealDeltaBG(a, b, takenInsulins, takenRescues, null, refTimestamp);
+    mealDeltaBG(refTimestamp, b, takenInsulins, takenRescues, null) -
+    mealDeltaBG(refTimestamp, a, takenInsulins, takenRescues, null);
 
-  // How much meal has actually landed this session
-  const landed = actualDelta + treatments(0, tNow);
-  const predicted = compositeRef(0, tNow);
-  const tPredict =
-    solveFor(landed, (t) => compositeRef(0, t), 0, tNow * 2) ?? tNow;
-  const mT = 1;
-  const bT = 0;
-  const mDelta = 1;
-  const bDelta = 0;
-
-  const mealTime = (t: number) => t * mT + bT;
+  const mealTime = (t: number) => t;
 
   // Forecast: anchored at BG, meal warped, treatments not
   const estimatedBG = (t: number) =>
-    BG +
-    mDelta * compositeRef(mealTime(tNow), mealTime(t)) -
-    treatments(tNow, t) +
-    bDelta;
+    BG + compositeRef(mealTime(tNow), mealTime(t)) - treatments(tNow, t);
 
   // Our definition of our target dose is to not go low while taking as much insulin now as possible, or hitting the targetBG dead-on
   const maxUnitsAt = (t: number) => {
@@ -141,31 +112,51 @@ export function forecastUnits(
       ? unitsAbsorbedToLow / fractionAbsorbed
       : Infinity;
   };
-  const maxUnits = (() => {
+  const { maxUnits, limitHours } = (() => {
     // We sample every 5 mins to see how far low we go & how much units it allows us, then we get the minimum of that
     let min = Infinity;
+    let limitHours = 0;
     const step = 5 / 60;
-    for (let i = step; i < variant.duration; i += step) {
+    const peakHours =
+      variant.ka === variant.ke
+        ? 1 / variant.ka
+        : Math.log(variant.ka / variant.ke) / (variant.ka - variant.ke);
+    for (let i = peakHours; i < variant.duration; i += step) {
       // 'i' is in hours from now
       const t = tNow + i;
       const units = maxUnitsAt(t);
       if (units < min) {
         min = units;
+        limitHours = i;
       }
     }
-    return min;
+    return { maxUnits: min, limitHours };
   })();
-  // We figure out, out to infinity, what we want in order to land on targetBG exactly
+  // We figure out what we want in order to land on targetBG exactly
   const desiredUnits =
     (estimatedBG(tNow + variant.duration) - targetBG) /
     (variant.effect * variant.unitBatemanIntegral(0, variant.duration));
   const units = Math.max(0, Math.min(desiredUnits, maxUnits));
-  return units;
+  return {
+    units,
+    desiredUnits,
+    maxUnits,
+    landingBG: estimatedBG(tNow + variant.duration),
+    limitHours,
+    limitBG: estimatedBG(tNow + limitHours),
+    limitFloor: Math.min(lowBG, BG),
+    limitFraction: variant.unitBatemanIntegral(0, limitHours),
+  };
+}
+
+export function forecastUnits(...args: Parameters<typeof forecastDose>) {
+  return forecastDose(...args).units;
 }
 
 export interface ReplayedDose {
   insulin: Insulin;
   BG: number; // What blood sugar read when this dose was solved
+  forecast: ForecastDose; // Why the forecast gave what it gave, before any profile offset
 }
 
 /**
@@ -184,8 +175,6 @@ export function replayForecast(
   profileRises: number[] = [],
 ): ReplayedDose[] {
   const refTimestamp = session.timestamp;
-  const initialBG =
-    session.initialGlucose ?? session.snapshot.getSmoothed(refTimestamp);
   const doses = [...session.insulins].sort(
     (a, b) => a.timestamp.getTime() - b.timestamp.getTime(),
   );
@@ -196,20 +185,12 @@ export function replayForecast(
     // What BG would've been: the real trace, swapping the real treatments for the virtual ones
     const BG =
       session.snapshot.getReading(timestamp).sugar +
-      mealDeltaBG(
-        0,
-        t,
-        session.insulins,
-        session.glucoses,
-        null,
-        refTimestamp,
-      ) -
-      mealDeltaBG(0, t, virtualInsulins, [], null, refTimestamp);
-    const units = forecastUnits(
+      mealDeltaBG(refTimestamp, t, session.insulins, session.glucoses, null) -
+      mealDeltaBG(refTimestamp, t, virtualInsulins, [], null);
+    const forecast = forecastDose(
       references,
       virtualInsulins,
       [],
-      initialBG,
       BG,
       refTimestamp,
       timestamp,
@@ -219,12 +200,12 @@ export function replayForecast(
     );
     const profileUnits = (profileRises[doseIndex] ?? 0) / variant.effect;
     const insulin = new Insulin(
-      Math.max(0, units + profileUnits),
+      Math.max(0, forecast.units + profileUnits),
       timestamp,
       variant,
     );
     virtualInsulins.push(insulin);
-    return { insulin, BG };
+    return { insulin, BG, forecast };
   });
 }
 

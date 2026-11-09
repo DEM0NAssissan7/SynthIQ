@@ -70,6 +70,14 @@ export interface DoseRecord {
   actual: number;
   forecast: number;
   profileUnits: number; // The food adjustment included in the forecast
+  forecastUnits: number; // The forecast before that adjustment
+  desiredUnits: number; // What it would take to land on target
+  maxUnits: number; // The most the low limit allows
+  landingBG: number; // Estimated BG at the end of the dose, with no further dose
+  limitHours: number; // Hours after the dose to the moment that sets maxUnits
+  limitBG: number; // Estimated BG at that moment, with no further dose
+  limitFloor: number; // The BG the dose isn't allowed to go under
+  limitFraction: number; // How much of the dose would've absorbed by then
   hindsight: number;
   balancer: number | null;
   baseTime: number;
@@ -125,6 +133,22 @@ export interface BaseQuality {
   errorVsProteinCorrelation: number | null;
 }
 
+// Why the forecast's first doses came out the way they did
+export interface FirstDoseLimits {
+  total: number;
+  zero: number;
+  zeroNothingNeeded: number; // Already on course to land at or under target
+  zeroByLowLimit: number; // Wanted a dose, but the low limit took it to zero
+  zeroByProfile: number; // The forecast gave a dose, but the food adjustment cancelled it
+  reducedByLowLimit: number; // Still a dose, but smaller than it wanted
+  // For the doses the low limit zeroed
+  medianDesiredUnits: number | null;
+  medianLimitHours: number | null;
+  medianLimitBG: number | null;
+  medianLimitFloor: number | null;
+  medianLimitFraction: number | null;
+}
+
 export interface ForecastAccuracyReport {
   targetBG: number;
   lowBG: number;
@@ -138,6 +162,7 @@ export interface ForecastAccuracyReport {
   comparisons: Comparison[];
   outcomes: OutcomeSummary[];
   baseQuality: BaseQuality;
+  firstDoseLimits: FirstDoseLimits;
 }
 
 interface BGLimits {
@@ -211,7 +236,10 @@ function solveBalancer(
 // What the meal alone did to blood sugar, sampled evenly
 function getMealCurve(session: Session) {
   const refTimestamp = session.timestamp;
-  const start = Math.max(0, getHourDiff(session.snapshot.startTime, refTimestamp));
+  const start = Math.max(
+    0,
+    getHourDiff(session.snapshot.startTime, refTimestamp),
+  );
   const end = getHourDiff(session.snapshot.endTime, refTimestamp);
   const curve: { hours: number; BG: number }[] = [];
   for (let hours = start; hours <= end; hours += SCORE_STEP_HOURS) {
@@ -222,12 +250,11 @@ function getMealCurve(session: Session) {
           getTimestampFromOffset(refTimestamp, hours),
         ) +
         mealDeltaBG(
-          0,
+          refTimestamp,
           hours,
           session.insulins,
           session.glucoses,
           null,
-          refTimestamp,
         ),
     });
   }
@@ -242,8 +269,7 @@ function scoreDoses(
 ): SessionOutcome | null {
   if (!doses || mealCurve.length === 0) return null;
   const trace = mealCurve.map(
-    ({ hours, BG }) =>
-      BG - mealDeltaBG(0, hours, doses, [], null, refTimestamp),
+    ({ hours, BG }) => BG - mealDeltaBG(refTimestamp, hours, doses, [], null),
   );
   return {
     meanAbsFromTarget: mean(trace.map((bg) => Math.abs(bg - targetBG))),
@@ -294,9 +320,7 @@ function analyzeSession(
   const balancer = solveBalancer(session, doses, targetBG, safeLowBG);
   const balancerDoses = balancer.includes(null)
     ? null
-    : doses.map(
-        (d, i) => new Insulin(balancer[i]!, d.timestamp, d.variant),
-      );
+    : doses.map((d, i) => new Insulin(balancer[i]!, d.timestamp, d.variant));
 
   const mealCurve = getMealCurve(session);
   const score = (plan: Insulin[] | null) =>
@@ -336,6 +360,14 @@ function analyzeSession(
       actual: dose.value,
       forecast: replayed[doseIndex].insulin.value,
       profileUnits: (profileRises[doseIndex] ?? 0) / dose.variant.effect,
+      forecastUnits: replayed[doseIndex].forecast.units,
+      desiredUnits: replayed[doseIndex].forecast.desiredUnits,
+      maxUnits: replayed[doseIndex].forecast.maxUnits,
+      landingBG: replayed[doseIndex].forecast.landingBG,
+      limitHours: replayed[doseIndex].forecast.limitHours,
+      limitBG: replayed[doseIndex].forecast.limitBG,
+      limitFloor: replayed[doseIndex].forecast.limitFloor,
+      limitFraction: replayed[doseIndex].forecast.limitFraction,
       hindsight: hindsight[doseIndex].value,
       balancer: balancer[doseIndex],
       baseTime,
@@ -445,10 +477,7 @@ const isCloseBase = (d: DoseRecord) =>
 function buildComparisons(doses: DoseRecord[]): Comparison[] {
   const bySession = new Map<UUID, DoseRecord[]>();
   doses.forEach((d) =>
-    bySession.set(d.sessionUUID, [
-      ...(bySession.get(d.sessionUUID) ?? []),
-      d,
-    ]),
+    bySession.set(d.sessionUUID, [...(bySession.get(d.sessionUUID) ?? []), d]),
   );
   const segments: [string, (d: DoseRecord) => boolean][] = [
     ["All doses", () => true],
@@ -560,6 +589,31 @@ function buildBaseQuality(doses: DoseRecord[]): BaseQuality {
   };
 }
 
+function buildFirstDoseLimits(doses: DoseRecord[]): FirstDoseLimits {
+  const firstDoses = doses.filter((d) => d.doseIndex === 0);
+  const zero = firstDoses.filter((d) => d.forecast === 0);
+  const zeroByLowLimit = zero.filter(
+    (d) => d.desiredUnits > 0 && d.maxUnits <= 0,
+  );
+  const median = (pick: (d: DoseRecord) => number) =>
+    zeroByLowLimit.length > 0 ? quantile(zeroByLowLimit.map(pick), 0.5) : null;
+  return {
+    total: firstDoses.length,
+    zero: zero.length,
+    zeroNothingNeeded: zero.filter((d) => d.desiredUnits <= 0).length,
+    zeroByLowLimit: zeroByLowLimit.length,
+    zeroByProfile: zero.filter((d) => d.forecastUnits > 0).length,
+    reducedByLowLimit: firstDoses.filter(
+      (d) => d.forecast > 0 && d.maxUnits < d.desiredUnits,
+    ).length,
+    medianDesiredUnits: median((d) => d.desiredUnits),
+    medianLimitHours: median((d) => d.limitHours),
+    medianLimitBG: median((d) => d.limitBG),
+    medianLimitFloor: median((d) => d.limitFloor),
+    medianLimitFraction: median((d) => d.limitFraction),
+  };
+}
+
 export function analyzeForecastAccuracy(
   _sessions: Session[],
 ): ForecastAccuracyReport {
@@ -576,7 +630,8 @@ export function analyzeForecastAccuracy(
     .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 
   const skipped: Record<string, number> = {};
-  const skip = (reason: string) => (skipped[reason] = (skipped[reason] ?? 0) + 1);
+  const skip = (reason: string) =>
+    (skipped[reason] = (skipped[reason] ?? 0) + 1);
   // Without a measurable meal rise a session can't be tested or be a base. We're testing
   // the algorithm here, not how well the profile guesses in its place.
   const sessions = allSessions.filter((s) => {
@@ -617,5 +672,6 @@ export function analyzeForecastAccuracy(
     comparisons: buildComparisons(doses),
     outcomes: buildOutcomes(records),
     baseQuality: buildBaseQuality(doses),
+    firstDoseLimits: buildFirstDoseLimits(doses),
   };
 }
