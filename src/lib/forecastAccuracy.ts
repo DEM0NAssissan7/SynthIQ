@@ -1,12 +1,16 @@
 /**
- * Replays every past session dose by dose to see what forecastUnits would've suggested
- * using only what was knowable at the time, then measures it against hindsight.
+ * Replays every past session dose by dose to see what the forecast would've suggested
+ * using only what was knowable at the time.
+ *
+ * Accuracy is how close blood sugar would've stayed to target. We take the session's
+ * real treatments out of its trace, leaving the meal curve, then apply the theoretical
+ * insulin curves of each strategy's doses to it. Rescues are removed for every strategy,
+ * so a dose that needed rescuing shows up as the low it would've been.
  *
  * Nothing here writes to storage: sessions are deep copied before use.
  */
 
-import type Glucose from "../models/events/glucose";
-import type Insulin from "../models/events/insulin";
+import Insulin from "../models/events/insulin";
 import MealTemplate from "../models/mealTemplate";
 import Session from "../models/session";
 import type { InsulinVariant } from "../models/types/insulinVariant";
@@ -14,19 +18,44 @@ import type { RescueVariant } from "../models/types/rescueVariant";
 import type { UUID } from "../models/types/types";
 import { PreferencesStore } from "../storage/preferencesStore";
 import { createWindows } from "./helpers/createWindow";
-import { forecastUnits, retrospectiveForecast } from "./insulinOptimizer";
+import { getPlannedProfileRises } from "./insulinPipeline";
+import {
+  mealDeltaBG,
+  replayForecast,
+  retrospectiveForecast,
+} from "./insulinOptimizer";
 import { InsulinRetrospectiveOptimizer } from "./insulinRetrospectiveAnalyzer";
-import { getHourDiff } from "./timing";
+import { getHourDiff, getTimestampFromOffset } from "./timing";
 
-const CLOSE_BASE_CARBS = 10; // Grams of carb difference that still counts as a close base
-const LANDING_RANGE = 30; // mg/dL either side of target that counts as a good landing
+const CLOSE_BASE_CARBS = 10; // Grams of difference that still count as a close base
+const CLOSE_BASE_PROTEIN = 15;
+const SEVERE_LOW_BG = 54;
+const SCORE_STEP_HOURS = 5 / 60;
 
 export type Suggestion = "forecast" | "hindsight" | "balancer" | "actual";
 
-export interface DoseOutcome {
-  landing: number; // BG at the end of the dose's effect (or of the session)
-  min: number;
-  timeBelowLow: number; // Fraction of the readings below lowBG
+// Scored over the session, with times as fractions of it
+export interface SessionOutcome {
+  meanAbsFromTarget: number;
+  meanFromTarget: number;
+  timeInRange: number;
+  timeBelowLow: number;
+  timeAboveHigh: number;
+  timeSevereLow: number;
+  landingFromTarget: number;
+  lowest: number;
+  highest: number;
+}
+
+export interface SessionRecord {
+  sessionUUID: UUID;
+  sessionTime: number;
+  foods: string;
+  doseCount: number;
+  matchingBase: boolean;
+  baseCount: number; // How many past sessions the forecast averaged
+  baseTime: number;
+  outcomes: Record<Suggestion, SessionOutcome | null>;
 }
 
 export interface DoseRecord {
@@ -40,13 +69,15 @@ export interface DoseRecord {
   BG: number;
   actual: number;
   forecast: number;
+  profileUnits: number; // The food adjustment included in the forecast
   hindsight: number;
   balancer: number | null;
   baseTime: number;
   baseAgeDays: number;
+  matchingBase: boolean;
+  baseCount: number;
   carbsDiff: number;
   proteinDiff: number;
-  outcomes: Record<Suggestion, DoseOutcome | null>;
 }
 
 export interface Comparison {
@@ -68,14 +99,19 @@ export interface Comparison {
 }
 
 export interface OutcomeSummary {
+  segment: string;
   suggestion: Suggestion;
   n: number;
-  meanLandingError: number;
-  medianLandingError: number;
-  landedInRange: number;
-  meanMinBG: number;
-  wentLow: number; // Fraction of doses where BG went below lowBG
-  meanTimeBelowLow: number;
+  meanAbsFromTarget: number;
+  meanFromTarget: number;
+  meanAbsLanding: number;
+  timeInRange: number;
+  timeBelowLow: number;
+  timeAboveHigh: number;
+  timeSevereLow: number;
+  wentLow: number; // Fraction of sessions that ever went below lowBG
+  wentSevereLow: number;
+  wentHigh: number;
 }
 
 export interface BaseQuality {
@@ -83,20 +119,32 @@ export interface BaseQuality {
   meanAbsCarbsDiff: number;
   meanAbsProteinDiff: number;
   meanBaseAgeDays: number;
+  meanBaseCount: number;
+  matchingShare: number; // Fraction of doses whose base was the same meal
   errorVsCarbsCorrelation: number | null; // |forecast - hindsight| against |carbs difference|
+  errorVsProteinCorrelation: number | null;
 }
 
 export interface ForecastAccuracyReport {
   targetBG: number;
   lowBG: number;
+  highBG: number;
   safeLowBG: number; // lowBG + buffer, which is what the algorithms dose against
   totalSessions: number;
   analyzedSessions: number;
   skipped: Record<string, number>;
+  sessions: SessionRecord[];
   doses: DoseRecord[];
   comparisons: Comparison[];
   outcomes: OutcomeSummary[];
   baseQuality: BaseQuality;
+}
+
+interface BGLimits {
+  targetBG: number;
+  lowBG: number;
+  highBG: number;
+  safeLowBG: number;
 }
 
 // The time-dependent parts of base selection (session age, expiry) read the current time
@@ -120,7 +168,7 @@ function withClock<T>(now: Date, fn: () => T): T {
   }
 }
 
-function selectBaseSession(session: Session, pool: Session[]): Session | null {
+function selectBases(session: Session, pool: Session[]) {
   const template = new MealTemplate("Forecast accuracy");
   // Only sessions that had completely finished by the time this one started
   template._sessions = pool.filter(
@@ -129,9 +177,10 @@ function selectBaseSession(session: Session, pool: Session[]): Session | null {
       s.snapshot.readings.length > 0 &&
       s.snapshot.endTime.getTime() < session.timestamp.getTime(),
   );
-  return withClock(session.timestamp, () =>
-    template.getBaseSession(session.meal!, session.timestamp),
-  );
+  return withClock(session.timestamp, () => ({
+    bases: template.getBaseSessions(session.meal!, session.timestamp),
+    profileBase: template.getBaseSession(session.meal!, session.timestamp),
+  }));
 }
 
 const identity = <T>(value: T) => value;
@@ -159,112 +208,144 @@ function solveBalancer(
   }
 }
 
-// What the real trace would've done had this one dose been `units` instead
-function simulateOutcome(
-  session: Session,
-  dose: Insulin,
-  units: number | null,
-  lowBG: number,
-): DoseOutcome | null {
-  if (units === null) return null;
-  const start = dose.timestamp.getTime();
-  const horizon = dose.variant.duration;
-  const trace = session.snapshot.readings
-    .map((reading) => ({
-      sugar: reading.sugar,
-      hours: getHourDiff(reading.timestamp, dose.timestamp),
-      time: reading.timestamp.getTime(),
-    }))
-    .filter((r) => r.time > start && r.hours <= horizon)
-    .sort((a, b) => a.time - b.time)
-    .map(
-      (r) =>
-        r.sugar -
-        dose.variant.effect *
-          (units - dose.value) *
-          dose.variant.unitBatemanIntegral(0, r.hours),
-    );
-  if (trace.length === 0) return null;
+// What the meal alone did to blood sugar, sampled evenly
+function getMealCurve(session: Session) {
+  const refTimestamp = session.timestamp;
+  const start = Math.max(0, getHourDiff(session.snapshot.startTime, refTimestamp));
+  const end = getHourDiff(session.snapshot.endTime, refTimestamp);
+  const curve: { hours: number; BG: number }[] = [];
+  for (let hours = start; hours <= end; hours += SCORE_STEP_HOURS) {
+    curve.push({
+      hours,
+      BG:
+        session.snapshot.getSmoothed(
+          getTimestampFromOffset(refTimestamp, hours),
+        ) +
+        mealDeltaBG(
+          0,
+          hours,
+          session.insulins,
+          session.glucoses,
+          null,
+          refTimestamp,
+        ),
+    });
+  }
+  return curve;
+}
+
+function scoreDoses(
+  mealCurve: ReturnType<typeof getMealCurve>,
+  doses: Insulin[] | null,
+  refTimestamp: Date,
+  { targetBG, lowBG, highBG }: BGLimits,
+): SessionOutcome | null {
+  if (!doses || mealCurve.length === 0) return null;
+  const trace = mealCurve.map(
+    ({ hours, BG }) =>
+      BG - mealDeltaBG(0, hours, doses, [], null, refTimestamp),
+  );
   return {
-    landing: trace[trace.length - 1],
-    min: Math.min(...trace),
-    timeBelowLow: trace.filter((bg) => bg < lowBG).length / trace.length,
+    meanAbsFromTarget: mean(trace.map((bg) => Math.abs(bg - targetBG))),
+    meanFromTarget: mean(trace.map((bg) => bg - targetBG)),
+    timeInRange: fraction(trace.map((bg) => bg >= lowBG && bg <= highBG)),
+    timeBelowLow: fraction(trace.map((bg) => bg < lowBG)),
+    timeAboveHigh: fraction(trace.map((bg) => bg > highBG)),
+    timeSevereLow: fraction(trace.map((bg) => bg < SEVERE_LOW_BG)),
+    landingFromTarget: trace[trace.length - 1] - targetBG,
+    lowest: Math.min(...trace),
+    highest: Math.max(...trace),
   };
 }
 
 function analyzeSession(
   session: Session,
-  base: Session,
-  targetBG: number,
-  lowBG: number,
-  safeLowBG: number,
-): DoseRecord[] {
+  bases: Session[],
+  profileBase: Session,
+  limits: BGLimits,
+): { record: SessionRecord; doses: DoseRecord[] } {
+  const { targetBG, safeLowBG } = limits;
   const doses = [...session.insulins].sort(
     (a, b) => a.timestamp.getTime() - b.timestamp.getTime(),
   );
   const refTimestamp = session.timestamp;
-  const initialBG = session.initialGlucose!;
-  const hindsight = retrospectiveForecast(session, targetBG, safeLowBG);
+  // The same food adjustment the app applies on top of the forecast
+  const profileRises = getPlannedProfileRises(
+    session.initialGlucose,
+    session.meal!,
+    profileBase,
+  );
+  const replayed = replayForecast(
+    session,
+    bases,
+    targetBG,
+    safeLowBG,
+    profileRises,
+  );
+  // One bad session must not poison the averages of every other one
+  if (replayed.some((d) => !Number.isFinite(d.insulin.value)))
+    throw new Error("the forecast could not be calculated");
+  const hindsight = retrospectiveForecast(
+    session,
+    [session],
+    targetBG,
+    safeLowBG,
+  );
   const balancer = solveBalancer(session, doses, targetBG, safeLowBG);
+  const balancerDoses = balancer.includes(null)
+    ? null
+    : doses.map(
+        (d, i) => new Insulin(balancer[i]!, d.timestamp, d.variant),
+      );
 
-  return doses.map((dose, doseIndex) => {
-    const time = dose.timestamp.getTime();
-    // Causal masking: only what had happened before this dose
-    const takenInsulins = doses.filter((i) => i.timestamp.getTime() < time);
-    const takenRescues: Glucose[] = session.glucoses.filter(
-      (g) => g.timestamp.getTime() < time,
-    );
-    const BG = session.snapshot.getReading(dose.timestamp).sugar;
-    const forecast = forecastUnits(
-      base,
-      takenInsulins,
-      takenRescues,
-      initialBG,
-      BG,
-      refTimestamp,
-      dose.timestamp,
-      dose.variant,
-      targetBG,
-      safeLowBG,
-    );
-    const suggested: Record<Suggestion, number | null> = {
-      forecast,
-      hindsight: hindsight[doseIndex].value,
-      balancer: balancer[doseIndex],
-      actual: dose.value,
-    };
-    const outcome = (suggestion: Suggestion) =>
-      simulateOutcome(session, dose, suggested[suggestion], lowBG);
+  const mealCurve = getMealCurve(session);
+  const score = (plan: Insulin[] | null) =>
+    scoreDoses(mealCurve, plan, refTimestamp, limits);
 
-    return {
+  const foods = [...new Set(session.meal!.addedFoods.map((f) => f.name))]
+    .slice(0, 3)
+    .join(", ");
+  const matchingBase = session.meal!.matches(bases[0].meal!);
+  const baseTime = Math.max(...bases.map((b) => b.timestamp.getTime())); // The newest base
+
+  return {
+    record: {
       sessionUUID: session.uuid,
       sessionTime: refTimestamp.getTime(),
-      foods: (session.meal?.summedFoods ?? [])
-        .map((f) => f.name)
-        .slice(0, 3)
-        .join(", "),
+      foods,
+      doseCount: doses.length,
+      matchingBase,
+      baseCount: bases.length,
+      baseTime,
+      outcomes: {
+        forecast: score(replayed.map((d) => d.insulin)),
+        hindsight: score(hindsight),
+        balancer: score(balancerDoses),
+        actual: score(doses),
+      },
+    },
+    doses: doses.map((dose, doseIndex) => ({
+      sessionUUID: session.uuid,
+      sessionTime: refTimestamp.getTime(),
+      foods,
       doseIndex,
       doseCount: doses.length,
       hoursIn: getHourDiff(dose.timestamp, refTimestamp),
       variant: dose.variant.name,
-      BG,
+      BG: replayed[doseIndex].BG,
       actual: dose.value,
-      forecast,
+      forecast: replayed[doseIndex].insulin.value,
+      profileUnits: (profileRises[doseIndex] ?? 0) / dose.variant.effect,
       hindsight: hindsight[doseIndex].value,
       balancer: balancer[doseIndex],
-      baseTime: base.timestamp.getTime(),
-      baseAgeDays:
-        (refTimestamp.getTime() - base.timestamp.getTime()) / 86_400_000,
-      carbsDiff: session.carbs - base.carbs,
-      proteinDiff: session.protein - base.protein,
-      outcomes: {
-        forecast: outcome("forecast"),
-        hindsight: outcome("hindsight"),
-        balancer: outcome("balancer"),
-        actual: outcome("actual"),
-      },
-    };
-  });
+      baseTime,
+      baseAgeDays: (refTimestamp.getTime() - baseTime) / 86_400_000,
+      matchingBase,
+      baseCount: bases.length,
+      carbsDiff: session.carbs - mean(bases.map((b) => b.carbs)),
+      proteinDiff: session.protein - mean(bases.map((b) => b.protein)),
+    })),
+  };
 }
 
 // Statistics
@@ -331,7 +412,7 @@ function compare(
 
 const value = (dose: DoseRecord, suggestion: Suggestion) => dose[suggestion];
 
-// Insulin given by this point. A forecast only ever advises on top of the real doses so far.
+// Insulin given by this point
 function cumulative(
   doses: DoseRecord[],
   index: number,
@@ -339,8 +420,6 @@ function cumulative(
 ): number | null {
   const dose = doses[index];
   const earlier = doses.filter((d) => d.doseIndex < dose.doseIndex);
-  if (suggestion === "forecast")
-    return dose.forecast + earlier.reduce((n, d) => n + d.actual, 0);
   let total = 0;
   for (const d of [...earlier, dose]) {
     const units = value(d, suggestion);
@@ -359,6 +438,10 @@ const COMPARISON_PAIRS: [Suggestion, Suggestion][] = [
   ["hindsight", "balancer"],
 ];
 
+const isCloseBase = (d: DoseRecord) =>
+  Math.abs(d.carbsDiff) <= CLOSE_BASE_CARBS &&
+  Math.abs(d.proteinDiff) <= CLOSE_BASE_PROTEIN;
+
 function buildComparisons(doses: DoseRecord[]): Comparison[] {
   const bySession = new Map<UUID, DoseRecord[]>();
   doses.forEach((d) =>
@@ -371,8 +454,10 @@ function buildComparisons(doses: DoseRecord[]): Comparison[] {
     ["All doses", () => true],
     ["First dose", (d) => d.doseIndex === 0],
     ["Later doses", (d) => d.doseIndex > 0],
-    ["Close base", (d) => Math.abs(d.carbsDiff) <= CLOSE_BASE_CARBS],
-    ["Far base", (d) => Math.abs(d.carbsDiff) > CLOSE_BASE_CARBS],
+    ["Matching base", (d) => d.matchingBase],
+    ["Different base", (d) => !d.matchingBase],
+    ["Close base", isCloseBase],
+    ["Far base", (d) => !isCloseBase(d)],
   ];
 
   const comparisons: (Comparison | null)[] = [];
@@ -406,35 +491,48 @@ function buildComparisons(doses: DoseRecord[]): Comparison[] {
   return comparisons.filter((c): c is Comparison => c !== null);
 }
 
-function buildOutcomes(
-  doses: DoseRecord[],
-  targetBG: number,
-): OutcomeSummary[] {
-  // Every suggestion is judged on the exact same doses, so the rows are comparable
+function buildOutcomes(sessions: SessionRecord[]): OutcomeSummary[] {
   const suggestions: Suggestion[] = [
     "actual",
     "forecast",
     "hindsight",
     "balancer",
   ];
-  const common = doses.filter((d) =>
-    suggestions.every((s) => d.outcomes[s] !== null),
+  // Every strategy is judged on the exact same sessions, so the rows are comparable
+  const common = sessions.filter((s) =>
+    suggestions.every((suggestion) => s.outcomes[suggestion] !== null),
   );
-  if (common.length === 0) return [];
-  return suggestions.map((suggestion) => {
-    const outcomes = common.map((d) => d.outcomes[suggestion]!);
-    const landingErrors = outcomes.map((o) => Math.abs(o.landing - targetBG));
-    return {
-      suggestion,
-      n: common.length,
-      meanLandingError: mean(landingErrors),
-      medianLandingError: quantile(landingErrors, 0.5),
-      landedInRange: fraction(landingErrors.map((e) => e <= LANDING_RANGE)),
-      meanMinBG: mean(outcomes.map((o) => o.min)),
-      wentLow: fraction(outcomes.map((o) => o.timeBelowLow > 0)),
-      meanTimeBelowLow: mean(outcomes.map((o) => o.timeBelowLow)),
-    };
-  });
+  const segments: [string, SessionRecord[]][] = [
+    ["All sessions", common],
+    ["Matching base", common.filter((s) => s.matchingBase)],
+    ["Different base", common.filter((s) => !s.matchingBase)],
+  ];
+
+  const summaries: OutcomeSummary[] = [];
+  for (const [segment, included] of segments) {
+    if (included.length === 0) continue;
+    for (const suggestion of suggestions) {
+      const outcomes = included.map((s) => s.outcomes[suggestion]!);
+      const average = (pick: (o: SessionOutcome) => number) =>
+        mean(outcomes.map(pick));
+      summaries.push({
+        segment,
+        suggestion,
+        n: included.length,
+        meanAbsFromTarget: average((o) => o.meanAbsFromTarget),
+        meanFromTarget: average((o) => o.meanFromTarget),
+        meanAbsLanding: average((o) => Math.abs(o.landingFromTarget)),
+        timeInRange: average((o) => o.timeInRange),
+        timeBelowLow: average((o) => o.timeBelowLow),
+        timeAboveHigh: average((o) => o.timeAboveHigh),
+        timeSevereLow: average((o) => o.timeSevereLow),
+        wentLow: fraction(outcomes.map((o) => o.timeBelowLow > 0)),
+        wentSevereLow: fraction(outcomes.map((o) => o.lowest < SEVERE_LOW_BG)),
+        wentHigh: fraction(outcomes.map((o) => o.timeAboveHigh > 0)),
+      });
+    }
+  }
+  return summaries;
 }
 
 function buildBaseQuality(doses: DoseRecord[]): BaseQuality {
@@ -447,9 +545,17 @@ function buildBaseQuality(doses: DoseRecord[]): BaseQuality {
       ? mean(doses.map((d) => Math.abs(d.proteinDiff)))
       : 0,
     meanBaseAgeDays: doses.length ? mean(doses.map((d) => d.baseAgeDays)) : 0,
+    meanBaseCount: doses.length ? mean(doses.map((d) => d.baseCount)) : 0,
+    matchingShare: doses.length
+      ? fraction(doses.map((d) => d.matchingBase))
+      : 0,
     errorVsCarbsCorrelation: correlation(
       doses.map((d) => Math.abs(d.forecast - d.hindsight)),
       doses.map((d) => Math.abs(d.carbsDiff)),
+    ),
+    errorVsProteinCorrelation: correlation(
+      doses.map((d) => Math.abs(d.forecast - d.hindsight)),
+      doses.map((d) => Math.abs(d.proteinDiff)),
     ),
   };
 }
@@ -457,18 +563,29 @@ function buildBaseQuality(doses: DoseRecord[]): BaseQuality {
 export function analyzeForecastAccuracy(
   _sessions: Session[],
 ): ForecastAccuracyReport {
-  const targetBG = PreferencesStore.targetBG.value;
   const lowBG = PreferencesStore.lowBG.value;
-  const safeLowBG = lowBG + PreferencesStore.lowBuffer.value;
+  const limits: BGLimits = {
+    targetBG: PreferencesStore.targetBG.value,
+    lowBG,
+    highBG: PreferencesStore.highBG.value,
+    safeLowBG: lowBG + PreferencesStore.lowBuffer.value,
+  };
 
-  const sessions = _sessions
+  const allSessions = _sessions
     .map((s) => Session.deserialize(Session.serialize(s)))
     .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 
   const skipped: Record<string, number> = {};
   const skip = (reason: string) => (skipped[reason] = (skipped[reason] ?? 0) + 1);
+  // Without a measurable meal rise a session can't be tested or be a base. We're testing
+  // the algorithm here, not how well the profile guesses in its place.
+  const sessions = allSessions.filter((s) => {
+    const usable = Number.isFinite(s.mealRise);
+    if (!usable) skip("No usable meal rise");
+    return usable;
+  });
+  const records: SessionRecord[] = [];
   const doses: DoseRecord[] = [];
-  let analyzedSessions = 0;
 
   for (const session of sessions) {
     if (session.isInvalid) skip("Invalid session");
@@ -476,15 +593,14 @@ export function analyzeForecastAccuracy(
     else if (session.snapshot.readings.length < 2) skip("Too few readings");
     else {
       try {
-        const base = selectBaseSession(session, sessions);
-        if (!base) {
+        const { bases, profileBase } = selectBases(session, sessions);
+        if (!profileBase || bases.length === 0) {
           skip("No earlier base session");
           continue;
         }
-        doses.push(
-          ...analyzeSession(session, base, targetBG, lowBG, safeLowBG),
-        );
-        analyzedSessions++;
+        const analysis = analyzeSession(session, bases, profileBase, limits);
+        records.push(analysis.record);
+        doses.push(...analysis.doses);
       } catch (error) {
         skip(`Analysis error: ${(error as Error).message}`);
       }
@@ -492,15 +608,14 @@ export function analyzeForecastAccuracy(
   }
 
   return {
-    targetBG,
-    lowBG,
-    safeLowBG,
-    totalSessions: sessions.length,
-    analyzedSessions,
+    ...limits,
+    totalSessions: allSessions.length,
+    analyzedSessions: records.length,
     skipped,
+    sessions: records,
     doses,
     comparisons: buildComparisons(doses),
-    outcomes: buildOutcomes(doses, targetBG),
+    outcomes: buildOutcomes(records),
     baseQuality: buildBaseQuality(doses),
   };
 }

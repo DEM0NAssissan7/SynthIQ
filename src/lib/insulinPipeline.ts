@@ -42,7 +42,12 @@ function getExtraProfileDelta(
     referenceMeal.carbs,
     referenceMeal.protein,
   );
-  const profileScale = profileMealRise !== 0 ? mealRise / profileMealRise : 0;
+  // Without a usable rise from the reference, the profile can't be rescaled to it
+  const profileScale = !Number.isFinite(mealRise)
+    ? 1
+    : profileMealRise !== 0
+      ? mealRise / profileMealRise
+      : 0;
 
   const sharedFoods = meal.foods.filter((f) => referenceMeal.hasFood(f));
   const unsharedFoods = meal.foods.filter((f) => !referenceMeal.hasFood(f));
@@ -115,6 +120,16 @@ function getProfileRises(
   return rises;
 }
 
+// The rise this meal has over its base session, for each dose in the base session's plan
+export function getPlannedProfileRises(
+  BG: number | null,
+  meal: Meal,
+  baseSession: Session,
+): number[] {
+  const plannedDoses = getRetrospectiveInsulins(BG, baseSession);
+  return getProfileRises(meal, baseSession, plannedDoses.length);
+}
+
 // The ideal doses for this meal: what the base session should've had, adjusted for the differences in food
 export function getIdealInsulins(
   BG: number | null,
@@ -151,6 +166,7 @@ export function deriveInsulinPipeline(
   BG: number | null,
   meal: Meal,
   baseSession: Session | null,
+  baseSessions: Session[],
   session: Session | null,
   variant: InsulinVariant,
   timestamp: Date,
@@ -176,7 +192,7 @@ export function deriveInsulinPipeline(
   // Shifting both BGs keeps the observed delta (and so the meal's progress) intact
   const forecast = (offset: number) =>
     forecastUnits(
-      baseSession,
+      baseSessions,
       takenInsulins,
       session?.glucoses ?? [],
       initialBG + offset,
@@ -189,12 +205,8 @@ export function deriveInsulinPipeline(
   const correctionInsulin = forecast(0) - mealInsulin;
 
   // The forecast only knows about the base session's food, so the difference comes from the planned doses
-  const plannedDoses = getRetrospectiveInsulins(
-    session?.initialGlucose ?? BG,
-    baseSession,
-  );
   const profileRise =
-    getProfileRises(meal, baseSession, plannedDoses.length)[
+    getPlannedProfileRises(session?.initialGlucose ?? BG, meal, baseSession)[
       takenInsulins.length
     ] ?? 0;
 

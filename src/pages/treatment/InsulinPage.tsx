@@ -83,6 +83,10 @@ export default function InsulinPage() {
     () => (meal ? template.getBaseSession(meal) : null),
     [template, meal],
   );
+  const baseSessions = useMemo(
+    () => (meal ? template.getBaseSessions(meal) : []),
+    [template, meal],
+  );
   const [variant, setVariant] = useState(InsulinVariantManager.getDefault());
 
   const [isCorrectionOnly, setIsCorrectionOnly] = useState(false);
@@ -160,6 +164,7 @@ export default function InsulinPage() {
             currentBG,
             meal,
             baseSession,
+            baseSessions,
             isPrebolus ? null : session,
             variant,
             now,
@@ -170,6 +175,7 @@ export default function InsulinPage() {
       meal,
       currentBG,
       baseSession,
+      baseSessions,
       isPrebolus,
       session,
       variant,

@@ -19,8 +19,9 @@ import {
   getTimestampFromOffset,
   timestampIsBetween,
 } from "./timing";
+import { MathUtil } from "./util";
 
-function mealDeltaBG(
+export function mealDeltaBG(
   tA: number, // Hours
   tB: number, // Hours
   insulins: Insulin[],
@@ -84,7 +85,7 @@ function solveFor(
   return hi;
 }
 export function forecastUnits(
-  refSession: Session,
+  baseSessions: Session[],
   takenInsulins: Insulin[],
   takenRescues: Glucose[],
   initialBG: number,
@@ -98,18 +99,14 @@ export function forecastUnits(
 ) {
   const actualDelta = BG - initialBG;
   const tNow = getHourDiff(timestamp, refTimestamp);
-  const refEnd = getHourDiff(refSession.snapshot.endTime, refSession.timestamp);
-
-  // Reference meal push, on the reference's meal clock
-  const refMeal = (a: number, b: number) =>
-    mealDeltaBG(
-      a,
-      b,
-      refSession.insulins,
-      refSession.glucoses,
-      refSession.snapshot,
-      refSession.timestamp,
+  // We pull out the average curve from all the sessions we have
+  const allDeltas = (a: number, b: number) =>
+    baseSessions.map((s) =>
+      mealDeltaBG(a, b, s.insulins, s.glucoses, s.snapshot, s.timestamp),
     );
+  const compositeRef = (a: number, b: number) =>
+    MathUtil.median(allDeltas(a, b));
+  // const refEnd = MathUtil.mean(baseSessions.map((s) => s.length));
 
   // This session's treatments on the REAL clock: (insulin pull - rescue push)
   const treatments = (a: number, b: number) =>
@@ -117,21 +114,28 @@ export function forecastUnits(
 
   // How much meal has actually landed this session
   const landed = actualDelta + treatments(0, tNow);
+  const predicted = compositeRef(0, tNow);
+  const tPredict =
+    solveFor(landed, (t) => compositeRef(0, t), 0, tNow * 2) ?? tNow;
+  const mT = 1;
+  const bT = 0;
+  const mDelta = 1;
+  const bDelta = 0;
 
-  // Where the train is on the reference track
-  const tMealNow = solveFor(landed, (x) => refMeal(0, x), 0, refEnd) ?? refEnd;
-  const scale = tNow > 0 ? Math.min(2, Math.max(0.5, tMealNow / tNow)) : 1;
-  const mealTime = (t: number) => Math.min(t * scale, refEnd);
+  const mealTime = (t: number) => t * mT + bT;
 
   // Forecast: anchored at BG, meal warped, treatments not
   const estimatedBG = (t: number) =>
-    BG + refMeal(mealTime(tNow), mealTime(t)) - treatments(tNow, t);
+    BG +
+    mDelta * compositeRef(mealTime(tNow), mealTime(t)) -
+    treatments(tNow, t) +
+    bDelta;
 
   // Our definition of our target dose is to not go low while taking as much insulin now as possible, or hitting the targetBG dead-on
   const maxUnitsAt = (t: number) => {
     const bg = estimatedBG(t);
     const fractionAbsorbed = variant.unitBatemanIntegral(0, t - tNow);
-    const distanceToLow = bg - lowBG;
+    const distanceToLow = bg - Math.min(lowBG, BG);
     const unitsAbsorbedToLow = distanceToLow / variant.effect;
     return fractionAbsorbed > 0
       ? unitsAbsorbedToLow / fractionAbsorbed
@@ -159,19 +163,26 @@ export function forecastUnits(
   return units;
 }
 
+export interface ReplayedDose {
+  insulin: Insulin;
+  BG: number; // What blood sugar read when this dose was solved
+}
+
 /**
- * The doses a session "should've" had according to forecastUnits, with full hindsight.
- * The session is its own reference, so the forecast knows exactly how its meal behaved.
- * We solve one dose at a time, in a virtual world where every earlier dose was injected
- * exactly as solved and no rescues were needed.
- * @returns One insulin per dose in the session, in time order
+ * Follows a session one dose at a time, forecasting from `reference`, in a virtual world
+ * where every earlier dose was injected exactly as solved and no rescues were needed.
+ * Each dose only sees what came before it.
+ * @param profileRises The rise from food the references didn't have, for each dose in order
+ * @returns One dose per insulin in the session, in time order
  */
-export function retrospectiveForecast(
+export function replayForecast(
   session: Session,
+  references: Session[],
   targetBG: number = PreferencesStore.targetBG.value,
   lowBG: number = PreferencesStore.lowBG.value +
     PreferencesStore.lowBuffer.value,
-): Insulin[] {
+  profileRises: number[] = [],
+): ReplayedDose[] {
   const refTimestamp = session.timestamp;
   const initialBG =
     session.initialGlucose ?? session.snapshot.getSmoothed(refTimestamp);
@@ -180,26 +191,54 @@ export function retrospectiveForecast(
   );
 
   const virtualInsulins: Insulin[] = [];
-  for (const { timestamp, variant } of doses) {
+  return doses.map(({ timestamp, variant }, doseIndex) => {
     const t = getHourDiff(timestamp, refTimestamp);
     // What BG would've been: the real trace, swapping the real treatments for the virtual ones
-    const virtualBG =
-      session.snapshot.getSmoothed(timestamp) +
-      mealDeltaBG(0, t, session.insulins, session.glucoses, null, refTimestamp) -
+    const BG =
+      session.snapshot.getReading(timestamp).sugar +
+      mealDeltaBG(
+        0,
+        t,
+        session.insulins,
+        session.glucoses,
+        null,
+        refTimestamp,
+      ) -
       mealDeltaBG(0, t, virtualInsulins, [], null, refTimestamp);
     const units = forecastUnits(
-      session,
+      references,
       virtualInsulins,
       [],
       initialBG,
-      virtualBG,
+      BG,
       refTimestamp,
       timestamp,
       variant,
       targetBG,
       lowBG,
     );
-    virtualInsulins.push(new Insulin(units, timestamp, variant));
-  }
-  return virtualInsulins;
+    const profileUnits = (profileRises[doseIndex] ?? 0) / variant.effect;
+    const insulin = new Insulin(
+      Math.max(0, units + profileUnits),
+      timestamp,
+      variant,
+    );
+    virtualInsulins.push(insulin);
+    return { insulin, BG };
+  });
+}
+
+/**
+ * The doses a session "should've" had according to the forecast, with full hindsight:
+ * the session is its own reference, so the forecast knows exactly how its meal behaved.
+ */
+export function retrospectiveForecast(
+  session: Session,
+  sessions: Session[],
+  targetBG?: number,
+  lowBG?: number,
+): Insulin[] {
+  return replayForecast(session, sessions, targetBG, lowBG).map(
+    (dose) => dose.insulin,
+  );
 }

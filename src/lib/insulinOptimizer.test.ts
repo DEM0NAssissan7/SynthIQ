@@ -5,7 +5,7 @@ import Session from "../models/session";
 import { InsulinVariant } from "../models/types/insulinVariant";
 import SugarReading from "../models/types/sugarReading";
 import { createWindows } from "./helpers/createWindow";
-import { retrospectiveForecast } from "./insulinOptimizer";
+import { forecastUnits, retrospectiveForecast } from "./insulinOptimizer";
 import { InsulinRetrospectiveOptimizer } from "./insulinRetrospectiveAnalyzer";
 
 const HOUR_MS = 3_600_000;
@@ -82,7 +82,7 @@ describe("forecastUnits matches balance", () => {
   it.each(scenarios)("$name", (scenario) => {
     const session = createSession(scenario);
     const balanced = solveBalance(session);
-    const forecast = retrospectiveForecast(session, TARGET_BG, LOW_BG).map(
+    const forecast = retrospectiveForecast(session, [session], TARGET_BG, LOW_BG).map(
       (insulin) => insulin.value,
     );
 
@@ -97,5 +97,24 @@ describe("forecastUnits matches balance", () => {
     results.forEach(({ difference }) =>
       expect(Math.abs(difference)).toBeLessThanOrEqual(TOLERANCE_UNITS),
     );
+  });
+});
+
+describe("forecastUnits dose limits", () => {
+  const SAFE_LOW = 77;
+  const slowVariant = new InsulinVariant("Slow", 50, 28, 1, 0.4);
+  const forecastAt = (session: Session, BG: number, targetBG = 100) =>
+    forecastUnits([session], [], [], BG, BG, t0, t0, slowVariant, targetBG, SAFE_LOW);
+
+  it("still gives nothing when BG is low and no meal is coming", () => {
+    const reference = createSession({
+      name: "reference",
+      doses: [],
+      readings: [
+        [0, 100],
+        [5, 100],
+      ],
+    });
+    expect(forecastAt(reference, 60)).toBe(0);
   });
 });

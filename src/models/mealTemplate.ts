@@ -176,20 +176,43 @@ export default class MealTemplate extends Subscribable implements Template {
     if (sessions.length === 0) return null;
     return getSimilarSessionsDistances(meal, sessions);
   }
+  private getMatchingSessions(meal: Meal): Session[] {
+    if (meal.isEmpty) return [];
+    return this.validSessions.filter((s) => s.meal && meal.matches(s.meal));
+  }
+  /** Every past session of this same meal, or the single most similar one if there are none */
+  getBaseSessions(meal: Meal, timestamp = new Date()): Session[] {
+    const matchingSessions = this.getMatchingSessions(meal);
+    if (matchingSessions.length > 0) return matchingSessions;
+    const similarSession = this.getBaseSession(meal, timestamp);
+    return similarSession ? [similarSession] : [];
+  }
   getBaseSession(meal: Meal, timestamp = new Date()): Session | null {
+    const atSimilarTime = (session: Session) =>
+      getCircularHourDistance(session.timestamp, timestamp) <=
+      HealthMonitorStore.maxHoursBetweenSessions.value;
+
+    // The same meal beats anything merely similar, however old it is
+    const matchingSessions = this.getMatchingSessions(meal);
+    if (matchingSessions.length > 0) {
+      const sameTime = matchingSessions.filter(atSimilarTime);
+      return (sameTime.length > 0 ? sameTime : matchingSessions).reduce(
+        (latest, s) =>
+          s.timestamp.getTime() > latest.timestamp.getTime() ? s : latest,
+      );
+    }
+
     const sessionsDistances = this.getSimilarSessionsDistances(meal);
     if (!sessionsDistances || sessionsDistances.length === 0) return null;
 
-    let filteredSessionsDistances = sessionsDistances.filter(
-      (a) =>
-        getCircularHourDistance(a[0].timestamp, timestamp) <=
-        HealthMonitorStore.maxHoursBetweenSessions.value,
+    let filteredSessionsDistances = sessionsDistances.filter(([s]) =>
+      atSimilarTime(s),
     );
     if (filteredSessionsDistances.length === 0)
       filteredSessionsDistances = sessionsDistances;
 
     // Ensure ascending order by distance score
-    const sortedDistances = sessionsDistances
+    const sortedDistances = filteredSessionsDistances
       .slice()
       .sort((a, b) => a[1] - b[1]);
 

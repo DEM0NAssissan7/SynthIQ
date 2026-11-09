@@ -4,6 +4,8 @@ import type { Deserializer, Serializer, UUID } from "../types/types";
 import Unit from "../unit";
 import { simplifyFoods } from "../../lib/helpers/simplifyFoods";
 
+const MEAL_MATCH_TOLERANCE = 0.05;
+
 function createCarbsOffset() {
   return new Food("Carbs Offset", 1, 0, Unit.Food.Unit);
 }
@@ -97,19 +99,23 @@ export default class Meal extends MetaEvent {
     );
   }
   isIdentical(meal: Meal) {
+    return this.matches(meal, 0);
+  }
+  /**
+   * Whether a meal has the same foods as this one, with each amount
+   * within `tolerance` (a fraction) of this meal's amount
+   */
+  matches(meal: Meal, tolerance = MEAL_MATCH_TOLERANCE) {
     const myFoods = this.summedFoods;
     const foods = meal.summedFoods;
-    for (let food of foods) {
-      let isIdentical = false;
-      for (let f of myFoods) {
-        if (f.amount !== food.amount) continue;
-        if (f.name !== food.name) continue;
-        isIdentical = true;
-        break;
-      }
-      if (!isIdentical) return false;
-    }
-    return true;
+    if (myFoods.length !== foods.length) return false;
+    return myFoods.every((mine) => {
+      const food = foods.find((f) => f.name === mine.name);
+      return (
+        food !== undefined &&
+        Math.abs(food.amount - mine.amount) <= tolerance * Math.abs(mine.amount)
+      );
+    });
   }
 
   // Metabolism
