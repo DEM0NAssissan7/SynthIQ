@@ -18,7 +18,7 @@ import { InsulinVariantStore } from "../storage/insulinVariantStore";
 import { RescueVariantStore } from "../storage/rescueVariantStore";
 import { useVariantGetters } from "../lib/helpers/useVariantGetters";
 import type { TreatmentWindow } from "./types/treatmentWindow";
-import { InsulinOptimizer } from "../lib/insulinRetrospectiveAnalyzer";
+import { InsulinRetrospectiveOptimizer } from "../lib/insulinRetrospectiveAnalyzer";
 import { createWindows } from "../lib/helpers/createWindow";
 import SugarReading from "./types/sugarReading";
 import { PrivateStore } from "../storage/privateStore";
@@ -175,7 +175,7 @@ export default class Session extends Subscribable {
     rescueVariants: RescueVariant[],
     currentBG: number | null = null,
   ): Insulin[] {
-    const [optimalInsulins] = InsulinOptimizer.getOptimalInsulins(
+    const [optimalInsulins] = InsulinRetrospectiveOptimizer.getOptimalInsulins(
       this.insulins,
       this.snapshot,
       this.glucoses,
@@ -187,7 +187,7 @@ export default class Session extends Subscribable {
     return optimalInsulins;
   }
   get optimalMealInsulins(): Insulin[] {
-    const [optimalInsulins] = InsulinOptimizer.getOptimalInsulins(
+    const [optimalInsulins] = InsulinRetrospectiveOptimizer.getOptimalInsulins(
       this.insulins,
       this.snapshot,
       this.glucoses,

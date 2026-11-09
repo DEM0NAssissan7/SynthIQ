@@ -87,10 +87,11 @@ export default class Snapshot extends Subscribable {
   getSmoothed(timestamp: Date, calibrationOnly = false) {
     const readingA = this.getReading(timestamp, calibrationOnly, false);
     const readingB = this.getReading(timestamp, calibrationOnly, true);
+    const dt = readingB.timestamp.getTime() - readingA.timestamp.getTime();
+    // Exactly on a reading, or past the end of the snapshot
+    if (dt === 0) return readingA.sugar;
     const x = timestamp.getTime() - readingA.timestamp.getTime();
-    const m =
-      (readingB.sugar - readingA.sugar) /
-      (readingB.timestamp.getTime() - readingA.timestamp.getTime());
+    const m = (readingB.sugar - readingA.sugar) / dt;
     const b = readingA.sugar;
     return m * x + b;
   }

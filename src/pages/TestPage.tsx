@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { InsulinOptimizer } from "../lib/insulinRetrospectiveAnalyzer";
+import { InsulinRetrospectiveOptimizer } from "../lib/insulinRetrospectiveAnalyzer";
 import WizardManager from "../managers/wizardManager";
 import {
   LineChart,
@@ -116,7 +116,7 @@ export default function TestPage() {
   const insulinVariants = InsulinVariantStore.variants.value;
   const rescueVariants = RescueVariantStore.variants.value;
   const info: [Session, Insulin[], Insulin[]][] = sessions.map((session) => {
-    const [, , optimalInsulins] = InsulinOptimizer.getOptimalInsulins(
+    const [, , optimalInsulins] = InsulinRetrospectiveOptimizer.getOptimalInsulins(
       session.insulins,
       session.snapshot,
       session.glucoses,

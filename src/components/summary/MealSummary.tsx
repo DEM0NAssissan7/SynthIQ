@@ -10,10 +10,7 @@ import { getFullPrettyDate } from "../../lib/timing";
 import Card from "../Card";
 import MdIcon from "../md3/MdIcon";
 import type Session from "../../models/session";
-import {
-  deriveInsulinPipelines,
-  getProfileInsulin,
-} from "../../lib/insulinPipeline";
+import { getIdealInsulins, getProfileInsulin } from "../../lib/insulinPipeline";
 
 export interface MealSummaryProps {
   meal: Meal;
@@ -77,13 +74,9 @@ export const MealSummary: React.FC<MealSummaryProps> = ({
   // Calculate Optimal Insulins
   const optimalInsulins: Insulin[] | null = useMemo(() => {
     if (!template) return null;
-    const [_, vectorized] = deriveInsulinPipelines(
-      initialBG,
-      meal,
-      baseSession,
-    );
-    if (vectorized && vectorized.length > 0 && !template.isFirstTime) {
-      return vectorized;
+    const idealInsulins = getIdealInsulins(initialBG, meal, baseSession);
+    if (idealInsulins.length > 0 && !template.isFirstTime) {
+      return idealInsulins;
     }
     return null;
   }, [

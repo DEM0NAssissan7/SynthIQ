@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Button, Form, InputGroup } from "react-bootstrap";
+import { Alert, Button, Form, InputGroup } from "react-bootstrap";
 import WizardManager from "../../managers/wizardManager";
 import { roundByHalf } from "../../lib/util";
 import { useNavigate } from "react-router";
@@ -24,8 +24,9 @@ import { useNow } from "../../state/useNow";
 import { HealthMonitorStore } from "../../storage/healthMonitorStore";
 import { getTimestampFromOffset } from "../../lib/timing";
 import {
-  deriveInsulinPipelines,
+  deriveInsulinPipeline,
   evaluateInsulinPipeline,
+  getIdealInsulins,
   type InsulinPipeline,
 } from "../../lib/insulinPipeline";
 
@@ -143,18 +144,6 @@ export default function InsulinPage() {
       PreferencesStore.targetBG.value - PreferencesStore.overshootOffset.value;
     return Math.max(cappedCurrentBG - baseTarget, 0) / variant.effect;
   }, [currentBG]);
-  const [pipelines, optimalInsulins] = useMemo(
-    () =>
-      meal
-        ? deriveInsulinPipelines(
-            isPrebolus ? currentBG : (session.initialGlucose ?? currentBG),
-            meal,
-            baseSession,
-            ["Overshoot", overshootInsulin],
-          )
-        : [[], []],
-    [meal, isPrebolus, currentBG, session, baseSession, overshootInsulin],
-  );
   const shotIndex = isPrebolus ? 0 : session.insulins.length;
   const fallbackPipeline = useMemo(
     () =>
@@ -165,14 +154,29 @@ export default function InsulinPage() {
     [correctionInsulin, overshootInsulin],
   );
   const pipeline = useMemo(
-    () => (pipelines.length > 0 ? pipelines[shotIndex] : fallbackPipeline),
-    [pipelines, shotIndex, fallbackPipeline],
-  );
-  console.log(
-    pipelines,
-    isPrebolus,
-    currentBG,
-    isPrebolus ? currentBG : (session.initialGlucose ?? currentBG),
+    () =>
+      meal
+        ? deriveInsulinPipeline(
+            currentBG,
+            meal,
+            baseSession,
+            isPrebolus ? null : session,
+            variant,
+            now,
+            ["Overshoot", overshootInsulin],
+          )
+        : fallbackPipeline,
+    [
+      meal,
+      currentBG,
+      baseSession,
+      isPrebolus,
+      session,
+      variant,
+      now,
+      overshootInsulin,
+      fallbackPipeline,
+    ],
   );
 
   const projectedDuration = useMemo(() => variant.duration * 0.7, [variant]);
@@ -213,6 +217,10 @@ export default function InsulinPage() {
     isCorrectionOnly ||
     roundByHalf(displayedInsulin) === roundByHalf(correctionInsulin);
 
+  const lowBG = PreferencesStore.lowBG.value;
+  const dosingWhileLow =
+    currentBG !== null && currentBG < lowBG && displayedInsulin > 0;
+
   function goBack() {
     const wasMealRelated = isPrebolus && !isCorrectionOnly;
     setIsPrebolus(false); // Reset flag
@@ -230,8 +238,15 @@ export default function InsulinPage() {
 
   // Set usage state based on the current session state
   useEffect(() => {
+    const idealInsulins = meal
+      ? getIdealInsulins(
+          isPrebolus ? currentBG : (session.initialGlucose ?? currentBG),
+          meal,
+          baseSession,
+        )
+      : [];
     setVariant(
-      optimalInsulins[shotIndex]?.variant ?? InsulinVariantManager.getDefault(),
+      idealInsulins[shotIndex]?.variant ?? InsulinVariantManager.getDefault(),
     );
   }, []);
 
@@ -308,6 +323,12 @@ export default function InsulinPage() {
             </>
           )}
         </MetricGrid>
+        {dosingWhileLow && (
+          <Alert variant="warning" className="mt-2 mb-2 small">
+            Your blood sugar ({currentBG} mg/dL) is below your low threshold (
+            {lowBG} mg/dL). Evaluate what dose you should take independently.
+          </Alert>
+        )}
         {pipeline && (
           <div className="d-flex flex-column gap-2 mt-1">
             <div className="app-dose-list">

@@ -5,8 +5,10 @@ import { CalibrationStore } from "../storage/calibrationStore";
 import type Session from "../models/session";
 import { InsulinVariantStore } from "../storage/insulinVariantStore";
 import { RescueVariantStore } from "../storage/rescueVariantStore";
-import { InsulinOptimizer } from "./insulinOptimizer";
 import Insulin from "../models/events/insulin";
+import type { InsulinVariant } from "../models/types/insulinVariant";
+import { forecastUnits } from "./insulinOptimizer";
+import { InsulinRetrospectiveOptimizer } from "./insulinRetrospectiveAnalyzer";
 
 export type InsulinPipelineStep = [string, number];
 export type InsulinPipeline = InsulinPipelineStep[];
@@ -82,118 +84,126 @@ function getExtraProfileDelta(
   ];
 }
 
-// Return an insulin pipeline for every insulin shot we take
-export function deriveInsulinPipelines(
-  BG: number | null,
+// The doses the base session "should've" had
+function getRetrospectiveInsulins(BG: number | null, baseSession: Session) {
+  const [insulins] = InsulinRetrospectiveOptimizer.getOptimalInsulins(
+    baseSession.insulins,
+    baseSession.snapshot,
+    baseSession.glucoses,
+    BG,
+    PreferencesStore.learningRate.value / 100,
+    InsulinVariantStore.variants.value,
+    RescueVariantStore.variants.value,
+  );
+  return insulins;
+}
+
+// Spread the rise this meal has over its base session across a plan of doses:
+// the carbs go on the first dose, and the protein is shared equally
+function getProfileRises(
   meal: Meal,
-  baseSession: Session | null,
-  ...extraElements: InsulinPipelineStep[]
-): [InsulinPipeline[], Insulin[]] {
-  const targetBG = PreferencesStore.targetBG.value;
-  // Make the fallback return value
-  const fallback: [InsulinPipeline[], Insulin[]] = (() => {
-    // If we do not have a base session to go off of, we return a "best guess"
-    const variant = InsulinVariantManager.getDefault();
-    const mealInsulin = getProfileInsulin(meal.carbs, meal.protein, variant);
-    const correctionInsulin = BG ? (BG - targetBG) / variant.effect : 0;
-    const fallbackPipeline: InsulinPipeline = [
-      ["Meal", mealInsulin],
-      ["Correction", correctionInsulin],
-      ...extraElements,
-    ];
-    return [
-      [fallbackPipeline],
-      [
-        new Insulin(
-          evaluateInsulinPipeline(fallbackPipeline),
-          baseSession?.timestamp ?? new Date(),
-          variant,
-        ),
-      ],
-    ];
-  })();
-  if (!baseSession) {
-    return fallback;
-  }
-  // Setup the pipeline scratchpad
-  const pipelines: InsulinPipeline[] = [];
-
-  // Now for the actual derivation
-  const [baseOptimalInsulins, _, isolatedMealInsulins] =
-    InsulinOptimizer.getOptimalInsulins(
-      baseSession.insulins,
-      baseSession.snapshot,
-      baseSession.glucoses,
-      BG,
-      PreferencesStore.learningRate.value / 100,
-      InsulinVariantStore.variants.value,
-      RescueVariantStore.variants.value,
-      false,
-    );
-  const prunedOptimalInsulins =
-    InsulinOptimizer.pruneInsulins(baseOptimalInsulins);
-  if (prunedOptimalInsulins.length === 0) return fallback;
-
-  prunedOptimalInsulins.forEach((insulin, i) => {
-    const mealInsulin = isolatedMealInsulins[i];
-    if (!mealInsulin) {
-      pipelines.push([["Meal", insulin.value]]);
-      return;
-    }
-    const correctionOffset = insulin.value - mealInsulin.value;
-    pipelines.push([
-      ["Meal", mealInsulin.value],
-      ["Correction", correctionOffset],
-    ]);
-  });
-
-  // We try to make a "best guess" as to where the meal *should* land
+  baseSession: Session,
+  doseCount: number,
+): number[] {
   const [extraCarbsRise, extraProteinRise] = getExtraProfileDelta(
     meal,
     baseSession,
   );
-  let profileOffsets = prunedOptimalInsulins.map((_) => 0);
-  profileOffsets[0] = extraCarbsRise / prunedOptimalInsulins[0].variant.effect;
-  const extraProteinRisePerShot =
-    extraProteinRise / prunedOptimalInsulins.length;
-  // Distribute protein out equally for each shot
-  prunedOptimalInsulins.forEach(
-    (insulin, i) =>
-      (profileOffsets[i] += extraProteinRisePerShot / insulin.variant.effect),
+  const count = Math.max(doseCount, 1);
+  const rises: number[] = new Array(count).fill(extraProteinRise / count);
+  rises[0] += extraCarbsRise;
+  return rises;
+}
+
+// The ideal doses for this meal: what the base session should've had, adjusted for the differences in food
+export function getIdealInsulins(
+  BG: number | null,
+  meal: Meal,
+  baseSession: Session | null,
+): Insulin[] {
+  if (!baseSession) return [];
+  const insulins = getRetrospectiveInsulins(BG, baseSession);
+  const rises = getProfileRises(meal, baseSession, insulins.length);
+  return insulins
+    .map(
+      (insulin, i) =>
+        new Insulin(
+          insulin.value + rises[i] / insulin.variant.effect,
+          insulin.timestamp,
+          insulin.variant,
+        ),
+    )
+    .filter((insulin) => insulin.value > 0);
+}
+
+function finalizePipeline(steps: InsulinPipeline): InsulinPipeline {
+  // Get rid of pointless steps
+  const pipeline = steps.filter(([, value]) => Math.abs(value) >= 0.1);
+  return evaluateInsulinPipeline(pipeline) > 0 ? pipeline : [];
+}
+
+/**
+ * The dose to take *right now*, broken down into steps. An empty pipeline means no dose is recommended.
+ * @param BG Current blood sugar. If null, we assume we're at target
+ * @param session The session in progress, or null if the meal hasn't started (pre-bolus)
+ */
+export function deriveInsulinPipeline(
+  BG: number | null,
+  meal: Meal,
+  baseSession: Session | null,
+  session: Session | null,
+  variant: InsulinVariant,
+  timestamp: Date,
+  ...extraElements: InsulinPipelineStep[]
+): InsulinPipeline {
+  const targetBG = PreferencesStore.targetBG.value;
+  const takenInsulins = session?.insulins ?? [];
+
+  if (!baseSession) {
+    // With nothing to go off of we can only "best guess" the first dose. We have no
+    // way of knowing how much of the meal any insulin already taken has covered.
+    if (takenInsulins.length > 0) return [];
+    return finalizePipeline([
+      ["Meal", getProfileInsulin(meal.carbs, meal.protein, variant)],
+      ["Correction", BG ? (BG - targetBG) / variant.effect : 0],
+      ...extraElements,
+    ]);
+  }
+
+  const currentBG = BG ?? targetBG;
+  const initialBG = session?.initialGlucose ?? currentBG;
+
+  // Shifting both BGs keeps the observed delta (and so the meal's progress) intact
+  const forecast = (offset: number) =>
+    forecastUnits(
+      baseSession,
+      takenInsulins,
+      session?.glucoses ?? [],
+      initialBG + offset,
+      currentBG + offset,
+      session?.timestamp ?? timestamp,
+      timestamp,
+      variant,
+    );
+  const mealInsulin = forecast(targetBG - currentBG);
+  const correctionInsulin = forecast(0) - mealInsulin;
+
+  // The forecast only knows about the base session's food, so the difference comes from the planned doses
+  const plannedDoses = getRetrospectiveInsulins(
+    session?.initialGlucose ?? BG,
+    baseSession,
   );
+  const profileRise =
+    getProfileRises(meal, baseSession, plannedDoses.length)[
+      takenInsulins.length
+    ] ?? 0;
 
-  pipelines.forEach((shot, i) => {
-    shot.push(["Profile", profileOffsets[i]]);
-  });
-
-  // Finally, add extra steps
-  pipelines.forEach((steps) => steps.push(...extraElements));
-
-  // Filter through each step and get rid of pointless steps
-  pipelines.forEach((steps) => {
-    for (let i = 0; i < steps.length; i++) {
-      const [_, value] = steps[i];
-      if (Math.abs(value) < 0.1) {
-        steps.splice(i, 1);
-        i--;
-      }
-    }
-  });
-
-  // Composite into insulins
-  const compositeInsulins = prunedOptimalInsulins.map(
-    (insulin, i) =>
-      new Insulin(
-        evaluateInsulinPipeline(pipelines[i]),
-        insulin.timestamp,
-        insulin.variant,
-      ),
-  );
-
-  return [
-    pipelines.filter((p) => evaluateInsulinPipeline(p) > 0),
-    compositeInsulins.filter((i) => i.value > 0),
-  ];
+  return finalizePipeline([
+    ["Meal", mealInsulin],
+    ["Correction", correctionInsulin],
+    ["Profile", profileRise / variant.effect],
+    ...extraElements,
+  ]);
 }
 
 export function evaluateInsulinPipeline(pipeline: InsulinPipeline) {
