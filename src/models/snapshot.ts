@@ -84,6 +84,16 @@ export default class Snapshot extends Subscribable {
     }
     return retval;
   }
+  getSmoothed(timestamp: Date, calibrationOnly = false) {
+    const readingA = this.getReading(timestamp, calibrationOnly, false);
+    const readingB = this.getReading(timestamp, calibrationOnly, true);
+    const x = timestamp.getTime() - readingA.timestamp.getTime();
+    const m =
+      (readingB.sugar - readingA.sugar) /
+      (readingB.timestamp.getTime() - readingA.timestamp.getTime());
+    const b = readingA.sugar;
+    return m * x + b;
+  }
   // This should ONLY be used on duplicated snapshots - never on real, observed data. This is purely a software helper.
   shift(value: number) {
     this.rawReadings.forEach((r) => (r.sugar += value));

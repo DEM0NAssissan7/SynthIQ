@@ -22,11 +22,14 @@ export function timestampIsBetween(
   timestamp: Date,
   timestampA: Date,
   timestampB: Date,
+  halfOpen = false,
 ) {
   const timestampEpoch = timestamp.getTime();
   if (
-    timestampEpoch <= timestampB.getTime() &&
-    timestampEpoch >= timestampA.getTime()
+    halfOpen
+      ? timestampEpoch < timestampB.getTime()
+      : timestampEpoch <= timestampB.getTime() &&
+        timestampEpoch >= timestampA.getTime()
   )
     return true;
   return false;

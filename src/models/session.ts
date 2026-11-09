@@ -18,7 +18,7 @@ import { InsulinVariantStore } from "../storage/insulinVariantStore";
 import { RescueVariantStore } from "../storage/rescueVariantStore";
 import { useVariantGetters } from "../lib/helpers/useVariantGetters";
 import type { TreatmentWindow } from "./types/treatmentWindow";
-import { InsulinOptimizer } from "../lib/insulinOptimizer";
+import { InsulinOptimizer } from "../lib/insulinRetrospectiveAnalyzer";
 import { createWindows } from "../lib/helpers/createWindow";
 import SugarReading from "./types/sugarReading";
 import { PrivateStore } from "../storage/privateStore";

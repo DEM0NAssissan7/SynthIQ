@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { InsulinOptimizer } from "../lib/insulinOptimizer";
+import { InsulinOptimizer } from "../lib/insulinRetrospectiveAnalyzer";
 import WizardManager from "../managers/wizardManager";
 import {
   LineChart,
