@@ -32,3 +32,4 @@ android
 *.sw?
 .codex
 eas.json
+analysis.json
