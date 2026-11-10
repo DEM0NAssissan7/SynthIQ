@@ -11,6 +11,7 @@ import StatisticsPage from "./pages/StatisticsPage";
 import WizardEditPage from "./pages/wizard/WizardEditPage";
 import RescuePage from "./pages/treatment/RescuePage";
 import { updateHealthMonitorStatus } from "./lib/healthMonitor";
+import { loadGlucosePredictionModel } from "./lib/glucosePrediction";
 import Backend from "./lib/remote/backend";
 import RemoteStorage from "./lib/remote/storage";
 import BasalPage from "./pages/treatment/BasalPage";
@@ -60,6 +61,11 @@ function App() {
   useEffect(() => {
     // Update health monitor status cache
     updateHealthMonitorStatus();
+
+    // Reuses a completed load; retries here on the next tick if one failed
+    loadGlucosePredictionModel().catch((err) =>
+      console.error("Failed to load glucose prediction model:", err),
+    );
 
     (async () => {
       // Synchronize master/slave state (if set)
