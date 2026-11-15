@@ -27,4 +27,6 @@ export namespace PreferencesStore {
   export const themeSeedColor = node.add<string>("themeSeedColor", "system");
   export const learningRate = node.add<number>("learningRate", 30);
   export const decimalPredictedBG = node.add("decimalPredictedBG", false);
+  /** Visible time span of the hub graph (minutes), kept across sessions. */
+  export const hubSpanMinutes = node.add<number>("hubSpanMinutes", 240);
 }

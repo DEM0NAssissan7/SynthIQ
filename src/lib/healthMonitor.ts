@@ -29,6 +29,7 @@ import { HealthMonitorStore } from "../storage/healthMonitorStore";
 import { PreferencesStore } from "../storage/preferencesStore";
 import { PrivateStore } from "../storage/privateStore";
 import { BasalStore } from "../storage/basalStore";
+import { BackendStore } from "../storage/backendStore";
 import type { RescueVariant } from "../models/types/rescueVariant";
 import { InsulinExpirationManager } from "../managers/expirationManager";
 import Insulin from "../models/events/insulin";
@@ -36,21 +37,58 @@ import Meal from "../models/events/meal";
 import type { InsulinVariant } from "../models/types/insulinVariant";
 import RemoteTreatments from "./remote/treatments";
 
-/** Poll nightscout to fill the reading cache */
+/** Readings history is backfilled with a full fetch once per app session. */
+let historyBackfilled = false;
+
+/**
+ * Poll nightscout to fill the reading caches.
+ *
+ * `readingsCache` gets exactly the newest `readingsCacheSize` readings of the
+ * fetch (the short horizon every predictor/ISF consumer was built on).
+ * `readingsHistory` merges each fetch into a rolling `readingsHistoryHours`
+ * window for display only.
+ */
 export async function populateReadingCache() {
-  const rawReadings = await RemoteReadings.getLatestReadings(
-    HealthMonitorStore.readingsCacheSize,
+  const minutesPerReading = BackendStore.minutesPerReading.value || 5;
+  const backfill = !historyBackfilled;
+  const count = backfill
+    ? Math.max(
+        HealthMonitorStore.readingsCacheSize,
+        Math.ceil(
+          (HealthMonitorStore.readingsHistoryHours * 60) / minutesPerReading,
+        ),
+      )
+    : HealthMonitorStore.readingsCacheSize;
+  const rawReadings = await RemoteReadings.getLatestReadings(count);
+  if (!Array.isArray(rawReadings) || rawReadings.length === 0) return null;
+
+  const readings: SugarReading[] = rawReadings.map(getReadingFromNightscout);
+  if (backfill) historyBackfilled = true;
+
+  HealthMonitorStore.readingsHistory.value = mergeReadingHistory(
+    HealthMonitorStore.readingsHistory.value,
+    readings,
   );
-  if (rawReadings) {
-    const readings = rawReadings.map((r: any) =>
-      getReadingFromNightscout(r),
-    ) as SugarReading[];
-    HealthMonitorStore.readingsCache.value = readings;
-    HealthMonitorStore.currentBG.value = readings[0].sugar;
-    refreshR1Context();
-    return readings;
-  }
-  return null;
+  const recent = readings.slice(0, HealthMonitorStore.readingsCacheSize);
+  HealthMonitorStore.readingsCache.value = recent;
+  HealthMonitorStore.currentBG.value = recent[0].sugar;
+  refreshR1Context();
+  return recent;
+}
+
+/** Union by timestamp (fresh readings win), trimmed to the history window, newest first. */
+function mergeReadingHistory(
+  history: SugarReading[],
+  fresh: SugarReading[],
+): SugarReading[] {
+  const cutoff =
+    Date.now() - HealthMonitorStore.readingsHistoryHours * 3_600_000;
+  const byTime = new Map<number, SugarReading>();
+  for (const r of history) byTime.set(r.timestamp.getTime(), r);
+  for (const r of fresh) byTime.set(r.timestamp.getTime(), r);
+  return Array.from(byTime.values())
+    .filter((r) => r.timestamp.getTime() >= cutoff && Number.isFinite(r.sugar))
+    .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 }
 /**
  * Refresh the r1 context (recent meals + basal times) from Nightscout.

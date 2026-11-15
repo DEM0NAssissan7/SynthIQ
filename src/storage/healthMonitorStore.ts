@@ -18,6 +18,18 @@ export namespace HealthMonitorStore {
     Serialization.getArraySerializer(SugarReading.serialize),
     Serialization.getArrayDeserializer(SugarReading.deserialize),
   );
+  /**
+   * Up to `readingsHistoryHours` of CGM readings (newest first), for display.
+   * Short-horizon consumers (prediction, dynamic ISF, velocity) keep using
+   * `readingsCache`, which holds only the newest `readingsCacheSize` readings.
+   */
+  export const readingsHistory = node.add<SugarReading[]>(
+    "readingsHistory",
+    [],
+    Serialization.getArraySerializer(SugarReading.serialize),
+    Serialization.getArrayDeserializer(SugarReading.deserialize),
+  );
+  export const readingsHistoryHours = 24;
   export const lastRescues = node.add<Glucose[]>(
     "lastRescues",
     [],
