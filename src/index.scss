@@ -2324,6 +2324,13 @@ input[type="search"]::-webkit-search-results-decoration {
   overflow: hidden;
 }
 
+.hub-graph-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+}
+
 .hub-graph-layer {
   position: absolute;
   top: 0;

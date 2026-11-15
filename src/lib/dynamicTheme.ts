@@ -21,7 +21,12 @@ export const M3_SEED_PRESETS: M3SeedPreset[] = [
   { id: "blue", name: "Medical Blue", hex: "#006590", desc: "Baseline Blue" },
   { id: "indigo", name: "Ocean Indigo", hex: "#285ea7", desc: "Deep Ocean" },
   { id: "pink", name: "Rose Pink", hex: "#b32b6e", desc: "Vibrant Rose" },
-  { id: "violet", name: "Deep Violet", hex: "#6750a4", desc: "Material Violet" },
+  {
+    id: "violet",
+    name: "Deep Violet",
+    hex: "#6750a4",
+    desc: "Material Violet",
+  },
   { id: "green", name: "Forest Green", hex: "#386a20", desc: "Natural Green" },
   { id: "amber", name: "Sunset Amber", hex: "#825500", desc: "Warm Amber" },
 ];
@@ -167,7 +172,10 @@ function tonalColor(h: number, s: number, targetTone: number): string {
  * Mathematically generate an authentic Material 3 tonal palette
  * from any seed color for either light or dark mode.
  */
-export function generateM3TonalPalette(seedHex: string, isDark: boolean): M3Palette {
+export function generateM3TonalPalette(
+  seedHex: string,
+  isDark: boolean,
+): M3Palette {
   const [r, g, b] = hexToRgb(seedHex);
   const [h, s] = rgbToHsl(r, g, b);
 
@@ -270,7 +278,8 @@ const SPOOFED_FALLBACKS = new Set([
  * Check if the browser or Android WebView provides a native Monet AccentColor
  */
 export function detectDeviceSeedColor(): string | null {
-  if (typeof window === "undefined" || typeof document === "undefined") return null;
+  if (typeof window === "undefined" || typeof document === "undefined")
+    return null;
 
   try {
     const testEl = document.createElement("div");
@@ -288,7 +297,11 @@ export function detectDeviceSeedColor(): string | null {
     if (computed && computed !== "rgba(0, 0, 0, 0)") {
       const match = computed.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
       if (match) {
-        const hex = rgbToHex(Number(match[1]), Number(match[2]), Number(match[3]));
+        const hex = rgbToHex(
+          Number(match[1]),
+          Number(match[2]),
+          Number(match[3]),
+        );
         // Avoid generic black, pure white, or Chromium's hardcoded anti-fingerprinting fallbacks
         if (!SPOOFED_FALLBACKS.has(hex.toLowerCase())) {
           return hex;
@@ -306,7 +319,7 @@ export function detectDeviceSeedColor(): string | null {
  * Resolves the active seed hex and dynamic status based on PreferencesStore
  */
 export function resolveActiveSeed(
-  preferredSeed: string = PreferencesStore.themeSeedColor.value
+  preferredSeed: string = PreferencesStore.themeSeedColor.value,
 ): { seedHex: string; isDynamic: boolean } {
   if (!preferredSeed || preferredSeed === "system") {
     if (
@@ -347,58 +360,88 @@ export function setThemeSeedColor(seed: string) {
 /**
  * Apply the generated M3 palette as CSS custom properties on documentElement
  */
+/** localStorage key read by the pre-paint script in index.html. */
+const THEME_CACHE_KEY = "synthiq.themeCache";
+
 export function applyM3PaletteToDocument(palette: M3Palette, isDark?: boolean) {
   if (typeof document === "undefined") return;
   const root = document.documentElement;
 
-  root.style.setProperty("--md-sys-color-primary", palette.primary);
-  root.style.setProperty("--md-sys-color-on-primary", palette.onPrimary);
-  root.style.setProperty("--md-sys-color-primary-container", palette.primaryContainer);
-  root.style.setProperty("--md-sys-color-on-primary-container", palette.onPrimaryContainer);
+  // Every variable is recorded so the next launch can restore the exact
+  // palette before first paint (see the inline script in index.html).
+  const vars: Record<string, string> = {};
+  const set = (name: string, value: string) => {
+    root.style.setProperty(name, value);
+    vars[name] = value;
+  };
+  set("--md-sys-color-primary", palette.primary);
+  set("--md-sys-color-on-primary", palette.onPrimary);
+  set("--md-sys-color-primary-container", palette.primaryContainer);
+  set("--md-sys-color-on-primary-container", palette.onPrimaryContainer);
 
-  root.style.setProperty("--md-sys-color-secondary", palette.secondary);
-  root.style.setProperty("--md-sys-color-on-secondary", palette.onSecondary);
-  root.style.setProperty("--md-sys-color-secondary-container", palette.secondaryContainer);
-  root.style.setProperty("--md-sys-color-on-secondary-container", palette.onSecondaryContainer);
+  set("--md-sys-color-secondary", palette.secondary);
+  set("--md-sys-color-on-secondary", palette.onSecondary);
+  set("--md-sys-color-secondary-container", palette.secondaryContainer);
+  set("--md-sys-color-on-secondary-container", palette.onSecondaryContainer);
 
-  root.style.setProperty("--md-sys-color-tertiary", palette.tertiary);
-  root.style.setProperty("--md-sys-color-on-tertiary", palette.onTertiary);
-  root.style.setProperty("--md-sys-color-tertiary-container", palette.tertiaryContainer);
-  root.style.setProperty("--md-sys-color-on-tertiary-container", palette.onTertiaryContainer);
+  set("--md-sys-color-tertiary", palette.tertiary);
+  set("--md-sys-color-on-tertiary", palette.onTertiary);
+  set("--md-sys-color-tertiary-container", palette.tertiaryContainer);
+  set("--md-sys-color-on-tertiary-container", palette.onTertiaryContainer);
 
-  root.style.setProperty("--md-sys-color-error", palette.error);
-  root.style.setProperty("--md-sys-color-on-error", palette.onError);
-  root.style.setProperty("--md-sys-color-error-container", palette.errorContainer);
-  root.style.setProperty("--md-sys-color-on-error-container", palette.onErrorContainer);
+  set("--md-sys-color-error", palette.error);
+  set("--md-sys-color-on-error", palette.onError);
+  set("--md-sys-color-error-container", palette.errorContainer);
+  set("--md-sys-color-on-error-container", palette.onErrorContainer);
 
-  root.style.setProperty("--md-sys-color-surface", palette.surface);
-  root.style.setProperty("--md-sys-color-on-surface", palette.onSurface);
-  root.style.setProperty("--md-sys-color-surface-variant", palette.surfaceVariant);
-  root.style.setProperty("--md-sys-color-on-surface-variant", palette.onSurfaceVariant);
+  set("--md-sys-color-surface", palette.surface);
+  set("--md-sys-color-on-surface", palette.onSurface);
+  set("--md-sys-color-surface-variant", palette.surfaceVariant);
+  set("--md-sys-color-on-surface-variant", palette.onSurfaceVariant);
 
-  root.style.setProperty("--md-sys-color-surface-container-lowest", palette.surfaceContainerLowest);
-  root.style.setProperty("--md-sys-color-surface-container-low", palette.surfaceContainerLow);
-  root.style.setProperty("--md-sys-color-surface-container", palette.surfaceContainer);
-  root.style.setProperty("--md-sys-color-surface-container-high", palette.surfaceContainerHigh);
-  root.style.setProperty("--md-sys-color-surface-container-highest", palette.surfaceContainerHighest);
+  set(
+    "--md-sys-color-surface-container-lowest",
+    palette.surfaceContainerLowest,
+  );
+  set("--md-sys-color-surface-container-low", palette.surfaceContainerLow);
+  set("--md-sys-color-surface-container", palette.surfaceContainer);
+  set("--md-sys-color-surface-container-high", palette.surfaceContainerHigh);
+  set(
+    "--md-sys-color-surface-container-highest",
+    palette.surfaceContainerHighest,
+  );
 
-  root.style.setProperty("--md-sys-color-outline", palette.outline);
-  root.style.setProperty("--md-sys-color-outline-variant", palette.outlineVariant);
+  set("--md-sys-color-outline", palette.outline);
+  set("--md-sys-color-outline-variant", palette.outlineVariant);
 
   // App Aliases
-  root.style.setProperty("--app-bg", palette.surface);
-  root.style.setProperty("--app-surface", palette.surfaceContainerLow);
-  root.style.setProperty("--app-surface-muted", palette.surfaceContainer);
-  root.style.setProperty("--app-border", palette.outlineVariant);
-  root.style.setProperty("--app-text", palette.onSurface);
-  root.style.setProperty("--app-text-muted", palette.onSurfaceVariant);
-  root.style.setProperty("--app-primary", palette.primary);
-  root.style.setProperty("--app-primary-container", palette.primaryContainer);
+  set("--app-bg", palette.surface);
+  set("--app-surface", palette.surfaceContainerLow);
+  set("--app-surface-muted", palette.surfaceContainer);
+  set("--app-border", palette.outlineVariant);
+  set("--app-text", palette.onSurface);
+  set("--app-text-muted", palette.onSurfaceVariant);
+  set("--app-primary", palette.primary);
+  set("--app-primary-container", palette.primaryContainer);
 
   // Bootstrap bridge
-  root.style.setProperty("--bs-primary", palette.primary);
+  set("--bs-primary", palette.primary);
   const [pr, pg, pb] = hexToRgb(palette.primary);
-  root.style.setProperty("--bs-primary-rgb", `${pr}, ${pg}, ${pb}`);
+  set("--bs-primary-rgb", `${pr}, ${pg}, ${pb}`);
+
+  root.style.backgroundColor = palette.surface;
+  try {
+    const dark =
+      isDark !== undefined
+        ? isDark
+        : root.getAttribute("data-bs-theme") === "dark";
+    localStorage.setItem(
+      THEME_CACHE_KEY,
+      JSON.stringify({ theme: dark ? "dark" : "light", vars }),
+    );
+  } catch {
+    // Storage unavailable
+  }
 
   // Sync meta theme-color with surface for Android status bar
   const metaTags = document.querySelectorAll('meta[name="theme-color"]');
@@ -417,7 +460,7 @@ export function applyM3PaletteToDocument(palette: M3Palette, isDark?: boolean) {
           isDark: dark,
           surfaceColor: palette.surface,
           navBarColor: palette.surfaceContainer,
-        })
+        }),
       );
     } catch {
       // Ignore
@@ -434,18 +477,23 @@ export function initDynamicTheme(isDark: boolean): M3Palette {
   isDynamicActive = isDynamic;
 
   // Listen for ExpoApp Android native messages
-  if (typeof window !== "undefined" && !(window as any).__hasAndroidThemeListener) {
+  if (
+    typeof window !== "undefined" &&
+    !(window as any).__hasAndroidThemeListener
+  ) {
     (window as any).__hasAndroidThemeListener = true;
     window.addEventListener("message", (event) => {
       try {
-        const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
+        const data =
+          typeof event.data === "string" ? JSON.parse(event.data) : event.data;
         if (data && data.type === "ANDROID_DYNAMIC_COLOR" && data.seedColor) {
           if (PreferencesStore.themeSeedColor.value === "system") {
             currentActiveSeed = data.seedColor;
             isDynamicActive = true;
             const dark =
               typeof document !== "undefined"
-                ? document.documentElement.getAttribute("data-bs-theme") === "dark"
+                ? document.documentElement.getAttribute("data-bs-theme") ===
+                  "dark"
                 : isDark;
             const newPalette = generateM3TonalPalette(currentActiveSeed, dark);
             applyM3PaletteToDocument(newPalette, dark);

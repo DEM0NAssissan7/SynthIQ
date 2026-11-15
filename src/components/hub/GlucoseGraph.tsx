@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import MdIcon from "../md3/MdIcon";
 import { PreferencesStore } from "../../storage/preferencesStore";
 import {
@@ -132,22 +139,6 @@ interface PlacedMarker {
   compact: boolean;
 }
 
-function linePath(
-  points: GlucosePoint[],
-  x: (t: number) => number,
-  y: (v: number) => number,
-  maxGapMs = Infinity,
-) {
-  let d = "";
-  let prev: GlucosePoint | null = null;
-  for (const p of points) {
-    const cmd = !prev || p.time - prev.time > maxGapMs ? "M" : "L";
-    d += `${cmd}${x(p.time).toFixed(1)},${y(p.value).toFixed(1)}`;
-    prev = p;
-  }
-  return d;
-}
-
 // toLocale*String builds a new Intl formatter per call (slow, especially on
 // WebKit); reuse one per format.
 const weekdayFormat = new Intl.DateTimeFormat([], { weekday: "short" });
@@ -196,6 +187,59 @@ function useEased(target: [number, number]): [number, number] {
     return () => cancelAnimationFrame(raf);
   }, [t0, t1]);
   return value;
+}
+
+/** Theme colors for canvas drawing, resolved from the CSS variables. */
+interface GraphPalette {
+  primary: string;
+  secondary: string;
+  tertiary: string;
+  bg: string;
+  surfaceContainer: string;
+  outline: string;
+  outlineVariant: string;
+  textMuted: string;
+  target: string;
+  elevated: string;
+  low: string;
+  tone: Record<"low" | "high" | "target", string>;
+  kind: Record<HubEvent["kind"], string>;
+  font: string;
+}
+let paletteCache: GraphPalette | null = null;
+function readPalette(el: Element): GraphPalette {
+  if (paletteCache) return paletteCache;
+  const cs = getComputedStyle(el);
+  const v = (name: string) => cs.getPropertyValue(name).trim();
+  const primary = v("--md-sys-color-primary");
+  const secondary = v("--md-sys-color-secondary");
+  const tertiary = v("--md-sys-color-tertiary");
+  const target = v("--app-status-target");
+  const elevated = v("--app-status-elevated");
+  const low = v("--app-status-low");
+  paletteCache = {
+    primary,
+    secondary,
+    tertiary,
+    bg: v("--md-sys-color-surface"),
+    surfaceContainer: v("--md-sys-color-surface-container"),
+    outline: v("--md-sys-color-outline"),
+    outlineVariant: v("--md-sys-color-outline-variant"),
+    textMuted: v("--md-sys-color-on-surface-variant"),
+    target,
+    elevated,
+    low,
+    tone: { low, high: elevated, target },
+    kind: {
+      bolus: primary,
+      meal: tertiary,
+      rescue: elevated,
+      basal: target,
+      activity: secondary,
+    },
+    font: cs.fontFamily,
+  };
+  return paletteCache;
 }
 
 const HINT_KEY = "synthiq.hubGraphHintSeen";
@@ -737,12 +781,10 @@ export default function GlucoseGraph({
     rangeLabels.every((r) => Math.abs(y(v) - y(r.v)) > 13),
   );
 
-  // ----- Moving layer ----------------------------------------------------
-  // The plot is drawn once into a layer three viewports wide (one viewport of
-  // slack each side) and slid with a composited translate3d while panning, so
-  // a pan frame changes a single transform instead of hundreds of SVG
-  // attributes. The layer is redrawn only when the zoom changes, the pan runs
-  // out of slack, the y-axis rescales, or the data changes.
+  // ----- Marker layer -----------------------------------------------------
+  // Marker pills are real buttons, laid out once in a layer three viewports
+  // wide and slid with a composited transform while panning. Their layout is
+  // redone only when the zoom changes or the pan runs out of slack.
   const layerRef = useRef<{ start: number; span: number } | null>(null);
   let layer = layerRef.current;
   const slack = layer ? (startMs - layer.start) / view.span : 0;
@@ -753,47 +795,16 @@ export default function GlucoseGraph({
   const layerW = innerW * 3;
   const layerDx = PAD_L - ((startMs - layer.start) / layer.span) * innerW;
 
-  // Taps reach the latest handlers without invalidating the drawn layer.
+  // Taps reach the latest handlers without invalidating the laid-out pills.
   const handlers = useRef({ onEventTap, onGroupTap });
   handlers.current = { onEventTap, onGroupTap };
 
   const layerStart = layer.start;
   const layerSpan = layer.span;
-  const layerContent = useMemo(() => {
-    if (!ready) return null;
+  const placed = useMemo<PlacedMarker[]>(() => {
+    if (!ready) return [];
     const lEnd = layerStart + 3 * layerSpan;
     const lx = (t: number) => ((t - layerStart) / layerSpan) * innerW;
-    const ly = (v: number) => TOP + (1 - (v - yMin) / (yMax - yMin)) * plotH;
-
-    const inLayer = <T extends { time: number }>(pts: T[]) =>
-      pts.filter(
-        (p) => p.time >= layerStart - stepMs * 2 && p.time <= lEnd + stepMs * 2,
-      );
-    const layerHistory = inLayer(history);
-    const layerForecast = inLayer(forecast);
-    const layerIOB = inLayer(iobSamples);
-
-    // X ticks: smallest clock step that leaves room for a label.
-    const pxPerMin = innerW / (layerSpan / 60000);
-    const tickStepMin =
-      TICK_STEPS_MIN.find((m) => m * pxPerMin >= MIN_TICK_PX) ??
-      TICK_STEPS_MIN[TICK_STEPS_MIN.length - 1];
-    const tickMs = tickStepMin * 60000;
-    const tzOffsetMs = new Date(layerStart).getTimezoneOffset() * 60000;
-    const xTicks: number[] = [];
-    for (
-      let t =
-        Math.ceil((layerStart - tzOffsetMs) / tickMs) * tickMs + tzOffsetMs;
-      t <= lEnd;
-      t += tickMs
-    )
-      xTicks.push(t);
-
-    /** Glucose curve value at t: CGM line up to the anchor, forecast after. */
-    const curveAt = (t: number) =>
-      anchorTime !== null && t > anchorTime
-        ? interpolateAt(forecast, t)
-        : interpolateAt(history, t);
 
     // Markers. Same-kind events whose pills would overlap merge into one
     // marker carrying their total. Each marker then takes a lane row as a
@@ -921,329 +932,378 @@ export default function GlucoseGraph({
       placed.push({ events: c.events, left, width, row, compact });
     }
 
-    const iobMax = Math.max(0.5, ...iobSamples.map((s) => s.value));
-    const iobY = (v: number) => iobBottom - (v / iobMax) * (IOB_H - 6);
-    const iobPath =
-      layerIOB.length > 1
-        ? `${linePath(layerIOB, lx, iobY)}L${lx(layerIOB[layerIOB.length - 1].time)},${iobBottom}L${lx(layerIOB[0].time)},${iobBottom}Z`
-        : "";
+    return placed;
+  }, [ready, layerStart, layerSpan, layerW, innerW, events]);
 
-    const xNow = lx(nowMs);
+  const pills = useMemo(
+    () =>
+      placed.map((m) => {
+        const first = m.events[0];
+        const multi = m.events.length > 1;
+        const total = markerLabel(m.events);
+        return (
+          <button
+            key={first.id}
+            type="button"
+            className={`hub-event-pill hub-kind-${first.kind} ${m.compact ? "is-compact" : ""} ${multi ? "is-stacked" : ""} ${m.events.length > 2 ? "is-stacked-deep" : ""}`}
+            style={{
+              left: m.left,
+              top: laneTop + m.row * ROW_H + 2,
+              width: m.width,
+            }}
+            onClick={() =>
+              multi
+                ? handlers.current.onGroupTap(m.events)
+                : handlers.current.onEventTap(first)
+            }
+            aria-label={
+              multi
+                ? `${m.events.length} ${eventKindPlural[first.kind]}, ${total}, show list`
+                : `${first.title}, show details`
+            }
+          >
+            <MdIcon name={eventIcon[first.kind]} size={14} fill />
+            {!m.compact && <span>{total}</span>}
+          </button>
+        );
+      }),
+    [placed, laneTop],
+  );
+
+  // ----- Plot (canvas) -----------------------------------------------------
+  // The plot is painted straight onto a canvas after every render. A frame
+  // costs a few hundred draw calls and no DOM work, so panning, zooming and
+  // axis rescaling all stay at the display's frame rate.
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [, bumpTheme] = useState(0);
+  useEffect(() => {
+    // Colors are read from CSS once and re-read when the theme changes.
+    const observer = new MutationObserver(() => {
+      paletteCache = null;
+      bumpTheme((n) => n + 1);
+    });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["style", "data-bs-theme", "class"],
+    });
+    return () => observer.disconnect();
+  }, []);
+
+  useLayoutEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !ready) return;
+    const dpr = window.devicePixelRatio || 1;
+    const cw = Math.round(innerRight * dpr);
+    const ch = Math.round(height * dpr);
+    if (canvas.width !== cw || canvas.height !== ch) {
+      canvas.width = cw;
+      canvas.height = ch;
+    }
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const pal = readPalette(canvas);
+    const W = innerRight;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, W, height);
+    ctx.lineJoin = "round";
+
+    const px = (t: number) => PAD_L + ((t - startMs) / view.span) * innerW;
+    const py = (v: number) => TOP + (1 - (v - yMin) / (yMax - yMin)) * plotH;
+    const margin = stepMs * 2;
+    const inView = (p: { time: number }) =>
+      p.time >= startMs - margin && p.time <= endMs + margin;
+    const vHistory = history.filter(inView);
+    const vForecast = forecast.filter(inView);
+    const vIOB = iobSamples.filter(inView);
+    const xNow = px(nowMs);
+
+    const hline = (
+      yy: number,
+      color: string,
+      alpha: number,
+      dash: number[] = [],
+      x0 = 0,
+      x1 = W,
+    ) => {
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = color;
+      ctx.setLineDash(dash);
+      ctx.beginPath();
+      ctx.moveTo(x0, yy);
+      ctx.lineTo(x1, yy);
+      ctx.stroke();
+    };
+    const vline = (
+      xx: number,
+      y0: number,
+      y1: number,
+      color: string,
+      alpha: number,
+      dash: number[] = [],
+    ) => {
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = color;
+      ctx.setLineDash(dash);
+      ctx.beginPath();
+      ctx.moveTo(xx, y0);
+      ctx.lineTo(xx, y1);
+      ctx.stroke();
+    };
+    const trace = (
+      pts: GlucosePoint[],
+      yOf: (v: number) => number,
+      maxGapMs = Infinity,
+    ) => {
+      ctx.beginPath();
+      let prev: GlucosePoint | null = null;
+      for (const p of pts) {
+        if (!prev || p.time - prev.time > maxGapMs)
+          ctx.moveTo(px(p.time), yOf(p.value));
+        else ctx.lineTo(px(p.time), yOf(p.value));
+        prev = p;
+      }
+    };
+
+    // Forecast region
+    if (xNow < W) {
+      ctx.globalAlpha = 0.7;
+      ctx.fillStyle = pal.surfaceContainer;
+      ctx.fillRect(Math.max(0, xNow), TOP, W - Math.max(0, xNow), plotH);
+    }
+
+    // Target band + range lines
+    ctx.globalAlpha = 0.08;
+    ctx.fillStyle = pal.target;
+    ctx.fillRect(
+      0,
+      py(range.highBG),
+      W,
+      Math.max(0, py(range.lowBG) - py(range.highBG)),
+    );
+    ctx.lineWidth = 1;
+    hline(py(range.highBG), pal.elevated, 0.45, [4, 4]);
+    hline(py(range.lowBG), pal.low, 0.5, [4, 4]);
+
+    // Grid
+    const yStepPx = niceYStep(yMax - yMin, plotH);
+    for (let v = Math.ceil(yMin / yStepPx) * yStepPx; v <= yMax; v += yStepPx) {
+      if (
+        [range.lowBG, range.highBG].every((r) => Math.abs(py(v) - py(r)) > 13)
+      )
+        hline(py(v), pal.outlineVariant, 0.45);
+    }
+    const pxPerMin = innerW / (view.span / 60000);
+    const tickStepMin =
+      TICK_STEPS_MIN.find((m) => m * pxPerMin >= MIN_TICK_PX) ??
+      TICK_STEPS_MIN[TICK_STEPS_MIN.length - 1];
+    const tickMs = tickStepMin * 60000;
+    const tzOffsetMs = new Date(startMs).getTimezoneOffset() * 60000;
+    const xTicks: number[] = [];
+    for (
+      let t =
+        Math.ceil((startMs - tickMs - tzOffsetMs) / tickMs) * tickMs +
+        tzOffsetMs;
+      t <= endMs + tickMs;
+      t += tickMs
+    )
+      xTicks.push(t);
+    for (const t of xTicks) {
+      const day = isMidnight(t);
+      vline(
+        px(t),
+        TOP,
+        iobBottom,
+        day ? pal.outline : pal.outlineVariant,
+        day ? 0.7 : 0.45,
+      );
+    }
+
+    // Activity spans
+    ctx.globalAlpha = 0.08;
+    ctx.fillStyle = pal.secondary;
+    for (const m of placed) {
+      const ev = m.events[0];
+      if (ev.end === undefined) continue;
+      ctx.fillRect(
+        px(ev.time),
+        TOP,
+        Math.max(0, px(ev.end) - px(ev.time)),
+        plotH,
+      );
+    }
+
+    /** Glucose curve value at t: CGM line up to the anchor, forecast after. */
+    const curveAt = (t: number) =>
+      anchorTime !== null && t > anchorTime
+        ? interpolateAt(forecast, t)
+        : interpolateAt(history, t);
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, TOP - 8, W, plotH + 16);
+    ctx.clip();
+
+    // Event guides: from the lane up to the curve
+    for (const m of placed) {
+      for (const ev of m.events) {
+        if (ev.end !== undefined) continue;
+        const ex = px(ev.time);
+        if (ex < -10 || ex > W + 10) continue;
+        const v = curveAt(ev.time);
+        const cy = v !== null ? py(v) : TOP;
+        const color = pal.kind[ev.kind];
+        ctx.lineWidth = 1;
+        vline(ex, cy, laneTop + m.row * ROW_H, color, 0.45, [2, 2]);
+        if (v !== null) {
+          ctx.globalAlpha = 1;
+          ctx.setLineDash([]);
+          ctx.beginPath();
+          ctx.arc(ex, cy, 4, 0, Math.PI * 2);
+          ctx.fillStyle = pal.bg;
+          ctx.fill();
+          ctx.lineWidth = 2;
+          ctx.strokeStyle = color;
+          ctx.stroke();
+        }
+      }
+    }
+
+    // CGM history
     const pxPerStep = (stepMs / 60000) * pxPerMin;
     const showDots = pxPerStep >= 4;
     const dotR = Math.min(3, Math.max(1.8, pxPerStep * 0.28));
+    ctx.setLineDash([]);
+    ctx.lineCap = "round";
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = showDots ? 0.35 : 0.95;
+    ctx.strokeStyle = pal.primary;
+    trace(vHistory, py, stepMs * 3);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    for (const p of vHistory) {
+      const cx = px(p.time);
+      const cy = py(p.value);
+      if (p.isCalibration) {
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - 5);
+        ctx.lineTo(cx + 5, cy);
+        ctx.lineTo(cx, cy + 5);
+        ctx.lineTo(cx - 5, cy);
+        ctx.closePath();
+        ctx.fillStyle = pal.tertiary;
+        ctx.fill();
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = pal.bg;
+        ctx.stroke();
+      } else if (showDots || p.time === anchorTime) {
+        ctx.beginPath();
+        ctx.arc(
+          cx,
+          cy,
+          p.time === anchorTime ? dotR + 1.6 : dotR,
+          0,
+          Math.PI * 2,
+        );
+        ctx.fillStyle = pal.tone[getGlucoseTone(p.value, range)];
+        ctx.fill();
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = pal.bg;
+        ctx.stroke();
+      }
+    }
+
+    // Forecast
+    ctx.lineWidth = 2.25;
+    ctx.strokeStyle = pal.primary;
+    ctx.setLineDash([5, 4]);
+    trace(vForecast, py);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+
     const lastForecast =
-      layerForecast.length > 0 ? layerForecast[layerForecast.length - 1] : null;
-    const prevForecast =
-      layerForecast.length > 1 ? layerForecast[layerForecast.length - 2] : null;
-    const forecastFalling =
-      lastForecast !== null &&
-      prevForecast !== null &&
-      lastForecast.value < prevForecast.value;
-    const yTickLines: number[] = [];
-    const step = niceYStep(yMax - yMin, plotH);
-    for (let v = Math.ceil(yMin / step) * step; v <= yMax; v += step)
-      if (
-        [range.lowBG, range.highBG].every((r) => Math.abs(ly(v) - ly(r)) > 13)
-      )
-        yTickLines.push(v);
+      forecast.length > 0 ? forecast[forecast.length - 1] : null;
+    if (lastForecast && px(lastForecast.time) <= W + 4) {
+      const prev = forecast.length > 1 ? forecast[forecast.length - 2] : null;
+      const falling = prev !== null && lastForecast.value < prev.value;
+      const fx = px(lastForecast.time);
+      const fy = py(lastForecast.value);
+      ctx.globalAlpha = 1;
+      ctx.beginPath();
+      ctx.arc(fx, fy, 3.5, 0, Math.PI * 2);
+      ctx.fillStyle = pal.bg;
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = pal.primary;
+      ctx.stroke();
+      ctx.font = `700 11px ${pal.font}`;
+      ctx.textAlign = "right";
+      ctx.fillStyle = pal.primary;
+      ctx.fillText(
+        formatBG(lastForecast.value, decimal),
+        fx - 6,
+        fy + (falling ? 18 : -9),
+      );
+    }
 
-    return (
-      <>
-        <svg
-          width={layerW}
-          height={height}
-          className="hub-graph-svg"
-          aria-hidden="true"
-        >
-          <defs>
-            <clipPath id="hub-plot-clip">
-              <rect x={0} y={TOP - 8} width={layerW} height={plotH + 16} />
-            </clipPath>
-            <clipPath id="hub-iob-past">
-              <rect
-                x={0}
-                y={iobTop}
-                width={Math.min(layerW, Math.max(0, xNow))}
-                height={IOB_H}
-              />
-            </clipPath>
-            <clipPath id="hub-iob-future">
-              <rect
-                x={Math.max(0, xNow)}
-                y={iobTop}
-                width={Math.max(0, layerW - Math.max(0, xNow))}
-                height={IOB_H}
-              />
-            </clipPath>
-          </defs>
+    // Now marker
+    if (xNow >= 0 && xNow <= W) {
+      ctx.lineCap = "butt";
+      ctx.lineWidth = 1.5;
+      vline(xNow, TOP - 4, iobBottom, pal.primary, 1, [2, 3]);
+      ctx.font = `700 10px ${pal.font}`;
+      ctx.textAlign = "center";
+      ctx.fillStyle = pal.primary;
+      ctx.fillText("Now", xNow, TOP - 9);
+    }
 
-          {/* Forecast region */}
-          {xNow < layerW && (
-            <rect
-              x={Math.max(0, xNow)}
-              y={TOP}
-              width={layerW - Math.max(0, xNow)}
-              height={plotH}
-              className="hub-future-region"
-            />
-          )}
+    // IOB strip: solid up to now, lighter and dashed after
+    if (vIOB.length > 1) {
+      const iobMax = Math.max(0.5, ...iobSamples.map((s) => s.value));
+      const iobY = (v: number) => iobBottom - (v / iobMax) * (IOB_H - 6);
+      const area = (
+        x0: number,
+        x1: number,
+        fillAlpha: number,
+        strokeAlpha: number,
+        dash: number[],
+      ) => {
+        if (x1 <= x0) return;
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(x0, iobTop, x1 - x0, IOB_H);
+        ctx.clip();
+        trace(vIOB, iobY);
+        ctx.lineTo(px(vIOB[vIOB.length - 1].time), iobBottom);
+        ctx.lineTo(px(vIOB[0].time), iobBottom);
+        ctx.closePath();
+        ctx.globalAlpha = fillAlpha;
+        ctx.fillStyle = pal.primary;
+        ctx.fill();
+        ctx.globalAlpha = strokeAlpha;
+        ctx.strokeStyle = pal.primary;
+        ctx.lineWidth = 1.25;
+        ctx.setLineDash(dash);
+        trace(vIOB, iobY);
+        ctx.stroke();
+        ctx.restore();
+      };
+      const split = Math.min(W, Math.max(0, xNow));
+      area(0, split, 0.22, 0.7, []);
+      area(split, W, 0.1, 0.35, [3, 3]);
+    }
+    ctx.lineWidth = 1;
+    hline(iobBottom, pal.outlineVariant, 1);
 
-          {/* Target band + range lines */}
-          <rect
-            x={0}
-            y={ly(range.highBG)}
-            width={layerW}
-            height={Math.max(0, ly(range.lowBG) - ly(range.highBG))}
-            fill="var(--app-status-target)"
-            fillOpacity={0.08}
-          />
-          <line
-            x1={0}
-            x2={layerW}
-            y1={ly(range.highBG)}
-            y2={ly(range.highBG)}
-            stroke={toneColor.high}
-            strokeOpacity={0.45}
-            strokeDasharray="4 4"
-          />
-          <line
-            x1={0}
-            x2={layerW}
-            y1={ly(range.lowBG)}
-            y2={ly(range.lowBG)}
-            stroke={toneColor.low}
-            strokeOpacity={0.5}
-            strokeDasharray="4 4"
-          />
-
-          {/* Grid */}
-          {yTickLines.map((v) => (
-            <line
-              key={`gy-${v}`}
-              x1={0}
-              x2={layerW}
-              y1={ly(v)}
-              y2={ly(v)}
-              className="hub-grid"
-            />
-          ))}
-          {xTicks.map((t) => (
-            <line
-              key={`gx-${t}`}
-              x1={lx(t)}
-              x2={lx(t)}
-              y1={TOP}
-              y2={iobBottom}
-              className={`hub-grid ${isMidnight(t) ? "hub-grid-day" : ""}`}
-            />
-          ))}
-
-          {/* Activity spans */}
-          {placed
-            .filter((m) => m.events[0].end !== undefined)
-            .map((m) => (
-              <rect
-                key={`span-${m.events[0].id}`}
-                x={lx(m.events[0].time)}
-                y={TOP}
-                width={Math.max(0, lx(m.events[0].end!) - lx(m.events[0].time))}
-                height={plotH}
-                className="hub-activity-span"
-              />
-            ))}
-
-          <g clipPath="url(#hub-plot-clip)">
-            {/* Event guides: from the lane up to the curve */}
-            {placed.flatMap((m) =>
-              m.events
-                .filter((ev) => ev.end === undefined)
-                .map((ev) => {
-                  const ex = lx(ev.time);
-                  const v = curveAt(ev.time);
-                  const cy = v !== null ? ly(v) : TOP;
-                  return (
-                    <g key={`guide-${ev.id}`}>
-                      <line
-                        x1={ex}
-                        x2={ex}
-                        y1={cy}
-                        y2={laneTop + m.row * ROW_H}
-                        className={`hub-event-guide hub-kind-${ev.kind}`}
-                      />
-                      {v !== null && (
-                        <circle
-                          cx={ex}
-                          cy={cy}
-                          r={4}
-                          className={`hub-event-dot hub-kind-${ev.kind}`}
-                        />
-                      )}
-                    </g>
-                  );
-                }),
-            )}
-
-            {/* CGM history */}
-            <path
-              d={linePath(layerHistory, lx, ly, stepMs * 3)}
-              className={`hub-history-line ${showDots ? "" : "is-solo"}`}
-            />
-            {layerHistory.map((p) =>
-              p.isCalibration ? (
-                <polygon
-                  key={`h-${p.time}`}
-                  points={`${lx(p.time)},${ly(p.value) - 5} ${lx(p.time) + 5},${ly(p.value)} ${lx(p.time)},${ly(p.value) + 5} ${lx(p.time) - 5},${ly(p.value)}`}
-                  className="hub-calibration-dot"
-                />
-              ) : showDots || p.time === anchorTime ? (
-                <circle
-                  key={`h-${p.time}`}
-                  cx={lx(p.time)}
-                  cy={ly(p.value)}
-                  r={p.time === anchorTime ? dotR + 1.6 : dotR}
-                  fill={toneColor[getGlucoseTone(p.value, range)]}
-                  className="hub-history-dot"
-                />
-              ) : null,
-            )}
-
-            {/* Forecast */}
-            <path
-              d={linePath(layerForecast, lx, ly)}
-              className="hub-forecast-line"
-            />
-          </g>
-
-          {lastForecast && (
-            <g>
-              <circle
-                cx={lx(lastForecast.time)}
-                cy={ly(lastForecast.value)}
-                r={3.5}
-                className="hub-forecast-end"
-              />
-              <text
-                x={lx(lastForecast.time) - 6}
-                y={ly(lastForecast.value) + (forecastFalling ? 18 : -9)}
-                textAnchor="end"
-                className="hub-forecast-label"
-              >
-                {formatBG(lastForecast.value, decimal)}
-              </text>
-            </g>
-          )}
-
-          {/* Now marker */}
-          <line
-            x1={xNow}
-            x2={xNow}
-            y1={TOP - 4}
-            y2={iobBottom}
-            className="hub-now-line"
-          />
-          <text
-            x={xNow}
-            y={TOP - 9}
-            textAnchor="middle"
-            className="hub-now-label"
-          >
-            Now
-          </text>
-
-          {/* IOB strip */}
-          {iobPath && (
-            <>
-              <path
-                d={iobPath}
-                className="hub-iob-area"
-                clipPath="url(#hub-iob-past)"
-              />
-              <path
-                d={iobPath}
-                className="hub-iob-area hub-iob-area-future"
-                clipPath="url(#hub-iob-future)"
-              />
-            </>
-          )}
-          <line
-            x1={0}
-            x2={layerW}
-            y1={iobBottom}
-            y2={iobBottom}
-            className="hub-baseline"
-          />
-
-          {/* Time axis */}
-          {xTicks.map((t) => (
-            <text
-              key={`lx-${t}`}
-              x={lx(t)}
-              y={iobBottom + 15}
-              textAnchor="middle"
-              className={`hub-axis-label ${isMidnight(t) ? "hub-axis-label-strong" : ""}`}
-            >
-              {axisTimeLabel(t, tickStepMin)}
-            </text>
-          ))}
-        </svg>
-
-        {/* Event markers (HTML for real tap targets) */}
-        {placed.map((m) => {
-          const first = m.events[0];
-          const multi = m.events.length > 1;
-          const total = markerLabel(m.events);
-          return (
-            <button
-              key={first.id}
-              type="button"
-              className={`hub-event-pill hub-kind-${first.kind} ${m.compact ? "is-compact" : ""} ${multi ? "is-stacked" : ""} ${m.events.length > 2 ? "is-stacked-deep" : ""}`}
-              style={{
-                left: m.left,
-                top: laneTop + m.row * ROW_H + 2,
-                width: m.width,
-              }}
-              onClick={() =>
-                multi
-                  ? handlers.current.onGroupTap(m.events)
-                  : handlers.current.onEventTap(first)
-              }
-              aria-label={
-                multi
-                  ? `${m.events.length} ${eventKindPlural[first.kind]}, ${total}, show list`
-                  : `${first.title}, show details`
-              }
-            >
-              <MdIcon name={eventIcon[first.kind]} size={14} fill />
-              {!m.compact && <span>{total}</span>}
-            </button>
-          );
-        })}
-      </>
-    );
-  }, [
-    ready,
-    layerStart,
-    layerSpan,
-    layerW,
-    innerW,
-    height,
-    plotH,
-    laneTop,
-    iobTop,
-    iobBottom,
-    yMin,
-    yMax,
-    history,
-    forecast,
-    iobSamples,
-    events,
-    anchorTime,
-    nowMs,
-    stepMs,
-    range,
-    decimal,
-  ]);
+    // Time axis
+    ctx.globalAlpha = 1;
+    ctx.textAlign = "center";
+    ctx.fillStyle = pal.textMuted;
+    for (const t of xTicks) {
+      ctx.font = `${isMidnight(t) ? 700 : 400} 10px ${pal.font}`;
+      ctx.fillText(axisTimeLabel(t, tickStepMin), px(t), iobBottom + 15);
+    }
+  });
 
   return (
     <div
@@ -1264,6 +1324,12 @@ export default function GlucoseGraph({
             className="hub-graph-viewport"
             style={{ width: innerRight, height }}
           >
+            <canvas
+              ref={canvasRef}
+              className="hub-graph-canvas"
+              style={{ width: innerRight, height }}
+              aria-hidden="true"
+            />
             <div
               className="hub-graph-layer"
               style={{
@@ -1272,7 +1338,7 @@ export default function GlucoseGraph({
                 transform: `translate3d(${layerDx}px, 0, 0)`,
               }}
             >
-              {layerContent}
+              {pills}
             </div>
           </div>
 

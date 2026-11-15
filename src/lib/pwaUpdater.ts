@@ -33,9 +33,12 @@ export function initPwaUpdater() {
     return;
   }
 
-  // Reload when a new service worker takes over (clientsClaim)
+  // Reload when a new service worker replaces the one that served this page.
+  // The very first install also fires controllerchange (clientsClaim) but
+  // the page is already current then, so reloading would only flash.
+  const hadController = navigator.serviceWorker.controller !== null;
   navigator.serviceWorker.addEventListener("controllerchange", () => {
-    if (!isReloading) {
+    if (hadController && !isReloading) {
       isReloading = true;
       window.location.reload();
     }

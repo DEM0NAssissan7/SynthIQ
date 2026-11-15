@@ -15,6 +15,28 @@
     <link rel="manifest" href="/manifest.json" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>SynthIQ</title>
+    <script>
+      // Restore the last applied theme before first paint (no flash while
+      // the app bundle loads). The app re-applies the real theme on start.
+      (function () {
+        var root = document.documentElement;
+        try {
+          var cache = JSON.parse(localStorage.getItem("synthiq.themeCache"));
+          if (cache && cache.vars) {
+            root.setAttribute("data-bs-theme", cache.theme);
+            for (var name in cache.vars)
+              root.style.setProperty(name, cache.vars[name]);
+            root.style.backgroundColor = cache.vars["--app-bg"];
+            return;
+          }
+        } catch (e) {}
+        var dark =
+          window.matchMedia &&
+          window.matchMedia("(prefers-color-scheme: dark)").matches;
+        root.setAttribute("data-bs-theme", dark ? "dark" : "light");
+        root.style.backgroundColor = dark ? "#0f1417" : "#f7f9ff";
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

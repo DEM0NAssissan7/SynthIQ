@@ -32,7 +32,6 @@ import { PrivateStore } from "./storage/privateStore";
 import { nodes } from "./storage/storageNode";
 import ExpirationPage from "./pages/ExpirationPage";
 import DebugPage from "./pages/DebugPage";
-import { initThemeListener } from "./lib/themeManager";
 import TestPage from "./pages/TestPage";
 import ForecastAccuracyPage from "./pages/ForecastAccuracyPage";
 import { VERSION_STRING } from "./version";
@@ -44,7 +43,6 @@ import PrebolusRouter from "./pages/treatment/PrebolusRouter";
 
 function App() {
   useEffect(() => {
-    initThemeListener();
     initPwaUpdater();
   }, []);
 

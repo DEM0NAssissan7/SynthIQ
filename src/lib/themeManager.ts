@@ -28,8 +28,10 @@ export function applyTheme(
   initDynamicTheme(effectiveTheme === "dark");
 }
 
+let themeListenerStarted = false;
 export function initThemeListener() {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined" || themeListenerStarted) return;
+  themeListenerStarted = true;
 
   // Apply initially
   applyTheme();
