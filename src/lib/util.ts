@@ -133,4 +133,42 @@ export class MathUtil {
     const q3Index = Math.floor(sorted.length * 0.75);
     return sorted[q3Index] - sorted[q1Index];
   }
+  /**
+   * The closest curve to evenly spaced data that never goes down. Any stretch that goes
+   * down is merged into one block at its average (pool adjacent violators), then straight
+   * lines are drawn between the middles of the blocks instead of leaving flat steps.
+   */
+  static isotonicLinear(data: number[]): number[] {
+    if (data.length === 0) return [];
+    const blocks: { sum: number; count: number; start: number }[] = [];
+    const value = (b: { sum: number; count: number }) => b.sum / b.count;
+    data.forEach((x, i) => {
+      blocks.push({ sum: x, count: 1, start: i });
+      while (
+        blocks.length > 1 &&
+        value(blocks[blocks.length - 2]) > value(blocks[blocks.length - 1])
+      ) {
+        const b = blocks.pop()!;
+        const a = blocks[blocks.length - 1];
+        a.sum += b.sum;
+        a.count += b.count;
+      }
+    });
+    const middles = blocks.map((b) => b.start + (b.count - 1) / 2);
+    const values = blocks.map(value);
+
+    const out: number[] = [];
+    let k = 0;
+    for (let i = 0; i < data.length; i++) {
+      if (i <= middles[0]) out.push(values[0]);
+      else if (i >= middles[middles.length - 1])
+        out.push(values[values.length - 1]);
+      else {
+        while (middles[k + 1] < i) k++;
+        const f = (i - middles[k]) / (middles[k + 1] - middles[k]);
+        out.push(values[k] + f * (values[k + 1] - values[k]));
+      }
+    }
+    return out;
+  }
 }

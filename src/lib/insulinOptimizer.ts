@@ -60,14 +60,49 @@ export interface ForecastDose {
   limitFloor: number; // The BG we aren't allowed to go under
   limitFraction: number; // How much of this dose would've absorbed by then
 }
-function sessionMealDeltaBG(t: number, session: Session) {
-  return mealDeltaBG(
+/**
+ * A session's meal curve, denoised. A meal can only ever add glucose, so its running total
+ * never goes down: wherever the raw curve falls, it's noise (or the treatments being off).
+ * We fit the closest never-decreasing curve to it, sampled every 5 mins, over the session's readings.
+ */
+function sessionMealCurve(session: Session): (t: number) => number {
+  const raw = (t: number) =>
+    mealDeltaBG(
+      session.timestamp,
+      t,
+      session.insulins,
+      session.glucoses,
+      session.snapshot,
+    );
+  const readings = session.snapshot.readings;
+  if (readings.length === 0) return raw;
+  const end = getHourDiff(
+    readings[readings.length - 1].timestamp,
     session.timestamp,
-    t,
-    session.insulins,
-    session.glucoses,
-    session.snapshot,
   );
+  const step = 5 / 60;
+  const count = Math.ceil(end / step);
+  if (count < 1) return raw;
+
+  // times[0] is the start of the session, where the meal hasn't added anything yet
+  const times = [0];
+  for (let i = 1; i <= count; i++) times.push(Math.min(i * step, end));
+  const fit = [
+    0,
+    ...MathUtil.isotonicLinear(times.slice(1).map(raw)).map((v) =>
+      Math.max(v, 0),
+    ),
+  ];
+  const rawEnd = raw(end);
+
+  return (t: number) => {
+    if (t <= 0) return raw(t);
+    // Past the last reading only the treatments keep changing, same as the raw curve
+    if (t >= end) return fit[count] + raw(t) - rawEnd;
+    const i = Math.floor(t / step);
+    const f = (t - times[i]) / (times[i + 1] - times[i]);
+    return fit[i] + f * (fit[i + 1] - fit[i]);
+  };
 }
 
 export function forecastDose(
@@ -84,10 +119,9 @@ export function forecastDose(
 ): ForecastDose {
   const tNow = getHourDiff(timestamp, refTimestamp);
   // We pull out the average curve from all the sessions we have
+  const mealCurves = baseSessions.map(sessionMealCurve);
   const allDeltas = (a: number, b: number) =>
-    baseSessions.map(
-      (s) => sessionMealDeltaBG(b, s) - sessionMealDeltaBG(a, s),
-    );
+    mealCurves.map((curve) => curve(b) - curve(a));
   const compositeRef = (a: number, b: number) => MathUtil.mean(allDeltas(a, b));
   // const refEnd = MathUtil.mean(baseSessions.map((s) => s.length));
 
