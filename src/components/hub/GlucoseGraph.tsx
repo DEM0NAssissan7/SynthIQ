@@ -70,6 +70,10 @@ interface Props {
   decimal: boolean;
   events: HubEvent[];
   iobSamples: GlucosePoint[];
+  /** Insulin activity (u/hr) samples, drawn over the IOB area. */
+  activitySamples: GlucosePoint[];
+  /** How far before/after the view the activity scale looks for a peak. */
+  activityReach: { backMs: number; aheadMs: number };
   iobNow: number;
   scrub: ScrubPoint | null;
   onScrub: (timeMs: number | null) => void;
@@ -263,6 +267,8 @@ export default function GlucoseGraph({
   decimal,
   events,
   iobSamples,
+  activitySamples,
+  activityReach,
   iobNow,
   scrub,
   onScrub,
@@ -1303,6 +1309,40 @@ export default function GlucoseGraph({
       area(0, split, 0.22, 0.7, []);
       area(split, W, 0.1, 0.35, [3, 3]);
     }
+
+    // Activity curve over the IOB area. Full height is the highest activity
+    // in the visible window extended back by one insulin duration and ahead
+    // by the time to peak (see activityScaleReach), so any activity on screen
+    // is drawn relative to the peak of the bolus that produced it: a fading
+    // tail stays small, and zooming out widens the window with the view.
+    const vActivity = activitySamples.filter(inView);
+    const scaleFrom = startMs - activityReach.backMs;
+    const scaleTo = endMs + activityReach.aheadMs;
+    let actMax = 0;
+    for (const p of activitySamples)
+      if (p.time >= scaleFrom && p.time <= scaleTo)
+        actMax = Math.max(actMax, p.value);
+    if (vActivity.length > 1 && actMax > 0) {
+      const actY = (v: number) => iobBottom - (v / actMax) * (IOB_H - 4);
+      const curve = (x0: number, x1: number, alpha: number, dash: number[]) => {
+        if (x1 <= x0) return;
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(x0, iobTop - 2, x1 - x0, IOB_H + 2);
+        ctx.clip();
+        ctx.globalAlpha = alpha;
+        ctx.strokeStyle = pal.tertiary;
+        ctx.lineWidth = 1.75;
+        ctx.lineJoin = "round";
+        ctx.setLineDash(dash);
+        trace(vActivity, actY);
+        ctx.stroke();
+        ctx.restore();
+      };
+      const split = Math.min(W, Math.max(0, xNow));
+      curve(0, split, 0.95, []);
+      curve(split, W, 0.6, [3, 3]);
+    }
     ctx.lineWidth = 1;
     hline(iobBottom, pal.outlineVariant, 1);
 
@@ -1384,13 +1424,22 @@ export default function GlucoseGraph({
                 {r.v}
               </text>
             ))}
+            {/* Legend: fill = insulin on board, line = activity */}
             <text
               x={size.width - 4}
-              y={iobBottom - 20}
+              y={iobBottom - 30}
               textAnchor="end"
-              className="hub-iob-tag"
+              className="hub-iob-tag hub-iob-tag-iob"
             >
               IOB
+            </text>
+            <text
+              x={size.width - 4}
+              y={iobBottom - 19}
+              textAnchor="end"
+              className="hub-iob-tag hub-iob-tag-act"
+            >
+              ACT
             </text>
             <text
               x={size.width - 4}

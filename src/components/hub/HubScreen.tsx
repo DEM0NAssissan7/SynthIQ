@@ -44,6 +44,8 @@ import {
   eventIcon,
   eventKindPlural,
   markerLabel,
+  activityScaleReach,
+  totalActivity,
   totalIOB,
   type HubEvent,
   type MealSession,
@@ -51,6 +53,8 @@ import {
 import HubMealDetails from "./HubMealDetails";
 
 const IOB_SAMPLE_MS = 5 * 60 * 1000;
+// Finer than IOB: the activity curve has a peak whose shape matters.
+const ACTIVITY_SAMPLE_MS = 2 * 60 * 1000;
 
 type Sheet =
   | { type: "event"; event: HubEvent }
@@ -255,6 +259,27 @@ export default function HubScreen() {
     }
     return samples;
   }, [boluses, earliestMs, nowMinute]);
+
+  // Insulin activity (absorption rate, u/hr). Sampled beyond the scrollable
+  // range by the activity scale's reach, so the scale can always see it.
+  const activityReach = useMemo(() => activityScaleReach(boluses), [boluses]);
+  const activitySamples = useMemo<GlucosePoint[]>(() => {
+    const samples: GlucosePoint[] = [];
+    const end =
+      nowMinute * 60000 +
+      FORECAST_HORIZON_MS +
+      activityReach.aheadMs +
+      ACTIVITY_SAMPLE_MS;
+    const start = earliestMs - activityReach.backMs;
+    for (
+      let t = Math.floor(start / ACTIVITY_SAMPLE_MS) * ACTIVITY_SAMPLE_MS;
+      t <= end;
+      t += ACTIVITY_SAMPLE_MS
+    ) {
+      samples.push({ time: t, value: totalActivity(boluses, t) });
+    }
+    return samples;
+  }, [boluses, earliestMs, nowMinute, activityReach]);
 
   // Snap scrub: nearest CGM reading up to the anchor, interpolated forecast after.
   const scrub = useMemo<ScrubPoint | null>(() => {
@@ -468,6 +493,8 @@ export default function HubScreen() {
           decimal={decimal}
           events={events}
           iobSamples={iobSamples}
+          activitySamples={activitySamples}
+          activityReach={activityReach}
           iobNow={iobNow}
           scrub={scrub}
           onScrub={setScrubTime}

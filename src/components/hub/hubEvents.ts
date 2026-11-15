@@ -83,6 +83,54 @@ export function totalIOB(boluses: Insulin[], t: number): number {
   return sum;
 }
 
+/**
+ * Insulin activity at time `t` (ms): the summed absorption rate (u/hr) of all
+ * boluses, i.e. the Bateman density whose integral gives IOB.
+ */
+export function totalActivity(boluses: Insulin[], t: number): number {
+  const at = new Date(t);
+  let sum = 0;
+  for (const b of boluses) {
+    if (t >= b.timestamp.getTime()) sum += b.absorptionRate(at);
+  }
+  return sum;
+}
+
+/** Hours from injection to peak activity (maximum of the Bateman curve). */
+function peakHours(ka: number, ke: number): number {
+  if (!(ka > 0) || !(ke > 0)) return 0;
+  if (Math.abs(ka - ke) < 1e-12) return 1 / ka;
+  return Math.log(ka / ke) / (ka - ke);
+}
+
+/**
+ * How far around the visible window the activity curve's scale must look so
+ * that every visible bit of activity is measured against the peak of the
+ * bolus that produced it:
+ *  - back: one insulin duration (the oldest bolus that can still show
+ *    activity on screen was given at most this long before it), and
+ *  - ahead: the time to peak (a bolus near the right edge peaks after it).
+ * Taken over the insulin types in use, so it follows the insulin model.
+ */
+export function activityScaleReach(boluses: Insulin[]): {
+  backMs: number;
+  aheadMs: number;
+} {
+  let back = 0;
+  let ahead = 0;
+  const seen = new Set<string>();
+  for (const b of boluses) {
+    const v = b.variant;
+    const key = `${v.ka}:${v.ke}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const d = v.duration;
+    if (Number.isFinite(d)) back = Math.max(back, d);
+    ahead = Math.max(ahead, peakHours(v.ka, v.ke));
+  }
+  return { backMs: back * 3_600_000, aheadMs: ahead * 3_600_000 };
+}
+
 function when(time: number, nowMs: number) {
   return `${formatClock(time)} · ${formatRelative(time, nowMs)}`;
 }

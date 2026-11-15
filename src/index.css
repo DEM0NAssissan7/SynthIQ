@@ -14201,6 +14201,14 @@ input[type=search]::-webkit-search-results-decoration {
   fill: var(--app-text-muted);
 }
 
+.hub-iob-tag-iob {
+  fill: var(--md-sys-color-primary);
+}
+
+.hub-iob-tag-act {
+  fill: var(--md-sys-color-tertiary);
+}
+
 .hub-iob-hit {
   position: absolute;
   left: 0;
