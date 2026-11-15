@@ -703,9 +703,11 @@ export default function GlucoseGraph({
   const iobTop = laneTop + LANE_ROWS * ROW_H + IOB_GAP;
   const iobBottom = iobTop + IOB_H;
 
-  // Y domain from the visible window, quantized so it only changes now and
-  // then (each change redraws the plot; panning alone does not).
-  let lo = range.lowBG;
+  // Y domain: from the user's danger low to their high threshold, widened
+  // only as far as a visible reading or forecast point goes past either,
+  // plus a little headroom so points never sit on the edge.
+  const Y_HEADROOM = 5;
+  let lo = range.dangerBG;
   let hi = range.highBG;
   for (const p of history) {
     if (p.time < startMs) continue;
@@ -719,8 +721,8 @@ export default function GlucoseGraph({
     hi = Math.max(hi, p.value);
   }
   const [yMin, yMax] = useEased([
-    Math.max(30, Math.floor((lo - 10) / 20) * 20),
-    Math.min(450, Math.ceil((hi + 20) / 50) * 50),
+    Math.round(lo - Y_HEADROOM),
+    Math.round(hi + Y_HEADROOM),
   ]);
   const y = (v: number) => TOP + (1 - (v - yMin) / (yMax - yMin)) * plotH;
   const yStep = niceYStep(yMax - yMin, plotH);
