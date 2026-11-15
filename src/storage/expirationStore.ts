@@ -8,6 +8,14 @@ export namespace ExpirationStore {
     "expirations",
     [],
     Serialization.getArraySerializer(InsulinExpiration.serialize),
-    Serialization.getArrayDeserializer(InsulinExpiration.deserialize)
+    Serialization.getArrayDeserializer(InsulinExpiration.deserialize),
+  );
+  /**
+   * The set of expired insulins whose hub alert was dismissed (see
+   * expiredAlertKey). The alert returns when that set changes.
+   */
+  export const dismissedExpiredAlert = node.add<string>(
+    "dismissedExpiredAlert",
+    "",
   );
 }

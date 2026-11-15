@@ -13940,6 +13940,42 @@ input[type=search]::-webkit-search-results-decoration {
   color: var(--app-status-elevated-on-container);
 }
 
+.hub-alert-swipe {
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.hub-alert-swipe.is-settling {
+  transition: transform 0.22s cubic-bezier(0.2, 0, 0, 1), opacity 0.22s ease;
+}
+
+.hub-alert-dismiss {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  margin-right: 0.4rem;
+  margin-left: -0.15rem;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  opacity: 0.7;
+  -webkit-tap-highlight-color: transparent;
+  /* 44px touch target */
+}
+.hub-alert-dismiss::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+}
+.hub-alert-dismiss:active {
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+
 .hub-alert-main {
   display: flex;
   align-items: center;
@@ -14018,6 +14054,35 @@ input[type=search]::-webkit-search-results-decoration {
   overflow: visible;
 }
 .hub-graph-svg text {
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Plot layer: drawn once, slid with a composited transform while panning */
+.hub-graph-viewport {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+}
+
+.hub-graph-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  will-change: transform;
+  transform-origin: 0 0;
+}
+
+/* Gutter labels + crosshair, above the layer but never intercepting taps */
+.hub-graph-static {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+.hub-graph-static text {
   font-family: inherit;
   font-variant-numeric: tabular-nums;
 }

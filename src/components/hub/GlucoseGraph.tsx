@@ -101,14 +101,31 @@ type Gesture =
       pinned: boolean;
     };
 
+// Label widths are measured once per label and font. Reading computed style
+// on every call forces a style recalc, which is very costly mid-gesture on
+// WebKit, so the font is read once and re-read only when web fonts load.
 let measureCtx: CanvasRenderingContext2D | null = null;
+let measureFont: string | null = null;
+const widthCache = new Map<string, number>();
+if (typeof document !== "undefined" && document.fonts) {
+  document.fonts.addEventListener?.("loadingdone", () => {
+    measureFont = null;
+    widthCache.clear();
+  });
+}
 /** Pill width: measured label text + icon (14) + gap (3) + padding (16). */
 function pillWidth(label: string) {
+  const cached = widthCache.get(label);
+  if (cached !== undefined) return cached;
   measureCtx ??= document.createElement("canvas").getContext("2d");
   if (!measureCtx) return Math.ceil(label.length * 7.5 + 40);
-  // Set every time: the web font may have loaded since the last call.
-  measureCtx.font = `700 11.5px ${getComputedStyle(document.body).fontFamily}`;
-  return Math.ceil(measureCtx.measureText(label).width + 14 + 3 + 16 + 6);
+  if (measureFont === null) {
+    measureFont = `700 11.5px ${getComputedStyle(document.body).fontFamily}`;
+  }
+  measureCtx.font = measureFont;
+  const w = Math.ceil(measureCtx.measureText(label).width + 14 + 3 + 16 + 6);
+  widthCache.set(label, w);
+  return w;
 }
 /** Long meal names are cut with an ellipsis past this width. */
 const MAX_PILL_W = 140;
@@ -138,14 +155,23 @@ function linePath(
   return d;
 }
 
+// toLocale*String builds a new Intl formatter per call (slow, especially on
+// WebKit); reuse one per format.
+const weekdayFormat = new Intl.DateTimeFormat([], { weekday: "short" });
+const hourFormat = new Intl.DateTimeFormat([], { hour: "numeric" });
+
 function axisTimeLabel(t: number, stepMin: number) {
   const d = new Date(t);
   if (d.getHours() === 0 && d.getMinutes() === 0)
-    return d.toLocaleDateString([], { weekday: "short" });
-  if (d.getMinutes() === 0 || stepMin >= 60)
-    return d.toLocaleTimeString([], { hour: "numeric" });
+    return weekdayFormat.format(d);
+  if (d.getMinutes() === 0 || stepMin >= 60) return hourFormat.format(d);
   return `${d.getHours() % 12 || 12}:${d.getMinutes().toString().padStart(2, "0")}`;
 }
+
+const isMidnight = (t: number) => {
+  const d = new Date(t);
+  return d.getHours() === 0 && d.getMinutes() === 0;
+};
 
 function niceYStep(span: number, plotH: number) {
   const target = span / Math.max(3, Math.floor(plotH / 55));
@@ -214,8 +240,10 @@ export default function GlucoseGraph({
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    const update = () =>
+    const update = () => {
       setSize({ width: el.clientWidth, height: el.clientHeight });
+      rectRef.current = null;
+    };
     update();
     const ro = new ResizeObserver(update);
     ro.observe(el);
@@ -260,6 +288,7 @@ export default function GlucoseGraph({
     return end - v.span + ((px - PAD_L) / geom.current.innerW) * v.span;
   };
 
+  /** Apply a view now (used inside animation frames). */
   const commit = useCallback(
     (v: View) => {
       const next = clampView(v);
@@ -267,6 +296,42 @@ export default function GlucoseGraph({
       setRawView(next);
     },
     [clampView],
+  );
+
+  // Gesture input can arrive faster than the display refreshes (120 Hz
+  // touch on iPhone). Moves update viewRef immediately, so the gesture math
+  // stays exact, but React renders at most once per frame.
+  const frameRef = useRef<number | null>(null);
+  const scheduleCommit = useCallback(
+    (v: View) => {
+      viewRef.current = clampView(v);
+      if (frameRef.current !== null) return;
+      frameRef.current = requestAnimationFrame(() => {
+        frameRef.current = null;
+        setRawView(viewRef.current);
+      });
+    },
+    [clampView],
+  );
+  const scrubFrame = useRef<number | null>(null);
+  const pendingScrub = useRef<number | null>(null);
+  const scheduleScrub = useCallback(
+    (t: number | null) => {
+      pendingScrub.current = t;
+      if (scrubFrame.current !== null) return;
+      scrubFrame.current = requestAnimationFrame(() => {
+        scrubFrame.current = null;
+        onScrub(pendingScrub.current);
+      });
+    },
+    [onScrub],
+  );
+  useEffect(
+    () => () => {
+      if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+      if (scrubFrame.current !== null) cancelAnimationFrame(scrubFrame.current);
+    },
+    [],
   );
 
   const persistSpan = useCallback(() => {
@@ -347,8 +412,16 @@ export default function GlucoseGraph({
     longPressTimer.current = null;
   };
 
-  const localPoint = (e: { clientX: number; clientY: number }) => {
+  // Container position, measured when a gesture or hover starts rather than
+  // on every move (a rect read right after a render forces layout).
+  const rectRef = useRef<{ left: number; top: number } | null>(null);
+  const measureRect = () => {
     const r = containerRef.current!.getBoundingClientRect();
+    rectRef.current = { left: r.left, top: r.top };
+  };
+  const localPoint = (e: { clientX: number; clientY: number }) => {
+    if (!rectRef.current) measureRect();
+    const r = rectRef.current!;
     return { x: e.clientX - r.left, y: e.clientY - r.top };
   };
 
@@ -364,7 +437,7 @@ export default function GlucoseGraph({
       // While following live, zoom keeps "now" pinned in place.
       pinned: cur.end === null,
     };
-    onScrub(null);
+    scheduleScrub(null);
   };
 
   const startPan = (
@@ -390,6 +463,7 @@ export default function GlucoseGraph({
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
     stopAnim();
+    measureRect();
     const p = localPoint(e);
     pointers.current.set(e.pointerId, p);
     suppressClick.current = false;
@@ -413,7 +487,7 @@ export default function GlucoseGraph({
         suppressClick.current = true;
         containerRef.current?.setPointerCapture?.(g.id);
         navigator.vibrate?.(8);
-        onScrub(timeAtX(g.lastX));
+        scheduleScrub(timeAtX(g.lastX));
         markHintSeen();
       }, LONG_PRESS_MS);
     }
@@ -425,7 +499,7 @@ export default function GlucoseGraph({
 
     // Mouse hover inspects.
     if (e.pointerType === "mouse" && !pointers.current.has(e.pointerId)) {
-      onScrub(p.y < size.height - AXIS_H ? timeAtX(p.x) : null);
+      scheduleScrub(p.y < size.height - AXIS_H ? timeAtX(p.x) : null);
       return;
     }
     if (!pointers.current.has(e.pointerId)) return;
@@ -437,7 +511,7 @@ export default function GlucoseGraph({
       const d = Math.max(10, Math.hypot(a.x - b.x, a.y - b.y));
       const span = g.span0 * (g.d0 / d);
       if (g.pinned) {
-        commit({ span, end: null });
+        scheduleCommit({ span, end: null });
       } else {
         const cx = (a.x + b.x) / 2;
         const clampedSpan = Math.min(
@@ -446,12 +520,12 @@ export default function GlucoseGraph({
         );
         const start =
           g.centerTime0 - ((cx - PAD_L) / geom.current.innerW) * clampedSpan;
-        commit({ span: clampedSpan, end: start + clampedSpan });
+        scheduleCommit({ span: clampedSpan, end: start + clampedSpan });
       }
       return;
     }
     if (g.mode === "scrub") {
-      if (e.pointerId === g.id) onScrub(timeAtX(p.x));
+      if (e.pointerId === g.id) scheduleScrub(timeAtX(p.x));
       return;
     }
     if ((g.mode === "pending" || g.mode === "pan") && e.pointerId === g.id) {
@@ -461,7 +535,7 @@ export default function GlucoseGraph({
         g.mode = "pan";
         suppressClick.current = true;
         containerRef.current?.setPointerCapture?.(e.pointerId);
-        onScrub(null);
+        scheduleScrub(null);
         markHintSeen();
       }
       const now = performance.now();
@@ -470,13 +544,14 @@ export default function GlucoseGraph({
       g.lastX = p.x;
       g.lastT = now;
       const msPerPx = g.span0 / geom.current.innerW;
-      commit({ span: g.span0, end: g.end0 - (p.x - g.x0) * msPerPx });
+      scheduleCommit({ span: g.span0, end: g.end0 - (p.x - g.x0) * msPerPx });
     }
   };
 
   const onPointerEnd = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (!pointers.current.has(e.pointerId)) {
-      if (e.pointerType === "mouse" && e.type === "pointerleave") onScrub(null);
+      if (e.pointerType === "mouse" && e.type === "pointerleave")
+        scheduleScrub(null);
       return;
     }
     pointers.current.delete(e.pointerId);
@@ -500,13 +575,14 @@ export default function GlucoseGraph({
       return;
     }
     if (g.mode === "scrub") {
-      onScrub(null);
+      scheduleScrub(null);
     } else if (g.mode === "pan") {
       const recent = performance.now() - g.lastT < 80;
       if (recent && Math.abs(g.velocity) > 0.05) startMomentum(g.velocity);
     }
     gesture.current = { mode: "idle" };
-    if (e.pointerType === "mouse" && e.type === "pointerleave") onScrub(null);
+    if (e.pointerType === "mouse" && e.type === "pointerleave")
+      scheduleScrub(null);
   };
 
   // Wheel / trackpad: vertical = zoom at cursor, horizontal = pan.
@@ -524,7 +600,7 @@ export default function GlucoseGraph({
       if (horizontal) {
         const delta = e.deltaX || e.deltaY;
         const msPerPx = cur.span / geom.current.innerW;
-        commit({
+        scheduleCommit({
           span: cur.span,
           end: (cur.end ?? bounds.current.liveEdge) + delta * msPerPx,
         });
@@ -532,7 +608,7 @@ export default function GlucoseGraph({
         const span =
           cur.span * Math.exp(e.deltaY * (e.ctrlKey ? 0.01 : 0.0015));
         if (cur.end === null) {
-          commit({ span, end: null });
+          scheduleCommit({ span, end: null });
         } else {
           const anchor = timeAtX(px, cur);
           const frac = (px - PAD_L) / geom.current.innerW;
@@ -541,7 +617,7 @@ export default function GlucoseGraph({
             Math.max(MIN_SPAN_MS, span),
           );
           const start = anchor - frac * clampedSpan;
-          commit({ span: clampedSpan, end: start + clampedSpan });
+          scheduleCommit({ span: clampedSpan, end: start + clampedSpan });
         }
       }
       markHintSeen();
@@ -553,7 +629,7 @@ export default function GlucoseGraph({
       el.removeEventListener("wheel", onWheel);
       window.clearTimeout(persistTimer);
     };
-  }, [commit, persistSpan, markHintSeen]);
+  }, [scheduleCommit, persistSpan, markHintSeen]);
 
   // Persist span after a pinch ends with no fingers left.
   useEffect(() => {
@@ -562,6 +638,7 @@ export default function GlucoseGraph({
   }, [view.span, persistSpan]);
 
   // ----- Layout --------------------------------------------------------
+  const ready = size.width > 0 && size.height > 0;
   const height = size.height;
   const fixedBelow = LANE_GAP + LANE_ROWS * ROW_H + IOB_GAP + IOB_H + AXIS_H;
   const plotH = Math.max(MIN_PLOT_H, height - TOP - fixedBelow);
@@ -570,27 +647,17 @@ export default function GlucoseGraph({
   const iobTop = laneTop + LANE_ROWS * ROW_H + IOB_GAP;
   const iobBottom = iobTop + IOB_H;
 
-  const visibleHistory = useMemo(
-    () =>
-      history.filter(
-        (p) => p.time >= startMs - stepMs * 2 && p.time <= endMs + stepMs,
-      ),
-    [history, startMs, endMs, stepMs],
-  );
-  const visibleForecast = useMemo(
-    () => forecast.filter((p) => p.time >= startMs - stepMs * 2),
-    [forecast, startMs, stepMs],
-  );
-
-  // Y domain from visible data, quantized so it only changes occasionally.
+  // Y domain from the visible window, quantized so it only changes now and
+  // then (each change redraws the plot; panning alone does not).
   let lo = range.lowBG;
   let hi = range.highBG;
-  for (const p of visibleHistory) {
-    if (p.time < startMs || p.time > endMs) continue;
+  for (const p of history) {
+    if (p.time < startMs) continue;
+    if (p.time > endMs) break;
     lo = Math.min(lo, p.value);
     hi = Math.max(hi, p.value);
   }
-  for (const p of visibleForecast) {
+  for (const p of forecast) {
     if (p.time < startMs || p.time > endMs) continue;
     lo = Math.min(lo, p.value);
     hi = Math.max(hi, p.value);
@@ -604,44 +671,91 @@ export default function GlucoseGraph({
   const yTicks: number[] = [];
   for (let v = Math.ceil(yMin / yStep) * yStep; v <= yMax; v += yStep)
     yTicks.push(v);
+  const rangeLabels = [
+    { v: range.lowBG, color: toneColor.low },
+    { v: range.highBG, color: toneColor.high },
+  ];
+  const tickLabels = yTicks.filter((v) =>
+    rangeLabels.every((r) => Math.abs(y(v) - y(r.v)) > 13),
+  );
 
-  // X ticks: smallest clock step that leaves room for a label.
-  const pxPerMin = innerW / (view.span / 60000);
-  const tickStepMin =
-    TICK_STEPS_MIN.find((m) => m * pxPerMin >= MIN_TICK_PX) ??
-    TICK_STEPS_MIN[TICK_STEPS_MIN.length - 1];
-  const tickMs = tickStepMin * 60000;
-  const tzOffsetMs = new Date(startMs).getTimezoneOffset() * 60000;
-  const xTicks: number[] = [];
-  for (
-    let t = Math.ceil((startMs - tzOffsetMs) / tickMs) * tickMs + tzOffsetMs;
-    t <= endMs;
-    t += tickMs
-  )
-    xTicks.push(t);
+  // ----- Moving layer ----------------------------------------------------
+  // The plot is drawn once into a layer three viewports wide (one viewport of
+  // slack each side) and slid with a composited translate3d while panning, so
+  // a pan frame changes a single transform instead of hundreds of SVG
+  // attributes. The layer is redrawn only when the zoom changes, the pan runs
+  // out of slack, the y-axis rescales, or the data changes.
+  const layerRef = useRef<{ start: number; span: number } | null>(null);
+  let layer = layerRef.current;
+  const slack = layer ? (startMs - layer.start) / view.span : 0;
+  if (!layer || layer.span !== view.span || slack < 0.15 || slack > 1.85) {
+    layer = { start: startMs - view.span, span: view.span };
+    layerRef.current = layer;
+  }
+  const layerW = innerW * 3;
+  const layerDx = PAD_L - ((startMs - layer.start) / layer.span) * innerW;
 
-  /** Glucose curve value at t: CGM line up to the anchor, forecast after. */
-  const curveAt = (t: number) =>
-    anchorTime !== null && t > anchorTime
-      ? interpolateAt(forecast, t)
-      : interpolateAt(history, t);
+  // Taps reach the latest handlers without invalidating the drawn layer.
+  const handlers = useRef({ onEventTap, onGroupTap });
+  handlers.current = { onEventTap, onGroupTap };
 
-  // Markers. Same-kind events whose pills would overlap merge into one
-  // marker carrying their total. Each marker then takes a lane row as a
-  // labelled pill, else as an icon; only when neither fits do different
-  // kinds share a marker.
-  const placed = useMemo<PlacedMarker[]>(() => {
-    const xs = (t: number) => PAD_L + ((t - startMs) / view.span) * innerW;
+  const layerStart = layer.start;
+  const layerSpan = layer.span;
+  const layerContent = useMemo(() => {
+    if (!ready) return null;
+    const lEnd = layerStart + 3 * layerSpan;
+    const lx = (t: number) => ((t - layerStart) / layerSpan) * innerW;
+    const ly = (v: number) => TOP + (1 - (v - yMin) / (yMax - yMin)) * plotH;
+
+    const inLayer = <T extends { time: number }>(pts: T[]) =>
+      pts.filter(
+        (p) => p.time >= layerStart - stepMs * 2 && p.time <= lEnd + stepMs * 2,
+      );
+    const layerHistory = inLayer(history);
+    const layerForecast = inLayer(forecast);
+    const layerIOB = inLayer(iobSamples);
+
+    // X ticks: smallest clock step that leaves room for a label.
+    const pxPerMin = innerW / (layerSpan / 60000);
+    const tickStepMin =
+      TICK_STEPS_MIN.find((m) => m * pxPerMin >= MIN_TICK_PX) ??
+      TICK_STEPS_MIN[TICK_STEPS_MIN.length - 1];
+    const tickMs = tickStepMin * 60000;
+    const tzOffsetMs = new Date(layerStart).getTimezoneOffset() * 60000;
+    const xTicks: number[] = [];
+    for (
+      let t =
+        Math.ceil((layerStart - tzOffsetMs) / tickMs) * tickMs + tzOffsetMs;
+      t <= lEnd;
+      t += tickMs
+    )
+      xTicks.push(t);
+
+    /** Glucose curve value at t: CGM line up to the anchor, forecast after. */
+    const curveAt = (t: number) =>
+      anchorTime !== null && t > anchorTime
+        ? interpolateAt(forecast, t)
+        : interpolateAt(history, t);
+
+    // Markers. Same-kind events whose pills would overlap merge into one
+    // marker carrying their total. Each marker then takes a lane row as a
+    // labelled pill, else as an icon; if neither fits it stacks onto a
+    // nearby same-kind marker or takes the least-overlapping row.
     const visible = events.filter(
-      (e) => (e.end ?? e.time) >= startMs && e.time <= endMs,
+      (e) => (e.end ?? e.time) >= layerStart && e.time <= lEnd,
     );
-
-    const clusters: { events: HubEvent[]; x: number; lastX: number }[] = [];
+    // firstX bounds a group's spread: an event joins only if it is within one
+    // marker width of the group's first event, so merges stay local.
+    const clusters: {
+      events: HubEvent[];
+      x: number;
+      firstX: number;
+    }[] = [];
     const openByKind = new Map<string, (typeof clusters)[number]>();
     for (const ev of visible) {
-      const ex = xs(Math.max(ev.time, startMs));
+      const ex = lx(Math.max(ev.time, layerStart));
       if (ev.end !== undefined) {
-        clusters.push({ events: [ev], x: ex, lastX: ex });
+        clusters.push({ events: [ev], x: ex, firstX: ex });
         continue;
       }
       const open = openByKind.get(ev.kind);
@@ -650,24 +764,22 @@ export default function GlucoseGraph({
           MAX_PILL_W,
           pillWidth(markerLabel([...open.events, ev])),
         );
-        if (ex - open.lastX < w + 3) {
+        if (ex - open.firstX < w + 3) {
           open.events.push(ev);
-          open.lastX = ex;
           open.x =
-            open.events.reduce((sum, e) => sum + xs(e.time), 0) /
+            open.events.reduce((sum, e) => sum + lx(e.time), 0) /
             open.events.length;
           continue;
         }
       }
-      const cluster = { events: [ev], x: ex, lastX: ex };
+      const cluster = { events: [ev], x: ex, firstX: ex };
       clusters.push(cluster);
       openByKind.set(ev.kind, cluster);
     }
-    clusters.sort((a, b) => a.x - b.x);
 
-    // Each lane row holds the [left, right] spans already taken.
     const rows: [number, number][][] = [];
-    const result: PlacedMarker[] = [];
+    const rowsMeal: boolean[][] = [];
+    const placed: PlacedMarker[] = [];
     const free = (row: number, l: number, r: number) =>
       (rows[row] ?? []).every(([a, b]) => r + 3 <= a || l >= b + 3);
     const tryRow = (l: number, w: number) => {
@@ -681,7 +793,6 @@ export default function GlucoseGraph({
     };
     // Row where [l, l + w] overlaps the least; meal pills count as fully
     // blocking so nothing is ever drawn underneath a meal name.
-    const rowsMeal: boolean[][] = [];
     const leastOverlapRow = (l: number, w: number) => {
       let best = 0;
       let bestCost = Infinity;
@@ -699,31 +810,28 @@ export default function GlucoseGraph({
       return best;
     };
     const fit = (center: number, w: number) =>
-      Math.min(Math.max(0, center - w / 2), Math.max(0, innerRight - w));
+      Math.min(Math.max(0, center - w / 2), Math.max(0, layerW - w));
 
-    // Activities, then meals, claim lane space first so their names show;
-    // the rest fill in around them.
+    // Activities, then meals, claim lane space first so their names show.
     const priority = (c: (typeof clusters)[number]) =>
       c.events[0].end !== undefined ? 0 : c.events[0].kind === "meal" ? 1 : 2;
     const order = [...clusters].sort(
       (a, b) => priority(a) - priority(b) || a.x - b.x,
     );
-
     for (const c of order) {
       const first = c.events[0];
       if (first.end !== undefined) {
         const w = Math.max(
           pillWidth(first.label),
-          xs(Math.min(first.end, endMs)) - c.x,
+          lx(Math.min(first.end, lEnd)) - c.x,
         );
-        const left = Math.min(Math.max(0, c.x), Math.max(0, innerRight - w));
+        const left = Math.min(Math.max(0, c.x), Math.max(0, layerW - w));
         let row = tryRow(left, w);
         if (row === -1) row = leastOverlapRow(left, w);
         take(row, left, w);
-        result.push({ events: c.events, left, width: w, row, compact: false });
+        placed.push({ events: c.events, left, width: w, row, compact: false });
         continue;
       }
-
       let width = Math.min(MAX_PILL_W, pillWidth(markerLabel(c.events)));
       let compact = false;
       let left = fit(c.x, width);
@@ -735,12 +843,9 @@ export default function GlucoseGraph({
         row = tryRow(left, width);
       }
       if (row === -1) {
-        // Lane full here: stack onto a nearby marker of the same kind, else
-        // sit as an icon in the least busy row (meal pills render on top,
-        // so their names stay readable).
         const center = (m: PlacedMarker) => m.left + m.width / 2;
         let host: PlacedMarker | null = null;
-        for (const m of result) {
+        for (const m of placed) {
           if (m.events[0].end !== undefined || m.events[0].kind !== first.kind)
             continue;
           const d = Math.abs(center(m) - c.x);
@@ -755,58 +860,338 @@ export default function GlucoseGraph({
         row = leastOverlapRow(left, width);
       }
       take(row, left, width, first.kind === "meal" && !compact);
-      result.push({ events: c.events, left, width, row, compact });
+      placed.push({ events: c.events, left, width, row, compact });
     }
-    return result;
-  }, [events, startMs, endMs, view.span, innerW, innerRight]);
 
-  const iobMax = useMemo(
-    () => Math.max(0.5, ...iobSamples.map((s) => s.value)),
-    [iobSamples],
-  );
-  const visibleIOB = iobSamples.filter(
-    (s) => s.time >= startMs - stepMs * 2 && s.time <= endMs + stepMs * 2,
-  );
-  const iobY = (v: number) => iobBottom - (v / iobMax) * (IOB_H - 6);
-  const iobPath =
-    visibleIOB.length > 1
-      ? `${linePath(visibleIOB, x, iobY)}L${x(visibleIOB[visibleIOB.length - 1].time)},${iobBottom}L${x(visibleIOB[0].time)},${iobBottom}Z`
-      : "";
+    const iobMax = Math.max(0.5, ...iobSamples.map((s) => s.value));
+    const iobY = (v: number) => iobBottom - (v / iobMax) * (IOB_H - 6);
+    const iobPath =
+      layerIOB.length > 1
+        ? `${linePath(layerIOB, lx, iobY)}L${lx(layerIOB[layerIOB.length - 1].time)},${iobBottom}L${lx(layerIOB[0].time)},${iobBottom}Z`
+        : "";
 
-  const ready = size.width > 0 && size.height > 0;
-  const xNow = x(nowMs);
-  const nowVisible = xNow >= 0 && xNow <= innerRight;
-  const pxPerStep = (stepMs / 60000) * pxPerMin;
-  const showDots = pxPerStep >= 4;
-  const dotR = Math.min(3, Math.max(1.8, pxPerStep * 0.28));
-  const historyGap = stepMs * 3;
+    const xNow = lx(nowMs);
+    const pxPerStep = (stepMs / 60000) * pxPerMin;
+    const showDots = pxPerStep >= 4;
+    const dotR = Math.min(3, Math.max(1.8, pxPerStep * 0.28));
+    const lastForecast =
+      layerForecast.length > 0 ? layerForecast[layerForecast.length - 1] : null;
+    const prevForecast =
+      layerForecast.length > 1 ? layerForecast[layerForecast.length - 2] : null;
+    const forecastFalling =
+      lastForecast !== null &&
+      prevForecast !== null &&
+      lastForecast.value < prevForecast.value;
+    const yTickLines: number[] = [];
+    const step = niceYStep(yMax - yMin, plotH);
+    for (let v = Math.ceil(yMin / step) * step; v <= yMax; v += step)
+      if (
+        [range.lowBG, range.highBG].every((r) => Math.abs(ly(v) - ly(r)) > 13)
+      )
+        yTickLines.push(v);
 
-  const inWindowForecast = visibleForecast.filter((p) => p.time <= endMs + 1);
-  const lastForecast =
-    view.end === null && inWindowForecast.length > 0
-      ? inWindowForecast[inWindowForecast.length - 1]
-      : null;
-  const prevForecast =
-    inWindowForecast.length > 1
-      ? inWindowForecast[inWindowForecast.length - 2]
-      : null;
-  const forecastFalling =
-    lastForecast !== null &&
-    prevForecast !== null &&
-    lastForecast.value < prevForecast.value;
+    return (
+      <>
+        <svg
+          width={layerW}
+          height={height}
+          className="hub-graph-svg"
+          aria-hidden="true"
+        >
+          <defs>
+            <clipPath id="hub-plot-clip">
+              <rect x={0} y={TOP - 8} width={layerW} height={plotH + 16} />
+            </clipPath>
+            <clipPath id="hub-iob-past">
+              <rect
+                x={0}
+                y={iobTop}
+                width={Math.min(layerW, Math.max(0, xNow))}
+                height={IOB_H}
+              />
+            </clipPath>
+            <clipPath id="hub-iob-future">
+              <rect
+                x={Math.max(0, xNow)}
+                y={iobTop}
+                width={Math.max(0, layerW - Math.max(0, xNow))}
+                height={IOB_H}
+              />
+            </clipPath>
+          </defs>
 
-  const rangeLabels = [
-    { v: range.lowBG, color: toneColor.low },
-    { v: range.highBG, color: toneColor.high },
-  ];
-  const tickLabels = yTicks.filter((v) =>
-    rangeLabels.every((r) => Math.abs(y(v) - y(r.v)) > 13),
-  );
+          {/* Forecast region */}
+          {xNow < layerW && (
+            <rect
+              x={Math.max(0, xNow)}
+              y={TOP}
+              width={layerW - Math.max(0, xNow)}
+              height={plotH}
+              className="hub-future-region"
+            />
+          )}
+
+          {/* Target band + range lines */}
+          <rect
+            x={0}
+            y={ly(range.highBG)}
+            width={layerW}
+            height={Math.max(0, ly(range.lowBG) - ly(range.highBG))}
+            fill="var(--app-status-target)"
+            fillOpacity={0.08}
+          />
+          <line
+            x1={0}
+            x2={layerW}
+            y1={ly(range.highBG)}
+            y2={ly(range.highBG)}
+            stroke={toneColor.high}
+            strokeOpacity={0.45}
+            strokeDasharray="4 4"
+          />
+          <line
+            x1={0}
+            x2={layerW}
+            y1={ly(range.lowBG)}
+            y2={ly(range.lowBG)}
+            stroke={toneColor.low}
+            strokeOpacity={0.5}
+            strokeDasharray="4 4"
+          />
+
+          {/* Grid */}
+          {yTickLines.map((v) => (
+            <line
+              key={`gy-${v}`}
+              x1={0}
+              x2={layerW}
+              y1={ly(v)}
+              y2={ly(v)}
+              className="hub-grid"
+            />
+          ))}
+          {xTicks.map((t) => (
+            <line
+              key={`gx-${t}`}
+              x1={lx(t)}
+              x2={lx(t)}
+              y1={TOP}
+              y2={iobBottom}
+              className={`hub-grid ${isMidnight(t) ? "hub-grid-day" : ""}`}
+            />
+          ))}
+
+          {/* Activity spans */}
+          {placed
+            .filter((m) => m.events[0].end !== undefined)
+            .map((m) => (
+              <rect
+                key={`span-${m.events[0].id}`}
+                x={lx(m.events[0].time)}
+                y={TOP}
+                width={Math.max(0, lx(m.events[0].end!) - lx(m.events[0].time))}
+                height={plotH}
+                className="hub-activity-span"
+              />
+            ))}
+
+          <g clipPath="url(#hub-plot-clip)">
+            {/* Event guides: from the lane up to the curve */}
+            {placed.flatMap((m) =>
+              m.events
+                .filter((ev) => ev.end === undefined)
+                .map((ev) => {
+                  const ex = lx(ev.time);
+                  const v = curveAt(ev.time);
+                  const cy = v !== null ? ly(v) : TOP;
+                  return (
+                    <g key={`guide-${ev.id}`}>
+                      <line
+                        x1={ex}
+                        x2={ex}
+                        y1={cy}
+                        y2={laneTop + m.row * ROW_H}
+                        className={`hub-event-guide hub-kind-${ev.kind}`}
+                      />
+                      {v !== null && (
+                        <circle
+                          cx={ex}
+                          cy={cy}
+                          r={4}
+                          className={`hub-event-dot hub-kind-${ev.kind}`}
+                        />
+                      )}
+                    </g>
+                  );
+                }),
+            )}
+
+            {/* CGM history */}
+            <path
+              d={linePath(layerHistory, lx, ly, stepMs * 3)}
+              className={`hub-history-line ${showDots ? "" : "is-solo"}`}
+            />
+            {layerHistory.map((p) =>
+              p.isCalibration ? (
+                <polygon
+                  key={`h-${p.time}`}
+                  points={`${lx(p.time)},${ly(p.value) - 5} ${lx(p.time) + 5},${ly(p.value)} ${lx(p.time)},${ly(p.value) + 5} ${lx(p.time) - 5},${ly(p.value)}`}
+                  className="hub-calibration-dot"
+                />
+              ) : showDots || p.time === anchorTime ? (
+                <circle
+                  key={`h-${p.time}`}
+                  cx={lx(p.time)}
+                  cy={ly(p.value)}
+                  r={p.time === anchorTime ? dotR + 1.6 : dotR}
+                  fill={toneColor[getGlucoseTone(p.value, range)]}
+                  className="hub-history-dot"
+                />
+              ) : null,
+            )}
+
+            {/* Forecast */}
+            <path
+              d={linePath(layerForecast, lx, ly)}
+              className="hub-forecast-line"
+            />
+          </g>
+
+          {lastForecast && (
+            <g>
+              <circle
+                cx={lx(lastForecast.time)}
+                cy={ly(lastForecast.value)}
+                r={3.5}
+                className="hub-forecast-end"
+              />
+              <text
+                x={lx(lastForecast.time) - 6}
+                y={ly(lastForecast.value) + (forecastFalling ? 18 : -9)}
+                textAnchor="end"
+                className="hub-forecast-label"
+              >
+                {formatBG(lastForecast.value, decimal)}
+              </text>
+            </g>
+          )}
+
+          {/* Now marker */}
+          <line
+            x1={xNow}
+            x2={xNow}
+            y1={TOP - 4}
+            y2={iobBottom}
+            className="hub-now-line"
+          />
+          <text
+            x={xNow}
+            y={TOP - 9}
+            textAnchor="middle"
+            className="hub-now-label"
+          >
+            Now
+          </text>
+
+          {/* IOB strip */}
+          {iobPath && (
+            <>
+              <path
+                d={iobPath}
+                className="hub-iob-area"
+                clipPath="url(#hub-iob-past)"
+              />
+              <path
+                d={iobPath}
+                className="hub-iob-area hub-iob-area-future"
+                clipPath="url(#hub-iob-future)"
+              />
+            </>
+          )}
+          <line
+            x1={0}
+            x2={layerW}
+            y1={iobBottom}
+            y2={iobBottom}
+            className="hub-baseline"
+          />
+
+          {/* Time axis */}
+          {xTicks.map((t) => (
+            <text
+              key={`lx-${t}`}
+              x={lx(t)}
+              y={iobBottom + 15}
+              textAnchor="middle"
+              className={`hub-axis-label ${isMidnight(t) ? "hub-axis-label-strong" : ""}`}
+            >
+              {axisTimeLabel(t, tickStepMin)}
+            </text>
+          ))}
+        </svg>
+
+        {/* Event markers (HTML for real tap targets) */}
+        {placed.map((m) => {
+          const first = m.events[0];
+          const multi = m.events.length > 1;
+          const total = markerLabel(m.events);
+          return (
+            <button
+              key={first.id}
+              type="button"
+              className={`hub-event-pill hub-kind-${first.kind} ${m.compact ? "is-compact" : ""} ${multi ? "is-stacked" : ""} ${m.events.length > 2 ? "is-stacked-deep" : ""}`}
+              style={{
+                left: m.left,
+                top: laneTop + m.row * ROW_H + 2,
+                width: m.width,
+              }}
+              onClick={() =>
+                multi
+                  ? handlers.current.onGroupTap(m.events)
+                  : handlers.current.onEventTap(first)
+              }
+              aria-label={
+                multi
+                  ? `${m.events.length} ${eventKindPlural[first.kind]}, ${total}, show list`
+                  : `${first.title}, show details`
+              }
+            >
+              <MdIcon name={eventIcon[first.kind]} size={14} fill />
+              {!m.compact && <span>{total}</span>}
+            </button>
+          );
+        })}
+      </>
+    );
+  }, [
+    ready,
+    layerStart,
+    layerSpan,
+    layerW,
+    innerW,
+    height,
+    plotH,
+    laneTop,
+    iobTop,
+    iobBottom,
+    yMin,
+    yMax,
+    history,
+    forecast,
+    iobSamples,
+    events,
+    anchorTime,
+    nowMs,
+    stepMs,
+    range,
+    decimal,
+  ]);
 
   return (
     <div
       ref={containerRef}
       className="hub-graph"
+      onPointerEnter={measureRect}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerEnd}
@@ -823,106 +1208,29 @@ export default function GlucoseGraph({
     >
       {ready && (
         <>
+          <div
+            className="hub-graph-viewport"
+            style={{ width: innerRight, height }}
+          >
+            <div
+              className="hub-graph-layer"
+              style={{
+                width: layerW,
+                height,
+                transform: `translate3d(${layerDx}px, 0, 0)`,
+              }}
+            >
+              {layerContent}
+            </div>
+          </div>
+
           <svg
             width={size.width}
             height={height}
-            className="hub-graph-svg"
+            className="hub-graph-static"
             role="img"
             aria-label="Glucose history and forecast. Drag to scroll, pinch to zoom, press and hold to inspect."
           >
-            <defs>
-              <clipPath id="hub-plot-clip">
-                <rect
-                  x={0}
-                  y={TOP - 8}
-                  width={innerRight}
-                  height={plotH + 16}
-                />
-              </clipPath>
-              <clipPath id="hub-x-clip">
-                <rect x={0} y={0} width={innerRight} height={height} />
-              </clipPath>
-              <clipPath id="hub-iob-past">
-                <rect
-                  x={0}
-                  y={iobTop}
-                  width={Math.min(innerRight, Math.max(0, xNow))}
-                  height={IOB_H}
-                />
-              </clipPath>
-              <clipPath id="hub-iob-future">
-                <rect
-                  x={Math.max(0, xNow)}
-                  y={iobTop}
-                  width={Math.max(0, innerRight - Math.max(0, xNow))}
-                  height={IOB_H}
-                />
-              </clipPath>
-            </defs>
-
-            {/* Forecast region */}
-            {xNow < innerRight && (
-              <rect
-                x={Math.max(0, xNow)}
-                y={TOP}
-                width={innerRight - Math.max(0, xNow)}
-                height={plotH}
-                className="hub-future-region"
-              />
-            )}
-
-            {/* Target band + range lines */}
-            <rect
-              x={0}
-              y={y(range.highBG)}
-              width={innerRight}
-              height={Math.max(0, y(range.lowBG) - y(range.highBG))}
-              fill="var(--app-status-target)"
-              fillOpacity={0.08}
-            />
-            <line
-              x1={0}
-              x2={innerRight}
-              y1={y(range.highBG)}
-              y2={y(range.highBG)}
-              stroke={toneColor.high}
-              strokeOpacity={0.45}
-              strokeDasharray="4 4"
-            />
-            <line
-              x1={0}
-              x2={innerRight}
-              y1={y(range.lowBG)}
-              y2={y(range.lowBG)}
-              stroke={toneColor.low}
-              strokeOpacity={0.5}
-              strokeDasharray="4 4"
-            />
-
-            {/* Grid */}
-            {tickLabels.map((v) => (
-              <line
-                key={`gy-${v}`}
-                x1={0}
-                x2={innerRight}
-                y1={y(v)}
-                y2={y(v)}
-                className="hub-grid"
-              />
-            ))}
-            <g clipPath="url(#hub-x-clip)">
-              {xTicks.map((t) => (
-                <line
-                  key={`gx-${t}`}
-                  x1={x(t)}
-                  x2={x(t)}
-                  y1={TOP}
-                  y2={iobBottom}
-                  className={`hub-grid ${new Date(t).getHours() === 0 && new Date(t).getMinutes() === 0 ? "hub-grid-day" : ""}`}
-                />
-              ))}
-            </g>
-
             {/* Y labels (right gutter) */}
             {tickLabels.map((v) => (
               <text
@@ -947,150 +1255,6 @@ export default function GlucoseGraph({
                 {r.v}
               </text>
             ))}
-
-            <g clipPath="url(#hub-x-clip)">
-              {/* Activity spans */}
-              {placed
-                .filter((m) => m.events[0].end !== undefined)
-                .map((m) => (
-                  <rect
-                    key={`span-${m.events[0].id}`}
-                    x={x(m.events[0].time)}
-                    y={TOP}
-                    width={Math.max(
-                      0,
-                      x(m.events[0].end!) - x(m.events[0].time),
-                    )}
-                    height={plotH}
-                    className="hub-activity-span"
-                  />
-                ))}
-            </g>
-
-            <g clipPath="url(#hub-plot-clip)">
-              {/* Event guides: from the lane up to the curve */}
-              {placed.flatMap((m) =>
-                m.events
-                  .filter((ev) => ev.end === undefined)
-                  .map((ev) => {
-                    const ex = x(ev.time);
-                    const v = curveAt(ev.time);
-                    const cy = v !== null ? y(v) : TOP;
-                    return (
-                      <g key={`guide-${ev.id}`}>
-                        <line
-                          x1={ex}
-                          x2={ex}
-                          y1={cy}
-                          y2={laneTop + m.row * ROW_H}
-                          className={`hub-event-guide hub-kind-${ev.kind}`}
-                        />
-                        {v !== null && (
-                          <circle
-                            cx={ex}
-                            cy={cy}
-                            r={4}
-                            className={`hub-event-dot hub-kind-${ev.kind}`}
-                          />
-                        )}
-                      </g>
-                    );
-                  }),
-              )}
-
-              {/* CGM history */}
-              <path
-                d={linePath(visibleHistory, x, y, historyGap)}
-                className={`hub-history-line ${showDots ? "" : "is-solo"}`}
-              />
-              {visibleHistory.map((p) =>
-                p.isCalibration ? (
-                  <polygon
-                    key={`h-${p.time}`}
-                    points={`${x(p.time)},${y(p.value) - 5} ${x(p.time) + 5},${y(p.value)} ${x(p.time)},${y(p.value) + 5} ${x(p.time) - 5},${y(p.value)}`}
-                    className="hub-calibration-dot"
-                  />
-                ) : showDots || p.time === anchorTime ? (
-                  <circle
-                    key={`h-${p.time}`}
-                    cx={x(p.time)}
-                    cy={y(p.value)}
-                    r={p.time === anchorTime ? dotR + 1.6 : dotR}
-                    fill={toneColor[getGlucoseTone(p.value, range)]}
-                    className="hub-history-dot"
-                  />
-                ) : null,
-              )}
-
-              {/* Forecast */}
-              <path
-                d={linePath(visibleForecast, x, y)}
-                className="hub-forecast-line"
-              />
-            </g>
-
-            {lastForecast && (
-              <g>
-                <circle
-                  cx={x(lastForecast.time)}
-                  cy={y(lastForecast.value)}
-                  r={3.5}
-                  className="hub-forecast-end"
-                />
-                <text
-                  x={x(lastForecast.time) - 6}
-                  y={y(lastForecast.value) + (forecastFalling ? 18 : -9)}
-                  textAnchor="end"
-                  className="hub-forecast-label"
-                >
-                  {formatBG(lastForecast.value, decimal)}
-                </text>
-              </g>
-            )}
-
-            {/* Now marker */}
-            {nowVisible && (
-              <>
-                <line
-                  x1={xNow}
-                  x2={xNow}
-                  y1={TOP - 4}
-                  y2={iobBottom}
-                  className="hub-now-line"
-                />
-                <text
-                  x={xNow}
-                  y={TOP - 9}
-                  textAnchor="middle"
-                  className="hub-now-label"
-                >
-                  Now
-                </text>
-              </>
-            )}
-
-            {/* IOB strip */}
-            {iobPath && (
-              <>
-                <path
-                  d={iobPath}
-                  className="hub-iob-area"
-                  clipPath="url(#hub-iob-past)"
-                />
-                <path
-                  d={iobPath}
-                  className="hub-iob-area hub-iob-area-future"
-                  clipPath="url(#hub-iob-future)"
-                />
-              </>
-            )}
-            <line
-              x1={0}
-              x2={innerRight}
-              y1={iobBottom}
-              y2={iobBottom}
-              className="hub-baseline"
-            />
             <text
               x={size.width - 4}
               y={iobBottom - 20}
@@ -1108,24 +1272,9 @@ export default function GlucoseGraph({
               {formatDose(iobNow)}u
             </text>
 
-            {/* Time axis */}
-            {xTicks.map((t) =>
-              x(t) >= 16 && x(t) <= innerRight - 16 ? (
-                <text
-                  key={`lx-${t}`}
-                  x={x(t)}
-                  y={iobBottom + 15}
-                  textAnchor="middle"
-                  className={`hub-axis-label ${new Date(t).getHours() === 0 && new Date(t).getMinutes() === 0 ? "hub-axis-label-strong" : ""}`}
-                >
-                  {axisTimeLabel(t, tickStepMin)}
-                </text>
-              ) : null,
-            )}
-
             {/* Scrub crosshair */}
-            {scrub && (
-              <g pointerEvents="none">
+            {scrub && x(scrub.time) >= 0 && x(scrub.time) <= innerRight && (
+              <g>
                 <line
                   x1={x(scrub.time)}
                   x2={x(scrub.time)}
@@ -1152,36 +1301,6 @@ export default function GlucoseGraph({
             onClick={onIOBTap}
             aria-label={`Insulin on board ${formatDose(iobNow)} units. Show details`}
           />
-
-          {/* Event markers (HTML for real tap targets) */}
-          {placed.map((m) => {
-            const first = m.events[0];
-            const multi = m.events.length > 1;
-            const total = markerLabel(m.events);
-            return (
-              <button
-                key={first.id}
-                type="button"
-                className={`hub-event-pill hub-kind-${first.kind} ${m.compact ? "is-compact" : ""} ${multi ? "is-stacked" : ""} ${m.events.length > 2 ? "is-stacked-deep" : ""}`}
-                style={{
-                  left: m.left,
-                  top: laneTop + m.row * ROW_H + 2,
-                  width: m.width,
-                }}
-                onClick={() =>
-                  multi ? onGroupTap(m.events) : onEventTap(first)
-                }
-                aria-label={
-                  multi
-                    ? `${m.events.length} ${eventKindPlural[first.kind]}, ${total}, show list`
-                    : `${first.title}, show details`
-                }
-              >
-                <MdIcon name={eventIcon[first.kind]} size={14} fill />
-                {!m.compact && <span>{total}</span>}
-              </button>
-            );
-          })}
 
           {view.end !== null && (
             <button
