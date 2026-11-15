@@ -986,7 +986,18 @@ export default function GlucoseGraph({
       attributes: true,
       attributeFilter: ["style", "data-bs-theme", "class"],
     });
-    return () => observer.disconnect();
+    // Browsers may discard a canvas's pixels while the app is in the
+    // background; repaint as soon as it is visible again.
+    const onVisible = () => {
+      if (!document.hidden) bumpTheme((n) => n + 1);
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("pageshow", onVisible);
+    return () => {
+      observer.disconnect();
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("pageshow", onVisible);
+    };
   }, []);
 
   useLayoutEffect(() => {
