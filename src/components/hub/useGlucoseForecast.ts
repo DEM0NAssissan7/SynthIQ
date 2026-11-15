@@ -1,10 +1,8 @@
 import { useMemo } from "react";
 import { HealthMonitorStore } from "../../storage/healthMonitorStore";
 import { BackendStore } from "../../storage/backendStore";
-import {
-  getPredictedGlucose,
-  getPredictedGlucoseAccuracy,
-} from "../../lib/glucosePrediction";
+import { getPredictedGlucose } from "../../lib/glucosePrediction";
+import { getPredictedGlucoseAccuracyCached } from "../../lib/predictionCache";
 import { getBGVelocity } from "../../lib/healthMonitor";
 
 /** How far past now the forecast line extends. */
@@ -100,7 +98,7 @@ export function useGlucoseForecast(now: Date) {
     const chronological = readings
       .slice()
       .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
-    const result = getPredictedGlucoseAccuracy(
+    const result = getPredictedGlucoseAccuracyCached(
       chronological,
       boluses,
       rescues,

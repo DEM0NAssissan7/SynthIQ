@@ -31,8 +31,7 @@ function erf(x: number): number {
   const t = 1 / (1 + 0.3275911 * x);
   const y =
     1 -
-    ((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t -
-      0.284496736) *
+    ((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) *
       t +
       0.254829592) *
       t *
@@ -111,14 +110,66 @@ function horfeat(h: number): number[] {
   return [x, Math.sin(2 * Math.PI * x), Math.cos(2 * Math.PI * x), x * x];
 }
 
+// --- Encoding memo ----------------------------------------------------------
+// The GRU pass is the dominant inference cost, and the same anchor is encoded
+// many times (once per forecast point, three times per scored point in the
+// accuracy report, again on every hub open). r1Encode is a pure function of
+// (weights, seq, scal), so results are memoized on the exact bits of the
+// inputs: a hit returns precisely what recomputing would. Weights are keyed by
+// object identity (they are a constant module value, never mutated).
+const ENCODE_CACHE_MAX = 512;
+const encodeCache = new WeakMap<R1Weights, Map<string, Float64Array>>();
+
+/** Bit-exact key: the IEEE-754 bytes of seq ++ scal as UTF-16 code units. */
+function encodeKey(seq: ArrayLike<number>, scal: ArrayLike<number>): string {
+  const buf = new Float64Array(seq.length + scal.length);
+  for (let i = 0; i < seq.length; i++) buf[i] = seq[i];
+  for (let i = 0; i < scal.length; i++) buf[seq.length + i] = scal[i];
+  const units = new Uint16Array(buf.buffer);
+  let key = "";
+  // Chunked to stay well under engine argument-count limits.
+  for (let i = 0; i < units.length; i += 4096)
+    key += String.fromCharCode.apply(
+      null,
+      units.subarray(i, i + 4096) as unknown as number[],
+    );
+  return key;
+}
+
 /**
  * Horizon-independent part of the model for one anchor: the GRU's final
  * hidden state followed by the normalized scalar features. Compute it once
  * and pass it to r1HeadResidual for each horizon.
  * seq: flat [36*8] (r1Features channel layout); scalRaw: 27 raw features
  *      (same order as r1_train.py).
+ * Memoized (see above); always returns a fresh array the caller may own.
  */
 export function r1Encode(
+  W: R1Weights,
+  seq: number[],
+  scalRaw: number[],
+): Float64Array {
+  let cache = encodeCache.get(W);
+  if (!cache) {
+    cache = new Map();
+    encodeCache.set(W, cache);
+  }
+  const key = encodeKey(seq, scalRaw);
+  const hit = cache.get(key);
+  if (hit) {
+    // LRU: move to most-recent.
+    cache.delete(key);
+    cache.set(key, hit);
+    return hit.slice();
+  }
+  const enc = computeEncoding(W, seq, scalRaw);
+  cache.set(key, enc);
+  if (cache.size > ENCODE_CACHE_MAX)
+    cache.delete(cache.keys().next().value as string);
+  return enc.slice();
+}
+
+function computeEncoding(
   W: R1Weights,
   seq: number[],
   scalRaw: number[],
