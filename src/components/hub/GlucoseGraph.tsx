@@ -1,11 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type PointerEvent as ReactPointerEvent,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import MdIcon from "../md3/MdIcon";
 import { PreferencesStore } from "../../storage/preferencesStore";
 import {
@@ -460,18 +453,35 @@ export default function GlucoseGraph({
     };
   };
 
-  const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+  /** Route every later event for this pointer to the graph itself. */
+  const capture = (pointerId: number) => {
+    try {
+      containerRef.current?.setPointerCapture(pointerId);
+    } catch {
+      /* pointer already gone */
+    }
+  };
+
+  const onPointerDown = (e: PointerEvent) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
     stopAnim();
     measureRect();
     const p = localPoint(e);
     pointers.current.set(e.pointerId, p);
     suppressClick.current = false;
+    // Touches are captured by the graph immediately. Otherwise the touch
+    // stays bound to whatever element was under the finger at touch-down,
+    // and iOS stops delivering it once that element moves or is redrawn.
+    // Touches that start on a marker/button stay with it so taps work;
+    // they are captured once they turn into a drag.
+    const onControl =
+      e.target instanceof Element && e.target.closest("button") !== null;
+    if (e.pointerType !== "mouse" && !onControl) capture(e.pointerId);
 
     if (pointers.current.size === 2) {
       clearLongPress();
       suppressClick.current = true;
-      containerRef.current?.setPointerCapture?.(e.pointerId);
+      for (const id of pointers.current.keys()) capture(id);
       startPinch();
       return;
     }
@@ -485,7 +495,7 @@ export default function GlucoseGraph({
         if (g.mode !== "pending") return;
         gesture.current = { mode: "scrub", id: g.id };
         suppressClick.current = true;
-        containerRef.current?.setPointerCapture?.(g.id);
+        capture(g.id);
         navigator.vibrate?.(8);
         scheduleScrub(timeAtX(g.lastX));
         markHintSeen();
@@ -493,7 +503,7 @@ export default function GlucoseGraph({
     }
   };
 
-  const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+  const onPointerMove = (e: PointerEvent) => {
     const p = localPoint(e);
     const g = gesture.current;
 
@@ -534,7 +544,7 @@ export default function GlucoseGraph({
         clearLongPress();
         g.mode = "pan";
         suppressClick.current = true;
-        containerRef.current?.setPointerCapture?.(e.pointerId);
+        capture(e.pointerId);
         scheduleScrub(null);
         markHintSeen();
       }
@@ -548,12 +558,10 @@ export default function GlucoseGraph({
     }
   };
 
-  const onPointerEnd = (e: ReactPointerEvent<HTMLDivElement>) => {
-    if (!pointers.current.has(e.pointerId)) {
-      if (e.pointerType === "mouse" && e.type === "pointerleave")
-        scheduleScrub(null);
-      return;
-    }
+  /** pointerup / pointercancel: a finger lifted (or the OS took it back). */
+  const onPointerEnd = (e: PointerEvent) => {
+    if (!pointers.current.has(e.pointerId)) return;
+    const cancelled = e.type === "pointercancel";
     pointers.current.delete(e.pointerId);
     clearLongPress();
     // The click synthesized from this pointer-up fires synchronously; after
@@ -576,14 +584,62 @@ export default function GlucoseGraph({
     }
     if (g.mode === "scrub") {
       scheduleScrub(null);
-    } else if (g.mode === "pan") {
+    } else if (g.mode === "pan" && !cancelled) {
       const recent = performance.now() - g.lastT < 80;
       if (recent && Math.abs(g.velocity) > 0.05) startMomentum(g.velocity);
     }
     gesture.current = { mode: "idle" };
-    if (e.pointerType === "mouse" && e.type === "pointerleave")
-      scheduleScrub(null);
   };
+
+  // Native listeners on the graph element (not React's delegated ones at the
+  // app root): with capture, events always arrive here even if the element
+  // first touched has since been moved or replaced.
+  const gestureHandlers = useRef({
+    onPointerDown,
+    onPointerMove,
+    onPointerEnd,
+  });
+  gestureHandlers.current = { onPointerDown, onPointerMove, onPointerEnd };
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const down = (e: PointerEvent) => gestureHandlers.current.onPointerDown(e);
+    const move = (e: PointerEvent) => gestureHandlers.current.onPointerMove(e);
+    const end = (e: PointerEvent) => gestureHandlers.current.onPointerEnd(e);
+    // Leaving only matters for mouse hover; it never ends a touch gesture.
+    const leave = (e: PointerEvent) => {
+      if (e.pointerType === "mouse" && !pointers.current.has(e.pointerId))
+        scheduleScrub(null);
+    };
+    const enter = () => measureRect();
+    // iOS Safari: keep the browser from claiming the gesture for scrolling or
+    // page zoom (which cancels our touches mid-drag). Taps still work since
+    // touchstart is left alone.
+    const blockTouchMove = (e: TouchEvent) => {
+      if (e.cancelable) e.preventDefault();
+    };
+    const blockGesture = (e: Event) => e.preventDefault();
+    el.addEventListener("pointerdown", down);
+    el.addEventListener("pointermove", move);
+    el.addEventListener("pointerup", end);
+    el.addEventListener("pointercancel", end);
+    el.addEventListener("pointerleave", leave);
+    el.addEventListener("pointerenter", enter);
+    el.addEventListener("touchmove", blockTouchMove, { passive: false });
+    el.addEventListener("gesturestart", blockGesture);
+    el.addEventListener("gesturechange", blockGesture);
+    return () => {
+      el.removeEventListener("pointerdown", down);
+      el.removeEventListener("pointermove", move);
+      el.removeEventListener("pointerup", end);
+      el.removeEventListener("pointercancel", end);
+      el.removeEventListener("pointerleave", leave);
+      el.removeEventListener("pointerenter", enter);
+      el.removeEventListener("touchmove", blockTouchMove);
+      el.removeEventListener("gesturestart", blockGesture);
+      el.removeEventListener("gesturechange", blockGesture);
+    };
+  }, [scheduleScrub]);
 
   // Wheel / trackpad: vertical = zoom at cursor, horizontal = pan.
   useEffect(() => {
@@ -1191,12 +1247,6 @@ export default function GlucoseGraph({
     <div
       ref={containerRef}
       className="hub-graph"
-      onPointerEnter={measureRect}
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerEnd}
-      onPointerCancel={onPointerEnd}
-      onPointerLeave={onPointerEnd}
       onClickCapture={(e) => {
         if (suppressClick.current) {
           e.stopPropagation();
