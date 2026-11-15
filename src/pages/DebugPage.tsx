@@ -3,10 +3,14 @@ import Card from "../components/Card";
 import StorageBackends from "../registries/storageBackends";
 import { BackendStore } from "../storage/backendStore";
 import { EmptyState, PageHeader, PageLayout } from "../components/PageLayout";
+import { useState } from "react";
+import { clearReloadLog, getReloadLog } from "../lib/reloadLog";
 
 export default function DebugPage() {
   const storageBackend = StorageBackends.getDefault();
   const [queue, setQueue] = BackendStore.queue.useState();
+
+  const [reloadLog, setReloadLog] = useState(getReloadLog);
 
   function clearQueue() {
     if (confirm(`Are you sure you want to clear the remote request queue?`)) {
@@ -46,9 +50,49 @@ export default function DebugPage() {
                 <div className="small text-muted">
                   Payload size: {q.payload?.length ?? 0}
                 </div>
-                <div className="small text-muted text-break">UUID: {q.uuid}</div>
+                <div className="small text-muted text-break">
+                  UUID: {q.uuid}
+                </div>
               </div>
             ))}
+          </div>
+        )}
+      </Card>
+      <Card>
+        <div className="small text-uppercase text-muted fw-semibold mb-2">
+          Page loads and reloads
+        </div>
+        <Button
+          variant={"outline-secondary"}
+          onClick={() => {
+            clearReloadLog();
+            setReloadLog([]);
+          }}
+        >
+          Clear log
+        </Button>
+        {reloadLog.length === 0 ? (
+          <div className="mt-3">
+            <EmptyState>Nothing recorded yet.</EmptyState>
+          </div>
+        ) : (
+          <div className="mt-3 small font-monospace">
+            {reloadLog
+              .slice()
+              .reverse()
+              .map((e, i) => (
+                <div key={i} className="text-break">
+                  <span className="text-muted">
+                    {new Date(e.time).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      second: "2-digit",
+                    })}
+                    .{String(e.time % 1000).padStart(3, "0")}
+                  </span>{" "}
+                  {e.event}
+                </div>
+              ))}
           </div>
         )}
       </Card>

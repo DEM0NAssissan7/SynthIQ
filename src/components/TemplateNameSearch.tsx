@@ -1,4 +1,5 @@
 import { useMemo, useState, type BaseSyntheticEvent } from "react";
+import { reloadApp } from "../lib/reloadLog";
 import { Button, Form } from "react-bootstrap";
 import { getFullPrettyDate } from "../lib/timing";
 import type { Template } from "../models/types/interfaces";
@@ -38,11 +39,11 @@ export default function TemplateNameSearch({
     if (confirm("Are you sure you want to delete this template?")) {
       if (
         confirm(
-          "This action is irreversible and all associated template data will be permanently removed."
+          "This action is irreversible and all associated template data will be permanently removed.",
         )
       ) {
         onDelete(name);
-        location.reload();
+        reloadApp("TemplateNameSearch #1");
       }
     }
   }
@@ -117,7 +118,8 @@ export default function TemplateNameSearch({
                 <div className="template-name">{template.name}</div>
                 <div className="template-meta">
                   <span className="fw-medium text-body-secondary">
-                    {template.size} {template.size === 1 ? "session" : "sessions"}
+                    {template.size}{" "}
+                    {template.size === 1 ? "session" : "sessions"}
                   </span>
                   <span>·</span>
                   <span>{getFullPrettyDate(template.timestamp)}</span>

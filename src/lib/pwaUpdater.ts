@@ -1,5 +1,6 @@
 import { registerSW } from "virtual:pwa-register";
 import { VERSION_STRING } from "../version";
+import { reloadApp, reloadWhenHidden } from "./reloadLog";
 
 let registrationRef: ServiceWorkerRegistration | undefined;
 let updateSWFn: ((reloadPage?: boolean) => Promise<void>) | undefined;
@@ -33,19 +34,26 @@ export function initPwaUpdater() {
     return;
   }
 
-  // Reload when a new service worker replaces the one that served this page.
-  // The very first install also fires controllerchange (clientsClaim) but
-  // the page is already current then, so reloading would only flash.
+  // A new service worker taking over means a new app version is cached. The
+  // running page keeps working, so the reload that picks the version up waits
+  // until the app is in the background instead of blanking the screen in use.
+  // The very first install also fires controllerchange (clientsClaim), but
+  // the page is already current then.
   const hadController = navigator.serviceWorker.controller !== null;
   navigator.serviceWorker.addEventListener("controllerchange", () => {
     if (hadController && !isReloading) {
       isReloading = true;
-      window.location.reload();
+      reloadWhenHidden("service worker controller changed (app update)");
     }
   });
 
   updateSWFn = registerSW({
     immediate: true,
+    // Without this the plugin reloads the page itself on activation.
+    onNeedReload() {
+      isReloading = true;
+      reloadWhenHidden("service worker activated (app update)");
+    },
     onNeedRefresh() {
       // New service worker installed and waiting; tell it to activate
       if (updateSWFn) {
@@ -69,11 +77,14 @@ export function initPwaUpdater() {
         document.addEventListener("visibilitychange", handleVisibilityChange);
 
         // Also check periodically every 15 minutes
-        setInterval(() => {
-          r.update().catch((err) =>
-            console.warn("PWA periodic update check failed:", err),
-          );
-        }, 15 * 60 * 1000);
+        setInterval(
+          () => {
+            r.update().catch((err) =>
+              console.warn("PWA periodic update check failed:", err),
+            );
+          },
+          15 * 60 * 1000,
+        );
       }
     },
     onRegisterError(error) {
@@ -87,7 +98,7 @@ export async function checkPwaUpdate() {
 
   if (!("serviceWorker" in navigator)) {
     showUpdateToast("Service workers not supported on this browser.");
-    window.location.reload();
+    reloadApp("manual update check #1");
     return;
   }
 
@@ -99,7 +110,7 @@ export async function checkPwaUpdate() {
 
     if (!reg) {
       showUpdateToast("No PWA registration found. Reloading...");
-      setTimeout(() => window.location.reload(), 500);
+      setTimeout(() => reloadApp("manual update check #2"), 500);
       return;
     }
 
@@ -110,7 +121,7 @@ export async function checkPwaUpdate() {
       if (updateSWFn) {
         await updateSWFn(true);
       } else {
-        setTimeout(() => window.location.reload(), 400);
+        setTimeout(() => reloadApp("manual update check #3"), 400);
       }
       return;
     }
@@ -123,7 +134,7 @@ export async function checkPwaUpdate() {
         if (worker.state === "installed" || worker.state === "activated") {
           showUpdateToast("Update installed! Reloading...");
           worker.postMessage({ type: "SKIP_WAITING" });
-          setTimeout(() => window.location.reload(), 400);
+          setTimeout(() => reloadApp("manual update check #4"), 400);
         }
       });
       return;
@@ -140,7 +151,7 @@ export async function checkPwaUpdate() {
           if (worker.state === "installed" || worker.state === "activated") {
             showUpdateToast("Update ready! Reloading...");
             worker.postMessage({ type: "SKIP_WAITING" });
-            setTimeout(() => window.location.reload(), 400);
+            setTimeout(() => reloadApp("manual update check #5"), 400);
           }
         });
       }
@@ -187,7 +198,7 @@ export async function checkPwaUpdate() {
             await Promise.all(keys.map((k) => caches.delete(k)));
           }
           await reg.update().catch(() => {});
-          setTimeout(() => window.location.reload(), 400);
+          setTimeout(() => reloadApp("manual update check #6"), 400);
           return;
         }
       }
@@ -199,6 +210,6 @@ export async function checkPwaUpdate() {
   } catch (err) {
     console.warn("PWA check error:", err);
     showUpdateToast("Checking failed. Reloading...");
-    setTimeout(() => window.location.reload(), 600);
+    setTimeout(() => reloadApp("manual update check #7"), 600);
   }
 }

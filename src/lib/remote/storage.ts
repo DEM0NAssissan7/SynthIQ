@@ -4,6 +4,7 @@ import StorageNode from "../../storage/storageNode";
 import { nodes } from "../../storage/storageNode";
 import { genUUID } from "../util";
 import { RemoteProfile } from "./profile";
+import { reloadApp } from "../reloadLog";
 
 class RemoteStorage {
   static async upload() {
@@ -47,7 +48,8 @@ class RemoteStorage {
         const synced = await this.download();
         if (synced) {
           console.log(`Storage synchronized from backend. Reloading...`);
-          location.reload(); // Reload page upon sync to ensure state consistency
+          // Reload page upon sync to ensure state consistency
+          reloadApp("storage synced from backend (slave/terminal)");
         }
         return true;
     }

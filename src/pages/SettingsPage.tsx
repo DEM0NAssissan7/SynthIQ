@@ -1,3 +1,4 @@
+import { reloadApp } from "../lib/reloadLog";
 import {
   Alert,
   Button,
@@ -143,7 +144,7 @@ export default function SettingsPage() {
       }
 
       await importData(file);
-      location.reload();
+      reloadApp("SettingsPage #1");
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Import failed unexpectedly.";
@@ -171,7 +172,7 @@ export default function SettingsPage() {
       )
     ) {
       const synced = await RemoteStorage.download(true);
-      if (synced) location.reload();
+      if (synced) reloadApp("SettingsPage #2");
       else console.warn(`Force download didn't work properly`);
     }
   }
@@ -188,7 +189,7 @@ export default function SettingsPage() {
       ) {
         const backend = StorageBackends.getDefault();
         backend.clear();
-        location.reload();
+        reloadApp("SettingsPage #3");
       }
     }
   }
