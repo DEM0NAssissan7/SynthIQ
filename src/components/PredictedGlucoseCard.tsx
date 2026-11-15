@@ -356,7 +356,8 @@ export default function PredictedGlucoseCard() {
     minutesAgo,
   ]);
 
-  // Prediction accuracy (Mean Average Deviation, Percent Correct, and Percent Within Variance over past 2h)
+  // Prediction accuracy of the displayed predictor (Mean Average Deviation,
+  // Percent Correct, and Percent Within Variance over past 2h)
   const accuracy = useMemo(() => {
     if (!readings || readings.length < 3) return null;
     const chronological = readings
@@ -367,6 +368,7 @@ export default function PredictedGlucoseCard() {
       recentBoluses,
       recentRescues,
       2,
+      r1Context,
     );
     if (
       !result ||
@@ -394,7 +396,7 @@ export default function PredictedGlucoseCard() {
           ? result.meanDeviation60min
           : null,
     };
-  }, [readings, recentBoluses, recentRescues]);
+  }, [readings, recentBoluses, recentRescues, r1Context]);
 
   const formattedAccuracy = useMemo(() => {
     if (!accuracy) return null;

@@ -137,39 +137,51 @@ export function getBasePredictedGlucose(
 }
 
 // Prediction accuracy querying
+/**
+ * Scores the displayed predictor (base + r1) against readings in the last
+ * `timeframe` hours. Each scored prediction is made from every reading up to
+ * its moment (not only the ones inside the window). The 30- and 60-minute
+ * figures are scored on the same moments: those with a reading at least
+ * 60 minutes later, so the two are directly comparable.
+ */
 export function getPredictedGlucoseAccuracy(
   _readings: SugarReading[],
   insulins: Insulin[],
   rescues: Glucose[],
   timeframe: number, // How far to look back (hours)
+  r1Context?: R1Context,
 ) {
   if (_readings.length <= 0) return null;
   const sortedReadings = _readings
     .slice()
     .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+  const n = sortedReadings.length;
 
-  const lastReading = sortedReadings[sortedReadings.length - 1];
+  const lastReading = sortedReadings[n - 1];
   const cutoff = getTimestampFromOffset(lastReading.timestamp, -timeframe);
-  const readings = _readings.filter(
+  const firstScored = sortedReadings.findIndex(
     (r) => r.timestamp.getTime() >= cutoff.getTime(),
   );
-  if (readings.length < 2) return null;
+  if (firstScored < 0 || n - firstScored < 2) return null;
+
+  // Predict from every reading up to and including index `anchor`.
+  const predictFrom = (anchor: number, target: Date) =>
+    getPredictedGlucose(
+      sortedReadings.slice(0, anchor + 1),
+      target,
+      insulins,
+      rescues,
+      r1Context,
+    );
+
   const deviations: number[] = [];
   let correctPredictionsCount = 0;
   let totalPredictions = 0;
-  for (let i = 1; i < readings.length - 1; i++) {
-    const truncatedReadings = readings.slice(0, i);
-    const nextReading = readings[i];
-    if (!nextReading) continue;
-    const predicted = getBasePredictedGlucose(
-      truncatedReadings,
-      nextReading.timestamp,
-      insulins,
-      rescues,
-    );
-    if (!predicted) continue;
-    const actual = nextReading.sugar;
-    const deviation = predicted - actual;
+  for (let i = firstScored; i < n - 1; i++) {
+    const nextReading = sortedReadings[i + 1];
+    const predicted = predictFrom(i, nextReading.timestamp);
+    if (predicted === null) continue;
+    const deviation = predicted - nextReading.sugar;
     deviations.push(Math.abs(deviation));
     totalPredictions++;
     if (Math.round(deviation) === 0) correctPredictionsCount++;
@@ -189,45 +201,30 @@ export function getPredictedGlucoseAccuracy(
       ? (correctPredictionsCount / totalPredictions) * 100
       : 0;
 
-  // Now calculate the 30-minute and 60-minute deviations
-  const getDeviations = (minutesAhead: number) => {
-    const deviations: number[] = [];
-    for (let i = 1; i < readings.length; i++) {
-      const truncatedReadings = readings.slice(0, i);
-      // Where we are
-      const baseReading = readings[i - 1];
-      if (!baseReading) continue;
-      const targetFuture = getTimestampFromOffset(
-        baseReading.timestamp,
-        minutesAhead / 60,
-      );
-      // Find the reading we have available that is closest to the future timestamp without being behind it
-      const targetReading = (() => {
-        for (let j = i; j < readings.length; j++) {
-          const reading = readings[j];
-          if (reading.timestamp.getTime() < targetFuture.getTime()) continue;
-          return reading;
-        }
-        return null;
-      })();
-      if (!targetReading) return deviations;
-      const prediction = getBasePredictedGlucose(
-        truncatedReadings,
-        targetReading.timestamp,
-        insulins,
-        rescues,
-      );
-      if (!prediction) continue;
-      const actual = targetReading.sugar;
-      const deviation = prediction - actual;
-      deviations.push(Math.abs(deviation));
+  // First reading at or after `minutesAhead` past the anchor, if any.
+  const targetIndex = (anchor: number, minutesAhead: number) => {
+    const targetMs =
+      sortedReadings[anchor].timestamp.getTime() + minutesAhead * 60_000;
+    for (let j = anchor + 1; j < n; j++) {
+      if (sortedReadings[j].timestamp.getTime() >= targetMs) return j;
     }
-    return deviations;
+    return -1;
   };
 
-  const deviations30min = getDeviations(30);
+  // 30- and 60-minute deviations, on the moments that have a 60-minute target
+  const deviations30min: number[] = [];
+  const deviations60min: number[] = [];
+  for (let i = firstScored; i < n; i++) {
+    const j60 = targetIndex(i, 60);
+    if (j60 < 0) break; // later anchors have no 60-minute target either
+    const j30 = targetIndex(i, 30);
+    const p30 = predictFrom(i, sortedReadings[j30].timestamp);
+    const p60 = predictFrom(i, sortedReadings[j60].timestamp);
+    if (p30 === null || p60 === null) continue;
+    deviations30min.push(Math.abs(p30 - sortedReadings[j30].sugar));
+    deviations60min.push(Math.abs(p60 - sortedReadings[j60].sugar));
+  }
   const meanDeviation30min = MathUtil.mean(deviations30min);
-  const deviations60min = getDeviations(60);
   const meanDeviation60min = MathUtil.mean(deviations60min);
 
   return {
