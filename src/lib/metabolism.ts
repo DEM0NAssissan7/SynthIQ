@@ -8,7 +8,7 @@ import Unit from "../models/unit";
 import { CalibrationStore } from "../storage/calibrationStore";
 import { PreferencesStore } from "../storage/preferencesStore";
 import { WizardStore } from "../storage/wizardStore";
-import { getPredictedGlucose, getRefReading } from "./glucosePrediction";
+import { getBasePredictedGlucose, getRefReading } from "./glucosePrediction";
 import { getTimestampFromOffset } from "./timing";
 import { convertDimensions } from "./util";
 
@@ -69,7 +69,8 @@ export function getIntelligentGlucoseCorrection(
     actingMinutes * convertDimensions(Unit.Time.Minute, Unit.Time.Hour),
   );
   const refReading = getRefReading(readings);
-  const predictedGlucose = getPredictedGlucose(
+  // Dosing uses the original algorithm only, never the r1 neural correction
+  const predictedGlucose = getBasePredictedGlucose(
     readings,
     future,
     insulinsOnBoard,
