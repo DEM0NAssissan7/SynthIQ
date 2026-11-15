@@ -274,6 +274,21 @@ export default function PredictedGlucoseCard() {
 
   const [recentBoluses] = HealthMonitorStore.recentBoluses.useState();
   const [recentRescues] = HealthMonitorStore.lastRescues.useState();
+  const [recentMeals] = HealthMonitorStore.recentMeals.useState();
+  const [recentBasalTimes] = HealthMonitorStore.recentBasalTimes.useState();
+
+  // Context for the r1 residual correction (meal + basal features).
+  const r1Context = useMemo(
+    () => ({
+      meals: recentMeals.map((m) => ({
+        timeMs: m.timestamp.getTime(),
+        carbs: m.carbs,
+        protein: m.protein,
+      })),
+      basalTimesMs: recentBasalTimes,
+    }),
+    [recentMeals, recentBasalTimes],
+  );
 
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showGraph, setShowGraph] = useState(false);
@@ -302,8 +317,14 @@ export default function PredictedGlucoseCard() {
   }, [readings]);
 
   const predictedBG = useMemo(() => {
-    return getPredictedGlucose(readings, now, recentBoluses, recentRescues);
-  }, [now, readings, recentBoluses, recentRescues]);
+    return getPredictedGlucose(
+      readings,
+      now,
+      recentBoluses,
+      recentRescues,
+      r1Context,
+    );
+  }, [now, readings, recentBoluses, recentRescues, r1Context]);
 
   const velocity = useMemo(() => {
     return getBGVelocity(readings);
@@ -522,6 +543,7 @@ export default function PredictedGlucoseCard() {
         now,
         recentBoluses,
         recentRescues,
+        r1Context,
       );
       if (predNow !== null && Number.isFinite(predNow)) {
         data.push({
@@ -543,6 +565,7 @@ export default function PredictedGlucoseCard() {
           new Date(nextT),
           recentBoluses,
           recentRescues,
+          r1Context,
         );
         if (pred !== null && Number.isFinite(pred)) {
           data.push({

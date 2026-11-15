@@ -27,11 +27,14 @@ import { populateFastingVelocitiesCache } from "./basal";
 import Glucose from "../models/events/glucose";
 import { HealthMonitorStore } from "../storage/healthMonitorStore";
 import { PreferencesStore } from "../storage/preferencesStore";
+import { PrivateStore } from "../storage/privateStore";
 import { BasalStore } from "../storage/basalStore";
 import type { RescueVariant } from "../models/types/rescueVariant";
 import { InsulinExpirationManager } from "../managers/expirationManager";
 import Insulin from "../models/events/insulin";
+import Meal from "../models/events/meal";
 import type { InsulinVariant } from "../models/types/insulinVariant";
+import RemoteTreatments from "./remote/treatments";
 
 /** Poll nightscout to fill the reading cache */
 export async function populateReadingCache() {
@@ -44,9 +47,54 @@ export async function populateReadingCache() {
     ) as SugarReading[];
     HealthMonitorStore.readingsCache.value = readings;
     HealthMonitorStore.currentBG.value = readings[0].sugar;
+    refreshR1Context();
     return readings;
   }
   return null;
+}
+/**
+ * Refresh the r1 context (recent meals + basal times) from Nightscout.
+ * Best-effort: on failure the previous values stay, and the r1 features
+ * degrade gracefully (carbs/protein = 0, t_since_basal = 24 h).
+ *
+ * The 48 h window (wider than the app's usual 3 h meal window) is what the
+ * r1 feature builder needs: seq ch6 reads the meal immediately preceding
+ * each slot's 60-min window, and the model was trained on full meal
+ * history. A fast longer than 48 h is the only case where that lookback
+ * meal can be missing.
+ */
+let r1ContextInFlight: Promise<void> | null = null;
+export function refreshR1Context(): Promise<void> {
+  if (r1ContextInFlight) return r1ContextInFlight;
+  r1ContextInFlight = (async () => {
+    try {
+      const now = new Date();
+      const start = new Date(now.getTime() - 48 * 3_600_000);
+      const treatments = await RemoteTreatments.getTreatments(start, now);
+      const meals: Meal[] = [];
+      const basalTimes: number[] = [];
+      for (const t of treatments ?? []) {
+        if (t.eventType === "Meal") {
+          const meal = new Meal(new Date(t.created_at));
+          meal.carbsOffset = t.carbs ?? 0;
+          meal.proteinOffset = t.protein ?? 0;
+          meals.push(meal);
+        } else if (t.eventType === "Basal Insulin") {
+          basalTimes.push(new Date(t.created_at).getTime());
+        }
+      }
+      meals.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+      basalTimes.sort((a, b) => a - b);
+      HealthMonitorStore.recentMeals.value = meals.slice(-32);
+      HealthMonitorStore.recentBasalTimes.value = basalTimes.slice(-32);
+    } catch (e) {
+      if (PrivateStore.debugLogs.value)
+        console.warn("r1 context refresh failed", e);
+    } finally {
+      r1ContextInFlight = null;
+    }
+  })();
+  return r1ContextInFlight;
 }
 export function getLatestReading(): SugarReading | null {
   const readingsCache = HealthMonitorStore.readingsCache.value;

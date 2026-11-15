@@ -7,6 +7,7 @@ import HealthMonitorStatus, {
   getStatusName,
 } from "../models/types/healthMonitorStatus";
 import Insulin from "../models/events/insulin";
+import Meal from "../models/events/meal";
 
 export namespace HealthMonitorStore {
   const node = new StorageNode("healthMonitor");
@@ -31,6 +32,15 @@ export namespace HealthMonitorStore {
     Serialization.getArrayDeserializer(Insulin.deserialize),
   );
   export const numRecentBoluses = 16;
+  // r1 context: recent logged meals + basal (NPH) treatment times,
+  // refreshed by populateReadingCache() from the Nightscout backend.
+  export const recentMeals = node.add<Meal[]>(
+    "recentMeals",
+    [],
+    Serialization.getArraySerializer(Meal.serialize),
+    Serialization.getArrayDeserializer(Meal.deserialize),
+  );
+  export const recentBasalTimes = node.add<number[]>("recentBasalTimes", []);
   export const statusCache = node.add<HealthMonitorStatus>(
     "monitorStatusCache",
     HealthMonitorStatus.Nominal,
