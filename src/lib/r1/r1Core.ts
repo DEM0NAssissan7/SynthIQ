@@ -112,23 +112,19 @@ function horfeat(h: number): number[] {
 }
 
 /**
- * Raw r1 residual (mg/dL) for one (anchor, horizon).
+ * Horizon-independent part of the model for one anchor: the GRU's final
+ * hidden state followed by the normalized scalar features. Compute it once
+ * and pass it to r1HeadResidual for each horizon.
  * seq: flat [36*8] (r1Features channel layout); scalRaw: 27 raw features
- *      (same order as r1_train.py); basePred: base algorithm's mg/dL
- *      prediction at this horizon (NaN if the base returned none).
+ *      (same order as r1_train.py).
  */
-export function r1RawResidual(
+export function r1Encode(
   W: R1Weights,
   seq: number[],
   scalRaw: number[],
-  basePred: number,
-  horizon: number,
-): number {
+): Float64Array {
   const H = 128;
-  // scal normalization (train-set stats)
-  const scal = new Array<number>(W.n_scal);
-  for (let i = 0; i < W.n_scal; i++)
-    scal[i] = (scalRaw[i] - W.smean[i]) / W.sstd[i];
+  const enc = new Float64Array(H + W.n_scal);
 
   // GRU over the sequence. PyTorch stacks layers: layer 1 consumes layer 0's
   // per-timestep hidden states (dropout=0.15 is layer-to-layer, off in eval).
@@ -138,10 +134,28 @@ export function r1RawResidual(
     gruStep(W, 0, seq, t * W.seq_ch, h0);
     gruStep(W, 1, h0, 0, h1);
   }
+  for (let i = 0; i < H; i++) enc[i] = h1[i];
 
+  // scal normalization (train-set stats)
+  for (let i = 0; i < W.n_scal; i++)
+    enc[H + i] = (scalRaw[i] - W.smean[i]) / W.sstd[i];
+  return enc;
+}
+
+/**
+ * Raw r1 residual (mg/dL) for one horizon, given an r1Encode output.
+ * basePred: base algorithm's mg/dL prediction at this horizon (NaN if the
+ * base returned none).
+ */
+export function r1HeadResidual(
+  W: R1Weights,
+  enc: Float64Array,
+  basePred: number,
+  horizon: number,
+): number {
+  const H = 128;
   const x = new Array<number>(H + W.n_scal + 4 + 1);
-  for (let i = 0; i < H; i++) x[i] = h1[i];
-  for (let i = 0; i < W.n_scal; i++) x[H + i] = scal[i];
+  for (let i = 0; i < H + W.n_scal; i++) x[i] = enc[i];
   const hf = horfeat(horizon);
   for (let i = 0; i < 4; i++) x[H + W.n_scal + i] = hf[i];
   x[H + W.n_scal + 4] = Number.isNaN(basePred) ? 0 : basePred / 100.0;
@@ -154,11 +168,38 @@ export function r1RawResidual(
   return y[0];
 }
 
+/** Raw r1 residual (mg/dL) for one (anchor, horizon); r1Encode + r1HeadResidual. */
+export function r1RawResidual(
+  W: R1Weights,
+  seq: number[],
+  scalRaw: number[],
+  basePred: number,
+  horizon: number,
+): number {
+  return r1HeadResidual(W, r1Encode(W, seq, scalRaw), basePred, horizon);
+}
+
 /**
- * Deployed correction for one horizon (requirements 3+4 applied):
+ * Deployed correction for one horizon from an r1Encode output
+ * (requirements 3+4 applied):
  *  null  -> skip (horizon in skipHorizons, horizon unknown, or non-finite output)
  *  else  -> residual clipped to +-cap (largest |residual| seen in training)
  */
+export function r1CorrectionFromEncoding(
+  W: R1Weights,
+  enc: Float64Array,
+  basePred: number,
+  horizon: number,
+): number | null {
+  const hpos = W.horizons.indexOf(horizon);
+  if (hpos < 0 || W.skip_horizons.includes(horizon)) return null;
+  const raw = r1HeadResidual(W, enc, basePred, horizon);
+  if (!Number.isFinite(raw)) return null;
+  const cap = W.caps[hpos];
+  return Math.max(-cap, Math.min(cap, raw));
+}
+
+/** Deployed correction for one horizon (see r1CorrectionFromEncoding). */
 export function r1Correction(
   W: R1Weights,
   seq: number[],
@@ -166,12 +207,12 @@ export function r1Correction(
   basePred: number,
   horizon: number,
 ): number | null {
-  const hpos = W.horizons.indexOf(horizon);
-  if (hpos < 0 || W.skip_horizons.includes(horizon)) return null;
-  const raw = r1RawResidual(W, seq, scalRaw, basePred, horizon);
-  if (!Number.isFinite(raw)) return null;
-  const cap = W.caps[hpos];
-  return Math.max(-cap, Math.min(cap, raw));
+  return r1CorrectionFromEncoding(
+    W,
+    r1Encode(W, seq, scalRaw),
+    basePred,
+    horizon,
+  );
 }
 
 /** Convenience wrapper bound to the bundled weights. */

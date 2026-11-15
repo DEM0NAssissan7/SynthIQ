@@ -12,7 +12,7 @@ import { convertDimensions, MathUtil } from "./util";
 import { estimateDynamicISF } from "./helpers/estimateDynamicISF";
 import { getTimestampFromOffset } from "./timing";
 import { buildR1Features } from "./r1/r1Features";
-import { applyR1 } from "./r1/r1Core";
+import { r1CorrectionFromEncoding, r1Encode } from "./r1/r1Core";
 import { r1Weights } from "./r1/weights";
 
 const ALPHA = 0.85; // CGM Smoothing factor (1 is no smoothing)
@@ -261,6 +261,10 @@ export function getPredictedGlucoseAccuracy(
 //     so the raw base number is returned there (r1Weights.skip_horizons).
 //  4. Past-only inputs: every feature (buildR1Features) is computed strictly
 //     from data at or before the reference reading.
+//  5. Continuity: r1 only exists at its trained horizons, so the correction
+//     between them is interpolated linearly (see r1InterpolatedCorrection).
+//     It is 0 at the anchor and at skipped horizons, and held at the last
+//     trained horizon's value beyond it, so the curve has no jumps.
 //
 // NOTE on the base input: to stay bit-consistent with the training pipeline,
 // the base here is fed the last 36 readings and capped treatment lists
@@ -273,10 +277,6 @@ const R1_BOLUS_LOOKBACK_MS = 24 * 3_600_000;
 const R1_RESCUE_LOOKBACK_MS = 3 * 3_600_000;
 const R1_MAX_BOLUSES = 16;
 const R1_MAX_RESCUES = 16;
-const R1_MAX_HORIZON_MIN = 135; // trained horizon 120 + target snap tolerance:
-// the trainer labels each anchor with the reading nearest to anchor + h
-// (up to ~7 min past in the data), so allow that offset; beyond it the
-// nearest trained horizon would be an extrapolation → base only
 
 /**
  * Context needed by r1's scalar features that the base function does not
@@ -372,9 +372,11 @@ function r1CappedRescues(rescues: Glucose[], anchorMs: number): Glucose[] {
  * meal/carb and basal/NPH features.
  *
  * Returns the raw base prediction (or null) whenever the correction cannot
- * be safely applied: base version lock failed, horizon outside the trained
- * range, +5 min (skip set), or a non-finite model output. The correction
- * itself is cap-limited per horizon (see r1Core.applyR1).
+ * be safely applied: base version lock failed, target at or before the
+ * anchor, or a non-finite model output. The correction is cap-limited per
+ * trained horizon and interpolated between them (r1InterpolatedCorrection).
+ * An explicit `r1Horizon` (a trained horizon) uses that horizon's correction
+ * alone, with no interpolation.
  */
 export function getPredictedGlucose(
   readings: SugarReading[],
@@ -403,24 +405,7 @@ export function getPredictedGlucose(
   if (base === null || !isBaseVersionValid()) return base;
 
   const dMin = (timestamp.getTime() - anchorMs) / R1_MS_PER_MIN;
-  if (dMin <= 0 || dMin > R1_MAX_HORIZON_MIN) return base;
-
-  // Snap to the nearest trained horizon (drives cap + skip set). Ties go to
-  // the later horizon, matching the trainer's per-horizon target labeling.
-  // An explicit `r1Horizon` (a trained horizon) overrides the snap.
-  let horizon = 0;
-  let bestDist = Infinity;
-  for (const h of r1Weights.horizons) {
-    const d = Math.abs(h - dMin);
-    if (d <= bestDist) {
-      bestDist = d;
-      horizon = h;
-    }
-  }
-  if (r1Horizon != null && r1Weights.horizons.includes(r1Horizon)) {
-    horizon = r1Horizon;
-  }
-  if (horizon === 0 || r1Weights.skip_horizons.includes(horizon)) return base;
+  if (dMin <= 0) return base;
 
   const feats = buildR1Features(
     sortedReadings.map((r) => ({
@@ -440,12 +425,46 @@ export function getPredictedGlucose(
   );
   if (feats === null) return base;
 
-  const resid = applyR1(
-    Array.from(feats.seq),
-    Array.from(feats.scal),
-    base,
-    horizon,
-  );
+  const enc = r1Encode(r1Weights, Array.from(feats.seq), Array.from(feats.scal));
+  // Correction at one trained horizon, fed the base prediction at exactly
+  // that horizon. Skipped horizons contribute no correction.
+  const correctionAt = (h: number): number | null => {
+    if (r1Weights.skip_horizons.includes(h)) return 0;
+    const baseAtH = getBasePredictedGlucose(
+      sortedReadings.slice(-36),
+      new Date(anchorMs + h * R1_MS_PER_MIN),
+      cappedInsulins,
+      cappedRescues,
+    );
+    return r1CorrectionFromEncoding(r1Weights, enc, baseAtH ?? NaN, h);
+  };
+
+  const resid =
+    r1Horizon != null && r1Weights.horizons.includes(r1Horizon)
+      ? correctionAt(r1Horizon)
+      : r1InterpolatedCorrection(dMin, correctionAt);
   if (resid === null) return base;
   return base + resid;
+}
+
+/**
+ * r1 correction at `dMin` minutes past the anchor, linear between the
+ * trained horizons that bracket it. The correction is 0 at the anchor (the
+ * prediction there is the reading itself) and held at the last trained
+ * horizon's value beyond it. Null if a needed horizon has no correction.
+ */
+function r1InterpolatedCorrection(
+  dMin: number,
+  correctionAt: (h: number) => number | null,
+): number | null {
+  const hs = r1Weights.horizons;
+  const last = hs[hs.length - 1];
+  if (dMin >= last) return correctionAt(last);
+  const k = hs.findIndex((h) => dMin <= h);
+  const h0 = k === 0 ? 0 : hs[k - 1];
+  const h1 = hs[k];
+  const c0 = k === 0 ? 0 : correctionAt(h0);
+  const c1 = correctionAt(h1);
+  if (c0 === null || c1 === null) return null;
+  return c0 + ((c1 - c0) * (dMin - h0)) / (h1 - h0);
 }
