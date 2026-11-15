@@ -62,7 +62,12 @@ export async function populateReadingCache() {
   const rawReadings = await RemoteReadings.getLatestReadings(count);
   if (!Array.isArray(rawReadings) || rawReadings.length === 0) return null;
 
-  const readings: SugarReading[] = rawReadings.map(getReadingFromNightscout);
+  const convertedRawReadings: SugarReading[] = rawReadings.map(
+    getReadingFromNightscout,
+  );
+  const readings = convertedRawReadings.filter(
+    (a) => a.sugar <= 400 && a.sugar >= 0,
+  ); // Refuse to sync anything larger than 400 or less than 0
   if (backfill) historyBackfilled = true;
 
   HealthMonitorStore.readingsHistory.value = mergeReadingHistory(
