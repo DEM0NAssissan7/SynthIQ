@@ -28,7 +28,7 @@ export namespace PreferencesStore {
   export const learningRate = node.add<number>("learningRate", 30);
   export const decimalPredictedBG = node.add("decimalPredictedBG", false);
   /** Apply the r-series neural residual correction to the forecast. */
-  export const useRSeriesPredictor = node.add("useRSeriesPredictor", true);
+  export const useRSeriesPredictor = node.add("useRSeriesPredictor", false);
   /** Visible time span of the hub graph (minutes), kept across sessions. */
   export const hubSpanMinutes = node.add<number>("hubSpanMinutes", 240);
 }
