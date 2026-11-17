@@ -8,26 +8,36 @@ export class InsulinVariant {
     public daysLife: number,
     public ka: number,
     public ke: number,
-    public t0: number, // hours
+    public tDelay: number, // hours
+    public D_ref: number = 5,
   ) {}
 
+  // Dynamic bateman stuff
+  private getKa(dose: number) {
+    return Bateman.getDynamicKa(dose, this.D_ref, this.ka);
+  }
+  private getDelay(dose: number) {
+    return this.tDelay + Bateman.getDynamicDelay(dose, this.D_ref);
+  }
+
   // Bateman stuff
-  unitBateman(t: number) {
+  unitBateman(t: number, dose: number) {
     // t is in hours
-    return Bateman.f(t - this.t0, this.ka, this.ke);
+    return Bateman.f(t - this.getDelay(dose), this.getKa(dose), this.ke);
   }
-  unitBatemanIntegral(tA: number, tB: number) {
-    return Bateman.area(tA - this.t0, tB - this.t0, this.ka, this.ke);
+  unitBatemanIntegral(tA: number, tB: number, dose: number) {
+    const delay = this.getDelay(dose);
+    return Bateman.area(tA - delay, tB - delay, this.getKa(dose), this.ke);
   }
-  fractionActive(t: number) {
-    return 1 - Bateman.F(t - this.t0, this.ka, this.ke);
+  fractionActive(t: number, dose: number) {
+    return 1 - Bateman.F(t - this.getDelay(dose), this.getKa(dose), this.ke);
   }
 
   /**
    * Duration in # of hours
    */
   findCompletionTime(completionFraction: number) {
-    return Bateman.Finv(completionFraction, this.ka, this.ke) + this.t0;
+    return Bateman.Finv(completionFraction, this.ka, this.ke) + this.tDelay;
   }
   get duration(): number {
     // We consider that once some percentage of the insulin is absorbed, it's finished
@@ -37,7 +47,7 @@ export class InsulinVariant {
   // Other useful info
   get peak(): number {
     return (
-      this.t0 +
+      this.tDelay +
       (this.ka === this.ke
         ? 1 / this.ka
         : Math.log(this.ka / this.ke) / (this.ka - this.ke))
@@ -51,7 +61,7 @@ export class InsulinVariant {
       daysLife: i.daysLife,
       ka: i.ka,
       ke: i.ke,
-      t0: i.t0,
+      t0: i.tDelay,
     };
   };
   static deserialize: Deserializer<InsulinVariant> = (o) => {

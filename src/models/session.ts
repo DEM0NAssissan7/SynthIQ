@@ -220,7 +220,7 @@ export default class Session extends Subscribable {
       const variant = getInsulinVariant(insulin.variant);
       return (
         insulin.value *
-          variant.unitBatemanIntegral(0, this.length) *
+          variant.unitBatemanIntegral(0, this.length, insulin.value) *
           variant.effect +
         n
       );

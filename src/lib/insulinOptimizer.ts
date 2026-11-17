@@ -139,8 +139,12 @@ export function forecastDose(
   // Our definition of our target dose is to not go low while taking as much insulin now as possible, or hitting the targetBG dead-on
   const maxUnitsAt = (t: number) => {
     const bg = estimatedBG(t);
-    const fractionAbsorbed = variant.unitBatemanIntegral(0, t - tNow);
     const distanceToLow = bg - Math.min(lowBG, BG);
+    const fractionAbsorbed = variant.unitBatemanIntegral(
+      0,
+      t - tNow,
+      distanceToLow / variant.effect, // use a "bad guess" to guestimate the rough curve shape change
+    );
     const unitsAbsorbedToLow = distanceToLow / variant.effect;
     return fractionAbsorbed > 0
       ? unitsAbsorbedToLow / fractionAbsorbed
@@ -166,7 +170,8 @@ export function forecastDose(
   // We figure out what we want in order to land on targetBG exactly
   const desiredUnits =
     (estimatedBG(tNow + variant.duration) - targetBG) /
-    (variant.effect * variant.unitBatemanIntegral(0, variant.duration));
+    (variant.effect *
+      variant.unitBatemanIntegral(0, variant.duration, maxUnits));
   const units = Math.max(0, Math.min(desiredUnits, maxUnits));
   return {
     units,
@@ -176,7 +181,7 @@ export function forecastDose(
     limitHours,
     limitBG: estimatedBG(tNow + limitHours),
     limitFloor: Math.min(lowBG, BG),
-    limitFraction: variant.unitBatemanIntegral(0, limitHours),
+    limitFraction: variant.unitBatemanIntegral(0, limitHours, maxUnits),
   };
 }
 

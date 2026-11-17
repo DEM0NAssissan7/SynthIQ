@@ -27,7 +27,7 @@ export default function InsulinVariantsPage() {
   const [effect, setEffect] = useState(0);
   const [ka, setKa] = useState(0);
   const [ke, setKe] = useState(0.7);
-  const [t0, setT0] = useState(20 / 60);
+  const [tDelay, setTDelay] = useState(20 / 60);
   const [duration, setDuration] = useState(0);
   const [daysLife, setDaysLife] = useState(0);
 
@@ -35,11 +35,11 @@ export default function InsulinVariantsPage() {
     () =>
       setKa(
         round(
-          Bateman.solveKa(duration - t0, Bateman.completionConstant, ke),
+          Bateman.solveKa(duration - tDelay, Bateman.completionConstant, ke),
           2,
         ),
       ),
-    [duration, ke, t0],
+    [duration, ke, tDelay],
   );
 
   const isValid = useMemo(() => name.length > 0 && effect, [name, effect]);
@@ -54,7 +54,7 @@ export default function InsulinVariantsPage() {
     setDuration(0);
     setKa(0);
     setKe(0.7);
-    setT0(20 / 60);
+    setTDelay(20 / 60);
     setDaysLife(0);
   }
 
@@ -79,15 +79,15 @@ export default function InsulinVariantsPage() {
       alert("Enter a valid medication life");
       return;
     }
-    if (!(t0 >= 0)) {
+    if (!(tDelay >= 0)) {
       alert("Absorption delay cannot be negative");
       return;
     }
-    if (duration && duration <= t0) {
+    if (duration && duration <= tDelay) {
       alert("Duration must be longer than the absorption delay");
       return;
     }
-    InsulinVariantManager.createVariant(name, effect, daysLife, ka, ke, t0);
+    InsulinVariantManager.createVariant(name, effect, daysLife, ka, ke, tDelay);
     resetUIStates();
   }
 
@@ -191,10 +191,10 @@ export default function InsulinVariantsPage() {
               step="any"
               min="0"
               placeholder="20"
-              value={t0 * 60 || ""}
+              value={tDelay * 60 || ""}
               onInput={(e: BaseSyntheticEvent) => {
                 const value = parseFloat(e.target.value) || 0;
-                setT0(value / 60);
+                setTDelay(value / 60);
               }}
             />
 
@@ -333,7 +333,7 @@ export default function InsulinVariantsPage() {
                     inputMode="decimal"
                     step="any"
                     min="0"
-                    value={v.t0 * 60 || ""}
+                    value={v.tDelay * 60 || ""}
                     aria-label="delay"
                     style={{ maxWidth: "4.5rem" }}
                     className="form-control-sm w-auto border-0 border-bottom rounded-0 shadow-none px-1 text-center"
@@ -343,7 +343,7 @@ export default function InsulinVariantsPage() {
                           ? undefined
                           : parseFloat(e.target.value);
                       if ((val as number) < 0) return;
-                      v.t0 = Number.isFinite(val as number)
+                      v.tDelay = Number.isFinite(val as number)
                         ? (val as number) / 60
                         : 0;
                       InsulinVariantManager.updateVariant(v);

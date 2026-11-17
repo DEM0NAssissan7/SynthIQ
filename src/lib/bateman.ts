@@ -116,4 +116,25 @@ export namespace Bateman {
 
     return 0.5 * (lo + hi);
   }
+
+  export function getDynamicKa(
+    D: number,
+    D_ref: number,
+    ka_ref: number,
+    alpha: number = 0.12,
+    min_fraction: number = 0.5,
+  ) {
+    const ka = D > D_ref ? ka_ref * Math.pow(D_ref / D, alpha) : ka_ref;
+    return Math.max(ka, ka_ref * min_fraction);
+  }
+
+  export function getDynamicDelay(
+    D: number,
+    D_ref: number,
+    beta: number = 1 / 60, // 1 extra minute per unit
+    delay_max: number = 30 / 60,
+  ) {
+    const delay = D > D_ref ? beta * (D - D_ref) : 0;
+    return Math.min(delay, delay_max);
+  }
 }

@@ -28,15 +28,20 @@ export default class Insulin extends MetaEvent implements ScalarMetaEvent {
   }
   bateman(time: Date, unit = false) {
     const t = this.getHours(time);
-    return (unit ? 1 : this.value) * this.variant.unitBateman(t);
+    return (unit ? 1 : this.value) * this.variant.unitBateman(t, this.value);
   }
   batemanIntegral(timeA: Date, timeB: Date, unit = false) {
     const tA = this.getHours(timeA);
     const tB = this.getHours(timeB);
-    return (unit ? 1 : this.value) * this.variant.unitBatemanIntegral(tA, tB);
+    return (
+      (unit ? 1 : this.value) *
+      this.variant.unitBatemanIntegral(tA, tB, this.value)
+    );
   }
   iob(time: Date) {
-    return this.value * this.variant.fractionActive(this.getHours(time));
+    return (
+      this.value * this.variant.fractionActive(this.getHours(time), this.value)
+    );
   }
   absorptionRate(time: Date) {
     return this.bateman(time);

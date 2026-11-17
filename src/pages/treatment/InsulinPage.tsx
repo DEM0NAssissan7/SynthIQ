@@ -198,7 +198,11 @@ export default function InsulinPage() {
     return rise;
   }, [now, projectedDuration, readings, recentBoluses, rescues]);
   const continuedRiseInsulin = useMemo(() => {
-    const fractionAbsorbed = variant.unitBatemanIntegral(0, projectedDuration);
+    const fractionAbsorbed = variant.unitBatemanIntegral(
+      0,
+      projectedDuration,
+      1,
+    );
     return continuedRise / fractionAbsorbed / variant.effect;
   }, [projectedDuration, continuedRise, variant]);
 

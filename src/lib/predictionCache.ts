@@ -39,7 +39,7 @@ function insulinsKey(insulins: Insulin[]): string {
   return insulins
     .map((i) => {
       const v = i.variant;
-      return `${i.timestamp.getTime()}:${i.value}:${v.name}:${v.effect}:${v.daysLife}:${v.ka}:${v.ke}:${v.t0}`;
+      return `${i.timestamp.getTime()}:${i.value}:${v.name}:${v.effect}:${v.daysLife}:${v.ka}:${v.ke}:${v.tDelay}`;
     })
     .join(",");
 }
