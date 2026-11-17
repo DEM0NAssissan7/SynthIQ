@@ -136,51 +136,87 @@ export function forecastDose(
   const estimatedBG = (t: number) =>
     BG + compositeRef(mealTime(tNow), mealTime(t)) - treatments(tNow, t);
 
+  // A dose's size changes its own curve (and so its peak and duration), so below, every dose
+  // we consider is judged against its own curve. Small doses all share the reference curve.
+
   // Our definition of our target dose is to not go low while taking as much insulin now as possible, or hitting the targetBG dead-on
-  const maxUnitsAt = (t: number) => {
-    const bg = estimatedBG(t);
-    const distanceToLow = bg - Math.min(lowBG, BG);
-    const fractionAbsorbed = variant.unitBatemanIntegral(
-      0,
-      t - tNow,
-      distanceToLow / variant.effect, // use a "bad guess" to guestimate the rough curve shape change
-    );
-    const unitsAbsorbedToLow = distanceToLow / variant.effect;
-    return fractionAbsorbed > 0
-      ? unitsAbsorbedToLow / fractionAbsorbed
-      : Infinity;
+  const floor = Math.min(lowBG, BG);
+  // We sample every 5 mins from the earliest peak any dose can have (a bigger dose only peaks later)
+  const step = 5 / 60;
+  const firstPeak = variant.getPeak(0);
+  const samples: { hours: number; bg: number }[] = []; // 'hours' is from now
+  const sample = (k: number) => {
+    while (samples.length <= k) {
+      const hours = firstPeak + samples.length * step;
+      samples.push({ hours, bg: estimatedBG(tNow + hours) });
+    }
+    return samples[k];
   };
-  const { maxUnits, limitHours } = (() => {
-    // We sample every 5 mins to see how far low we go & how much units it allows us, then we get the minimum of that
-    let min = Infinity;
-    let limitHours = 0;
-    const step = 5 / 60;
-    const peakHours = variant.peak;
-    for (let i = peakHours; i < variant.duration; i += step) {
-      // 'i' is in hours from now
-      const t = tNow + i;
-      const units = maxUnitsAt(t);
-      if (units < min) {
-        min = units;
-        limitHours = i;
+  // The moment that allows the fewest units before we hit the floor, with a curve shaped like `dose`'s,
+  // between that dose's own peak and the end of its duration
+  const limitOf = (dose: number) => {
+    const start = variant.getPeak(dose);
+    const end = variant.getDuration(dose);
+    let units = Infinity;
+    let hours = 0;
+    for (let k = 0; firstPeak + k * step < end; k++) {
+      const s = sample(k);
+      if (s.hours < start) continue;
+      const fraction = variant.unitBatemanIntegral(0, s.hours, dose);
+      if (!(fraction > 0)) continue;
+      const unitsToFloor = (s.bg - floor) / variant.effect / fraction;
+      if (unitsToFloor < units) {
+        units = unitsToFloor;
+        hours = s.hours;
       }
     }
-    return { maxUnits: min, limitHours };
+    return { units, hours };
+  };
+  const { maxUnits, limitHours } = (() => {
+    // The limit for a dose with the reference curve is exact for anything at or under zero
+    const reference = limitOf(0);
+    if (!(reference.units > 0) || !Number.isFinite(reference.units))
+      return { maxUnits: reference.units, limitHours: reference.hours };
+    // Otherwise it's the biggest dose that stays above the floor on its own curve
+    const maxUnits = MathUtil.largestWhere(
+      (dose) => limitOf(dose).units >= dose,
+      reference.units,
+    );
+    return { maxUnits, limitHours: limitOf(maxUnits).hours };
   })();
-  // We figure out what we want in order to land on targetBG exactly
-  const desiredUnits =
-    (estimatedBG(tNow + variant.duration) - targetBG) /
-    (variant.effect *
-      variant.unitBatemanIntegral(0, variant.duration, maxUnits));
+
+  // We figure out what we want in order to land on targetBG exactly once the dose is done
+  const landingBGFor = (dose: number) => {
+    const duration = variant.getDuration(dose);
+    return (
+      estimatedBG(tNow + duration) -
+      dose * variant.effect * variant.unitBatemanIntegral(0, duration, dose)
+    );
+  };
+  const desiredUnits = (() => {
+    // A dose with the reference curve is a straight division, exact for anything at or under zero
+    const referenceDuration = variant.getDuration(0);
+    const reference =
+      (estimatedBG(tNow + referenceDuration) - targetBG) /
+      (variant.effect * variant.unitBatemanIntegral(0, referenceDuration, 0));
+    if (!(reference > 0)) return reference;
+    // Otherwise it's the biggest dose that doesn't land under target on its own curve
+    return MathUtil.largestWhere(
+      (dose) => landingBGFor(dose) >= targetBG,
+      reference,
+    );
+  })();
+
   const units = Math.max(0, Math.min(desiredUnits, maxUnits));
   return {
     units,
     desiredUnits,
     maxUnits,
-    landingBG: estimatedBG(tNow + variant.duration),
+    landingBG: estimatedBG(tNow + variant.getDuration(units)),
     limitHours,
     limitBG: estimatedBG(tNow + limitHours),
-    limitFloor: Math.min(lowBG, BG),
+    limitFloor: floor,
+    // Explains maxUnits: (limitBG - limitFloor) / effect / limitFraction
     limitFraction: variant.unitBatemanIntegral(0, limitHours, maxUnits),
   };
 }

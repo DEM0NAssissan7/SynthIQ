@@ -134,6 +134,25 @@ export class MathUtil {
     return sorted[q3Index] - sorted[q1Index];
   }
   /**
+   * The largest x >= 0 where `holds(x)` is true, searching up from `start` (> 0). Assumes it
+   * holds from 0 up to some point and fails after it. Always returns a value where it holds.
+   */
+  static largestWhere(holds: (x: number) => boolean, start: number): number {
+    let lo = 0;
+    let hi = start;
+    while (holds(hi)) {
+      lo = hi;
+      hi *= 2;
+      if (!Number.isFinite(hi)) return Infinity;
+    }
+    for (let i = 0; i < 100 && hi - lo > 1e-9 * hi; i++) {
+      const mid = 0.5 * (lo + hi);
+      if (holds(mid)) lo = mid;
+      else hi = mid;
+    }
+    return lo;
+  }
+  /**
    * The closest curve to evenly spaced data that never goes down. Any stretch that goes
    * down is merged into one block at its average (pool adjacent violators), then straight
    * lines are drawn between the middles of the blocks instead of leaving flat steps.

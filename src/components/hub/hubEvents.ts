@@ -96,13 +96,6 @@ export function totalActivity(boluses: Insulin[], t: number): number {
   return sum;
 }
 
-/** Hours from injection to peak activity (maximum of the Bateman curve). */
-function peakHours(ka: number, ke: number): number {
-  if (!(ka > 0) || !(ke > 0)) return 0;
-  if (Math.abs(ka - ke) < 1e-12) return 1 / ka;
-  return Math.log(ka / ke) / (ka - ke);
-}
-
 /**
  * How far around the visible window the activity curve's scale must look so
  * that every visible bit of activity is measured against the peak of the
@@ -118,15 +111,11 @@ export function activityScaleReach(boluses: Insulin[]): {
 } {
   let back = 0;
   let ahead = 0;
-  const seen = new Set<string>();
+  // Each bolus's own size changes its curve, so each is measured separately
   for (const b of boluses) {
-    const v = b.variant;
-    const key = `${v.ka}:${v.ke}:${v.tDelay}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    const d = v.duration;
+    const d = b.duration;
     if (Number.isFinite(d)) back = Math.max(back, d);
-    ahead = Math.max(ahead, v.tDelay + peakHours(v.ka, v.ke));
+    ahead = Math.max(ahead, b.variant.getPeak(b.value));
   }
   return { backMs: back * 3_600_000, aheadMs: ahead * 3_600_000 };
 }

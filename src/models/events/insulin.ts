@@ -49,15 +49,15 @@ export default class Insulin extends MetaEvent implements ScalarMetaEvent {
 
   // Insulin Activity
   getActivityStatus(time: Date): boolean {
-    // Active while within 5 elimination half-lives (variant.duration)
-    return this.getHours(time) < this.variant.duration;
+    // Active until this dose's duration is up
+    return this.getHours(time) < this.duration;
   }
   get isActive(): boolean {
     return this.getActivityStatus(new Date());
   }
   get duration(): number {
-    // Fixed pharmacokinetic duration of the variant (independent of dose size)
-    return this.variant.duration;
+    // Bigger doses absorb flatter, so they take longer
+    return this.variant.getDuration(this.value);
   }
 
   // Serialization

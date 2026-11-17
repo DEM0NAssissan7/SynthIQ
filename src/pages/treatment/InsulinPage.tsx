@@ -197,14 +197,16 @@ export default function InsulinPage() {
     );
     return rise;
   }, [now, projectedDuration, readings, recentBoluses, rescues]);
-  const continuedRiseInsulin = useMemo(() => {
-    const fractionAbsorbed = variant.unitBatemanIntegral(
-      0,
-      projectedDuration,
-      1,
-    );
-    return continuedRise / fractionAbsorbed / variant.effect;
-  }, [projectedDuration, continuedRise, variant]);
+  // The dose whose own curve absorbs enough to cancel the rise by then
+  const continuedRiseInsulin = useMemo(
+    () =>
+      variant.doseForAbsorbed(
+        continuedRise / variant.effect,
+        0,
+        projectedDuration,
+      ),
+    [projectedDuration, continuedRise, variant],
+  );
 
   const risenCorrectionInsulin = correctionInsulin + continuedRiseInsulin;
 

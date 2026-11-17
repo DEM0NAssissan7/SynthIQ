@@ -1,4 +1,5 @@
 import { Bateman } from "../../lib/bateman";
+import { MathUtil } from "../../lib/util";
 import type { Deserializer, Serializer } from "./types";
 
 export class InsulinVariant {
@@ -34,23 +35,49 @@ export class InsulinVariant {
   }
 
   /**
-   * Duration in # of hours
+   * Hours until a dose has absorbed `completionFraction` of itself
    */
-  findCompletionTime(completionFraction: number) {
-    return Bateman.Finv(completionFraction, this.ka, this.ke) + this.tDelay;
+  findCompletionTime(completionFraction: number, dose: number) {
+    return (
+      Bateman.Finv(completionFraction, this.getKa(dose), this.ke) +
+      this.getDelay(dose)
+    );
   }
+  // We consider that once some percentage of the insulin is absorbed, it's finished
+  getDuration(dose: number): number {
+    return this.findCompletionTime(Bateman.completionConstant, dose);
+  }
+  // Hours until a dose absorbs the fastest
+  getPeak(dose: number): number {
+    const ka = this.getKa(dose);
+    const ke = this.ke;
+    const delay = this.getDelay(dose);
+    if (!(ka > 0) || !(ke > 0)) return delay;
+    if (Math.abs(ka - ke) < 1e-12) return delay + 1 / ka;
+    return delay + Math.log(ka / ke) / (ka - ke);
+  }
+  // For a typical dose (D_ref or less), where the curve has its reference shape
   get duration(): number {
-    // We consider that once some percentage of the insulin is absorbed, it's finished
-    return this.findCompletionTime(Bateman.completionConstant);
+    return this.getDuration(this.D_ref);
+  }
+  get peak(): number {
+    return this.getPeak(this.D_ref);
   }
 
-  // Other useful info
-  get peak(): number {
-    return (
-      this.tDelay +
-      (this.ka === this.ke
-        ? 1 / this.ka
-        : Math.log(this.ka / this.ke) / (this.ka - this.ke))
+  /**
+   * The dose that absorbs `units` between tA and tB (hours after it's taken). A dose's size
+   * changes its own curve, so the dose and its curve are solved together.
+   */
+  doseForAbsorbed(units: number, tA: number, tB: number): number {
+    const fraction = this.unitBatemanIntegral(tA, tB, 0);
+    if (!(fraction > 0)) return units > 0 ? Infinity : 0;
+    // A dose at or under zero has the reference shape, so it's a straight division
+    const straight = units / fraction;
+    if (units <= 0) return straight;
+    // Bigger doses flatten out, so they can need more than a straight division
+    return MathUtil.largestWhere(
+      (dose) => dose * this.unitBatemanIntegral(tA, tB, dose) <= units,
+      straight,
     );
   }
 
