@@ -4,7 +4,7 @@
  * limit of Bateman.F as t approaches infinity is 1
  */
 export namespace Bateman {
-  export const completionConstant = 0.94;
+  export const completionConstant = 0.9;
   export function f(t: number, ka: number, ke: number) {
     if (t <= 0) return 0;
     if (!Number.isFinite(ka) || !Number.isFinite(ke) || ka <= 0 || ke <= 0)
