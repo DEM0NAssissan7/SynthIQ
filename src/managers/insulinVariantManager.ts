@@ -18,10 +18,11 @@ export namespace InsulinVariantManager {
     daysLife: number,
     ka: number,
     ke: number,
+    t0: number,
   ) {
     if (hasDuplicate(name))
       throw new Error(`Cannot create insulin '${name}': already exists`);
-    const variant = new InsulinVariant(name, effect, daysLife, ka, ke);
+    const variant = new InsulinVariant(name, effect, daysLife, ka, ke, t0);
     InsulinVariantStore.variants.value = [
       ...InsulinVariantStore.variants.value,
       variant,

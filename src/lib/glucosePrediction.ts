@@ -302,8 +302,8 @@ const R1_CANARY_READINGS: SugarReading[] = (() => {
   return out;
 })();
 const R1_CANARY_INSULINS: Insulin[] = [
-  new Insulin(3.5, new Date(R1_CANARY_T0 - 137 * R1_MS_PER_MIN), new InsulinVariant("Insulin", 50, 28, 0.5, 0.7)),
-  new Insulin(2.0, new Date(R1_CANARY_T0 - 26 * 3_600_000), new InsulinVariant("Basal", 1.5, 56, 0.01, 0.7)),
+  new Insulin(3.5, new Date(R1_CANARY_T0 - 137 * R1_MS_PER_MIN), new InsulinVariant("Insulin", 50, 28, 0.5, 0.7, 0)),
+  new Insulin(2.0, new Date(R1_CANARY_T0 - 26 * 3_600_000), new InsulinVariant("Basal", 1.5, 56, 0.01, 0.7, 0)),
 ];
 const R1_CANARY_RESCUES: Glucose[] = [
   new Glucose(15, new Date(R1_CANARY_T0 - 22 * R1_MS_PER_MIN), new RescueVariant("grams carbs", 30, 1, 5)),

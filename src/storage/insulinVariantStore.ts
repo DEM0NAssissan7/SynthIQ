@@ -3,8 +3,8 @@ import { InsulinVariant } from "../models/types/insulinVariant";
 import StorageNode from "./storageNode";
 
 export const DEFAULT_INSULIN_VARIANTS = [
-  new InsulinVariant("Insulin", 50, 28, 0.5, 0.7),
-  new InsulinVariant("Basal", 1.5, 56, 0.01, 0.7),
+  new InsulinVariant("Insulin", 50, 28, 0.5, 0.7, 0),
+  new InsulinVariant("Basal", 1.5, 56, 0.01, 0.7, 0),
 ];
 
 export namespace InsulinVariantStore {

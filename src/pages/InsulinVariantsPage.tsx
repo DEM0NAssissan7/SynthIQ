@@ -27,15 +27,19 @@ export default function InsulinVariantsPage() {
   const [effect, setEffect] = useState(0);
   const [ka, setKa] = useState(0);
   const [ke, setKe] = useState(0.7);
+  const [t0, setT0] = useState(20 / 60);
   const [duration, setDuration] = useState(0);
   const [daysLife, setDaysLife] = useState(0);
 
   useMemo(
     () =>
       setKa(
-        round(Bateman.solveKa(duration, Bateman.completionConstant, ke), 2),
+        round(
+          Bateman.solveKa(duration - t0, Bateman.completionConstant, ke),
+          2,
+        ),
       ),
-    [duration, ke],
+    [duration, ke, t0],
   );
 
   const isValid = useMemo(() => name.length > 0 && effect, [name, effect]);
@@ -50,6 +54,7 @@ export default function InsulinVariantsPage() {
     setDuration(0);
     setKa(0);
     setKe(0.7);
+    setT0(20);
     setDaysLife(0);
   }
 
@@ -74,7 +79,7 @@ export default function InsulinVariantsPage() {
       alert("Enter a valid medication life");
       return;
     }
-    InsulinVariantManager.createVariant(name, effect, daysLife, ka, ke);
+    InsulinVariantManager.createVariant(name, effect, daysLife, ka, ke, t0);
     resetUIStates();
   }
 
@@ -163,11 +168,24 @@ export default function InsulinVariantsPage() {
               type="number"
               inputMode="decimal"
               step="any"
-              placeholder="0"
+              placeholder="0.7"
               value={ke || ""}
               onInput={(e: BaseSyntheticEvent) => {
                 const value = parseFloat(e.target.value) || 0;
                 setKe(value);
+              }}
+            />
+
+            <Form.Label className="mt-3">Absorption Delay (minutes)</Form.Label>
+            <Form.Control
+              type="number"
+              inputMode="decimal"
+              step="any"
+              placeholder="20"
+              value={t0 * 60 || ""}
+              onInput={(e: BaseSyntheticEvent) => {
+                const value = parseFloat(e.target.value) || 0;
+                setT0(value / 60);
               }}
             />
 
@@ -297,6 +315,30 @@ export default function InsulinVariantsPage() {
                       InsulinVariantManager.updateVariant(v);
                     }}
                   />
+                </label>
+
+                <label className="m-0 d-flex align-items-center gap-1 small">
+                  <span className="text-muted">delay</span>
+                  <Form.Control
+                    type="number"
+                    inputMode="decimal"
+                    step="any"
+                    value={v.t0 * 60 || ""}
+                    aria-label="delay"
+                    style={{ maxWidth: "4.5rem" }}
+                    className="form-control-sm w-auto border-0 border-bottom rounded-0 shadow-none px-1 text-center"
+                    onChange={(e) => {
+                      const val =
+                        e.target.value === ""
+                          ? undefined
+                          : parseFloat(e.target.value);
+                      v.t0 = Number.isFinite(val as number)
+                        ? (val as number) / 60
+                        : 0;
+                      InsulinVariantManager.updateVariant(v);
+                    }}
+                  />
+                  <span className="text-muted">min</span>
                 </label>
 
                 <div className="w-100 small text-muted">
