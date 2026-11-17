@@ -30,6 +30,16 @@ export namespace HealthMonitorStore {
     Serialization.getArrayDeserializer(SugarReading.deserialize),
   );
   export const readingsHistoryHours = 24;
+  /**
+   * Fingersticks (Nightscout mbg entries) over the same window, display only.
+   * Kept apart from the CGM caches so predictor inputs are unchanged.
+   */
+  export const fingersticks = node.add<SugarReading[]>(
+    "fingersticks",
+    [],
+    Serialization.getArraySerializer(SugarReading.serialize),
+    Serialization.getArrayDeserializer(SugarReading.deserialize),
+  );
   export const lastRescues = node.add<Glucose[]>(
     "lastRescues",
     [],

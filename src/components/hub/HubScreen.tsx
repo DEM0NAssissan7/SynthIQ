@@ -14,6 +14,7 @@ import LastBolusMessage from "../LastBolusMessage";
 import SessionSummary from "../summary/SessionSummary";
 import { useNow } from "../../state/useNow";
 import { PreferencesStore } from "../../storage/preferencesStore";
+import { HealthMonitorStore } from "../../storage/healthMonitorStore";
 import { BasalStore } from "../../storage/basalStore";
 import { WizardStore } from "../../storage/wizardStore";
 import { ActivityStore } from "../../storage/activityStore";
@@ -130,6 +131,15 @@ export default function HubScreen() {
   const [session] = WizardStore.session.useState();
   const [template] = WizardStore.activeTemplate.useState();
   const [templates] = WizardStore.templates.useState();
+  const [fingerstickReadings] = HealthMonitorStore.fingersticks.useState();
+  const fingersticks = useMemo<GlucosePoint[]>(
+    () =>
+      fingerstickReadings.map((r) => ({
+        time: r.timestamp.getTime(),
+        value: r.sugar,
+      })),
+    [fingerstickReadings],
+  );
   const [currentActivity] = ActivityStore.activity.useState();
 
   const range: GlucoseRange = useMemo(
@@ -281,31 +291,30 @@ export default function HubScreen() {
     return samples;
   }, [boluses, earliestMs, nowMinute, activityReach]);
 
-  // Snap scrub: nearest CGM reading up to the anchor, interpolated forecast after.
+  // Snap scrub: nearest CGM reading or fingerstick up to the anchor,
+  // interpolated forecast after.
   const scrub = useMemo<ScrubPoint | null>(() => {
     if (scrubTime === null || !anchor) return null;
     if (scrubTime <= anchor.time) {
-      let best: GlucosePoint | null = null;
-      for (const p of history) {
+      let best: ScrubPoint | null = null;
+      const consider = (p: GlucosePoint, source: ScrubPoint["source"]) => {
         if (
           !best ||
           Math.abs(p.time - scrubTime) < Math.abs(best.time - scrubTime)
         )
-          best = p;
-      }
-      if (!best) return null;
-      return {
-        time: best.time,
-        value: best.value,
-        source: best.isCalibration ? "calibration" : "cgm",
+          best = { time: p.time, value: p.value, source };
       };
+      for (const p of history)
+        consider(p, p.isCalibration ? "calibration" : "cgm");
+      for (const p of fingersticks) consider(p, "fingerstick");
+      return best;
     }
     const last = forecast.length > 0 ? forecast[forecast.length - 1].time : 0;
     const t = Math.min(Math.round(scrubTime / 60000) * 60000, last);
     const v = interpolateAt(forecast, t);
     if (v === null) return null;
     return { time: t, value: v, source: "predicted" };
-  }, [scrubTime, anchor, history, forecast]);
+  }, [scrubTime, anchor, history, fingersticks, forecast]);
 
   const minutesAgo = anchor ? Math.max(0, (nowMs - anchor.time) / 60000) : 0;
   const isStale = anchor !== null && nowMs - anchor.time > stepMs * 3;
@@ -326,6 +335,7 @@ export default function HubScreen() {
   const sourceLabel: Record<ScrubPoint["source"], string> = {
     cgm: "CGM reading",
     calibration: "Calibration",
+    fingerstick: "Fingerstick",
     predicted: "Predicted",
   };
 
@@ -483,6 +493,7 @@ export default function HubScreen() {
       {anchor && (
         <GlucoseGraph
           history={history}
+          fingersticks={fingersticks}
           forecast={forecast}
           anchorTime={anchor.time}
           nowMs={nowMs}

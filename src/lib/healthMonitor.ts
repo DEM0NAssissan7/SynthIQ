@@ -78,7 +78,46 @@ export async function populateReadingCache() {
   HealthMonitorStore.readingsCache.value = recent;
   HealthMonitorStore.currentBG.value = recent[0].sugar;
   refreshR1Context();
+  refreshFingersticks();
   return recent;
+}
+
+/**
+ * Refresh fingersticks over the history window from Nightscout. Best-effort:
+ * on failure the previous list stays. At most one request in flight.
+ */
+let fingersticksInFlight: Promise<void> | null = null;
+export function refreshFingersticks(): Promise<void> {
+  if (fingersticksInFlight) return fingersticksInFlight;
+  fingersticksInFlight = (async () => {
+    try {
+      const now = new Date();
+      const start = new Date(
+        now.getTime() - HealthMonitorStore.readingsHistoryHours * 3_600_000,
+      );
+      const raw = await RemoteReadings.getMeterReadings(start, now);
+      const sticks = raw
+        .filter((r: { mbg?: number }) => r && r.mbg != null)
+        .map(getReadingFromNightscout)
+        .filter(
+          (r: SugarReading) =>
+            Number.isFinite(r.sugar) &&
+            r.sugar > 0 &&
+            !isNaN(r.timestamp.getTime()),
+        )
+        .sort(
+          (a: SugarReading, b: SugarReading) =>
+            a.timestamp.getTime() - b.timestamp.getTime(),
+        );
+      HealthMonitorStore.fingersticks.value = sticks;
+    } catch (e) {
+      if (PrivateStore.debugLogs.value)
+        console.warn("fingerstick refresh failed", e);
+    } finally {
+      fingersticksInFlight = null;
+    }
+  })();
+  return fingersticksInFlight;
 }
 
 /** Union by timestamp (fresh readings win), trimmed to the history window, newest first. */

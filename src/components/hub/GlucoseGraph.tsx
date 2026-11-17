@@ -49,7 +49,7 @@ const MIN_TICK_PX = 64;
 export interface ScrubPoint {
   time: number;
   value: number;
-  source: "cgm" | "calibration" | "predicted";
+  source: "cgm" | "calibration" | "fingerstick" | "predicted";
 }
 
 interface View {
@@ -60,6 +60,8 @@ interface View {
 
 interface Props {
   history: GlucosePoint[];
+  /** Meter readings, drawn as their own markers (not part of the CGM line). */
+  fingersticks: GlucosePoint[];
   forecast: GlucosePoint[];
   anchorTime: number | null;
   nowMs: number;
@@ -196,6 +198,8 @@ function useEased(target: [number, number]): [number, number] {
 /** Theme colors for canvas drawing, resolved from the CSS variables. */
 interface GraphPalette {
   primary: string;
+  error: string;
+  text: string;
   secondary: string;
   tertiary: string;
   bg: string;
@@ -223,6 +227,8 @@ function readPalette(el: Element): GraphPalette {
   const low = v("--app-status-low");
   paletteCache = {
     primary,
+    error: v("--md-sys-color-error"),
+    text: v("--md-sys-color-on-surface"),
     secondary,
     tertiary,
     bg: v("--md-sys-color-surface"),
@@ -257,6 +263,7 @@ function readHintSeen() {
 
 export default function GlucoseGraph({
   history,
+  fingersticks,
   forecast,
   anchorTime,
   nowMs,
@@ -765,7 +772,7 @@ export default function GlucoseGraph({
     lo = Math.min(lo, p.value);
     hi = Math.max(hi, p.value);
   }
-  for (const p of forecast) {
+  for (const p of [...forecast, ...fingersticks]) {
     if (p.time < startMs || p.time > endMs) continue;
     lo = Math.min(lo, p.value);
     hi = Math.max(hi, p.value);
@@ -1261,6 +1268,49 @@ export default function GlucoseGraph({
         fx - 6,
         fy + (falling ? 18 : -9),
       );
+    }
+
+    // Fingersticks: a blood drop at the meter value, with the value above.
+    for (const f of fingersticks) {
+      const fx = px(f.time);
+      if (fx < -12 || fx > W + 12) continue;
+      const fy = py(f.value);
+      // Teardrop, tip up: circle of radius r centred at (fx, fy + r * 0.35).
+      const r = 5;
+      const cy = fy + r * 0.35;
+      ctx.globalAlpha = 1;
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.moveTo(fx, cy - r * 2);
+      ctx.bezierCurveTo(
+        fx + r * 0.6,
+        cy - r * 1.2,
+        fx + r,
+        cy - r * 0.5,
+        fx + r,
+        cy,
+      );
+      ctx.arc(fx, cy, r, 0, Math.PI);
+      ctx.bezierCurveTo(
+        fx - r,
+        cy - r * 0.5,
+        fx - r * 0.6,
+        cy - r * 1.2,
+        fx,
+        cy - r * 2,
+      );
+      ctx.closePath();
+      ctx.fillStyle = pal.error;
+      ctx.fill();
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = pal.bg;
+      ctx.stroke();
+      ctx.font = `700 10px ${pal.font}`;
+      ctx.textAlign = "center";
+      ctx.lineWidth = 3;
+      ctx.strokeText(String(Math.round(f.value)), fx, cy - r * 2 - 4);
+      ctx.fillStyle = pal.text;
+      ctx.fillText(String(Math.round(f.value)), fx, cy - r * 2 - 4);
     }
 
     // Now marker

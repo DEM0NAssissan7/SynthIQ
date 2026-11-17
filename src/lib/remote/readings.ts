@@ -13,8 +13,8 @@ class RemoteReadings {
         timestamp,
         2 *
           BackendStore.minutesPerReading.value *
-          convertDimensions(Unit.Time.Minute, Unit.Time.Hour)
-      )
+          convertDimensions(Unit.Time.Minute, Unit.Time.Hour),
+      ),
     ).then((a) => {
       if (a.length === 0) return null;
       if (a) return a[a.length - 1];
@@ -22,13 +22,21 @@ class RemoteReadings {
   }
   static async getCurrentSugar() {
     return await Backend.get("entries.json").then((a) =>
-      a && a[0] ? getReadingFromNightscout(a[0]) : null
+      a && a[0] ? getReadingFromNightscout(a[0]) : null,
     );
   }
   static async getReadings(
     timestampA: Date,
-    timestampB: Date
-  ): Promise<{ sgv?: number; mbg?: number; date?: string | number; dateString?: string; type?: string }[]> {
+    timestampB: Date,
+  ): Promise<
+    {
+      sgv?: number;
+      mbg?: number;
+      date?: string | number;
+      dateString?: string;
+      type?: string;
+    }[]
+  > {
     const timeA = timestampA.getTime();
     const timeB = timestampB.getTime();
     const minTime = Math.min(timeA, timeB);
@@ -41,7 +49,8 @@ class RemoteReadings {
       convertDimensions(Unit.Time.Millis, Unit.Time.Minute);
     const count = Math.max(
       20,
-      Math.ceil(durationMinutes / (BackendStore.minutesPerReading.value || 5)) + 10
+      Math.ceil(durationMinutes / (BackendStore.minutesPerReading.value || 5)) +
+        10,
     );
 
     // Nightscout date range queries:
@@ -77,6 +86,18 @@ class RemoteReadings {
       console.error("RemoteReadings.getReadings failed:", e);
       return [];
     }
+  }
+  /**
+   * Meter (fingerstick) entries between two times. Queried by dateString for
+   * the same reason as getReadings (numeric date queries match nothing).
+   */
+  static async getMeterReadings(timestampA: Date, timestampB: Date) {
+    const from = new Date(Math.min(timestampA.getTime(), timestampB.getTime()));
+    const to = new Date(Math.max(timestampA.getTime(), timestampB.getTime()));
+    const res = await Backend.get(
+      `entries/mbg.json?find[dateString][$gte]=${from.toISOString()}&find[dateString][$lte]=${to.toISOString()}&count=200`,
+    );
+    return Array.isArray(res) ? res : [];
   }
   static async getLatestReadings(count: number = 10) {
     return await Backend.get(`entries/sgv.json?count=${count}`);
