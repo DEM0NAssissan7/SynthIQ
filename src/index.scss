@@ -1570,7 +1570,7 @@ input[type="search"]::-webkit-search-results-decoration {
   }
 
   .food-input-group {
-    width: 5.5rem;
+    width: 7.5rem;
     display: flex;
     align-items: center;
 
@@ -1595,6 +1595,16 @@ input[type="search"]::-webkit-search-results-decoration {
       background-color: var(--md-sys-color-surface-container);
       border-color: var(--md-sys-color-outline-variant);
       border-radius: 0 var(--md-sys-shape-corner-sm) var(--md-sys-shape-corner-sm) 0 !important;
+    }
+
+    .form-control {
+      border-radius: 0 !important;
+    }
+
+    .food-sign-btn {
+      border-radius: var(--md-sys-shape-corner-sm) 0 0 var(--md-sys-shape-corner-sm) !important;
+      font-weight: 600;
+      cursor: pointer;
     }
   }
 

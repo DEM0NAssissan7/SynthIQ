@@ -13355,7 +13355,7 @@ input[type=search]::-webkit-search-results-decoration {
   flex-shrink: 0;
 }
 .app-food-row .food-input-group {
-  width: 5.5rem;
+  width: 7.5rem;
   display: flex;
   align-items: center;
 }
@@ -13379,6 +13379,14 @@ input[type=search]::-webkit-search-results-decoration {
   background-color: var(--md-sys-color-surface-container);
   border-color: var(--md-sys-color-outline-variant);
   border-radius: 0 var(--md-sys-shape-corner-sm) var(--md-sys-shape-corner-sm) 0 !important;
+}
+.app-food-row .food-input-group .form-control {
+  border-radius: 0 !important;
+}
+.app-food-row .food-input-group .food-sign-btn {
+  border-radius: var(--md-sys-shape-corner-sm) 0 0 var(--md-sys-shape-corner-sm) !important;
+  font-weight: 600;
+  cursor: pointer;
 }
 .app-food-row .food-del-btn {
   width: 2.3rem;

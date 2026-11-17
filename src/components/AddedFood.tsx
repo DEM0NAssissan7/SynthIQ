@@ -1,6 +1,6 @@
 import { Form } from "react-bootstrap";
 import { getFoodUnitPrettyName } from "../models/unit";
-import { useMemo, type BaseSyntheticEvent } from "react";
+import { useEffect, useMemo, useState, type BaseSyntheticEvent } from "react";
 import type Food from "../models/food";
 import useFood from "../state/useFood";
 import { round } from "../lib/util";
@@ -22,6 +22,25 @@ export default function AddedFood({ food, meal }: SearchFoodProps) {
   const netCarbs = useMemo(() => {
     return carbs - fiber;
   }, [carbs, fiber]);
+
+  // Keep the raw text locally so intermediate states like "-" or "-0." survive
+  // while typing; the numeric amount is derived from it.
+  const [text, setText] = useState(amount ? String(amount) : "");
+  useEffect(() => {
+    if ((parseFloat(text) || 0) !== amount) setText(amount ? String(amount) : "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [amount]);
+
+  function updateText(value: string) {
+    if (!/^-?\d*\.?\d*$/.test(value)) return;
+    setText(value);
+    setAmount(parseFloat(value) || 0);
+  }
+
+  // iOS decimal keypad has no minus key, so offer a sign toggle.
+  function toggleSign() {
+    updateText(text.startsWith("-") ? text.slice(1) : "-" + text);
+  }
 
   // Just to prevent reload when pressing enter
   const handleFormSubmit = (e: BaseSyntheticEvent) => {
@@ -46,16 +65,21 @@ export default function AddedFood({ food, meal }: SearchFoodProps) {
       <div className="food-actions">
         <Form onSubmit={handleFormSubmit}>
           <div className="input-group food-input-group">
+            <button
+              type="button"
+              className="input-group-text food-sign-btn"
+              onClick={toggleSign}
+              title="Toggle negative"
+              aria-label="Toggle negative amount"
+            >
+              ±
+            </button>
             <Form.Control
-              type="number"
+              type="text"
               inputMode="decimal"
-              step="any"
               placeholder="0"
-              value={amount || ""}
-              onInput={(e: BaseSyntheticEvent) => {
-                const value = parseFloat(e.target.value) || 0;
-                setAmount(value);
-              }}
+              value={text}
+              onChange={(e) => updateText(e.target.value.replace(",", "."))}
             />
             <span className="input-group-text">{letter}</span>
           </div>
