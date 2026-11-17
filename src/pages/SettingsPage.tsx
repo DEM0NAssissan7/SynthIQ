@@ -310,6 +310,10 @@ export default function SettingsPage() {
           title="Predicted Blood Sugar Decimal Precision"
           keyInterface={PreferencesStore.decimalPredictedBG}
         />
+        <ToggleSetting
+          title="Neural Network Forecast Correction"
+          keyInterface={PreferencesStore.useRSeriesPredictor}
+        />
       </SettingsSection>
       <SettingsSection
         title="Sync mode"

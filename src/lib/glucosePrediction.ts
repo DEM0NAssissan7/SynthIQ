@@ -150,6 +150,7 @@ export function getPredictedGlucoseAccuracy(
   rescues: Glucose[],
   timeframe: number, // How far to look back (hours)
   r1Context?: R1Context,
+  useR1: boolean = true,
 ) {
   if (_readings.length <= 0) return null;
   const sortedReadings = _readings
@@ -172,6 +173,8 @@ export function getPredictedGlucoseAccuracy(
       insulins,
       rescues,
       r1Context,
+      undefined,
+      useR1,
     );
 
   const deviations: number[] = [];
@@ -374,6 +377,9 @@ function r1CappedRescues(rescues: Glucose[], anchorMs: number): Glucose[] {
  * trained horizon and interpolated between them (r1InterpolatedCorrection).
  * An explicit `r1Horizon` (a trained horizon) uses that horizon's correction
  * alone, with no interpolation.
+ *
+ * With `useR1` false this is exactly the original algorithm
+ * (getBasePredictedGlucose on the unmodified inputs).
  */
 export function getPredictedGlucose(
   readings: SugarReading[],
@@ -382,7 +388,11 @@ export function getPredictedGlucose(
   rescues: Glucose[],
   r1Context?: R1Context,
   r1Horizon?: number,
+  useR1: boolean = true,
 ): number | null {
+  if (!useR1) {
+    return getBasePredictedGlucose(readings, timestamp, insulins, rescues);
+  }
   if (readings.length < 2) return null;
   const sortedReadings = readings
     .slice()

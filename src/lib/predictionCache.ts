@@ -6,7 +6,8 @@
  *
  * getPredictedGlucoseAccuracy is a pure function of its arguments: the base
  * predictor, dynamic ISF and r1 read no app state, and the base-version check
- * is a constant canary. Results are therefore cached on a key holding every
+ * is a constant canary (whether r1 is applied is an explicit argument,
+ * part of the key). Results are therefore cached on a key holding every
  * input value the computation reads, so a hit is exactly what recomputing
  * would return. Mutating a reading/treatment changes its key, so edits are
  * picked up automatically.
@@ -68,8 +69,10 @@ export function getPredictedGlucoseAccuracyCached(
   rescues: Glucose[],
   timeframe: number,
   r1Context?: R1Context,
+  useR1: boolean = true,
 ): ReturnType<typeof getPredictedGlucoseAccuracy> {
   const key = [
+    useR1 ? "r1" : "base",
     timeframe,
     readingsKey(readings),
     insulinsKey(insulins),
@@ -90,6 +93,7 @@ export function getPredictedGlucoseAccuracyCached(
     rescues,
     timeframe,
     r1Context,
+    useR1,
   );
   accuracyCache.set(key, result);
   if (accuracyCache.size > ACCURACY_CACHE_MAX)

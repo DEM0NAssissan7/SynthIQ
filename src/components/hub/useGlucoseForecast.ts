@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { HealthMonitorStore } from "../../storage/healthMonitorStore";
 import { BackendStore } from "../../storage/backendStore";
+import { PreferencesStore } from "../../storage/preferencesStore";
 import { getPredictedGlucose } from "../../lib/glucosePrediction";
 import { getPredictedGlucoseAccuracyCached } from "../../lib/predictionCache";
 import { getBGVelocity } from "../../lib/healthMonitor";
@@ -27,7 +28,7 @@ function finiteOrNull(x: number | undefined): number | null {
 }
 
 /**
- * CGM history, the r1 forecast and its live accuracy, all from the
+ * CGM history, the forecast (r1-corrected unless disabled in settings) and its live accuracy, all from the
  * health-monitor caches. The forecast series is recomputed once per CGM
  * interval (or when readings/treatments change), not on every clock tick;
  * only the "now" estimate tracks the clock.
@@ -42,6 +43,7 @@ export function useGlucoseForecast(now: Date) {
   const [meals] = HealthMonitorStore.recentMeals.useState();
   const [basalTimes] = HealthMonitorStore.recentBasalTimes.useState();
   const [cgmDelayRaw] = BackendStore.cgmDelay.useState();
+  const [useR1] = PreferencesStore.useRSeriesPredictor.useState();
   const stepMs = (cgmDelayRaw && cgmDelayRaw > 0 ? cgmDelayRaw : 5) * 60000;
 
   const r1Context = useMemo(
@@ -87,9 +89,17 @@ export function useGlucoseForecast(now: Date) {
   }, [readings]);
 
   const predictedNow = useMemo(() => {
-    const p = getPredictedGlucose(readings, now, boluses, rescues, r1Context);
+    const p = getPredictedGlucose(
+      readings,
+      now,
+      boluses,
+      rescues,
+      r1Context,
+      undefined,
+      useR1,
+    );
     return p !== null && Number.isFinite(p) ? p : null;
-  }, [readings, now, boluses, rescues, r1Context]);
+  }, [readings, now, boluses, rescues, r1Context, useR1]);
 
   const velocity = useMemo(() => getBGVelocity(readings), [readings]);
 
@@ -104,6 +114,7 @@ export function useGlucoseForecast(now: Date) {
       rescues,
       2,
       r1Context,
+      useR1,
     );
     if (
       !result ||
@@ -123,7 +134,7 @@ export function useGlucoseForecast(now: Date) {
       meanDeviation30min: finiteOrNull(result.meanDeviation30min),
       meanDeviation60min: finiteOrNull(result.meanDeviation60min),
     };
-  }, [readings, boluses, rescues, r1Context]);
+  }, [readings, boluses, rescues, r1Context, useR1]);
 
   // Forecast at CGM-interval steps from the anchor reading out to the horizon.
   const nowBucket = Math.floor(now.getTime() / stepMs);
@@ -139,11 +150,22 @@ export function useGlucoseForecast(now: Date) {
         boluses,
         rescues,
         r1Context,
+        undefined,
+        useR1,
       );
       if (p !== null && Number.isFinite(p)) points.push({ time: t, value: p });
     }
     return points;
-  }, [anchor, readings, boluses, rescues, r1Context, nowBucket, stepMs]);
+  }, [
+    anchor,
+    readings,
+    boluses,
+    rescues,
+    r1Context,
+    useR1,
+    nowBucket,
+    stepMs,
+  ]);
 
   // Splice the exact "now" estimate in so the line passes through the
   // number shown in the header.
