@@ -757,7 +757,7 @@ export default function GlucoseGraph({
   // only as far as a visible reading or forecast point goes past either,
   // plus a little headroom so points never sit on the edge.
   const Y_HEADROOM = 5;
-  let lo = range.dangerBG;
+  let lo = range.lowBG;
   let hi = range.highBG;
   for (const p of history) {
     if (p.time < startMs) continue;
