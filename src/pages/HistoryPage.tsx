@@ -6,18 +6,14 @@ import type Session from "../models/session";
 import { WizardStore } from "../storage/wizardStore";
 import { useState } from "react";
 import { BasalStore } from "../storage/basalStore";
-import {
-  EmptyState,
-  PageHeader,
-  PageLayout,
-} from "../components/PageLayout";
+import { EmptyState, PageHeader, PageLayout } from "../components/PageLayout";
 
 function getCSV(templates: MealTemplate[], liverOutput: number): string {
   let out =
     "Template Name,Date,Carbs,Protein,Length (hours),Total Insulin Taken,# Insulin Doses,Rescue Doses Taken,InitialBG,FinalBG,Control Score (lower is better),Theoretical Meal Rise (mg/dL),Fasting Velocity (mg/dL per hour),Basal Units per Day (u/day),Sensitivity Index,Invalid\n";
   for (const t of templates) {
     for (const s of t.sessions) {
-      out += `${t.name},${getFullPrettyDate(s.timestamp)},${s.carbs},${s.protein},${s.length},${s.insulin},${s.insulins.length},${s.glucose},${s.initialGlucose},${s.finalBG},${s.score},${s.theoreticalMealRise},${s.fastingVelocity},${s.dailyBasal},${s.getSensitivityIndex(liverOutput)},${s.isInvalid}\n`;
+      out += `${t.name},${getFullPrettyDate(s.timestamp)},${s.carbs},${s.protein},${s.length},${s.insulin},${s.insulins.length},${s.glucose},${s.initialGlucose},${s.finalBG},${s.score},${s.mealRise},${s.fastingVelocity},${s.dailyBasal},${s.getSensitivityIndex(liverOutput)},${s.isInvalid}\n`;
     }
   }
   return out;
@@ -40,7 +36,8 @@ function SessionCard({ session }: { session: Session; liverOutput: number }) {
             {getFullPrettyDate(session.timestamp)}
           </div>
           <div className="small text-muted" style={{ fontSize: "0.75rem" }}>
-            {session.initialGlucose} → {session.finalBG} mg/dL · {session.length.toFixed(1)}h
+            {session.initialGlucose} → {session.finalBG} mg/dL ·{" "}
+            {session.length.toFixed(1)}h
           </div>
         </div>
         <ToggleButton
@@ -85,7 +82,9 @@ function SessionCard({ session }: { session: Session; liverOutput: number }) {
           <span className="stat-value">
             {session.insulin}u
             {session.correctionInsulin > 0 && (
-              <span className="stat-sub">[{session.correctionInsulin.toFixed(1)}]</span>
+              <span className="stat-sub">
+                [{session.correctionInsulin.toFixed(1)}]
+              </span>
             )}
           </span>
         </div>
@@ -104,7 +103,9 @@ function SessionCard({ session }: { session: Session; liverOutput: number }) {
         </div>
         <div className="app-stat-strip-item">
           <span className="stat-label">Meal Rise</span>
-          <span className="stat-value">{session.theoreticalMealRise.toFixed(0)} mg/dL</span>
+          <span className="stat-value">
+            {session.mealRise.toFixed(0)} mg/dL
+          </span>
         </div>
       </div>
     </Card>

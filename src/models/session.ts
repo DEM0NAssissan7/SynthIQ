@@ -114,39 +114,6 @@ export default class Session extends Subscribable {
   }
 
   // Profile-based stuff
-  get mealRise(): number {
-    const finalBG = this.finalBG;
-    if (!finalBG) return NaN;
-    const initialGlucose = this.initialGlucose;
-    if (!initialGlucose) return NaN;
-
-    const totalDeltaBG = finalBG - initialGlucose;
-    const glucoseDeltaBG = this.glucoseEffect;
-
-    let insulinDeltaBG = 0;
-    this.insulins.forEach(
-      (i) => (insulinDeltaBG += i.value * i.variant.effect),
-    );
-
-    /* 
-  The following statement is roughly true:
-  totalDeltaBG = mealDeltaBG - insulinDeltaBG + glucoseDeltaBG
-
-  -> Because, the total change in blood sugar is:
-  The rise from the meal
-  The fall from insulin
-  The rise from glucoses
-  The effect from basal insulin (ignored)
-
-  Of course there's variance and other factors, but these are the major players, and all we can realistically measure
-
-  so to rearrange to solve for effectMeal, we have:
-  mealDeltaBG = totalDeltaBG + insulinDeltaBG - glucoseDeltaBG - [fastingRise (ignored)]
-
-  */
-    const mealDeltaBG = totalDeltaBG + insulinDeltaBG - glucoseDeltaBG;
-    return mealDeltaBG;
-  }
   get insulinEffect(): number {
     let mgdl = 0;
     this.insulins.forEach(
@@ -245,19 +212,51 @@ export default class Session extends Subscribable {
     insulinVariants: InsulinVariant[],
     rescueVariants: RescueVariant[],
   ): number {
-    const { getInsulinVariant } = useVariantGetters(
+    const { getInsulinVariant, getRescueVariant } = useVariantGetters(
       insulinVariants,
       rescueVariants,
     );
-    const optimalMealInsulins = this.optimalMealInsulins;
-    const rise = optimalMealInsulins.reduce(
-      (n, insulin) =>
-        insulin.value * getInsulinVariant(insulin.variant).effect + n,
+    const insulinEffect = this.insulins.reduce((n, insulin) => {
+      const variant = getInsulinVariant(insulin.variant);
+      return (
+        insulin.value *
+          variant.unitBatemanIntegral(0, this.length) *
+          variant.effect +
+        n
+      );
+    }, 0);
+    const finalBG = this.finalBG;
+    if (!finalBG) return NaN;
+    const initialGlucose = this.initialGlucose;
+    if (!initialGlucose) return NaN;
+
+    const totalDeltaBG = finalBG - initialGlucose;
+    const glucoseDeltaBG = this.glucoses.reduce(
+      (n, glucose) =>
+        n + glucose.value * getRescueVariant(glucose.variant).effect,
       0,
     );
-    return rise;
+
+    /* 
+  The following statement is roughly true:
+  totalDeltaBG = mealDeltaBG - insulinDeltaBG + glucoseDeltaBG
+
+  -> Because, the total change in blood sugar is:
+  The rise from the meal
+  The fall from insulin
+  The rise from glucoses
+  The effect from basal insulin (ignored)
+
+  Of course there's variance and other factors, but these are the major players, and all we can realistically measure
+
+  so to rearrange to solve for effectMeal, we have:
+  mealDeltaBG = totalDeltaBG + insulinDeltaBG - glucoseDeltaBG - [fastingRise (ignored)]
+
+  */
+    const mealDeltaBG = totalDeltaBG + insulinEffect - glucoseDeltaBG;
+    return mealDeltaBG;
   }
-  get theoreticalMealRise(): number {
+  get mealRise(): number {
     return this.getTheoreticalMealRise(
       InsulinVariantStore.variants.value,
       RescueVariantStore.variants.value,
@@ -357,14 +356,16 @@ export default class Session extends Subscribable {
     return this._isGarbage;
   }
   get isInvalid(): boolean {
-    return (
-      this.isGarbage ||
+    const mealRise = this.mealRise;
+    return this.isGarbage ||
       this.insulin <= 0 ||
       this.meal === null ||
       this.glucoseEffect >= this.insulinEffect ||
       this.immature ||
-      this.activities.length !== 0
-    );
+      this.activities.length !== 0 ||
+      Number.isNaN(mealRise)
+      ? true
+      : Math.floor(this.mealRise) <= 0;
   }
 
   get length(): number {

@@ -12704,6 +12704,17 @@ a,
   transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.2s cubic-bezier(0.2, 0, 0, 1);
 }
 
+.card.bg-warning-subtle,
+.app-card.bg-warning-subtle {
+  background-color: var(--app-status-elevated-container) !important;
+  color: var(--app-status-elevated-on-container);
+}
+.card.bg-danger-subtle,
+.app-card.bg-danger-subtle {
+  background-color: var(--app-status-low-container) !important;
+  color: var(--app-status-low-on-container);
+}
+
 .app-card .card-body {
   padding: 1.25rem 1.25rem 1.35rem;
 }
