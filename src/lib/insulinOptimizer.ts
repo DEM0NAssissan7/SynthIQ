@@ -33,12 +33,15 @@ export function mealDeltaBG(
       insulin.batemanIntegral(refTimestamp, timestamp) * insulin.variant.effect,
     0,
   );
+  // Like the insulin, only what absorbed between refTimestamp and timestamp (a rescue can come before the meal)
   const rescueEffect = glucoses.reduce((total, g) => {
-    const minutes =
-      (timestamp.getTime() - g.timestamp.getTime()) *
-      convertDimensions(Unit.Time.Millis, Unit.Time.Minute);
-    if (minutes <= 0) return total;
-    const absorbed = Math.min(minutes / g.variant.duration, 1);
+    const absorbedBy = (time: Date) => {
+      const minutes =
+        (time.getTime() - g.timestamp.getTime()) *
+        convertDimensions(Unit.Time.Millis, Unit.Time.Minute);
+      return minutes <= 0 ? 0 : Math.min(minutes / g.variant.duration, 1);
+    };
+    const absorbed = absorbedBy(timestamp) - absorbedBy(refTimestamp);
     return total + absorbed * g.value * g.variant.effect;
   }, 0);
 
@@ -68,7 +71,7 @@ export interface ForecastDose {
 function sessionMealCurve(session: Session): (t: number) => number {
   const raw = (t: number) =>
     mealDeltaBG(
-      session.timestamp,
+      session.mealTimestamp,
       t,
       session.insulins,
       session.glucoses,
@@ -78,7 +81,7 @@ function sessionMealCurve(session: Session): (t: number) => number {
   if (readings.length === 0) return raw;
   const end = getHourDiff(
     readings[readings.length - 1].timestamp,
-    session.timestamp,
+    session.mealTimestamp,
   );
   const step = 5 / 60;
   const count = Math.ceil(end / step);
@@ -246,19 +249,21 @@ export function replayForecast(
     PreferencesStore.lowBuffer.value,
   profileRises: number[] = [],
 ): ReplayedDose[] {
-  const refTimestamp = session.timestamp;
+  const refTimestamp = session.mealTimestamp;
   const doses = [...session.insulins].sort(
     (a, b) => a.timestamp.getTime() - b.timestamp.getTime(),
   );
 
+  // Treatments can come before the meal (pre-bolus), so they're counted from the start of the session
+  const start = session.timestamp;
   const virtualInsulins: Insulin[] = [];
   return doses.map(({ timestamp, variant }, doseIndex) => {
-    const t = getHourDiff(timestamp, refTimestamp);
+    const t = getHourDiff(timestamp, start);
     // What BG would've been: the real trace, swapping the real treatments for the virtual ones
     const BG =
       session.snapshot.getReading(timestamp).sugar +
-      mealDeltaBG(refTimestamp, t, session.insulins, session.glucoses, null) -
-      mealDeltaBG(refTimestamp, t, virtualInsulins, [], null);
+      mealDeltaBG(start, t, session.insulins, session.glucoses, null) -
+      mealDeltaBG(start, t, virtualInsulins, [], null);
     const forecast = forecastDose(
       references,
       virtualInsulins,

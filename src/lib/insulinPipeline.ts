@@ -187,6 +187,9 @@ export function deriveInsulinPipeline(
   }
 
   const currentBG = BG ?? targetBG;
+  // The base sessions' curves start at their meals, so ours has to as well.
+  // Before the meal is marked (pre-bolus) we don't know when it'll be eaten, so we assume now
+  const mealTimestamp = session?.meal?.timestamp ?? timestamp;
 
   // Shifting both BGs keeps the observed delta (and so the meal's progress) intact
   const forecast = (offset: number) =>
@@ -195,7 +198,7 @@ export function deriveInsulinPipeline(
       takenInsulins,
       session?.glucoses ?? [],
       currentBG + offset,
-      session?.timestamp ?? timestamp,
+      mealTimestamp,
       timestamp,
       variant,
     );

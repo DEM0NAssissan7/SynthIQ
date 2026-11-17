@@ -208,6 +208,8 @@ export default class Session extends Subscribable {
   get mealInsulin(): number {
     return this.insulin - this.correctionInsulin;
   }
+
+  // Meal
   getTheoreticalMealRise(
     insulinVariants: InsulinVariant[],
     rescueVariants: RescueVariant[],
@@ -255,6 +257,10 @@ export default class Session extends Subscribable {
   */
     const mealDeltaBG = totalDeltaBG + insulinEffect - glucoseDeltaBG;
     return mealDeltaBG;
+  }
+  get mealTimestamp(): Date {
+    if (!this.meal) throw Error(`Cannot get meal timestamp: no meal`);
+    return this.meal.timestamp;
   }
   get mealRise(): number {
     return this.getTheoreticalMealRise(
@@ -357,15 +363,28 @@ export default class Session extends Subscribable {
   }
   get isInvalid(): boolean {
     const mealRise = this.mealRise;
+    // Figure out if meal was marked too late
+    const markedTooLate = (() => {
+      if (this.insulins.length === 0 || !this.meal) return null;
+      const insulin = this.insulins[0];
+      const timeDiff =
+        (this.meal.timestamp.getTime() - insulin.timestamp.getTime()) *
+        convertDimensions(Unit.Time.Millis, Unit.Time.Hour);
+      if (timeDiff <= 0) false;
+      const threshold = insulin.variant.findCompletionTime(0.07, insulin.value);
+      if (timeDiff <= threshold) return false;
+      return true;
+    })();
     return this.isGarbage ||
       this.insulin <= 0 ||
       this.meal === null ||
       this.glucoseEffect >= this.insulinEffect ||
       this.immature ||
+      markedTooLate ||
       this.activities.length !== 0 ||
       Number.isNaN(mealRise)
       ? true
-      : Math.floor(this.mealRise) <= 0;
+      : Math.floor(mealRise) <= 0;
   }
 
   get length(): number {
