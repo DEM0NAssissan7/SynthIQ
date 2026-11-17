@@ -300,6 +300,12 @@ export default function SettingsPage() {
           iconClass="schedule"
           unit="min"
         />
+        <NumberSetting
+          keyInterface={PreferencesStore.lowBuffer}
+          title="Low Blood Sugar Predictive Buffer"
+          iconClass="arrow_circle_down"
+          unit="mg/dL"
+        />
         <ToggleSetting
           title="Predicted Blood Sugar Decimal Precision"
           keyInterface={PreferencesStore.decimalPredictedBG}
