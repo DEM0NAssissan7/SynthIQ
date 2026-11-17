@@ -151,10 +151,7 @@ export function forecastDose(
     let min = Infinity;
     let limitHours = 0;
     const step = 5 / 60;
-    const peakHours =
-      variant.ka === variant.ke
-        ? 1 / variant.ka
-        : Math.log(variant.ka / variant.ke) / (variant.ka - variant.ke);
+    const peakHours = variant.peak;
     for (let i = peakHours; i < variant.duration; i += step) {
       // 'i' is in hours from now
       const t = tNow + i;

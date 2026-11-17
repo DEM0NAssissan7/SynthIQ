@@ -34,6 +34,16 @@ export class InsulinVariant {
     return this.findCompletionTime(Bateman.completionConstant);
   }
 
+  // Other useful info
+  get peak(): number {
+    return (
+      this.t0 +
+      (this.ka === this.ke
+        ? 1 / this.ka
+        : Math.log(this.ka / this.ke) / (this.ka - this.ke))
+    );
+  }
+
   static serialize: Serializer<InsulinVariant> = (i: InsulinVariant) => {
     return {
       name: i.name,
