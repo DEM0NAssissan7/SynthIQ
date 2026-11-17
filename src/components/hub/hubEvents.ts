@@ -121,12 +121,12 @@ export function activityScaleReach(boluses: Insulin[]): {
   const seen = new Set<string>();
   for (const b of boluses) {
     const v = b.variant;
-    const key = `${v.ka}:${v.ke}`;
+    const key = `${v.ka}:${v.ke}:${v.t0}`;
     if (seen.has(key)) continue;
     seen.add(key);
     const d = v.duration;
     if (Number.isFinite(d)) back = Math.max(back, d);
-    ahead = Math.max(ahead, peakHours(v.ka, v.ke));
+    ahead = Math.max(ahead, v.t0 + peakHours(v.ka, v.ke));
   }
   return { backMs: back * 3_600_000, aheadMs: ahead * 3_600_000 };
 }

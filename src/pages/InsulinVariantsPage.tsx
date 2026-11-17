@@ -54,7 +54,7 @@ export default function InsulinVariantsPage() {
     setDuration(0);
     setKa(0);
     setKe(0.7);
-    setT0(20);
+    setT0(20 / 60);
     setDaysLife(0);
   }
 
@@ -77,6 +77,14 @@ export default function InsulinVariantsPage() {
     }
     if (!daysLife) {
       alert("Enter a valid medication life");
+      return;
+    }
+    if (!(t0 >= 0)) {
+      alert("Absorption delay cannot be negative");
+      return;
+    }
+    if (duration && duration <= t0) {
+      alert("Duration must be longer than the absorption delay");
       return;
     }
     InsulinVariantManager.createVariant(name, effect, daysLife, ka, ke, t0);
@@ -181,6 +189,7 @@ export default function InsulinVariantsPage() {
               type="number"
               inputMode="decimal"
               step="any"
+              min="0"
               placeholder="20"
               value={t0 * 60 || ""}
               onInput={(e: BaseSyntheticEvent) => {
@@ -323,6 +332,7 @@ export default function InsulinVariantsPage() {
                     type="number"
                     inputMode="decimal"
                     step="any"
+                    min="0"
                     value={v.t0 * 60 || ""}
                     aria-label="delay"
                     style={{ maxWidth: "4.5rem" }}
@@ -332,6 +342,7 @@ export default function InsulinVariantsPage() {
                         e.target.value === ""
                           ? undefined
                           : parseFloat(e.target.value);
+                      if ((val as number) < 0) return;
                       v.t0 = Number.isFinite(val as number)
                         ? (val as number) / 60
                         : 0;
