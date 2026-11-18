@@ -1192,6 +1192,31 @@ export default function GlucoseGraph({
       }
     }
 
+    // Glucose lines are colored by zone like a CGM app: the high color above
+    // the high threshold, the low color below the low threshold, the normal
+    // color in range. Drawn once per zone, clipped to that zone's band, so the
+    // color changes exactly where the line crosses a threshold.
+    const yHigh = py(range.highBG);
+    const yLow = py(range.lowBG);
+    const zones: [number, number, string][] = [
+      [-1e4, yHigh, pal.elevated],
+      [yHigh, yLow, pal.primary],
+      [yLow, 1e4, pal.low],
+    ];
+    const strokeByZone = (path: () => void) => {
+      for (const [top, bottom, color] of zones) {
+        if (bottom <= top) continue;
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(-10, top, W + 20, bottom - top);
+        ctx.clip();
+        ctx.strokeStyle = color;
+        path();
+        ctx.stroke();
+        ctx.restore();
+      }
+    };
+
     // CGM history
     const pxPerStep = (stepMs / 60000) * pxPerMin;
     const showDots = pxPerStep >= 4;
@@ -1199,10 +1224,8 @@ export default function GlucoseGraph({
     ctx.setLineDash([]);
     ctx.lineCap = "round";
     ctx.lineWidth = 2;
-    ctx.globalAlpha = showDots ? 0.35 : 0.95;
-    ctx.strokeStyle = pal.primary;
-    trace(vHistory, py, stepMs * 3);
-    ctx.stroke();
+    ctx.globalAlpha = showDots ? 0.45 : 0.95;
+    strokeByZone(() => trace(vHistory, py, stepMs * 3));
     ctx.globalAlpha = 1;
     for (const p of vHistory) {
       const cx = px(p.time);
@@ -1238,10 +1261,8 @@ export default function GlucoseGraph({
 
     // Forecast
     ctx.lineWidth = 2.25;
-    ctx.strokeStyle = pal.primary;
     ctx.setLineDash([5, 4]);
-    trace(vForecast, py);
-    ctx.stroke();
+    strokeByZone(() => trace(vForecast, py));
     ctx.setLineDash([]);
     ctx.restore();
 
