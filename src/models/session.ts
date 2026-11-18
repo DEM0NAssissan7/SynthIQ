@@ -379,7 +379,6 @@ export default class Session extends Subscribable {
       this.insulin <= 0 ||
       this.meal === null ||
       this.glucoseEffect >= this.insulinEffect ||
-      this.immature ||
       markedTooLate ||
       this.activities.length !== 0 ||
       Number.isNaN(mealRise)
