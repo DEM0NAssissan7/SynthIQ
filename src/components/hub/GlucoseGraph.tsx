@@ -764,6 +764,9 @@ export default function GlucoseGraph({
   // only as far as a visible reading or forecast point goes past either,
   // plus a little headroom so points never sit on the edge.
   const Y_HEADROOM = 5;
+  // The scale never goes below 40 mg/dL (the lowest value CGMs report;
+  // anything under it is drawn pinned to the floor).
+  const Y_FLOOR = 40;
   let lo = range.lowBG;
   let hi = range.highBG;
   for (const p of history) {
@@ -778,10 +781,11 @@ export default function GlucoseGraph({
     hi = Math.max(hi, p.value);
   }
   const [yMin, yMax] = useEased([
-    Math.round(lo - Y_HEADROOM),
+    Math.max(Y_FLOOR, Math.round(lo - Y_HEADROOM)),
     Math.round(hi + Y_HEADROOM),
   ]);
-  const y = (v: number) => TOP + (1 - (v - yMin) / (yMax - yMin)) * plotH;
+  const y = (v: number) =>
+    TOP + (1 - (Math.max(v, yMin) - yMin) / (yMax - yMin)) * plotH;
   const yStep = niceYStep(yMax - yMin, plotH);
   const yTicks: number[] = [];
   for (let v = Math.ceil(yMin / yStep) * yStep; v <= yMax; v += yStep)
@@ -1032,7 +1036,8 @@ export default function GlucoseGraph({
     ctx.lineJoin = "round";
 
     const px = (t: number) => PAD_L + ((t - startMs) / view.span) * innerW;
-    const py = (v: number) => TOP + (1 - (v - yMin) / (yMax - yMin)) * plotH;
+    const py = (v: number) =>
+      TOP + (1 - (Math.max(v, yMin) - yMin) / (yMax - yMin)) * plotH;
     const margin = stepMs * 2;
     const inView = (p: { time: number }) =>
       p.time >= startMs - margin && p.time <= endMs + margin;
