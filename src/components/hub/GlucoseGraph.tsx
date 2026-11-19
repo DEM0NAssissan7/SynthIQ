@@ -761,7 +761,7 @@ export default function GlucoseGraph({
   const iobBottom = iobTop + IOB_H;
 
   // Y domain: from the user's danger low to their high threshold, widened
-  // only as far as a visible reading or forecast point goes past either,
+  // only as far as a visible reading or fingerstick goes past either,
   // plus a little headroom so points never sit on the edge.
   const Y_HEADROOM = 5;
   // The scale never goes below 40 mg/dL (the lowest value CGMs report;
@@ -775,7 +775,9 @@ export default function GlucoseGraph({
     lo = Math.min(lo, p.value);
     hi = Math.max(hi, p.value);
   }
-  for (const p of [...forecast, ...fingersticks]) {
+  // The forecast is left out on purpose: the scale follows measured glucose
+  // only, and forecast points beyond it are clipped at the edge.
+  for (const p of fingersticks) {
     if (p.time < startMs || p.time > endMs) continue;
     lo = Math.min(lo, p.value);
     hi = Math.max(hi, p.value);
