@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { basalIsDue } from "../lib/healthMonitor";
 import { useNow } from "../state/useNow";
 import { WizardStore } from "../storage/wizardStore";
@@ -37,7 +37,9 @@ export default function BottomNav() {
 
   const [showMoreSheet, setShowMoreSheet] = useState(false);
   const [dragUpY, setDragUpY] = useState<number | null>(null);
-  const pointerStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  const pointerStartRef = useRef<{ x: number; y: number; time: number } | null>(
+    null,
+  );
   const hasDraggedRef = useRef(false);
 
   const handleBarPointerDown = (e: React.PointerEvent<HTMLElement>) => {
@@ -45,6 +47,30 @@ export default function BottomNav() {
     pointerStartRef.current = { x: e.clientX, y: e.clientY, time: Date.now() };
     hasDraggedRef.current = false;
   };
+
+  /**
+   * Abandon a drawer drag. iOS hands an edge swipe (go home, app switcher)
+   * to the system mid-gesture without sending pointerup/pointercancel, and a
+   * drag left open keeps the half-raised sheet's backdrop over the whole app.
+   */
+  const resetDrag = () => {
+    pointerStartRef.current = null;
+    hasDraggedRef.current = false;
+    setDragUpY(null);
+  };
+  useEffect(() => {
+    const onHidden = () => {
+      if (document.hidden) resetDrag();
+    };
+    document.addEventListener("visibilitychange", onHidden);
+    window.addEventListener("pagehide", resetDrag);
+    window.addEventListener("blur", resetDrag);
+    return () => {
+      document.removeEventListener("visibilitychange", onHidden);
+      window.removeEventListener("pagehide", resetDrag);
+      window.removeEventListener("blur", resetDrag);
+    };
+  }, []);
 
   const handleBarPointerMove = (e: React.PointerEvent<HTMLElement>) => {
     if (!pointerStartRef.current) return;
@@ -259,6 +285,13 @@ export default function BottomNav() {
         onPointerMove={handleBarPointerMove}
         onPointerUp={handleBarPointerUp}
         onPointerCancel={handleBarPointerCancel}
+        onLostPointerCapture={(e) => {
+          // Capture taken from the bar itself without a release (OS
+          // gesture): drop the drag. Ignore the bubbled event from the child
+          // that hands its implicit touch capture to the bar on drag start.
+          if (e.target === e.currentTarget && pointerStartRef.current)
+            handleBarPointerCancel(e);
+        }}
         onClickCapture={handleBarClickCapture}
       >
         {/* Status Tab */}
@@ -310,7 +343,10 @@ export default function BottomNav() {
       {/* Material 3 Bottom Drawer (More Menu) */}
       <MdModalBottomSheet
         show={showMoreSheet}
-        onHide={() => setShowMoreSheet(false)}
+        onHide={() => {
+          setShowMoreSheet(false);
+          resetDrag();
+        }}
         dragUpY={dragUpY}
         title={
           <div className="d-flex align-items-center gap-2">

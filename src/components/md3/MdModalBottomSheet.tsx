@@ -60,6 +60,26 @@ export default function MdModalBottomSheet({
     dragDownStartRef.current = { y: e.clientY, time: Date.now() };
   };
 
+  // Same OS-gesture problem as the nav bar's drag: never leave a drag open
+  // when the app is backgrounded or loses focus.
+  useEffect(() => {
+    const reset = () => {
+      dragDownStartRef.current = null;
+      setDragDownY(null);
+    };
+    const onHidden = () => {
+      if (document.hidden) reset();
+    };
+    document.addEventListener("visibilitychange", onHidden);
+    window.addEventListener("pagehide", reset);
+    window.addEventListener("blur", reset);
+    return () => {
+      document.removeEventListener("visibilitychange", onHidden);
+      window.removeEventListener("pagehide", reset);
+      window.removeEventListener("blur", reset);
+    };
+  }, []);
+
   const handleTopPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (!dragDownStartRef.current) return;
     const dy = e.clientY - dragDownStartRef.current.y;
@@ -106,14 +126,17 @@ export default function MdModalBottomSheet({
 
   if (isDraggingUp) {
     const upward = dragUpY ?? 0;
-    const effectiveHeight = sheetHeight || (window.innerHeight * 0.82);
+    const effectiveHeight = sheetHeight || window.innerHeight * 0.82;
     translateY = Math.max(0, effectiveHeight - upward);
     backdropOpacity = Math.min(0.5, (upward / (effectiveHeight * 0.7)) * 0.5);
   } else if (isDraggingDown) {
     const downward = dragDownY ?? 0;
-    const effectiveHeight = sheetHeight || (window.innerHeight * 0.82);
+    const effectiveHeight = sheetHeight || window.innerHeight * 0.82;
     translateY = downward;
-    backdropOpacity = Math.max(0, (1 - downward / (effectiveHeight * 0.8)) * 0.5);
+    backdropOpacity = Math.max(
+      0,
+      (1 - downward / (effectiveHeight * 0.8)) * 0.5,
+    );
   }
 
   return (
@@ -124,7 +147,9 @@ export default function MdModalBottomSheet({
       {/* Dimmed Backdrop */}
       <div
         className={`md3-sheet-backdrop ${show ? "open" : ""} ${isDragging ? "dragging" : ""}`}
-        style={backdropOpacity !== null ? { opacity: backdropOpacity } : undefined}
+        style={
+          backdropOpacity !== null ? { opacity: backdropOpacity } : undefined
+        }
         onClick={onHide}
         aria-hidden="true"
       />
@@ -133,7 +158,11 @@ export default function MdModalBottomSheet({
       <div
         ref={sheetRef}
         className={`md3-bottom-sheet ${show ? "open" : ""} ${isDragging ? "dragging" : ""} ${className}`.trim()}
-        style={translateY !== null ? { transform: `translateY(${translateY}px)` } : undefined}
+        style={
+          translateY !== null
+            ? { transform: `translateY(${translateY}px)` }
+            : undefined
+        }
         role="dialog"
         aria-modal="true"
       >

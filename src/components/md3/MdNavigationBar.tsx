@@ -39,11 +39,11 @@ export function MdNavigationItem({
         ) : (
           <i className={`bi ${displayIcon}`} />
         )}
-        {badge === true && <span className={`app-bottom-nav-dot ${badgeClass}`} />}
+        {badge === true && (
+          <span className={`app-bottom-nav-dot ${badgeClass}`} />
+        )}
         {typeof badge === "string" || typeof badge === "number" ? (
-          <span className="app-bottom-nav-badge-pill">
-            {badge}
-          </span>
+          <span className="app-bottom-nav-badge-pill">{badge}</span>
         ) : null}
       </div>
       <span className="app-bottom-nav-label">{label}</span>
@@ -59,6 +59,7 @@ interface MdNavigationBarProps {
   onPointerMove?: (e: React.PointerEvent<HTMLElement>) => void;
   onPointerUp?: (e: React.PointerEvent<HTMLElement>) => void;
   onPointerCancel?: (e: React.PointerEvent<HTMLElement>) => void;
+  onLostPointerCapture?: (e: React.PointerEvent<HTMLElement>) => void;
   onClickCapture?: (e: React.MouseEvent<HTMLElement>) => void;
 }
 
@@ -70,6 +71,7 @@ export default function MdNavigationBar({
   onPointerMove,
   onPointerUp,
   onPointerCancel,
+  onLostPointerCapture,
   onClickCapture,
 }: MdNavigationBarProps) {
   return (
@@ -80,6 +82,7 @@ export default function MdNavigationBar({
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerCancel}
+      onLostPointerCapture={onLostPointerCapture}
       onClickCapture={onClickCapture}
     >
       <div
