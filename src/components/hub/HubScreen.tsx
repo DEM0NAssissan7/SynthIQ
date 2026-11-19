@@ -630,7 +630,7 @@ export default function HubScreen() {
             ))}
           </div>
         )}
-        {sheet?.type === "iob" && <LastBolusMessage />}
+        {sheet?.type === "iob" && <LastBolusMessage nowMs={nowMs} />}
         {sheet?.type === "accuracy" && accuracy && (
           <>
             <p className="text-muted small mb-3">
