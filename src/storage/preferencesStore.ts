@@ -29,6 +29,12 @@ export namespace PreferencesStore {
   export const decimalPredictedBG = node.add("decimalPredictedBG", false);
   /** Apply the r-series neural residual correction to the forecast. */
   export const useRSeriesPredictor = node.add("useRSeriesPredictor", false);
+  /**
+   * Default vertical bounds of the hub graph (mg/dL). Readings outside them
+   * still widen the view; the graph never shows below 40 mg/dL.
+   */
+  export const hubGraphMinBG = node.add<number>("hubGraphMinBG", 70);
+  export const hubGraphMaxBG = node.add<number>("hubGraphMaxBG", 125);
   /** Visible time span of the hub graph (minutes), kept across sessions. */
   export const hubSpanMinutes = node.add<number>("hubSpanMinutes", 240);
 }

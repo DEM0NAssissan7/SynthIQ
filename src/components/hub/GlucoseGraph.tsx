@@ -760,15 +760,21 @@ export default function GlucoseGraph({
   const iobTop = laneTop + LANE_ROWS * ROW_H + IOB_GAP;
   const iobBottom = iobTop + IOB_H;
 
-  // Y domain: from the user's danger low to their high threshold, widened
-  // only as far as a visible reading or fingerstick goes past either,
-  // plus a little headroom so points never sit on the edge.
+  // Y domain: the default bounds from Settings, widened only as far as a
+  // visible reading or fingerstick goes past either, plus a little headroom
+  // so points never sit on the edge.
   const Y_HEADROOM = 5;
   // The scale never goes below 40 mg/dL (the lowest value CGMs report;
   // anything under it is drawn pinned to the floor).
   const Y_FLOOR = 40;
-  let lo = range.lowBG;
-  let hi = range.highBG;
+  const [boundMin] = PreferencesStore.hubGraphMinBG.useState();
+  const [boundMax] = PreferencesStore.hubGraphMaxBG.useState();
+  const validBounds =
+    Number.isFinite(boundMin) &&
+    Number.isFinite(boundMax) &&
+    boundMax > boundMin;
+  let lo = validBounds ? boundMin : range.lowBG;
+  let hi = validBounds ? boundMax : range.highBG;
   for (const p of history) {
     if (p.time < startMs) continue;
     if (p.time > endMs) break;

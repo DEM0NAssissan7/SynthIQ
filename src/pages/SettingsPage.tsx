@@ -275,6 +275,24 @@ export default function SettingsPage() {
           </Button>
         </div>
       </SettingsSection>
+      <SettingsSection title="Hub graph">
+        <p className="text-muted small">
+          The graph's vertical range by default. Readings outside it still widen
+          the view, and it never shows below 40 mg/dL.
+        </p>
+        <NumberSetting
+          keyInterface={PreferencesStore.hubGraphMaxBG}
+          title="Graph top"
+          iconClass="arrow_circle_up"
+          unit="mg/dL"
+        />
+        <NumberSetting
+          keyInterface={PreferencesStore.hubGraphMinBG}
+          title="Graph bottom"
+          iconClass="arrow_circle_down"
+          unit="mg/dL"
+        />
+      </SettingsSection>
       <SettingsSection title="Glucose thresholds">
         <NumberSetting
           keyInterface={PreferencesStore.highBG}
