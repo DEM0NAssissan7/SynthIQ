@@ -14666,4 +14666,15 @@ input[type=search]::-webkit-search-results-decoration {
   font-style: italic;
 }
 
+/* Dose rows that can be pressed and held (IOB sheet) */
+.app-dose-item-holdable {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  transition: background-color 0.15s ease;
+}
+.app-dose-item-holdable:active {
+  background-color: var(--md-sys-color-surface-container-high);
+}
+
 /*# sourceMappingURL=index.css.map */

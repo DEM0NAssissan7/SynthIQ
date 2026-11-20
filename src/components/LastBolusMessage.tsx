@@ -1,4 +1,7 @@
-import { getFormattedTime, getMinuteDiff } from "../lib/timing";
+import { useRef } from "react";
+import { getFormattedTime, getMinuteDiff, getPrettyTime } from "../lib/timing";
+import type Insulin from "../models/events/insulin";
+import { WizardStore } from "../storage/wizardStore";
 import { round } from "../lib/util";
 import { HealthMonitorStore } from "../storage/healthMonitorStore";
 import { useNow } from "../state/useNow";
@@ -9,6 +12,73 @@ function formatDose(value: number) {
   return Number.isInteger(rounded) ? `${rounded}` : rounded.toFixed(1);
 }
 
+const HOLD_MS = 500;
+const HOLD_SLOP_PX = 10;
+
+/**
+ * Remove a dose from the app: from the recent boluses (which drive IOB and
+ * the forecast) and from the current session if it was logged there. The
+ * treatment already uploaded to Nightscout is not touched.
+ */
+function deleteDose(insulin: Insulin) {
+  const time = insulin.timestamp.getTime();
+  const label = `${formatDose(insulin.value)}u ${insulin.variant.name} at ${getPrettyTime(insulin.timestamp)}`;
+  if (
+    !confirm(
+      `Delete ${label}?\n\nIt will no longer count toward insulin on board or the forecast. The copy uploaded to Nightscout is not removed.`,
+    )
+  )
+    return;
+  HealthMonitorStore.recentBoluses.value =
+    HealthMonitorStore.recentBoluses.value.filter((b) => b !== insulin);
+  const session = WizardStore.session.value;
+  const logged = session.insulins.find(
+    (b) => b.timestamp.getTime() === time && b.value === insulin.value,
+  );
+  if (logged) {
+    session.removeInsulin(logged);
+    WizardStore.session.write();
+  }
+}
+
+/** Press-and-hold on a dose row to delete it. */
+function useHoldToDelete() {
+  const hold = useRef<{
+    timer: number;
+    x: number;
+    y: number;
+  } | null>(null);
+  const cancel = () => {
+    if (hold.current) window.clearTimeout(hold.current.timer);
+    hold.current = null;
+  };
+  return (insulin: Insulin) => ({
+    onPointerDown: (e: React.PointerEvent) => {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      cancel();
+      hold.current = {
+        x: e.clientX,
+        y: e.clientY,
+        timer: window.setTimeout(() => {
+          hold.current = null;
+          navigator.vibrate?.(10);
+          deleteDose(insulin);
+        }, HOLD_MS),
+      };
+    },
+    onPointerMove: (e: React.PointerEvent) => {
+      const h = hold.current;
+      if (h && Math.hypot(e.clientX - h.x, e.clientY - h.y) > HOLD_SLOP_PX)
+        cancel();
+    },
+    onPointerUp: cancel,
+    onPointerCancel: cancel,
+    onPointerLeave: cancel,
+    // Stop iOS/Android from opening a text callout or context menu on hold.
+    onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
+  });
+}
+
 /**
  * Insulin on board and its breakdown. Totals use the same functions as the
  * hub's IOB chip and strip (every bolus given before `nowMs`, including the
@@ -17,6 +87,7 @@ function formatDose(value: number) {
 export default function LastBolusMessage({ nowMs }: { nowMs?: number }) {
   const [boluses] = HealthMonitorStore.recentBoluses.useState();
   const fallbackNow = useNow(5);
+  const holdToDelete = useHoldToDelete();
   const now = new Date(nowMs ?? fallbackNow.getTime());
   const t = now.getTime();
 
@@ -108,7 +179,9 @@ export default function LastBolusMessage({ nowMs }: { nowMs?: number }) {
           return (
             <div
               key={`${insulin.timestamp.getTime()}-${insulin.variant.name}-${index}`}
-              className="app-dose-item"
+              className="app-dose-item app-dose-item-holdable"
+              title="Press and hold to delete"
+              {...holdToDelete(insulin)}
             >
               <span className="dose-name">
                 <MdIcon name="syringe" className="text-primary" size={18} />
@@ -132,6 +205,9 @@ export default function LastBolusMessage({ nowMs }: { nowMs?: number }) {
             </div>
           );
         })}
+        <div className="text-muted small px-1 mt-1">
+          Press and hold a dose to delete it.
+        </div>
         {olderRemainder >= 0.05 && (
           <div className="app-dose-item">
             <span className="dose-name">
