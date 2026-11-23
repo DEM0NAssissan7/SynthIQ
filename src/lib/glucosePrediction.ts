@@ -153,8 +153,11 @@ export function getPredictedGlucoseAccuracy(
   useR1: boolean = true,
 ) {
   if (_readings.length <= 0) return null;
+  const removeCalibrations =
+    _readings.filter((a) => !a.isCalibration).length > 2;
   const sortedReadings = _readings
     .slice()
+    .filter((r) => !r.isCalibration || !removeCalibrations)
     .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
   const n = sortedReadings.length;
 
@@ -305,11 +308,23 @@ const R1_CANARY_READINGS: SugarReading[] = (() => {
   return out;
 })();
 const R1_CANARY_INSULINS: Insulin[] = [
-  new Insulin(3.5, new Date(R1_CANARY_T0 - 137 * R1_MS_PER_MIN), new InsulinVariant("Insulin", 50, 28, 0.5, 0.7, 0)),
-  new Insulin(2.0, new Date(R1_CANARY_T0 - 26 * 3_600_000), new InsulinVariant("Basal", 1.5, 56, 0.01, 0.7, 0)),
+  new Insulin(
+    3.5,
+    new Date(R1_CANARY_T0 - 137 * R1_MS_PER_MIN),
+    new InsulinVariant("Insulin", 50, 28, 0.5, 0.7, 0),
+  ),
+  new Insulin(
+    2.0,
+    new Date(R1_CANARY_T0 - 26 * 3_600_000),
+    new InsulinVariant("Basal", 1.5, 56, 0.01, 0.7, 0),
+  ),
 ];
 const R1_CANARY_RESCUES: Glucose[] = [
-  new Glucose(15, new Date(R1_CANARY_T0 - 22 * R1_MS_PER_MIN), new RescueVariant("grams carbs", 30, 1, 5)),
+  new Glucose(
+    15,
+    new Date(R1_CANARY_T0 - 22 * R1_MS_PER_MIN),
+    new RescueVariant("grams carbs", 30, 1, 5),
+  ),
 ];
 const R1_CANARY_TARGET_MS = R1_CANARY_T0 + 30 * R1_MS_PER_MIN;
 // Base output on the canary inputs, measured on the locked base (see above).
@@ -333,8 +348,7 @@ export function isBaseVersionValid(): boolean {
         R1_CANARY_RESCUES,
       );
       _r1BaseVersionValid =
-        typeof got === "number" &&
-        Math.abs(got - R1_CANARY_EXPECTED) < 0.001;
+        typeof got === "number" && Math.abs(got - R1_CANARY_EXPECTED) < 0.001;
     } catch {
       _r1BaseVersionValid = false;
     }
@@ -382,7 +396,7 @@ function r1CappedRescues(rescues: Glucose[], anchorMs: number): Glucose[] {
  * (getBasePredictedGlucose on the unmodified inputs).
  */
 export function getPredictedGlucose(
-  readings: SugarReading[],
+  _readings: SugarReading[],
   timestamp: Date,
   insulins: Insulin[],
   rescues: Glucose[],
@@ -390,6 +404,11 @@ export function getPredictedGlucose(
   r1Horizon?: number,
   useR1: boolean = true,
 ): number | null {
+  const removeCalibrations =
+    _readings.filter((r) => !r.isCalibration).length > 2;
+  const readings = _readings.filter(
+    (r) => !r.isCalibration || !removeCalibrations,
+  );
   if (!useR1) {
     return getBasePredictedGlucose(readings, timestamp, insulins, rescues);
   }
@@ -432,7 +451,11 @@ export function getPredictedGlucose(
   );
   if (feats === null) return base;
 
-  const enc = r1Encode(r1Weights, Array.from(feats.seq), Array.from(feats.scal));
+  const enc = r1Encode(
+    r1Weights,
+    Array.from(feats.seq),
+    Array.from(feats.scal),
+  );
   // Correction at one trained horizon, fed the base prediction at exactly
   // that horizon. Skipped horizons contribute no correction.
   const correctionAt = (h: number): number | null => {
