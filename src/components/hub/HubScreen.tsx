@@ -14,6 +14,7 @@ import LastBolusMessage from "../LastBolusMessage";
 import SessionSummary from "../summary/SessionSummary";
 import { useNow } from "../../state/useNow";
 import { PreferencesStore } from "../../storage/preferencesStore";
+import { BackendStore } from "../../storage/backendStore";
 import { HealthMonitorStore } from "../../storage/healthMonitorStore";
 import { BasalStore } from "../../storage/basalStore";
 import { WizardStore } from "../../storage/wizardStore";
@@ -165,6 +166,23 @@ export default function HubScreen() {
     basalTimes,
   } = useGlucoseForecast(now);
 
+  // CGM lag: a sensor reading reflects blood glucose about cgmDelay minutes
+  // earlier, so the graph draws CGM readings (and the forecast that continues
+  // them) that far back in time. Fingersticks and treatments are real-time
+  // and stay where they are. Alerts and the header keep the raw CGM times.
+  const [cgmDelayMin] = BackendStore.cgmDelay.useState();
+  const lagMs =
+    (Number.isFinite(cgmDelayMin) && cgmDelayMin > 0 ? cgmDelayMin : 0) * 60000;
+  const plotHistory = useMemo(
+    () => history.map((p) => ({ ...p, time: p.time - lagMs })),
+    [history, lagMs],
+  );
+  const plotForecast = useMemo(
+    () => forecast.map((p) => ({ ...p, time: p.time - lagMs })),
+    [forecast, lagMs],
+  );
+  const plotAnchorTime = anchor ? anchor.time - lagMs : null;
+
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [scrubTime, setScrubTime] = useState<number | null>(null);
   const [sheet, setSheet] = useState<Sheet | null>(null);
@@ -207,9 +225,10 @@ export default function HubScreen() {
 
   // Earliest time the graph can scroll back to.
   const earliestMs = useMemo(() => {
-    const oldest = history.length > 0 ? history[0].time : nowMinute * 60000;
+    const oldest =
+      plotHistory.length > 0 ? plotHistory[0].time : nowMinute * 60000;
     return Math.min(oldest, nowMinute * 60000 - 3 * 3_600_000);
-  }, [history, nowMinute]);
+  }, [plotHistory, nowMinute]);
 
   // Meals: every session with a meal, from the templates plus the current one.
   const mealSessions = useMemo<MealSession[]>(() => {
@@ -294,8 +313,8 @@ export default function HubScreen() {
   // Snap scrub: nearest CGM reading or fingerstick up to the anchor,
   // interpolated forecast after.
   const scrub = useMemo<ScrubPoint | null>(() => {
-    if (scrubTime === null || !anchor) return null;
-    if (scrubTime <= anchor.time) {
+    if (scrubTime === null || plotAnchorTime === null) return null;
+    if (scrubTime <= plotAnchorTime) {
       let best: ScrubPoint | null = null;
       const consider = (p: GlucosePoint, source: ScrubPoint["source"]) => {
         if (
@@ -304,17 +323,18 @@ export default function HubScreen() {
         )
           best = { time: p.time, value: p.value, source };
       };
-      for (const p of history)
+      for (const p of plotHistory)
         consider(p, p.isCalibration ? "calibration" : "cgm");
       for (const p of fingersticks) consider(p, "fingerstick");
       return best;
     }
-    const last = forecast.length > 0 ? forecast[forecast.length - 1].time : 0;
+    const last =
+      plotForecast.length > 0 ? plotForecast[plotForecast.length - 1].time : 0;
     const t = Math.min(Math.round(scrubTime / 60000) * 60000, last);
-    const v = interpolateAt(forecast, t);
+    const v = interpolateAt(plotForecast, t);
     if (v === null) return null;
     return { time: t, value: v, source: "predicted" };
-  }, [scrubTime, anchor, history, fingersticks, forecast]);
+  }, [scrubTime, plotAnchorTime, plotHistory, fingersticks, plotForecast]);
 
   const minutesAgo = anchor ? Math.max(0, (nowMs - anchor.time) / 60000) : 0;
   const isStale = anchor !== null && nowMs - anchor.time > stepMs * 3;
@@ -492,10 +512,10 @@ export default function HubScreen() {
       {/* Graph */}
       {anchor && (
         <GlucoseGraph
-          history={history}
+          history={plotHistory}
           fingersticks={fingersticks}
-          forecast={forecast}
-          anchorTime={anchor.time}
+          forecast={plotForecast}
+          anchorTime={plotAnchorTime}
           nowMs={nowMs}
           horizonMs={FORECAST_HORIZON_MS}
           earliestMs={earliestMs}
