@@ -306,6 +306,7 @@ export default class Snapshot extends Subscribable {
     s.deduplicate();
     const readings = s.rawReadings
       .slice()
+      .filter((r) => r.sugar > 20 && r.sugar < 600)
       .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
     const firstReading = readings[0];
     if (firstReading) {
