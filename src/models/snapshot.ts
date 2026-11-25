@@ -52,8 +52,8 @@ export default class Snapshot extends Subscribable {
     const timeB = timestampB.getTime();
     for (const reading of this.timeSorted) {
       const readingTime = reading.timestamp.getTime();
-      if (readingTime < timeA) continue;
-      if (readingTime > timeB) break;
+      if (readingTime < timeA - precisionMS / 2) continue;
+      if (readingTime > timeB + precisionMS / 2) break;
       snapshot.rawReadings.push(reading);
     }
     return snapshot;
