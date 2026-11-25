@@ -1,17 +1,20 @@
 import type Glucose from "../../models/events/glucose";
 import type Insulin from "../../models/events/insulin";
+import type Meal from "../../models/events/meal";
 import type SugarReading from "../../models/types/sugarReading";
 import Unit from "../../models/unit";
+import { BasalStore } from "../../storage/basalStore";
 import { getTimestampFromOffset } from "../timing";
-import { convertDimensions } from "../util";
+import { convertDimensions, MathUtil } from "../util";
 import { hasTreatmentOverlap } from "./hasOverlap";
 
-function estimateDynamicMetabolicActivity(
+export function estimateDynamicMetabolicActivity(
   readings: SugarReading[],
   insulins: Insulin[],
   rescues: Glucose[],
   clamp = true,
-  lookbackHours = 1,
+  lookbackHours: number | null = 1,
+  meals: Meal[] = [],
 ): [number, number] {
   if (readings.length === 0) return [0, 0];
   const sortedReadings = readings
@@ -20,9 +23,12 @@ function estimateDynamicMetabolicActivity(
 
   const lastReading = sortedReadings[sortedReadings.length - 1];
   if (!lastReading) return [0, 0];
-  const cutoff = getTimestampFromOffset(lastReading.timestamp, -lookbackHours);
-  const filteredReadings = sortedReadings.filter(
-    (r) => r.timestamp.getTime() >= cutoff.getTime(),
+  const cutoff =
+    lookbackHours !== null
+      ? getTimestampFromOffset(lastReading.timestamp, -lookbackHours)
+      : null;
+  const filteredReadings = sortedReadings.filter((r) =>
+    cutoff !== null ? r.timestamp.getTime() >= cutoff.getTime() : true,
   );
 
   // Now we sample the insulins from the specified start time, ignoring any windows containing rescues
@@ -31,6 +37,17 @@ function estimateDynamicMetabolicActivity(
   let sumDeltaBG = 0;
   let sumUnits = 0;
   let sumDt = 0;
+  const readingTimeDeltas = (() => {
+    const deltas = [];
+    for (let i = 0; i < filteredReadings.length - 1; i++)
+      deltas.push(
+        (filteredReadings[i + 1].timestamp.getTime() -
+          filteredReadings[i].timestamp.getTime()) *
+          convertDimensions(Unit.Time.Millis, Unit.Time.Hour),
+      );
+    return deltas;
+  })();
+  const avgDelta = MathUtil.mean(readingTimeDeltas);
   for (let i = 0; i < filteredReadings.length - 1; i++) {
     const reading = filteredReadings[i];
     const nextReading = filteredReadings[i + 1];
@@ -38,6 +55,7 @@ function estimateDynamicMetabolicActivity(
     const dt =
       (nextReading.timestamp.getTime() - reading.timestamp.getTime()) *
       convertDimensions(Unit.Time.Millis, Unit.Time.Hour);
+    if (dt > avgDelta * 2) continue;
     const deltaBG = nextReading.sugar - reading.sugar;
 
     // Check if either reading is being influenced by rescue
@@ -50,6 +68,28 @@ function estimateDynamicMetabolicActivity(
     );
     // If we are being influenced by a rescue, keep going and ignore
     if (isRescueBound) continue;
+    // Check if either reading is being influenced by a meal
+    const isMealBound = meals.reduce((val, meal) => {
+      const simulatedTreatment = {
+        timestamp: meal.timestamp,
+        variant: { duration: BasalStore.minTimeSinceMeal.value },
+      };
+      return (
+        val ||
+        hasTreatmentOverlap(
+          reading.timestamp,
+          simulatedTreatment,
+          Unit.Time.Hour,
+        ) ||
+        hasTreatmentOverlap(
+          nextReading.timestamp,
+          simulatedTreatment,
+          Unit.Time.Hour,
+        )
+      );
+    }, false);
+    // If we are meal-bound, we don't bother
+    if (isMealBound) continue;
 
     // See how many units were absorbe
     const unitsAbsorbed = insulins.reduce(
@@ -81,12 +121,14 @@ function estimateDynamicMetabolicActivity(
    * we reverse extrapolate how much "fasting" influenced the
    * insulin-active readings
    * */
-  const backgroundFastingInfluence = fastingBGRate * sumDt;
-  let adjustedDeltaBG = sumDeltaBG - backgroundFastingInfluence;
-  // If our reverse calculation ends up making the dynamic ISF greater than 1, we ignore it and just use the normal deltaBG
-  if (adjustedDeltaBG > 0) adjustedDeltaBG = sumDeltaBG;
+  if (lookbackHours !== null) {
+    const backgroundFastingInfluence = fastingBGRate * sumDt;
+    let adjustedDeltaBG = sumDeltaBG - backgroundFastingInfluence;
+    // If our reverse calculation ends up making the dynamic ISF greater than 1, we ignore it and just use the normal deltaBG
+    if (adjustedDeltaBG <= 0) sumDeltaBG = adjustedDeltaBG;
+  }
 
-  const dynamicISF = -adjustedDeltaBG / sumUnits; // Make it negative because ISF is a positive value
+  const dynamicISF = -sumDeltaBG / sumUnits; // Make it negative because ISF is a positive value
   // If dynamic ISF comes out to be some ridiculous number, we discard it
   if (dynamicISF > 500) return [0, fastingBGRate];
   return [dynamicISF, fastingBGRate];

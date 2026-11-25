@@ -39,7 +39,8 @@ export function getReadingFromNightscout(o: {
   dateString?: string;
   type?: string;
 }): SugarReading {
-  const isCalibration = o.type === "mbg" || o.type === "cal" || (!!o.mbg && !o.sgv);
+  const isCalibration =
+    o.type === "mbg" || o.type === "cal" || (!!o.mbg && !o.sgv);
   const val = o.mbg ?? o.sgv ?? 0;
   const rawDate = o.dateString ?? o.date ?? 0;
   return new SugarReading(

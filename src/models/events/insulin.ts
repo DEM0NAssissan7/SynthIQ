@@ -1,10 +1,26 @@
 import { getHourDiff } from "../../lib/timing";
 import { InsulinVariantManager } from "../../managers/insulinVariantManager";
 import { InsulinVariant } from "../types/insulinVariant";
-import type { Deserializer, Serializer } from "../types/types";
+import type { Deserializer, Serializer, UUID } from "../types/types";
 import MetaEvent from "./metaEvent";
 import ScalarMetaEvent from "./scalarEvent";
 
+export enum InjectionPurpose {
+  Nominal = "NOMINAL",
+  Basal = "BASAL",
+  PreBolus = "PREBOLUS",
+}
+function toInjectionPurpose(value: unknown): InjectionPurpose {
+  const isValid = Object.values(InjectionPurpose).includes(
+    value as InjectionPurpose,
+  );
+
+  if (!isValid) {
+    throw new Error(`Invalid InjectionPurpose: ${value}`);
+  }
+
+  return value as InjectionPurpose;
+}
 export default class Insulin extends MetaEvent implements ScalarMetaEvent {
   _value: number;
   variant: InsulinVariant;
@@ -16,8 +32,14 @@ export default class Insulin extends MetaEvent implements ScalarMetaEvent {
     return this._value;
   }
 
-  constructor(value: number, timestamp: Date, variant: InsulinVariant) {
-    super(timestamp);
+  constructor(
+    value: number,
+    timestamp: Date,
+    variant: InsulinVariant,
+    public purpose = InjectionPurpose.Nominal,
+    uuid: UUID | null = null,
+  ) {
+    super(timestamp, uuid);
     this._value = value;
     this.variant = variant;
   }
@@ -66,12 +88,20 @@ export default class Insulin extends MetaEvent implements ScalarMetaEvent {
       value: e.value,
       timestamp: e.timestamp.getTime(),
       variant: InsulinVariant.serialize(e.variant),
+      purpose: e.purpose,
+      uuid: e.uuid,
     };
   };
   static deserialize: Deserializer<Insulin> = (o) => {
     const variant: InsulinVariant = o.variant
       ? InsulinVariantManager.deserialize(o.variant)
       : InsulinVariantManager.getDefault();
-    return new Insulin(o.value, new Date(o.timestamp), variant);
+    return new Insulin(
+      o.value,
+      new Date(o.timestamp),
+      variant,
+      o.purpose ? toInjectionPurpose(o.purpose) : InjectionPurpose.Nominal,
+      o.uuid ?? null,
+    );
   };
 }

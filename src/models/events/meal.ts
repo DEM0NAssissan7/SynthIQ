@@ -21,12 +21,23 @@ export default class Meal extends MetaEvent {
     createProteinOffset(), // Protein offset food
     createFatOffset(), // Fat offset food
   ];
+  private _isGarbage: boolean = false;
+
+  get isGarbage() {
+    return this._isGarbage;
+  }
+  set isGarbage(value: boolean) {
+    this._isGarbage = value;
+    this.notify();
+  }
 
   constructor(
     timestamp: Date,
+    public name: string,
     public templateUUID: UUID | null = null,
+    uuid: UUID | null = null,
   ) {
-    super(timestamp);
+    super(timestamp, uuid);
   }
 
   // Carbs offset
@@ -156,6 +167,7 @@ export default class Meal extends MetaEvent {
     this.proteinOffset += meal.proteinOffset;
     this.fatOffset += meal.fatOffset;
     this.foods.push(...meal.addedFoods);
+    this.isGarbage = this.isGarbage || meal.isGarbage;
     this.notify();
   }
 
@@ -164,14 +176,23 @@ export default class Meal extends MetaEvent {
     return {
       timestamp: meal.timestamp.getTime(),
       foods: meal.foods.map((a) => Food.serialize(a)),
+      name: meal.name,
+      uuid: meal.uuid,
       templateUUID: meal.templateUUID,
+      isGarbage: meal.isGarbage,
     };
   };
   static deserialize: Deserializer<Meal> = (o) => {
     const timestamp = new Date(o.timestamp);
     const foods: Food[] = o.foods.map((a: string) => Food.deserialize(a));
-    const newMeal = new Meal(timestamp, o.templateUUID ?? null);
+    const newMeal = new Meal(
+      timestamp,
+      o.name,
+      o.templateUUID ?? null,
+      o.uuid ?? null,
+    );
     newMeal.foods = foods;
+    newMeal.isGarbage = o.isGarbage ?? false;
     return newMeal;
   };
 

@@ -1,6 +1,6 @@
 import { RescueVariantManager } from "../../managers/rescueVariantManager";
 import { RescueVariant } from "../types/rescueVariant";
-import type { Deserializer, Serializer } from "../types/types";
+import type { Deserializer, Serializer, UUID } from "../types/types";
 import MetaEvent from "./metaEvent";
 import ScalarMetaEvent from "./scalarEvent";
 
@@ -19,8 +19,13 @@ export default class Glucose extends MetaEvent implements ScalarMetaEvent {
     return this.value * this.variant.carbs;
   }
 
-  constructor(value: number, timestamp: Date, variant: RescueVariant) {
-    super(timestamp);
+  constructor(
+    value: number,
+    timestamp: Date,
+    variant: RescueVariant,
+    uuid: UUID | null = null,
+  ) {
+    super(timestamp, uuid);
     this._value = value;
     this.variant = variant;
   }
@@ -31,12 +36,13 @@ export default class Glucose extends MetaEvent implements ScalarMetaEvent {
       value: e.value,
       timestamp: e.timestamp.getTime(),
       variant: RescueVariant.serialize(e.variant),
+      uuid: e.uuid,
     };
   };
   static deserialize: Deserializer<Glucose> = (o) => {
     const variant: RescueVariant = o.variant
       ? RescueVariantManager.deserialize(o.variant)
       : RescueVariantManager.getDefault();
-    return new Glucose(o.value, new Date(o.timestamp), variant);
+    return new Glucose(o.value, new Date(o.timestamp), variant, o.uuid ?? null);
   };
 }

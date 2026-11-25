@@ -21,7 +21,7 @@ export function clamp(value: number, min: number, max: number): number {
 
 // Number Generation
 export function genUUID(): UUID {
-  return Math.round(random(0, 2 ** 24));
+  return Math.round(random(0, 2 ** 32));
 }
 
 // Time stuff (non-timestamp)

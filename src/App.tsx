@@ -40,6 +40,11 @@ import MealSelectionPage from "./pages/treatment/MealSelectionPage";
 import MealPage from "./pages/treatment/MealPage";
 import InsulinRouter from "./pages/treatment/InsulinRouter";
 import PrebolusRouter from "./pages/treatment/PrebolusRouter";
+import { StreamManager } from "./managers/streamManager";
+import { MigrationManager } from "./managers/migrationManager";
+import WizardManager from "./managers/wizardManager";
+import { StreamStore } from "./storage/streamStore";
+import type Session from "./models/session";
 
 function App() {
   useEffect(() => {
@@ -69,6 +74,21 @@ function App() {
       if (PrivateStore.debugLogs.value) console.warn("Sync Finished!");
     })();
   }, [now]);
+
+  // Migration & population
+  useEffect(() => {
+    // Update the onboard stream
+    MigrationManager.migrate();
+    setTimeout(() => {
+      StreamManager.populateFromRemote();
+    }, 10 * 1000);
+    if (PrivateStore.debugLogs.value)
+      console.log(
+        StreamStore.stream.value,
+        StreamManager.getSessions(),
+        WizardManager.getAllSessions(),
+      );
+  }, []);
 
   const redirectTimer = useNow(
     20 * convertDimensions(Unit.Time.Minute, Unit.Time.Second),

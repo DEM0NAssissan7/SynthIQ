@@ -1,7 +1,12 @@
 import { getMinuteDiff } from "../../lib/timing";
 import { convertDimensions, MathUtil } from "../../lib/util";
 import Snapshot from "../snapshot";
-import type { Deserializer, JSONObject, Serializer } from "../types/types";
+import type {
+  Deserializer,
+  JSONObject,
+  Serializer,
+  UUID,
+} from "../types/types";
 import Unit from "../unit";
 import Glucose from "./glucose";
 import MetaEvent from "./metaEvent";
@@ -9,8 +14,11 @@ import MetaEvent from "./metaEvent";
 export default class Activity extends MetaEvent {
   snapshot: Snapshot = new Snapshot();
   glucoses: Glucose[] = [];
-  constructor(public name: string) {
-    super(new Date());
+  constructor(
+    public name: string,
+    uuid: UUID | null = null,
+  ) {
+    super(new Date(), uuid);
   }
 
   get timestamp(): Date {
@@ -110,14 +118,15 @@ export default class Activity extends MetaEvent {
       snapshot: Snapshot.serialize(a.snapshot),
       name: a.name,
       glucoses: a.glucoses.map((g) => Glucose.serialize(g)),
+      uuid: a.uuid,
     };
   };
   static deserialize: Deserializer<Activity> = (o) => {
-    const activity = new Activity(o.name);
+    const activity = new Activity(o.name, o.uuid ?? null);
     activity.snapshot = Snapshot.deserialize(o.snapshot);
     if (o.glucoses) {
       o.glucoses.forEach((g: JSONObject) =>
-        activity.addGlucose(Glucose.deserialize(g))
+        activity.addGlucose(Glucose.deserialize(g)),
       );
     }
     return activity;

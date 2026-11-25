@@ -71,7 +71,7 @@ export namespace WizardStore {
 
   export const meal = node.add<Meal>(
     "meal",
-    new Meal(new Date()),
+    new Meal(new Date(), ""),
     Meal.serialize,
     Meal.deserialize,
   );

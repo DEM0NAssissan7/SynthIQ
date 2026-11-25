@@ -251,7 +251,7 @@ export default class WizardManager {
     WizardStore.template.value = template;
     if (!WizardStore.session.value.mealMarked)
       WizardStore.activeTemplate.value = template; // Workaround for transition
-    WizardStore.meal.value = new Meal(new Date(), template.UUID); // Populate meal with an empty entry
+    WizardStore.meal.value = new Meal(new Date(), template.name, template.UUID); // Populate meal with an empty entry
     if (PrivateStore.debugLogs.value) console.log(template);
     return template;
   }
@@ -319,7 +319,7 @@ export default class WizardManager {
     WizardStore.session.value = new Session();
   }
   static resetMeal() {
-    WizardStore.meal.value = new Meal(new Date());
+    WizardStore.meal.value = new Meal(new Date(), "");
   }
   static resetWizard() {
     this.resetSession(); // Reset the session

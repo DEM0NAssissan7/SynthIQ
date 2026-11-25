@@ -157,7 +157,7 @@ export function refreshR1Context(): Promise<void> {
       const basalTimes: number[] = [];
       for (const t of treatments ?? []) {
         if (t.eventType === "Meal") {
-          const meal = new Meal(new Date(t.created_at));
+          const meal = new Meal(new Date(t.created_at), "");
           meal.carbsOffset = t.carbs ?? 0;
           meal.proteinOffset = t.protein ?? 0;
           meals.push(meal);

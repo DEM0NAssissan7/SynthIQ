@@ -156,16 +156,7 @@ export function useGlucoseForecast(now: Date) {
       if (p !== null && Number.isFinite(p)) points.push({ time: t, value: p });
     }
     return points;
-  }, [
-    anchor,
-    readings,
-    boluses,
-    rescues,
-    r1Context,
-    useR1,
-    nowBucket,
-    stepMs,
-  ]);
+  }, [anchor, readings, boluses, rescues, r1Context, useR1, nowBucket, stepMs]);
 
   // Splice the exact "now" estimate in so the line passes through the
   // number shown in the header.

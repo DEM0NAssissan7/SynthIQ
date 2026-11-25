@@ -30,18 +30,18 @@ export default class Snapshot extends Subscribable {
     this.timeSortedCache = [];
     this.valueSortedCache = [];
   }
-  add(...r: SugarReading[]) {
+  private add(...r: SugarReading[]) {
     this.rawReadings.push(...r);
     this.invalidateCaches();
     this.deduplicated = false;
   }
-  addReading(r: SugarReading, doNotify = true) {
-    this.add(r);
-    if (doNotify) this.notify();
+  addReadings(...r: SugarReading[]) {
+    // Add reading & notify
+    this.add(...r);
+    this.notify();
   }
   absorb(snapshot: Snapshot) {
-    snapshot.rawReadings.forEach((r) => this.addReading(r, false));
-    this.notify();
+    this.addReadings(...snapshot.rawReadings);
   }
   contains(timestamp: Date) {
     return timestampIsBetween(timestamp, this.startTime, this.endTime);
@@ -156,7 +156,7 @@ export default class Snapshot extends Subscribable {
     return this.rawReadings.length !== 0;
   }
   private createContemporaryCalibration(value: number) {
-    this.addReading(new SugarReading(value, new Date(), true));
+    this.addReadings(new SugarReading(value, new Date(), true));
   }
   deduplicate() {
     if (this.deduplicated) return;
@@ -192,7 +192,7 @@ export default class Snapshot extends Subscribable {
         .map((r) => getReadingFromNightscout(r))
         .filter((r) => !isNaN(r.sugar) && !isNaN(r.timestamp.getTime()));
       if (PrivateStore.debugLogs.value) console.log(rawReadings);
-      rawReadings.forEach((r) => this.addReading(r, false));
+      this.add(...rawReadings);
       this.deduplicate();
       this.notify();
     } catch (e) {
@@ -363,7 +363,7 @@ export default class Snapshot extends Subscribable {
         return reading;
       },
     );
-    snapshot.add(...readings);
+    snapshot.rawReadings = readings;
     snapshot.deduplicated = o.deduplicated ?? false;
     return snapshot;
   };

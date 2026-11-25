@@ -16,14 +16,18 @@ export default class Subscribable {
     this.subscriptions.forEach((f) => f());
   }
 
-  addChildSubscribable(s: Subscribable) {
-    if (this.childSubscriptions.has(s)) return; // Don't subscribe twice
-    const unsubscribe = s.subscribe(() => this.notify());
-    this.childSubscriptions.set(s, unsubscribe);
+  addChildSubscribable(...subs: Subscribable[]) {
+    subs.forEach((s) => {
+      if (this.childSubscriptions.has(s)) return; // Don't subscribe twice
+      const unsubscribe = s.subscribe(() => this.notify());
+      this.childSubscriptions.set(s, unsubscribe);
+    });
   }
 
-  removeChildSubscribable(s: Subscribable) {
-    this.childSubscriptions.get(s)?.();
-    this.childSubscriptions.delete(s);
+  removeChildSubscribable(...subs: Subscribable[]) {
+    subs.forEach((s) => {
+      this.childSubscriptions.get(s)?.();
+      this.childSubscriptions.delete(s);
+    });
   }
 }

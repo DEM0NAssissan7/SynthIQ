@@ -61,11 +61,27 @@ export function getBasePredictedGlucose(
   /**
    * The model works with a moving average
    */
+  // We reverse-extrapolate disturbances from previous insulins
+  const dynamicISF = estimateDynamicISF(readings, insulins, rescues);
+  const disturbanceReadings: SugarReading[] = sortedReadings.map((reading) => {
+    const reference = sortedReadings[0];
+    const unitsAbsorbed = insulins.reduce(
+      (n, i) => n + i.batemanIntegral(reference.timestamp, reading.timestamp),
+      0,
+    );
+    const insulinEffect = dynamicISF * unitsAbsorbed;
+    // totalBG = disturbanceBG - insulinEffect, so disturbanceBG = totalBG + insulinEffect
+    return {
+      sugar: reading.sugar + insulinEffect,
+      isCalibration: reading.isCalibration,
+      timestamp: reading.timestamp,
+    };
+  });
   // First we look into the past to get our weighted avg velocity
   let velocity: number | null = null;
-  for (let i = 0; i < sortedReadings.length - 1; i++) {
-    const reading = sortedReadings[i];
-    const nextReading = sortedReadings[i + 1];
+  for (let i = 0; i < disturbanceReadings.length - 1; i++) {
+    const reading = disturbanceReadings[i];
+    const nextReading = disturbanceReadings[i + 1];
     const dt =
       (nextReading.timestamp.getTime() - reading.timestamp.getTime()) *
       convertDimensions(Unit.Time.Millis, Unit.Time.Minute);
@@ -103,37 +119,25 @@ export function getBasePredictedGlucose(
     return finalReading.sugar;
   }
 
-  const predictedDelta = getIntegratedDelta(
+  const predictedDisturbance = getIntegratedDelta(
     velocity * PERIOD,
     deltaTime / PERIOD,
     PHI,
   );
-  const predicted = finalReading.sugar + predictedDelta;
-  if (!Number.isFinite(predicted)) return finalReading.sugar;
+  const predictedRaw = finalReading.sugar + predictedDisturbance;
+  if (!Number.isFinite(predictedRaw)) return finalReading.sugar;
 
   // Now (if applicable) we look at the dynamicISF and the readings
-  if (insulins && rescues) {
-    const dynamicISF = estimateDynamicISF(readings, insulins, rescues);
-    // If we have no (valid) Dynamic ISF, we use the normal predicted
-    if (dynamicISF <= 0) return predicted;
-    // Extrapolate insulin absorption into the future
-    const predictedUnitsAbsorbed = insulins.reduce(
-      (n, i) => n + i.batemanIntegral(finalTimestamp, timestamp),
-      0,
-    );
-    const insulinPredictedDelta = -predictedUnitsAbsorbed * dynamicISF;
-    const insulinPredicted = finalReading.sugar + insulinPredictedDelta;
-    if (!Number.isFinite(insulinPredicted)) return predicted;
-    // Apply the dynamic ISF
-    // If both are dropping, choose the min
-    if (insulinPredictedDelta <= 0 && predictedDelta <= 0)
-      return Math.min(predicted, insulinPredicted);
-    // TODO: Make this more reliable. We know that the predictedDelta is certainly influenced by insulin's effect (from dynamicISF).
-    // This needs a proper solution to account for both accurately. AI DOES NOT TOUCH THIS CODE.
-    if (predictedDelta > 0)
-      return finalReading.sugar + (predictedDelta + insulinPredictedDelta);
-  }
-  return predicted;
+  // If we have no (valid) Dynamic ISF, we use the normal predicted
+  if (dynamicISF <= 0) return predictedRaw;
+  // Extrapolate insulin absorption into the future
+  const predictedUnitsAbsorbed = insulins.reduce(
+    (n, i) => n + i.batemanIntegral(finalTimestamp, timestamp),
+    0,
+  );
+  const insulinDeltaBG = -predictedUnitsAbsorbed * dynamicISF;
+  if (!Number.isFinite(insulinDeltaBG)) return predictedRaw;
+  return finalReading.sugar + predictedDisturbance + insulinDeltaBG;
 }
 
 // Prediction accuracy querying

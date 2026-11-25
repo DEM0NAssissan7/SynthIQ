@@ -116,15 +116,16 @@ export default function TestPage() {
   const insulinVariants = InsulinVariantStore.variants.value;
   const rescueVariants = RescueVariantStore.variants.value;
   const info: [Session, Insulin[], Insulin[]][] = sessions.map((session) => {
-    const [, , optimalInsulins] = InsulinRetrospectiveOptimizer.getOptimalInsulins(
-      session.insulins,
-      session.snapshot,
-      session.glucoses,
-      null,
-      1,
-      insulinVariants,
-      rescueVariants,
-    );
+    const [, , optimalInsulins] =
+      InsulinRetrospectiveOptimizer.getOptimalInsulins(
+        session.insulins,
+        session.snapshot,
+        session.glucoses,
+        null,
+        1,
+        insulinVariants,
+        rescueVariants,
+      );
     return [session, optimalInsulins, session.insulins];
   });
 
