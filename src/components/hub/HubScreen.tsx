@@ -325,8 +325,6 @@ export default function HubScreen() {
   }, [scrubTime, anchorTime, history, plotFingersticks, forecast]);
 
   const minutesAgo = anchor ? Math.max(0, (nowMs - anchor.time) / 60000) : 0;
-  // Age of the blood glucose the latest reading reflects: reading age + lag.
-  const glucoseMinutesAgo = minutesAgo + lagMs / 60000;
   // Fingersticks are drawn lagMs ahead; the caption shows when it was taken.
   const scrubShownTime = scrub
     ? scrub.source === "fingerstick" || scrub.source === "manual"
@@ -447,12 +445,9 @@ export default function HubScreen() {
               )}
             </div>
             <div className="hub-meta-row">
-              <span
-                className={`hub-meta-cgm ${isStale ? "is-stale" : ""}`}
-                aria-label={`CGM ${formatBG(anchor.value, false)}, reflecting blood glucose ${getFormattedTime(Math.round(glucoseMinutesAgo))} ago (reading ${getFormattedTime(Math.round(minutesAgo))} ago plus ${Math.round(lagMs / 60000)} min sensor lag)`}
-              >
+              <span className={`hub-meta-cgm ${isStale ? "is-stale" : ""}`}>
                 CGM {formatBG(anchor.value, false)} ·{" "}
-                {getFormattedTime(Math.round(glucoseMinutesAgo))} ago
+                {getFormattedTime(Math.round(minutesAgo))} ago
                 {Math.abs(velocity) >= 1 &&
                   ` · ${velocity > 0 ? "+" : ""}${Math.round(velocity)}/hr`}
               </span>
