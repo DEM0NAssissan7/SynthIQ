@@ -172,21 +172,18 @@ export default function HubScreen() {
   } = useGlucoseForecast(now);
 
   // CGM lag: a sensor reading reflects blood glucose about cgmDelay minutes
-  // earlier, so the graph draws CGM readings (and the forecast that continues
-  // them) that far back in time. Fingersticks and treatments are real-time
-  // and stay where they are. Alerts and the header keep the raw CGM times.
+  // earlier, so a fingerstick shows up on the CGM trace that much later. The
+  // graph draws fingersticks cgmDelay minutes ahead so they line up with the
+  // CGM readings they correspond to. CGM readings and treatments stay at
+  // their real times.
   const [cgmDelayMin] = BackendStore.cgmDelay.useState();
   const lagMs =
     (Number.isFinite(cgmDelayMin) && cgmDelayMin > 0 ? cgmDelayMin : 0) * 60000;
-  const plotHistory = useMemo(
-    () => history.map((p) => ({ ...p, time: p.time - lagMs })),
-    [history, lagMs],
+  const plotFingersticks = useMemo(
+    () => fingersticks.map((p) => ({ ...p, time: p.time + lagMs })),
+    [fingersticks, lagMs],
   );
-  const plotForecast = useMemo(
-    () => forecast.map((p) => ({ ...p, time: p.time - lagMs })),
-    [forecast, lagMs],
-  );
-  const plotAnchorTime = anchor ? anchor.time - lagMs : null;
+  const anchorTime = anchor ? anchor.time : null;
 
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [scrubTime, setScrubTime] = useState<number | null>(null);
@@ -231,9 +228,9 @@ export default function HubScreen() {
   // Earliest time the graph can scroll back to.
   const earliestMs = useMemo(() => {
     const oldest =
-      plotHistory.length > 0 ? plotHistory[0].time : nowMinute * 60000;
+      history.length > 0 ? history[0].time : nowMinute * 60000;
     return Math.min(oldest, nowMinute * 60000 - 3 * 3_600_000);
-  }, [plotHistory, nowMinute]);
+  }, [history, nowMinute]);
 
   // Meals: every session within the scrollable range.
   const mealSessions = useMemo<MealSession[]>(
@@ -306,8 +303,8 @@ export default function HubScreen() {
   // Snap scrub: nearest CGM reading or fingerstick up to the anchor,
   // interpolated forecast after.
   const scrub = useMemo<ScrubPoint | null>(() => {
-    if (scrubTime === null || plotAnchorTime === null) return null;
-    if (scrubTime <= plotAnchorTime) {
+    if (scrubTime === null || anchorTime === null) return null;
+    if (scrubTime <= anchorTime) {
       let best: ScrubPoint | null = null;
       const consider = (p: GlucosePoint, source: ScrubPoint["source"]) => {
         if (
@@ -316,20 +313,28 @@ export default function HubScreen() {
         )
           best = { time: p.time, value: p.value, source };
       };
-      for (const p of plotHistory)
+      for (const p of history)
         consider(p, p.isCalibration ? "calibration" : "cgm");
-      for (const p of fingersticks) consider(p, "fingerstick");
+      for (const p of plotFingersticks) consider(p, "fingerstick");
       return best;
     }
     const last =
-      plotForecast.length > 0 ? plotForecast[plotForecast.length - 1].time : 0;
+      forecast.length > 0 ? forecast[forecast.length - 1].time : 0;
     const t = Math.min(Math.round(scrubTime / 60000) * 60000, last);
-    const v = interpolateAt(plotForecast, t);
+    const v = interpolateAt(forecast, t);
     if (v === null) return null;
     return { time: t, value: v, source: "predicted" };
-  }, [scrubTime, plotAnchorTime, plotHistory, fingersticks, plotForecast]);
+  }, [scrubTime, anchorTime, history, plotFingersticks, forecast]);
 
   const minutesAgo = anchor ? Math.max(0, (nowMs - anchor.time) / 60000) : 0;
+  // Age of the blood glucose the latest reading reflects: reading age + lag.
+  const glucoseMinutesAgo = minutesAgo + lagMs / 60000;
+  // Fingersticks are drawn lagMs ahead; the caption shows when it was taken.
+  const scrubShownTime = scrub
+    ? scrub.source === "fingerstick"
+      ? scrub.time - lagMs
+      : scrub.time
+    : null;
   const isStale = anchor !== null && nowMs - anchor.time > stepMs * 3;
   const shownValue = scrub ? scrub.value : predictedNow;
   const status = getGlucoseStatus(shownValue, range);
@@ -420,9 +425,9 @@ export default function HubScreen() {
             <div className="hub-reading-caption" aria-live="polite">
               {scrub ? (
                 <>
-                  <strong>{formatClock(scrub.time)}</strong>
+                  <strong>{formatClock(scrubShownTime!)}</strong>
                   {" · "}
-                  {formatRelative(scrub.time, nowMs)}
+                  {formatRelative(scrubShownTime!, nowMs)}
                   {" · "}
                   {sourceLabel[scrub.source]}
                 </>
@@ -444,9 +449,12 @@ export default function HubScreen() {
               )}
             </div>
             <div className="hub-meta-row">
-              <span className={`hub-meta-cgm ${isStale ? "is-stale" : ""}`}>
+              <span
+                className={`hub-meta-cgm ${isStale ? "is-stale" : ""}`}
+                aria-label={`CGM ${formatBG(anchor.value, false)}, reflecting blood glucose ${getFormattedTime(Math.round(glucoseMinutesAgo))} ago (reading ${getFormattedTime(Math.round(minutesAgo))} ago plus ${Math.round(lagMs / 60000)} min sensor lag)`}
+              >
                 CGM {formatBG(anchor.value, false)} ·{" "}
-                {getFormattedTime(Math.round(minutesAgo))} ago
+                {getFormattedTime(Math.round(glucoseMinutesAgo))} ago
                 {Math.abs(velocity) >= 1 &&
                   ` · ${velocity > 0 ? "+" : ""}${Math.round(velocity)}/hr`}
               </span>
@@ -504,10 +512,10 @@ export default function HubScreen() {
       {/* Graph */}
       {anchor && (
         <GlucoseGraph
-          history={plotHistory}
-          fingersticks={fingersticks}
-          forecast={plotForecast}
-          anchorTime={plotAnchorTime}
+          history={history}
+          fingersticks={plotFingersticks}
+          forecast={forecast}
+          anchorTime={anchorTime}
           nowMs={nowMs}
           horizonMs={FORECAST_HORIZON_MS}
           earliestMs={earliestMs}
