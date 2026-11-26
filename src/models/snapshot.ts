@@ -41,8 +41,15 @@ export default class Snapshot extends Subscribable {
   }
   private add(readings: SugarReading[]) {
     // Loop instead of push(...readings): spreading a large array overflows the call stack
-    for (const reading of readings)
-      if (isStorableReading(reading)) this.rawReadings.push(reading);
+    for (const reading of readings) {
+      if (!isStorableReading(reading)) continue;
+      // Readings live at the resolution they are stored at, so a reading that
+      // arrives again (e.g. re-synced) is the same instant as its stored copy
+      const time = reading.timestamp.getTime();
+      const rounded = reducePrecision(time);
+      if (rounded !== time) reading.timestamp = new Date(rounded);
+      this.rawReadings.push(reading);
+    }
     this.invalidateCaches();
     this.deduplicated = false;
   }

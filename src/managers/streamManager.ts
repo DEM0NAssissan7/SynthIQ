@@ -18,7 +18,7 @@ import Insulin, { InjectionPurpose } from "../models/events/insulin";
 import Meal from "../models/events/meal";
 import MetaEvent from "../models/events/metaEvent";
 import type Food from "../models/food";
-import Snapshot from "../models/snapshot";
+import Snapshot, { reducePrecision } from "../models/snapshot";
 import type { InsulinVariant } from "../models/types/insulinVariant";
 import type { RescueVariant } from "../models/types/rescueVariant";
 import SugarReading, {
@@ -148,7 +148,7 @@ export namespace StreamManager {
    */
   export function markReading(reading: SugarReading | null) {
     if (!reading || reading.type !== ReadingType.Manual) return;
-    const time = reading.timestamp.getTime();
+    const time = reducePrecision(reading.timestamp.getTime()); // As the snapshot stores it
     const stream = getStream();
     const recorded = stream.snapshot.readings.some(
       (r) => r.type === ReadingType.Manual && r.timestamp.getTime() === time,
