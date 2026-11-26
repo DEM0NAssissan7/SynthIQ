@@ -10,7 +10,7 @@ import {
   type OutcomeSummary,
   type Suggestion,
 } from "../lib/forecastAccuracy";
-import WizardManager from "../managers/wizardManager";
+import { SessionManager } from "../managers/sessionManager";
 
 const LABELS: Record<Suggestion, string> = {
   actual: "Your doses",
@@ -235,7 +235,7 @@ export default function ForecastAccuracyPage() {
     // Let the button repaint before the blocking work starts
     setTimeout(() => {
       try {
-        setReport(analyzeForecastAccuracy(WizardManager.getAllSessions()));
+        setReport(analyzeForecastAccuracy(SessionManager.getSessions()));
       } finally {
         setRunning(false);
       }

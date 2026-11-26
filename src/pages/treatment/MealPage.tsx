@@ -7,27 +7,33 @@ import FoodSearchDisplay from "../../components/FoodSearchDisplay";
 import MealAdditionalNutrients from "../../components/MealAdditionalNutrientsCard";
 import { PageLayout, PageActions } from "../../components/PageLayout";
 import MealSummary from "../../components/summary/MealSummary";
-import WizardManager from "../../managers/wizardManager";
 import { useNow } from "../../state/useNow";
-import { WizardStore } from "../../storage/entryStore";
+import { useStream } from "../../state/useStream";
+import { EntryStore } from "../../storage/entryStore";
+import { SessionManager } from "../../managers/sessionManager";
+import { StreamManager } from "../../managers/streamManager";
+import Meal from "../../models/events/meal";
 import Card from "../../components/Card";
-import { PreferencesStore } from "../../storage/preferencesStore";
 import MdIcon from "../../components/md3/MdIcon";
 
 export default function MealPage() {
-  const [template] = WizardStore.template.useState();
-  const [session] = WizardStore.session.useState();
-  const [meal] = WizardStore.meal.useState();
+  const [meal] = EntryStore.meal.useState();
+  const [, streamVersion] = useStream();
+  const template = useMemo(
+    () => SessionManager.getMealTemplate(meal.name),
+    [meal.name, streamVersion],
+  );
+  // Only a meal that starts its own session can be pre-bolused
   const showPreBolus = useMemo(
-    () => WizardManager.shouldTransitionSession() || !session.started,
-    [session],
+    () => SessionManager.startsNewSession(),
+    [streamVersion],
   );
 
   const [initialGlucose, setInitialGlucose] = useState<number | null>(null); // We are not wanting to modify the actual targetbg, so we do not use the store state
   const navigate = useNavigate();
   function selectDifferent() {
     // We have to reset the meal because it would happen anyways - don't want stale state
-    WizardManager.resetMeal();
+    EntryStore.meal.value = new Meal(new Date(), "");
     navigate("/selectmeal");
   }
   function beginEating() {
@@ -36,9 +42,20 @@ export default function MealPage() {
       return;
     }
     if (confirm("Are you ready to start eating?")) {
-      WizardManager.markMeal(initialGlucose ?? PreferencesStore.targetBG.value);
+      const timestamp = new Date();
+      if (initialGlucose) StreamManager.markReading(initialGlucose, timestamp);
+      StreamManager.markMeal(
+        meal.foods,
+        timestamp,
+        meal.name,
+        meal.templateUUID,
+        meal.isGarbage,
+      );
+      EntryStore.meal.value = new Meal(new Date(), ""); // The meal is logged: reset the draft
       navigate(
-        WizardStore.session.value.insulinMarked ? "/hub" : "/markinsulin",
+        SessionManager.getCurrentSession()?.insulinMarked
+          ? "/hub"
+          : "/markinsulin",
       );
     }
   }
@@ -75,7 +92,7 @@ export default function MealPage() {
         <MealSummary
           template={template}
           meal={meal}
-          mealName={template.name}
+          mealName={meal.name}
           currentBG={initialGlucose}
         />
       </Card>

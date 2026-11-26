@@ -116,6 +116,18 @@ export default class Snapshot extends Subscribable {
     }
     return this.readingsCache;
   }
+  /** The newest `count` readings, newest first */
+  latest(count: number, calibrations = true): SugarReading[] {
+    const latest: SugarReading[] = [];
+    const timeSorted = this.timeSorted;
+    for (let i = timeSorted.length - 1; i >= 0; i--) {
+      if (latest.length >= count) break;
+      const reading = timeSorted[i];
+      if (!calibrations && reading.isCalibration) continue;
+      latest.push(reading);
+    }
+    return latest;
+  }
   get isEmpty(): boolean {
     return this.rawReadings.length <= 0;
   }
@@ -157,6 +169,20 @@ export default class Snapshot extends Subscribable {
 
   private get isValid() {
     return this.rawReadings.length !== 0;
+  }
+  /** Set the calibration at `timestamp`: the existing one is corrected, or a new one added */
+  setCalibration(timestamp: Date, value: number) {
+    const time = timestamp.getTime();
+    const existing = this.rawReadings.find(
+      (r) => r.isCalibration && r.timestamp.getTime() === time,
+    );
+    if (!existing) {
+      this.addReadings(new SugarReading(value, timestamp, true));
+      return;
+    }
+    existing.sugar = value;
+    this.invalidateCaches();
+    this.notify();
   }
   private createContemporaryCalibration(value: number) {
     this.addReadings(new SugarReading(value, new Date(), true));

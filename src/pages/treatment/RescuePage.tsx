@@ -10,10 +10,12 @@ import { roundByHalf } from "../../lib/util";
 import Card from "../../components/Card";
 import HealthMonitorMessage from "../../components/HealthMonitorMessage";
 import {
-  populateReadingCache,
   getBGVelocity,
   getLastRescueMinutes,
   getLastRescue,
+  getLatestReadings,
+  getRecentBoluses,
+  getRecentRescues,
 } from "../../lib/healthMonitor";
 import { HealthMonitorStore } from "../../storage/healthMonitorStore";
 import { PreferencesStore } from "../../storage/preferencesStore";
@@ -28,18 +30,24 @@ import {
   PageActions,
   PageLayout,
 } from "../../components/PageLayout";
-import WizardManager from "../../managers/wizardManager";
+import { StreamManager } from "../../managers/streamManager";
+import { SessionManager } from "../../managers/sessionManager";
+import { useStream } from "../../state/useStream";
 import MdIcon from "../../components/md3/MdIcon";
 import { estimateDynamicISF } from "../../lib/helpers/estimateDynamicISF";
 
 export default function RescuePage() {
-  const isFasting = WizardManager.isFasting();
+  const [stream, streamVersion] = useStream();
+  const isFasting = useMemo(() => SessionManager.isFasting(), [streamVersion]);
 
   const [currentBG, setCurrentBG] = useState<number | null>(null);
   const [variant, setVariant] = useState(RescueVariantManager.getDefault());
-  const [readings] = HealthMonitorStore.readingsCache.useState();
-  const [insulinsOnBoard] = HealthMonitorStore.recentBoluses.useState();
-  const [rescues] = HealthMonitorStore.lastRescues.useState();
+  const readings = useMemo(() => getLatestReadings(stream), [streamVersion]);
+  const insulinsOnBoard = useMemo(
+    () => getRecentBoluses(stream),
+    [streamVersion],
+  );
+  const rescues = useMemo(() => getRecentRescues(stream), [streamVersion]);
 
   const correction = useMemo(() => {
     return currentBG
@@ -51,13 +59,13 @@ export default function RescuePage() {
   const now = useNow();
   const [updated, update] = useReducer((a) => a + 1, 0);
   useEffect(() => {
-    populateReadingCache().then(update);
+    StreamManager.populateFromRemote().then(update);
   }, [now]);
   useEffect(() => {
-    populateReadingCache().then(() => {
+    StreamManager.populateFromRemote().then(() => {
       const actingMinutes = HealthMonitorStore.dropTime.value;
-      const readings = HealthMonitorStore.readingsCache.value;
-      const insulinsOnBoard = HealthMonitorStore.recentBoluses.value;
+      const readings = getLatestReadings();
+      const insulinsOnBoard = getRecentBoluses();
 
       setIntelligentCorrection(
         roundByHalf(
@@ -100,7 +108,9 @@ export default function RescuePage() {
       return;
     }
     if (confirm(`Confirm that you have taken ${amount} ${variant.name}`)) {
-      WizardManager.markGlucose(amount, variant, currentBG ?? -1);
+      const timestamp = new Date();
+      if (currentBG) StreamManager.markReading(currentBG, timestamp);
+      StreamManager.markRescue(amount, timestamp, variant);
       goBack();
     }
   }

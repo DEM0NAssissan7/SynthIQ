@@ -1,12 +1,10 @@
 import { InsulinVariantManager } from "../managers/insulinVariantManager";
-import { RescueVariantManager } from "../managers/rescueVariantManager";
 import { SessionManager } from "../managers/sessionManager";
-import Glucose from "../models/events/glucose";
-import Insulin from "../models/events/insulin";
+import type Glucose from "../models/events/glucose";
+import type Insulin from "../models/events/insulin";
 import type Session from "../models/session";
-import SugarReading, {
-  getReadingFromNightscout,
-} from "../models/types/sugarReading";
+import type { Stream } from "../models/stream";
+import type SugarReading from "../models/types/sugarReading";
 import type { DateRange } from "../models/types/types";
 import Unit from "../models/unit";
 import { BackendStore } from "../storage/backendStore";
@@ -14,74 +12,34 @@ import { BasalStore } from "../storage/basalStore";
 import { HealthMonitorStore } from "../storage/healthMonitorStore";
 import { PrivateStore } from "../storage/privateStore";
 import { StreamStore } from "../storage/streamStore";
-import { getBasalCorrection } from "./metabolism";
 import { getBGVelocities } from "./readingsUtil";
-import RemoteReadings from "./remote/readings";
-import RemoteTreatments, {
-  mealEventType,
-  insulinEventType,
-  glucoseEventType,
-  basalEventType,
-  activityEventType,
-} from "./remote/treatments";
 import { getTimestampFromOffset, timestampIsBetween } from "./timing";
-import { convertDimensions, MathUtil, round } from "./util";
+import { convertDimensions, MathUtil } from "./util";
 
-export async function isFastingState(timestamp: Date) {
-  const minTimeSinceMeal = BasalStore.minTimeSinceMeal.value;
-
-  async function isPresent(eventType: string, minTime: number) {
-    const timestampA = getTimestampFromOffset(timestamp, -minTime);
-    const treatments = await RemoteTreatments.getTreatmentByType(
-      eventType,
-      timestampA,
-      timestamp,
-    );
-    return treatments.length !== 0;
-  }
-  if (await isPresent(mealEventType, minTimeSinceMeal)) return false;
-  if (await isPresent(insulinEventType, 7)) return false;
-  if (await isPresent(glucoseEventType, 0.5)) return false;
-  return true;
-}
-
+/**
+ * When the user was not fasting: the active time of every treatment, plus the
+ * span of every meal session. Basal insulin never counts: fasting is measured
+ * against it.
+ */
 function getNonFastingWindows(
-  treatments: any[],
+  stream: Stream,
   ignoreGlucose: boolean = false,
 ): DateRange[] {
   const minTimeSinceMeal = BasalStore.minTimeSinceMeal.value;
 
   let nonFasting: DateRange[] = []; // A set of date pairs to describe when we are not fasting
-  treatments.forEach((a: any) => {
-    let hoursNonFasting: number | null = null;
-    if (a.insulin && a.eventType !== basalEventType) hoursNonFasting = 7;
-    switch (a.eventType) {
-      case mealEventType:
-        hoursNonFasting = minTimeSinceMeal;
-        break;
-      case insulinEventType:
-        const variant = InsulinVariantManager.getVariant(a.notes);
-        if (a.insulin) {
-          const date = new Date();
-          const insulin = new Insulin(a.insulin, date, variant);
-          hoursNonFasting = insulin.duration;
-        }
-        break;
-      case glucoseEventType:
-        hoursNonFasting = ignoreGlucose
-          ? null
-          : RescueVariantManager.getVariant(a.notes).duration / 60; // Convert from minutes to hours
-        break;
-      case activityEventType:
-        hoursNonFasting = a.duration ? a.duration / 60 : null;
-        break;
-    }
-    if (hoursNonFasting !== null)
-      nonFasting.push([
-        a.timestamp,
-        getTimestampFromOffset(a.timestamp, hoursNonFasting),
-      ]);
-  });
+  const push = (timestamp: Date, hoursNonFasting: number) =>
+    nonFasting.push([
+      timestamp,
+      getTimestampFromOffset(timestamp, hoursNonFasting),
+    ]);
+  stream.meals.forEach((m) => push(m.timestamp, minTimeSinceMeal));
+  stream.insulins.forEach((i) => push(i.timestamp, i.duration));
+  if (!ignoreGlucose)
+    stream.rescues.forEach((g) =>
+      push(g.timestamp, g.variant.duration / 60), // Convert from minutes to hours
+    );
+  stream.activities.forEach((a) => push(a.timestamp, a.value / 60));
   nonFasting.push(...getSessionWindows());
   return nonFasting;
 }
@@ -104,13 +62,19 @@ function isFasting(timestamp: Date, nonFasting: DateRange[]): boolean {
   }
   return true;
 }
-function getFastingVelocities(
-  treatments: any[],
-  readings: SugarReading[],
-): number[] {
-  let nonFasting = getNonFastingWindows(treatments); // A set of date pairs to describe when we are not fasting
+/** The stream over the last basal duration: the window fasting is measured over */
+function getFastingStream(): Stream {
+  const hours = InsulinVariantManager.getBasalVariant().duration;
+  const now = new Date();
+  return StreamStore.stream.value.view(getTimestampFromOffset(now, -hours), now);
+}
+function getFastingVelocities(stream: Stream): number[] {
+  let nonFasting = getNonFastingWindows(stream); // A set of date pairs to describe when we are not fasting
 
   if (PrivateStore.debugLogs.value) console.log(nonFasting);
+  const readings = stream.snapshot.readings
+    .filter((r) => !r.isCalibration)
+    .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
   let velocities: number[] = [];
   let currentSet: SugarReading[] = [];
   readings.forEach((reading: SugarReading, index: number) => {
@@ -128,52 +92,20 @@ function getFastingVelocities(
   });
   return velocities;
 }
-function getFastingGlucoses(treatments: any[]): Glucose[] {
-  let nonFasting = getNonFastingWindows(treatments, true);
-  let glucoses: Glucose[] = [];
-  treatments.forEach((a: any) => {
-    if (a.eventType === glucoseEventType) {
-      glucoses.push(
-        new Glucose(
-          a.carbs,
-          new Date(a.created_at),
-          RescueVariantManager.getVariant(a.variant),
-        ),
-      );
-    }
-  });
-  glucoses = glucoses.filter((g) => isFasting(g.timestamp, nonFasting));
-  return glucoses;
-}
-
-export async function populateFastingVelocitiesCache() {
-  const hours = InsulinVariantManager.getBasalVariant().duration;
-  const now = new Date();
-  const timestampA = getTimestampFromOffset(now, -hours);
-  const timestampB = now;
-  const treatments: any[] = await RemoteTreatments.getTreatments(
-    timestampA,
-    now,
-  );
-  const rawReadings = await RemoteReadings.getReadings(timestampA, timestampB);
-  const readings = rawReadings.map((a: any) => getReadingFromNightscout(a));
-  BasalStore.fastingVelocitiesCache.value = getFastingVelocities(
-    treatments,
-    readings,
-  );
-  BasalStore.fastingGlucosesCache.value = getFastingGlucoses(treatments);
-  if (PrivateStore.debugLogs.value)
-    console.log(BasalStore.fastingGlucosesCache.value);
+function getFastingGlucoses(stream: Stream): Glucose[] {
+  let nonFasting = getNonFastingWindows(stream, true);
+  return stream.rescues.filter((g) => isFasting(g.timestamp, nonFasting));
 }
 
 export function getFastingVelocity() {
-  const fastingVelocities = BasalStore.fastingVelocitiesCache.value;
+  const stream = getFastingStream();
+  const fastingVelocities = getFastingVelocities(stream);
   if (fastingVelocities.length === 0) return 0; // No data — assume flat
   const averageVelocity = MathUtil.mean(fastingVelocities);
 
   // We account for correction glucose that had to be taken while fasting
-  const hours = getFastingLength();
-  const fastingGlucoses = BasalStore.fastingGlucosesCache.value;
+  const hours = getFastingLength(fastingVelocities);
+  const fastingGlucoses = getFastingGlucoses(stream);
   let totalFastingGlucoseEffect = 0;
   fastingGlucoses.forEach(
     (g) => (totalFastingGlucoseEffect += (g.value ?? 0) * g.variant.effect),
@@ -190,16 +122,25 @@ export function getFastingVelocity() {
 /**
  * Gives a number of hours that we have been fasting
  */
-export function getFastingLength() {
-  const velocities = BasalStore.fastingVelocitiesCache.value;
+export function getFastingLength(
+  velocities: number[] = getFastingVelocities(getFastingStream()),
+) {
   const minutesPerReading = BackendStore.cgmDelay.value;
   const minutes = velocities.length * minutesPerReading;
   const hours = minutes / 60;
   return hours;
 }
 
+/** The doses still acting: one basal duration's worth of shots, newest first */
+export function getRecentBasals(): Insulin[] {
+  const days = InsulinVariantManager.getBasalVariant().duration / 24;
+  const shotsPerDay = HealthMonitorStore.basalShotsPerDay.value;
+  return StreamStore.stream.value.basals
+    .slice(-days * shotsPerDay)
+    .reverse();
+}
 export function getDailyBasal() {
-  const doses: Insulin[] = BasalStore.basalDoses.value;
+  const doses: Insulin[] = getRecentBasals();
   const shotsPerDay = HealthMonitorStore.basalShotsPerDay.value;
   if (doses.length < shotsPerDay) return 0; // Not enough data yet
   let sum = 0;
@@ -227,18 +168,27 @@ export function getLastShot(): number {
   const insulin = basals[basals.length - shotsPerDay];
   return insulin ? insulin.value : 0;
 }
-function getShotsSinceChange() {}
+/**
+ * Shots taken since the dosing pattern last changed: a dose changed when it
+ * differs from the dose of the same shot the day before.
+ */
+function getShotsSinceChange() {
+  const shotsPerDay = HealthMonitorStore.basalShotsPerDay.value;
+  const basals = StreamStore.stream.value.basals;
+  let shots = 0;
+  for (let i = basals.length - 1; i >= shotsPerDay; i--) {
+    shots++;
+    if (Math.abs(basals[i].value - basals[i - shotsPerDay].value) > 0.01)
+      break;
+  }
+  return shots;
+}
 export function dosingChangeComplete() {
   const shotsPerDay = HealthMonitorStore.basalShotsPerDay.value;
   const minDays = InsulinVariantManager.getBasalVariant().duration / 24;
 
   const minShots = shotsPerDay * minDays;
   return getShotsSinceChange() >= minShots;
-}
-function getRecommendationIndex() {
-  const shotsPerDay = HealthMonitorStore.basalShotsPerDay.value;
-  const shotsSinceChange = BasalStore.shotsSinceLastChange.value;
-  return shotsSinceChange % shotsPerDay;
 }
 type LiverModel = {
   L: number; // mg/dL per hour (intercept when B=0)
@@ -263,10 +213,11 @@ export function estimateLiverModel(
   minBasalDiffPerDay: number = 1, // bump default for stability
   requireNonNegativeS: boolean = true,
 ): LiverModel | null {
+  // Not implemented yet: no estimate
   sessions;
   minBasalDiffPerDay;
   requireNonNegativeS;
-  throw new Error(`Unsupported`);
+  return null;
 }
 
 /**

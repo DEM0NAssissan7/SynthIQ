@@ -10,7 +10,6 @@ import StatisticsPage from "./pages/StatisticsPage";
 
 import WizardEditPage from "./pages/wizard/WizardEditPage";
 import RescuePage from "./pages/treatment/RescuePage";
-import { updateHealthMonitorStatus } from "./lib/healthMonitor";
 import Backend from "./lib/remote/backend";
 import RemoteStorage from "./lib/remote/storage";
 import BasalPage from "./pages/treatment/BasalPage";
@@ -60,8 +59,8 @@ function App() {
 
   const now = useNow(60);
   useEffect(() => {
-    // Update health monitor status cache
-    updateHealthMonitorStatus();
+    // Pull new readings and treatments into the stream
+    StreamManager.populateFromRemote();
 
     (async () => {
       // Synchronize master/slave state (if set)

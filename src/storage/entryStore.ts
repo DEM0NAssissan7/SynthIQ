@@ -10,8 +10,8 @@ export namespace EntryStore {
   export const injectionPurpose = node.add(
     "injectionPurpose",
     InjectionPurpose.Nominal,
-    JSON.stringify,
-    toInjectionPurpose,
+    (p) => JSON.stringify(p),
+    (o) => toInjectionPurpose(JSON.parse(o)),
   );
 
   // Active stuff

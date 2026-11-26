@@ -1,18 +1,24 @@
-import { getBGVelocity, timeToCritical } from "../lib/healthMonitor";
+import {
+  getBGVelocity,
+  getCurrentBG,
+  getHealthMonitorStatus,
+  timeToCritical,
+} from "../lib/healthMonitor";
 import { round } from "../lib/util";
 import HealthMonitorStatus from "../models/types/healthMonitorStatus";
-import { HealthMonitorStore } from "../storage/healthMonitorStore";
 import { PreferencesStore } from "../storage/preferencesStore";
+import { useStream } from "../state/useStream";
 
 export default function HealthMonitorMessage() {
+  useStream(); // Re-render with the stream
   const fallRate = -getBGVelocity();
   const time = timeToCritical();
   const [dangerBG] = PreferencesStore.dangerBG.useState();
 
-  const [currentBG] = HealthMonitorStore.currentBG.useState();
+  const currentBG = getCurrentBG() ?? 0;
   const [highBG] = PreferencesStore.highBG.useState();
 
-  const [status] = HealthMonitorStore.statusCache.useState();
+  const status = getHealthMonitorStatus();
 
   switch (status) {
     case HealthMonitorStatus.Nominal:

@@ -1,19 +1,24 @@
 import { useNavigate } from "react-router";
 import { ActivityManager } from "../../managers/activityManager";
-import { ActivityStore } from "../../storage/activityStore";
+import { StreamManager } from "../../managers/streamManager";
+import { EntryStore } from "../../storage/entryStore";
+import { Activity } from "../../models/events/activity";
 import Card from "../../components/Card";
 import ActivitySummary from "../../components/ActivitySummary";
 import { Button } from "react-bootstrap";
-import { ActivityPage } from "../../models/types/activityPage";
 import BloodSugarInput from "../../components/BloodSugarInput";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { PageActions, PageLayout } from "../../components/PageLayout";
 
 export default function ActivityStartPage() {
   const [currentBG, setCurrentBG] = useState<number | null>(null);
 
-  const activity = ActivityStore.activity.value;
-  const template = ActivityStore.template.value;
+  const [name] = EntryStore.activityName.useState();
+  // The activity as it would be if started now, for its template's figures
+  const activity = useMemo(
+    () => ActivityManager.getActivitySession(new Activity(name, new Date(), 0)),
+    [name],
+  );
 
   const navigate = useNavigate();
 
@@ -23,20 +28,19 @@ export default function ActivityStartPage() {
       return;
     }
     if (confirm(`Are you ready to start your activity?`)) {
-      ActivityManager.begin(navigate, currentBG);
+      const timestamp = new Date();
+      StreamManager.markReading(currentBG, timestamp);
+      ActivityManager.begin(name, timestamp);
+      navigate("/activity/end");
     }
   }
   function goToSelect() {
-    ActivityManager.navigateTo(navigate, ActivityPage.Select);
+    navigate("/activity/select");
   }
   return (
     <PageLayout>
       <Card>
-        <ActivitySummary
-          activity={activity}
-          template={template}
-          currentBG={currentBG}
-        />
+        <ActivitySummary activity={activity} currentBG={currentBG} />
       </Card>
       <Card>
         <BloodSugarInput
@@ -46,11 +50,9 @@ export default function ActivityStartPage() {
       </Card>
 
       <PageActions inline>
-        {!activity.started && (
-          <Button onClick={goToSelect} variant="secondary">
-            Go Back
-          </Button>
-        )}
+        <Button onClick={goToSelect} variant="secondary">
+          Go Back
+        </Button>
         <Button variant="primary" onClick={start}>
           Start Activity
         </Button>

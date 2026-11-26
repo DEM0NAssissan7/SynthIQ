@@ -3,9 +3,7 @@ import Card from "../components/Card";
 import { getFullPrettyDate } from "../lib/timing";
 import type Session from "../models/session";
 import { useState } from "react";
-import { BasalStore } from "../storage/basalStore";
 import { EmptyState, PageHeader, PageLayout } from "../components/PageLayout";
-import { StreamManager } from "../managers/streamManager";
 import { SessionManager } from "../managers/sessionManager";
 
 function getCSV(sessions: Session[]): string {
@@ -46,8 +44,7 @@ function SessionCard({ session }: { session: Session }) {
           value="1"
           size="sm"
           onChange={(e) => {
-            session.meal.isGarbage = e.currentTarget.checked;
-            StreamManager.getStream().modify(session.meal);
+            SessionManager.setGarbage(session, e.currentTarget.checked);
             setRerenderFlag((f) => !f);
           }}
         >

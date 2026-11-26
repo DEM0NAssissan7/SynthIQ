@@ -50,13 +50,13 @@ export namespace ActivityManager {
   // Helpers
   export function getTemplates(): Template[] {
     const activities: ActivitySession[] = getActivitySessions();
-    const map = new Map();
+    const map = new Map<string, ActivitySession[]>();
     for (const item of activities) {
       const key = item.name;
       if (!map.has(key)) {
         map.set(key, []);
       }
-      map.get(key).push(item);
+      map.get(key)!.push(item);
     }
     const sortedActivities = Array.from(map.values());
 
@@ -67,7 +67,7 @@ export namespace ActivityManager {
         name: name,
         timestamp: activities.reduce(
           (t: Date, a: ActivitySession) =>
-            a.timestamp.getTime() > t.getTime() ? a : t,
+            a.timestamp.getTime() > t.getTime() ? a.timestamp : t,
           new Date(0),
         ),
         score: getScore(name),

@@ -20,7 +20,9 @@ import type Food from "../models/food";
 import Snapshot from "../models/snapshot";
 import type { InsulinVariant } from "../models/types/insulinVariant";
 import type { RescueVariant } from "../models/types/rescueVariant";
-import { getReadingFromNightscout } from "../models/types/sugarReading";
+import SugarReading, {
+  getReadingFromNightscout,
+} from "../models/types/sugarReading";
 import type { UUID } from "../models/types/types";
 import { PrivateStore } from "../storage/privateStore";
 import { StreamStore } from "../storage/streamStore";
@@ -28,9 +30,19 @@ import { InsulinVariantManager } from "./insulinVariantManager";
 import { RescueVariantManager } from "./rescueVariantManager";
 
 export namespace StreamManager {
-  export async function populateFromRemote() {
+  /**
+   * Pull every reading and treatment logged on Nightscout since the last sync
+   * into the stream. At most one sync is in flight: overlapping syncs would
+   * fetch the same window twice.
+   */
+  let syncInFlight: Promise<void> | null = null;
+  export function populateFromRemote(): Promise<void> {
+    if (syncInFlight) return syncInFlight;
+    syncInFlight = sync().finally(() => (syncInFlight = null));
+    return syncInFlight;
+  }
+  async function sync() {
     const lastSyncTime = StreamStore.lastRemoteSyncTime.value;
-    console.log(lastSyncTime);
     const now = new Date();
 
     // Readings
@@ -112,6 +124,10 @@ export namespace StreamManager {
   }
 
   // Marking
+  /** A blood sugar the user entered (or confirmed) at `timestamp` */
+  export function markReading(sugar: number, timestamp: Date) {
+    getStream().addReadings(new SugarReading(sugar, timestamp, true));
+  }
   export function markInsulin(
     units: number,
     timestamp: Date,
@@ -137,7 +153,7 @@ export namespace StreamManager {
     foods: Food[],
     timestamp: Date,
     name: string,
-    templateUUID: UUID,
+    templateUUID: UUID | null,
     isGarbage: boolean,
   ) {
     const meal = new Meal(timestamp, name, templateUUID);

@@ -1,10 +1,11 @@
-import { useRef } from "react";
+import { useMemo, useRef } from "react";
 import { getFormattedTime, getMinuteDiff, getPrettyTime } from "../lib/timing";
 import type Insulin from "../models/events/insulin";
-import { WizardStore } from "../storage/entryStore";
 import { round } from "../lib/util";
-import { HealthMonitorStore } from "../storage/healthMonitorStore";
 import { useNow } from "../state/useNow";
+import { useStream } from "../state/useStream";
+import { StreamManager } from "../managers/streamManager";
+import { getRecentBoluses } from "../lib/healthMonitor";
 import MdIcon from "./md3/MdIcon";
 import { totalActivity, totalIOB } from "./hub/hubEvents";
 function formatDose(value: number) {
@@ -16,12 +17,10 @@ const HOLD_MS = 500;
 const HOLD_SLOP_PX = 10;
 
 /**
- * Remove a dose from the app: from the recent boluses (which drive IOB and
- * the forecast) and from the current session if it was logged there. The
- * treatment already uploaded to Nightscout is not touched.
+ * Remove a dose from the stream, and with it from IOB, the forecast and its
+ * session. The treatment already uploaded to Nightscout is not touched.
  */
 function deleteDose(insulin: Insulin) {
-  const time = insulin.timestamp.getTime();
   const label = `${formatDose(insulin.value)}u ${insulin.variant.name} at ${getPrettyTime(insulin.timestamp)}`;
   if (
     !confirm(
@@ -29,16 +28,7 @@ function deleteDose(insulin: Insulin) {
     )
   )
     return;
-  HealthMonitorStore.recentBoluses.value =
-    HealthMonitorStore.recentBoluses.value.filter((b) => b !== insulin);
-  const session = WizardStore.session.value;
-  const logged = session.insulins.find(
-    (b) => b.timestamp.getTime() === time && b.value === insulin.value,
-  );
-  if (logged) {
-    session.removeInsulin(logged);
-    WizardStore.session.write();
-  }
+  StreamManager.remove(insulin);
 }
 
 /** Press-and-hold on a dose row to delete it. */
@@ -85,7 +75,8 @@ function useHoldToDelete() {
  * small remainder of doses past their duration), so the numbers always match.
  */
 export default function LastBolusMessage({ nowMs }: { nowMs?: number }) {
-  const [boluses] = HealthMonitorStore.recentBoluses.useState();
+  const [stream, streamVersion] = useStream();
+  const boluses = useMemo(() => getRecentBoluses(stream), [streamVersion]);
   const fallbackNow = useNow(5);
   const holdToDelete = useHoldToDelete();
   const now = new Date(nowMs ?? fallbackNow.getTime());

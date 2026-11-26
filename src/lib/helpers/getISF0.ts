@@ -5,7 +5,7 @@ import type Meal from "../../models/events/meal";
 import { estimateDynamicMetabolicActivity } from "./estimateDynamicISF";
 import type Session from "../../models/session";
 import Snapshot from "../../models/snapshot";
-import WizardManager from "../../managers/wizardManager";
+import { SessionManager } from "../../managers/sessionManager";
 
 function sortTimes(a: { timestamp: Date }, b: { timestamp: Date }) {
   return a.timestamp.getTime() - b.timestamp.getTime();
@@ -47,7 +47,7 @@ function getPassiveMetabolicActivity(
   );
 }
 function getAllSessionsInfo() {
-  const sessions = WizardManager.getAllSessions();
+  const sessions = SessionManager.getSessions();
   return extractInfo(sessions);
 }
 export function getPassiveInfo() {

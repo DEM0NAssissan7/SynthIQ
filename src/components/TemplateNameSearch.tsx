@@ -5,6 +5,7 @@ import { getFullPrettyDate } from "../lib/timing";
 import type { Template } from "../models/types/interfaces";
 import { EmptyState } from "./PageLayout";
 import MdIcon from "./md3/MdIcon";
+import { SessionManager } from "../managers/sessionManager";
 
 export default function TemplateNameSearch({
   onInput,
@@ -12,7 +13,8 @@ export default function TemplateNameSearch({
   templates,
 }: {
   onInput: (name: string) => void;
-  onDelete: (name: string) => void;
+  /** Omit when templates cannot be deleted: the delete button is hidden */
+  onDelete?: (name: string) => void;
   templates: Template[];
 }) {
   const [query, setQuery] = useState("");
@@ -20,7 +22,7 @@ export default function TemplateNameSearch({
   const filteredTemplates: Template[] = useMemo(() => {
     let result: Template[] = [];
     for (let n of templates) {
-      if (n.name === "Session") continue; // Reserved template name for the Skip button
+      if (n.name === SessionManager.unnamedMealName) continue; // Reserved for the Skip button
       if (n.name.toLowerCase().includes(query.trim().toLowerCase())) {
         result.push(n);
       }
@@ -42,7 +44,7 @@ export default function TemplateNameSearch({
           "This action is irreversible and all associated template data will be permanently removed.",
         )
       ) {
-        onDelete(name);
+        onDelete?.(name);
         reloadApp("TemplateNameSearch #1");
       }
     }
@@ -135,15 +137,17 @@ export default function TemplateNameSearch({
               </div>
 
               <div className="template-actions">
-                <button
-                  type="button"
-                  className="template-del-btn"
-                  onClick={(e) => deleteTemplate(e, template.name)}
-                  title="Delete template"
-                  aria-label={`Delete ${template.name}`}
-                >
-                  <MdIcon name="delete" size={18} />
-                </button>
+                {onDelete && (
+                  <button
+                    type="button"
+                    className="template-del-btn"
+                    onClick={(e) => deleteTemplate(e, template.name)}
+                    title="Delete template"
+                    aria-label={`Delete ${template.name}`}
+                  >
+                    <MdIcon name="delete" size={18} />
+                  </button>
+                )}
                 <button
                   type="button"
                   className="btn btn-primary btn-sm rounded-pill px-3 py-1 fw-semibold d-flex align-items-center gap-1"

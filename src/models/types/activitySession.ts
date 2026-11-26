@@ -1,4 +1,4 @@
-import { getMinuteDiff, getTimestampFromOffset } from "../../lib/timing";
+import { getTimestampFromOffset } from "../../lib/timing";
 import { convertDimensions, MathUtil } from "../../lib/util";
 import Snapshot from "../snapshot";
 import Unit from "../unit";

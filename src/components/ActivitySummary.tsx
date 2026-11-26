@@ -7,20 +7,17 @@ import { RescueVariantManager } from "../managers/rescueVariantManager";
 import { getGlucoseCorrectionCaps } from "../lib/metabolism";
 import MdIcon from "./md3/MdIcon";
 import type { ActivitySession } from "../models/types/activitySession";
-import type { Template } from "../models/types/interfaces";
 import { ActivityManager } from "../managers/activityManager";
 import { EntryStore } from "../storage/entryStore";
 
 interface ActivitySummaryProps {
   activity: ActivitySession;
-  template: Template;
   currentBG: number | null;
   className?: string;
 }
 
 export default function ActivitySummary({
   activity,
-  template,
   currentBG,
   className = "",
 }: ActivitySummaryProps) {
@@ -44,22 +41,22 @@ export default function ActivitySummary({
 
   const glucoseCorrectionRate = useMemo(
     () => -changeRate / defaultRescueVariant.effect,
-    [template, defaultRescueVariant],
+    [changeRate, defaultRescueVariant],
   );
 
   const totalGlucoseCorrection = useMemo(
     () => glucoseCorrectionRate * (length / 60) + baseCorrection,
-    [glucoseCorrectionRate, template, baseCorrection],
+    [glucoseCorrectionRate, length, baseCorrection],
   );
 
   const insulinCorrectionRate = useMemo(
     () => changeRate / defaultVariant.effect,
-    [template, defaultVariant],
+    [changeRate, defaultVariant],
   );
 
   const insulinCorrectionTotal = useMemo(
     () => insulinCorrectionRate * (length / 60),
-    [insulinCorrectionRate, template],
+    [insulinCorrectionRate, length],
   );
 
   return (
@@ -69,7 +66,7 @@ export default function ActivitySummary({
         <div>
           <h2 className="app-discrete-title">
             <MdIcon name="directions_walk" className="text-primary" size={20} />
-            <span>{template.name}</span>
+            <span>{name}</span>
           </h2>
           <div className="app-discrete-subtitle">
             {isStarted ? (

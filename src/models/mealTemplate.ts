@@ -6,13 +6,17 @@ import { sessionsWeightedAverage } from "../lib/templateHelpers";
 import { getCircularHourDistance } from "../lib/timing";
 import { genUUID, MathUtil } from "../lib/util";
 import { HealthMonitorStore } from "../storage/healthMonitorStore";
-import { PreferencesStore } from "../storage/preferencesStore";
 import Meal from "./events/meal";
-import Session from "./session";
+import type Session from "./session";
 import Subscribable from "./subscribable";
 import type { Template } from "./types/interfaces";
-import type { Deserializer, Serializer, UUID } from "./types/types";
+import type { UUID } from "./types/types";
 
+/**
+ * A meal and the pool of sessions its dosing advice is drawn from. Built on
+ * demand from the stream's sessions (SessionManager.getMealTemplate); never
+ * stored.
+ */
 export default class MealTemplate extends Subscribable implements Template {
   _sessions: Session[] = [];
   auxillarySessions: Session[] = []; // Sessions that will not be serialized
@@ -237,26 +241,4 @@ export default class MealTemplate extends Subscribable implements Template {
     candidates.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
     return candidates[0];
   }
-
-  // Serialization
-  static serialize: Serializer<MealTemplate> = (template: MealTemplate) => {
-    const sessions = template._sessions.filter(
-      (s) => s.age < PreferencesStore.maxSessionLife.value,
-    ); // Get rid of old sessions upon serialization
-    return {
-      name: template.name,
-      sessions: sessions.map((s) => Session.serialize(s)),
-      timestamp: template.timestamp.getTime(),
-      UUID: template.UUID,
-    };
-  };
-  static deserialize: Deserializer<MealTemplate> = (o) => {
-    const template = new MealTemplate(o.name);
-    o.sessions.forEach((s: string) =>
-      template.addSession(Session.deserialize(s)),
-    );
-    template.timestamp = new Date(o.timestamp);
-    template.UUID = o.UUID ?? template.UUID;
-    return template;
-  };
 }

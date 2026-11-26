@@ -1,13 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
 import { Alert, Button, Form, InputGroup } from "react-bootstrap";
-import WizardManager from "../../managers/wizardManager";
 import { roundByHalf } from "../../lib/util";
 import { useNavigate } from "react-router";
 import BloodSugarInput from "../../components/BloodSugarInput";
 import { getCorrectionInsulin } from "../../lib/metabolism";
 import Card from "../../components/Card";
 import MealSummary from "../../components/summary/MealSummary";
-import { WizardStore } from "../../storage/entryStore";
+import { EntryStore } from "../../storage/entryStore";
+import { SessionManager } from "../../managers/sessionManager";
+import { StreamManager } from "../../managers/streamManager";
+import { InjectionPurpose } from "../../models/events/insulin";
+import { useStream } from "../../state/useStream";
+import {
+  getLatestReadings,
+  getRecentBoluses,
+  getRecentRescues,
+} from "../../lib/healthMonitor";
 import { PreferencesStore } from "../../storage/preferencesStore";
 import { InsulinVariantManager } from "../../managers/insulinVariantManager";
 import { NumberOptionSelector } from "../../components/NumberOptionSelector";
@@ -21,7 +29,6 @@ import {
 import MdIcon from "../../components/md3/MdIcon";
 import { estimateConstDeltaBG } from "../../lib/helpers/estimateConstDeltaBG";
 import { useNow } from "../../state/useNow";
-import { HealthMonitorStore } from "../../storage/healthMonitorStore";
 import { getTimestampFromOffset } from "../../lib/timing";
 import {
   deriveInsulinPipeline,
@@ -55,37 +62,55 @@ function DoseBreakdownItem({ name, insulin }: DoseBreakdownItemProps) {
 
 export default function InsulinPage() {
   const navigate = useNavigate();
-  const [session] = WizardStore.session.useState();
-  const [template] = WizardStore.template.useState();
-  const [activeTemplate] = WizardStore.activeTemplate.useState();
-  const [isPrebolus, setIsPrebolus] = WizardStore.isPrebolus.useState();
+  const [stream, streamVersion] = useStream();
+  // The running session: a bolus taken now becomes part of it
+  const session = useMemo(
+    () => SessionManager.getCurrentSession(),
+    [streamVersion],
+  );
+  const [injectionPurpose, setInjectionPurpose] =
+    EntryStore.injectionPurpose.useState();
+  const isPrebolus = injectionPurpose === InjectionPurpose.PreBolus;
   const now = useNow();
-  const [readings] = HealthMonitorStore.readingsCache.useState();
-  const [recentBoluses] = HealthMonitorStore.recentBoluses.useState();
-  const [rescues] = HealthMonitorStore.lastRescues.useState();
+  const readings = useMemo(() => getLatestReadings(stream), [streamVersion]);
+  const recentBoluses = useMemo(
+    () => getRecentBoluses(stream),
+    [streamVersion],
+  );
+  const rescues = useMemo(() => getRecentRescues(stream), [streamVersion]);
 
-  const [scratchpadMeal] = WizardStore.meal.useState();
+  const [scratchpadMeal] = EntryStore.meal.useState();
   const meal = useMemo(
-    () => (isPrebolus ? scratchpadMeal : session.meal),
+    () => (isPrebolus ? scratchpadMeal : (session?.meal ?? null)),
     [isPrebolus, scratchpadMeal, session],
   );
+  // The pre-bolused meal is still a draft; otherwise the meal is the session's
+  const template = useMemo(
+    () => SessionManager.getMealTemplate(scratchpadMeal.name),
+    [scratchpadMeal.name, streamVersion],
+  );
+  const activeTemplate = useMemo(
+    () => (session ? SessionManager.getMealTemplate(session.meal.name) : null),
+    [session],
+  );
+  const mealTemplate = isPrebolus ? template : activeTemplate;
 
   const isFirstPostMealInjection = useMemo(
     () =>
       !isPrebolus &&
+      session !== null &&
       session.initialGlucose !== null &&
-      session.insulins.length === 0 &&
-      session.mealMarked,
+      session.insulins.length === 0,
     [isPrebolus, session],
   );
 
   const baseSession = useMemo(
-    () => (meal ? template.getBaseSession(meal) : null),
-    [template, meal],
+    () => (meal && mealTemplate ? mealTemplate.getBaseSession(meal) : null),
+    [mealTemplate, meal],
   );
   const baseSessions = useMemo(
-    () => (meal ? template.getBaseSessions(meal) : []),
-    [template, meal],
+    () => (meal && mealTemplate ? mealTemplate.getBaseSessions(meal) : []),
+    [mealTemplate, meal],
   );
   const [variant, setVariant] = useState(InsulinVariantManager.getDefault());
 
@@ -99,7 +124,7 @@ export default function InsulinPage() {
   const [currentGlucose, setCurrentGlucose] = useState<number | null>(null);
   const currentBG =
     currentGlucose ??
-    (isFirstPostMealInjection ? session.initialGlucose : null);
+    (isFirstPostMealInjection ? (session?.initialGlucose ?? null) : null);
 
   const markInsulin = (insulin: number) => {
     const effectiveMealRelated = isPrebolus && !isCorrectionOnly;
@@ -118,12 +143,15 @@ export default function InsulinPage() {
         )
       ) {
         // TODO: Use date selector
-        const BG = currentBG ?? PreferencesStore.targetBG.value;
-        WizardManager.markInsulin(
+        const timestamp = new Date();
+        if (currentGlucose) StreamManager.markReading(currentGlucose, timestamp);
+        StreamManager.markInsulin(
           insulin,
-          BG,
-          variant.name,
-          effectiveMealRelated,
+          timestamp,
+          variant,
+          effectiveMealRelated
+            ? InjectionPurpose.PreBolus
+            : InjectionPurpose.Nominal,
         );
 
         goBack();
@@ -148,7 +176,7 @@ export default function InsulinPage() {
       PreferencesStore.targetBG.value - PreferencesStore.overshootOffset.value;
     return Math.max(cappedCurrentBG - baseTarget, 0) / variant.effect;
   }, [currentBG]);
-  const shotIndex = isPrebolus ? 0 : session.insulins.length;
+  const shotIndex = isPrebolus ? 0 : (session?.insulins.length ?? 0);
   const fallbackPipeline = useMemo(
     () =>
       [
@@ -235,7 +263,7 @@ export default function InsulinPage() {
 
   function goBack() {
     const wasMealRelated = isPrebolus && !isCorrectionOnly;
-    setIsPrebolus(false); // Reset flag
+    setInjectionPurpose(InjectionPurpose.Nominal); // Reset flag
     navigate(wasMealRelated ? "/meal" : "/hub");
   }
   const [insulinTaken, setInsulinTaken] = useState(displayedInsulin);
@@ -252,7 +280,7 @@ export default function InsulinPage() {
   useEffect(() => {
     const idealInsulins = meal
       ? getIdealInsulins(
-          isPrebolus ? currentBG : (session.initialGlucose ?? currentBG),
+          isPrebolus ? currentBG : (session?.initialGlucose ?? currentBG),
           meal,
           baseSession,
         )
@@ -264,7 +292,7 @@ export default function InsulinPage() {
 
   return (
     <PageLayout>
-      {meal && !meal.isEmpty && (!session.insulinMarked || isPrebolus) && (
+      {meal && !meal.isEmpty && (!session?.insulinMarked || isPrebolus) && (
         <Card>
           <MealSummary
             template={template}
@@ -274,7 +302,7 @@ export default function InsulinPage() {
           />
         </Card>
       )}
-      {session.meal && !session.insulinMarked && (
+      {session && activeTemplate && !session.insulinMarked && (
         <Card>
           <MealSummary
             template={activeTemplate}
@@ -311,11 +339,11 @@ export default function InsulinPage() {
                 ? "Correction only"
                 : isPrebolus
                   ? "Meal pre-bolus"
-                  : session.insulins.length > 0
-                    ? "Additional bolus"
-                    : session.mealMarked
-                      ? "Meal bolus"
-                      : "Correction only"
+                  : !session
+                    ? "Correction only"
+                    : session.insulins.length > 0
+                      ? "Additional bolus"
+                      : "Meal bolus"
             }
           />
           {!isPrebolus && (

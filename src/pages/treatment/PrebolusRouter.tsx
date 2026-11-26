@@ -1,10 +1,11 @@
 import { useNavigate } from "react-router";
 import { useEffect } from "react";
-import { WizardStore } from "../../storage/entryStore";
+import { EntryStore } from "../../storage/entryStore";
+import { InjectionPurpose } from "../../models/events/insulin";
 
 export default function () {
   const navigate = useNavigate();
-  WizardStore.isPrebolus.value = true;
+  EntryStore.injectionPurpose.value = InjectionPurpose.PreBolus;
   useEffect(() => {
     navigate("/insulin");
   }, [navigate]);

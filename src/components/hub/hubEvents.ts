@@ -1,7 +1,7 @@
 import type Insulin from "../../models/events/insulin";
 import type Glucose from "../../models/events/glucose";
 import type Session from "../../models/session";
-import type Activity from "../../models/types/activitySession";
+import type { Activity } from "../../models/events/activity";
 import { formatClock, formatDose, formatRelative } from "./glucoseFormat";
 import { round } from "../../lib/util";
 
@@ -124,11 +124,10 @@ function when(time: number, nowMs: number) {
   return `${formatClock(time)} · ${formatRelative(time, nowMs)}`;
 }
 
-function activitySpan(a: Activity, nowMs: number) {
-  const start = a.snapshot.initialBG?.timestamp.getTime();
-  if (start === undefined) return null;
-  const end = a.snapshot.finalBG?.timestamp.getTime() ?? nowMs;
-  return { start, end, ongoing: !a.snapshot.finalBG };
+function activitySpan(a: Activity, ongoing: boolean, nowMs: number) {
+  const start = a.timestamp.getTime();
+  const end = ongoing ? nowMs : start + a.value * 60000;
+  return { start, end, ongoing };
 }
 
 export function buildHubEvents({
@@ -136,16 +135,17 @@ export function buildHubEvents({
   rescues,
   mealSessions,
   basalDoses,
-  basalTimes,
   activities,
+  ongoingActivity,
   nowMs,
 }: {
   boluses: Insulin[];
   rescues: Glucose[];
   mealSessions: MealSession[];
   basalDoses: Insulin[];
-  basalTimes: number[];
   activities: Activity[];
+  /** The activity in progress, if any: it has no duration yet */
+  ongoingActivity: Activity | null;
   nowMs: number;
 }): HubEvent[] {
   const events: HubEvent[] = [];
@@ -225,9 +225,7 @@ export function buildHubEvents({
     });
   });
 
-  // Basal: local doses carry the amount; Nightscout times fill in any
-  // shot not logged on this device.
-  const localBasalTimes = basalDoses.map((d) => d.timestamp.getTime());
+  // Basal
   basalDoses.forEach((d, i) => {
     const time = d.timestamp.getTime();
     events.push({
@@ -240,21 +238,10 @@ export function buildHubEvents({
       details: [{ label: "Given", value: when(time, nowMs) }],
     });
   });
-  basalTimes.forEach((time, i) => {
-    if (localBasalTimes.some((t) => Math.abs(t - time) < 60 * 1000)) return;
-    events.push({
-      id: `basal-ns-${time}-${i}`,
-      kind: "basal",
-      time,
-      label: "Basal",
-      title: "Basal insulin",
-      details: [{ label: "Given", value: when(time, nowMs) }],
-    });
-  });
-
-  activities.forEach((a, i) => {
-    const span = activitySpan(a, nowMs);
-    if (!span) return;
+  const spans = activities.map((a) => ({ a, ongoing: false }));
+  if (ongoingActivity) spans.push({ a: ongoingActivity, ongoing: true });
+  spans.forEach(({ a, ongoing }, i) => {
+    const span = activitySpan(a, ongoing, nowMs);
     const minutes = Math.round((span.end - span.start) / 60000);
     events.push({
       id: `activity-${span.start}-${i}`,

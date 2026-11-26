@@ -7,14 +7,30 @@ import BloodSugarInput from "../../components/BloodSugarInput";
 import { useMemo, useState } from "react";
 import { PageActions, PageLayout } from "../../components/PageLayout";
 import { EntryStore } from "../../storage/entryStore";
+import { StreamManager } from "../../managers/streamManager";
+import { Activity } from "../../models/events/activity";
+import { getMinuteDiff } from "../../lib/timing";
+import { useNow } from "../../state/useNow";
+import { useStream } from "../../state/useStream";
 
 export default function ActivityEndPage() {
   const [currentBG, setCurrentBG] = useState<number | null>(null);
 
   const [activity] = EntryStore.activity.useState();
+  const now = useNow(60);
+  const [, streamVersion] = useStream();
+  // Still running: it spans until now, so rescues taken during it are counted
   const activitySession = useMemo(
-    () => ActivityManager.getActivitySession(activity),
-    [activity],
+    () =>
+      ActivityManager.getActivitySession(
+        new Activity(
+          activity.name,
+          activity.timestamp,
+          getMinuteDiff(now, activity.timestamp),
+          activity.uuid,
+        ),
+      ),
+    [activity, now, streamVersion],
   );
 
   const navigate = useNavigate();
@@ -26,6 +42,7 @@ export default function ActivityEndPage() {
       )
     ) {
       ActivityManager.cancel();
+      navigate("/hub");
     }
   }
   function end() {
@@ -34,7 +51,10 @@ export default function ActivityEndPage() {
       return;
     }
     if (confirm(`Are you ready to end your activity?`)) {
-      ActivityManager.end(new Date());
+      const timestamp = new Date();
+      StreamManager.markReading(currentBG, timestamp);
+      ActivityManager.end(timestamp);
+      navigate("/hub");
     }
   }
   function takeGlucose() {

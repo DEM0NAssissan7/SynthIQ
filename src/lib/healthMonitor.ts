@@ -16,177 +16,80 @@
  */
 
 import HealthMonitorStatus from "../models/types/healthMonitorStatus";
-import SugarReading, {
-  getReadingFromNightscout,
-} from "../models/types/sugarReading";
-import { getHourDiff, getMinuteDiff } from "./timing";
+import type SugarReading from "../models/types/sugarReading";
+import { getHourDiff, getMinuteDiff, getTimestampFromOffset } from "./timing";
 import { MathUtil, round } from "./util";
-import RemoteReadings from "./remote/readings";
 import { getBGVelocities } from "./readingsUtil";
-import { populateFastingVelocitiesCache } from "./basal";
-import Glucose from "../models/events/glucose";
 import { HealthMonitorStore } from "../storage/healthMonitorStore";
 import { PreferencesStore } from "../storage/preferencesStore";
-import { PrivateStore } from "../storage/privateStore";
-import { BasalStore } from "../storage/basalStore";
-import { BackendStore } from "../storage/backendStore";
-import type { RescueVariant } from "../models/types/rescueVariant";
 import { InsulinExpirationManager } from "../managers/expirationManager";
-import Insulin from "../models/events/insulin";
-import Meal from "../models/events/meal";
-import type { InsulinVariant } from "../models/types/insulinVariant";
-import RemoteTreatments from "./remote/treatments";
-
-/** Readings history is backfilled with a full fetch once per app session. */
-let historyBackfilled = false;
+import { StreamManager } from "../managers/streamManager";
+import type { Stream } from "../models/stream";
 
 /**
- * Poll nightscout to fill the reading caches.
- *
- * `readingsCache` gets exactly the newest `readingsCacheSize` readings of the
- * fetch (the short horizon every predictor/ISF consumer was built on).
- * `readingsHistory` merges each fetch into a rolling `readingsHistoryHours`
- * window for display only.
+ * Everything here is derived from the stream. Readings and treatments reach
+ * the stream through StreamManager.populateFromRemote (Nightscout) and the
+ * StreamManager.mark* functions (logged in the app).
  */
-export async function populateReadingCache() {
-  const minutesPerReading = BackendStore.minutesPerReading.value || 5;
-  const backfill = !historyBackfilled;
-  const count = backfill
-    ? Math.max(
-        HealthMonitorStore.readingsCacheSize,
-        Math.ceil(
-          (HealthMonitorStore.readingsHistoryHours * 60) / minutesPerReading,
-        ),
-      )
-    : HealthMonitorStore.readingsCacheSize;
-  const rawReadings = await RemoteReadings.getLatestReadings(count);
-  if (!Array.isArray(rawReadings) || rawReadings.length === 0) return null;
 
-  const convertedRawReadings: SugarReading[] = rawReadings.map(
-    getReadingFromNightscout,
-  );
-  const readings = convertedRawReadings.filter(
-    (a) => a.sugar <= 400 && a.sugar >= 0,
-  ); // Refuse to sync anything larger than 400 or less than 0
-  if (backfill) historyBackfilled = true;
+// Readings
+/** Number of newest CGM readings every predictor/ISF consumer is built on */
+export const numLatestReadings = 36;
+/** Hours of CGM readings shown on the hub graph */
+export const readingsHistoryHours = 24;
+/** Hours of treatments handed to the r1 predictor as context */
+export const r1ContextHours = 48;
+/** Number of each treatment type handed to the r1 predictor as context */
+export const r1ContextSize = 32;
+/** Number of recent boluses / rescues used for IOB and the forecast */
+export const numRecentTreatments = 16;
 
-  HealthMonitorStore.readingsHistory.value = mergeReadingHistory(
-    HealthMonitorStore.readingsHistory.value,
-    readings,
-  );
-  const recent = readings.slice(0, HealthMonitorStore.readingsCacheSize);
-  HealthMonitorStore.readingsCache.value = recent;
-  HealthMonitorStore.currentBG.value = recent[0].sugar;
-  refreshR1Context();
-  refreshFingersticks();
-  return recent;
+/** CGM readings Nightscout would serve: never above 400 or below 0 */
+function isPlausible(reading: SugarReading) {
+  return reading.sugar <= 400 && reading.sugar >= 0;
 }
 
 /**
- * Refresh fingersticks over the history window from Nightscout. Best-effort:
- * on failure the previous list stays. At most one request in flight.
+ * The newest `readingsCacheSize` CGM readings, newest first: the short
+ * horizon every predictor/ISF consumer was built on. Calibrations
+ * (fingersticks, entered BGs) are excluded, as the CGM feed never had them.
  */
-let fingersticksInFlight: Promise<void> | null = null;
-export function refreshFingersticks(): Promise<void> {
-  if (fingersticksInFlight) return fingersticksInFlight;
-  fingersticksInFlight = (async () => {
-    try {
-      const now = new Date();
-      const start = new Date(
-        now.getTime() - HealthMonitorStore.readingsHistoryHours * 3_600_000,
-      );
-      const raw = await RemoteReadings.getMeterReadings(start, now);
-      const sticks = raw
-        .filter((r: { mbg?: number }) => r && r.mbg != null)
-        .map(getReadingFromNightscout)
-        .filter(
-          (r: SugarReading) =>
-            Number.isFinite(r.sugar) &&
-            r.sugar > 0 &&
-            !isNaN(r.timestamp.getTime()),
-        )
-        .sort(
-          (a: SugarReading, b: SugarReading) =>
-            a.timestamp.getTime() - b.timestamp.getTime(),
-        );
-      HealthMonitorStore.fingersticks.value = sticks;
-    } catch (e) {
-      if (PrivateStore.debugLogs.value)
-        console.warn("fingerstick refresh failed", e);
-    } finally {
-      fingersticksInFlight = null;
-    }
-  })();
-  return fingersticksInFlight;
-}
-
-/** Union by timestamp (fresh readings win), trimmed to the history window, newest first. */
-function mergeReadingHistory(
-  history: SugarReading[],
-  fresh: SugarReading[],
+export function getLatestReadings(
+  stream: Stream = StreamManager.getStream(),
 ): SugarReading[] {
-  const cutoff =
-    Date.now() - HealthMonitorStore.readingsHistoryHours * 3_600_000;
-  const byTime = new Map<number, SugarReading>();
-  for (const r of history) byTime.set(r.timestamp.getTime(), r);
-  for (const r of fresh) byTime.set(r.timestamp.getTime(), r);
-  return Array.from(byTime.values())
-    .filter((r) => r.timestamp.getTime() >= cutoff && Number.isFinite(r.sugar))
+  return stream.snapshot.latest(numLatestReadings, false).filter(isPlausible);
+}
+/** Up to `readingsHistoryHours` of CGM readings before `now`, newest first. For display. */
+export function getReadingsHistory(
+  stream: Stream = StreamManager.getStream(),
+  now = new Date(),
+): SugarReading[] {
+  const start = getTimestampFromOffset(now, -readingsHistoryHours);
+  return stream.snapshot
+    .view(start, now)
+    .readings.filter((r) => !r.isCalibration && isPlausible(r))
     .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 }
-/**
- * Refresh the r1 context (recent meals + basal times) from Nightscout.
- * Best-effort: on failure the previous values stay, and the r1 features
- * degrade gracefully (carbs/protein = 0, t_since_basal = 24 h).
- *
- * The 48 h window (wider than the app's usual 3 h meal window) is what the
- * r1 feature builder needs: seq ch6 reads the meal immediately preceding
- * each slot's 60-min window, and the model was trained on full meal
- * history. A fast longer than 48 h is the only case where that lookback
- * meal can be missing.
- */
-let r1ContextInFlight: Promise<void> | null = null;
-export function refreshR1Context(): Promise<void> {
-  if (r1ContextInFlight) return r1ContextInFlight;
-  r1ContextInFlight = (async () => {
-    try {
-      const now = new Date();
-      const start = new Date(now.getTime() - 48 * 3_600_000);
-      const treatments = await RemoteTreatments.getTreatments(start, now);
-      const meals: Meal[] = [];
-      const basalTimes: number[] = [];
-      for (const t of treatments ?? []) {
-        if (t.eventType === "Meal") {
-          const meal = new Meal(new Date(t.created_at), "");
-          meal.carbsOffset = t.carbs ?? 0;
-          meal.proteinOffset = t.protein ?? 0;
-          meals.push(meal);
-        } else if (t.eventType === "Basal Insulin") {
-          basalTimes.push(new Date(t.created_at).getTime());
-        }
-      }
-      meals.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
-      basalTimes.sort((a, b) => a - b);
-      HealthMonitorStore.recentMeals.value = meals.slice(-32);
-      HealthMonitorStore.recentBasalTimes.value = basalTimes.slice(-32);
-    } catch (e) {
-      if (PrivateStore.debugLogs.value)
-        console.warn("r1 context refresh failed", e);
-    } finally {
-      r1ContextInFlight = null;
-    }
-  })();
-  return r1ContextInFlight;
+/** Calibrations (fingersticks and entered BGs) over the history window, oldest first */
+export function getFingersticks(
+  stream: Stream = StreamManager.getStream(),
+  now = new Date(),
+): SugarReading[] {
+  const start = getTimestampFromOffset(now, -readingsHistoryHours);
+  return stream.snapshot
+    .view(start, now)
+    .readings.filter((r) => r.isCalibration)
+    .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 }
-export function getLatestReading(): SugarReading | null {
-  const readingsCache = HealthMonitorStore.readingsCache.value;
-  if (readingsCache.length === 0) return null;
-  let latestReading: SugarReading = readingsCache[0];
-  for (const reading of readingsCache) {
-    if (reading.timestamp.getTime() > latestReading.timestamp.getTime())
-      latestReading = reading;
-  }
-  return latestReading;
+export function getLatestReading(
+  stream: Stream = StreamManager.getStream(),
+): SugarReading | null {
+  return getLatestReadings(stream)[0] ?? null;
+}
+export function getCurrentBG(
+  stream: Stream = StreamManager.getStream(),
+): number | null {
+  return getLatestReading(stream)?.sugar ?? null;
 }
 
 /** This function returns (mg/dL) / hr.
@@ -204,7 +107,7 @@ export function getBGVelocity(
   } else if (typeof readingsOrCount === "number") {
     count = readingsOrCount;
   }
-  const list = readings ?? HealthMonitorStore.readingsCache.value;
+  const list = readings ?? getLatestReadings();
   const velocities = getBGVelocities(list);
   if (velocities.length === 0) return 0;
   // We give the mean of all the velocities to smooth out jumps
@@ -216,28 +119,19 @@ export function getBGVelocity(
 export function timeToCritical() {
   const pointsPerMinute = -getBGVelocity() / 60;
   if (pointsPerMinute <= 0) return Infinity;
-  const pointsToCritical =
-    HealthMonitorStore.currentBG.value - PreferencesStore.dangerBG.value;
+  const currentBG = getCurrentBG();
+  if (currentBG === null) return Infinity;
+  const pointsToCritical = currentBG - PreferencesStore.dangerBG.value;
   return round(pointsToCritical / pointsPerMinute, 0);
 }
 
 // Rescue Glucose
-export function setLastRescue(
-  amount: number,
-  variant: RescueVariant,
-  timestamp = new Date(),
-) {
-  const glucose = new Glucose(amount, timestamp, variant);
-  HealthMonitorStore.lastRescues.value = [
-    glucose,
-    ...HealthMonitorStore.lastRescues.value,
-  ].slice(0, Math.max(0, HealthMonitorStore.numLastRescues));
+/** The newest `numRecentTreatments` rescues, newest first */
+export function getRecentRescues(stream: Stream = StreamManager.getStream()) {
+  return stream.rescues.slice(-numRecentTreatments).reverse();
 }
-
-export function getLastRescue(): Glucose | null {
-  const lastRescues = HealthMonitorStore.lastRescues.value;
-  if (lastRescues.length === 0) return null;
-  return lastRescues[0];
+export function getLastRescue() {
+  return getRecentRescues()[0] ?? null;
 }
 export function getLastRescueMinutes() {
   const lastRescue = getLastRescue();
@@ -252,8 +146,8 @@ export function getLastRescueCaps() {
 }
 
 function getLatestBasal() {
-  const basals = BasalStore.basalDoses.value;
-  return basals[0];
+  const basals = StreamManager.getStream().basals;
+  return basals[basals.length - 1] ?? null;
 }
 export function getLatestBasalTimestamp() {
   const latestBasal = getLatestBasal();
@@ -262,42 +156,45 @@ export function getLatestBasalTimestamp() {
 }
 
 // Insulin Bolus
-export function addRecentBolus(
-  units: number,
-  variant: InsulinVariant,
-  timestamp = new Date(),
-) {
-  HealthMonitorStore.recentBoluses.value = [
-    new Insulin(units, timestamp, variant),
-    ...HealthMonitorStore.recentBoluses.value,
-  ].slice(0, HealthMonitorStore.numRecentBoluses);
+/** The newest `numRecentTreatments` boluses (everything but basal), newest first */
+export function getRecentBoluses(stream: Stream = StreamManager.getStream()) {
+  return stream.insulins.slice(-numRecentTreatments).reverse();
 }
 export function getLatestBolus() {
-  const recentBoluses = HealthMonitorStore.recentBoluses.value;
-  if (recentBoluses.length === 0) return null;
-  return recentBoluses
-    .slice()
-    .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
+  return getRecentBoluses()[0] ?? null;
 }
 export function getIOB(time = new Date()) {
-  const onBoardInsulins = HealthMonitorStore.recentBoluses.value;
-  return onBoardInsulins.reduce(
+  return getRecentBoluses().reduce(
     (total, insulin) => total + insulin.iob(time),
     0,
   );
 }
 export function getEffectOnBoard(time = new Date()) {
-  const onBoardInsulins = HealthMonitorStore.recentBoluses.value;
-  return onBoardInsulins.reduce(
+  return getRecentBoluses().reduce(
     (total, insulin) => total + insulin.iob(time) * insulin.variant.effect,
     0,
   );
 }
 export function getTimeSinceLastBolus() {
   const now = new Date();
-  const latestBasal = getLatestBolus();
-  const lastBasalTimestamp = latestBasal ? latestBasal.timestamp : now;
-  return getHourDiff(now, lastBasalTimestamp);
+  const latestBolus = getLatestBolus();
+  const lastBolusTimestamp = latestBolus ? latestBolus.timestamp : now;
+  return getHourDiff(now, lastBolusTimestamp);
+}
+
+// r1 context
+/** Meals and basal times over the last `r1ContextHours`, oldest first, as the r1 feature builder expects */
+export function getR1Context(
+  stream: Stream = StreamManager.getStream(),
+  now = new Date(),
+) {
+  const window = stream.view(getTimestampFromOffset(now, -r1ContextHours), now);
+  return {
+    meals: window.meals.slice(-r1ContextSize),
+    basalTimes: window.basals
+      .slice(-r1ContextSize)
+      .map((b) => b.timestamp.getTime()),
+  };
 }
 
 // Basal
@@ -343,46 +240,30 @@ export function basalIsDue() {
   return false;
 }
 
-export async function updateHealthMonitorStatus() {
-  const readings: SugarReading[] | null = await populateReadingCache();
-  populateFastingVelocitiesCache();
-  if (readings) {
-    const currentBG = HealthMonitorStore.currentBG.value;
+/** The user's current status, from the stream as it stands */
+export function getHealthMonitorStatus(): HealthMonitorStatus {
+  const currentBG = getCurrentBG();
+  if (currentBG === null) return HealthMonitorStatus.Nominal; // No CGM data
 
-    // Assume things are nominal
-    HealthMonitorStore.statusCache.value = HealthMonitorStatus.Nominal;
-
-    // If the user hasn't already taken glucose
-    const timeBetweenShots = HealthMonitorStore.timeBetweenShots.value;
-    if (getLastRescueMinutes() >= timeBetweenShots) {
-      // Check critical time
-      const criticalTime = timeToCritical();
-      if (criticalTime <= 20) {
-        HealthMonitorStore.statusCache.value = HealthMonitorStatus.Falling;
-        return;
-      }
-
-      if (currentBG < PreferencesStore.lowBG.value) {
-        HealthMonitorStore.statusCache.value = HealthMonitorStatus.Low;
-        return;
-      }
-    }
-
-    const latestBolus = getLatestBolus();
-    if (currentBG > PreferencesStore.highBG.value && latestBolus === null) {
-      HealthMonitorStore.statusCache.value = HealthMonitorStatus.High;
-      return;
-    }
-
-    // If we need to take basal insulin
-    if (basalIsDue()) {
-      HealthMonitorStore.statusCache.value = HealthMonitorStatus.Basal;
-      return;
-    }
-
-    if (InsulinExpirationManager.getExpired().length) {
-      HealthMonitorStore.statusCache.value = HealthMonitorStatus.InsulinExpired;
-      return;
-    }
+  // If the user hasn't already taken glucose
+  const timeBetweenShots = HealthMonitorStore.timeBetweenShots.value;
+  if (getLastRescueMinutes() >= timeBetweenShots) {
+    // Check critical time
+    const criticalTime = timeToCritical();
+    if (criticalTime <= 20) return HealthMonitorStatus.Falling;
+    if (currentBG < PreferencesStore.lowBG.value)
+      return HealthMonitorStatus.Low;
   }
+
+  const latestBolus = getLatestBolus();
+  if (currentBG > PreferencesStore.highBG.value && latestBolus === null)
+    return HealthMonitorStatus.High;
+
+  // If we need to take basal insulin
+  if (basalIsDue()) return HealthMonitorStatus.Basal;
+
+  if (InsulinExpirationManager.getExpired().length)
+    return HealthMonitorStatus.InsulinExpired;
+
+  return HealthMonitorStatus.Nominal;
 }

@@ -8,9 +8,14 @@ import {
 import { useNavigate } from "react-router";
 import MdIcon from "../md3/MdIcon";
 import HealthMonitorStatus from "../../models/types/healthMonitorStatus";
-import { HealthMonitorStore } from "../../storage/healthMonitorStore";
 import { ExpirationStore } from "../../storage/expirationStore";
-import { timeToCritical } from "../../lib/healthMonitor";
+import {
+  getCurrentBG,
+  getHealthMonitorStatus,
+  getRecentRescues,
+  timeToCritical,
+} from "../../lib/healthMonitor";
+import { useStream } from "../../state/useStream";
 import { getDailyBasalPerShot, getLastShot } from "../../lib/basal";
 import { getFormattedTime } from "../../lib/timing";
 import { InsulinExpirationManager } from "../../managers/expirationManager";
@@ -191,12 +196,16 @@ export default function HubAlerts({
   onRefresh,
 }: Props) {
   const navigate = useNavigate();
-  const [status] = HealthMonitorStore.statusCache.useState();
-  const [currentBG] = HealthMonitorStore.currentBG.useState();
+  const [stream, streamVersion] = useStream();
+  const status = useMemo(
+    () => getHealthMonitorStatus(),
+    [streamVersion, nowMs],
+  );
+  const currentBG = useMemo(() => getCurrentBG(stream) ?? 0, [streamVersion]);
   const [expirations] = ExpirationStore.expirations.useState();
   const [dismissedExpired, setDismissedExpired] =
     ExpirationStore.dismissedExpiredAlert.useState();
-  const [rescues] = HealthMonitorStore.lastRescues.useState();
+  const rescues = useMemo(() => getRecentRescues(stream), [streamVersion]);
 
   const alerts = useMemo<HubAlert[]>(() => {
     const list: HubAlert[] = [];

@@ -7,6 +7,7 @@ import { HealthMonitorStore } from "../storage/healthMonitorStore";
 import Card from "./Card";
 import MdIcon from "./md3/MdIcon";
 import { StreamManager } from "../managers/streamManager";
+import { useStream } from "../state/useStream";
 
 function formatDose(value: number) {
   const rounded = round(value, 1);
@@ -24,11 +25,12 @@ export default function BasalCard({
   const navigate = useNavigate();
 
   const [firstShotHour] = HealthMonitorStore.basalShotTime.useState();
-  const basalDoses = StreamManager.getStream().basals;
+  const [stream] = useStream();
+  const basalDoses = stream.basals;
   const [shotsPerDay] = HealthMonitorStore.basalShotsPerDay.useState();
 
   const interval = 24 / shotsPerDay;
-  const latestBasal = basalDoses[0] ?? null;
+  const latestBasal = basalDoses[basalDoses.length - 1] ?? null;
   const lastShot = getLastShot();
   const fallbackDose = getDailyBasalPerShot();
   const typicalBasalDose =

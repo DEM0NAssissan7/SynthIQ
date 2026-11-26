@@ -15,33 +15,38 @@ import {
   getFastingLength,
   getFastingVelocity,
   getLastShot,
-  populateFastingVelocitiesCache,
+  getRecentBasals,
+  estimateLiverOutput,
 } from "../../lib/basal";
 import { round } from "../../lib/util";
-import { useEffect, useMemo, useReducer, useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { getHourDiff, getPrettyTime } from "../../lib/timing";
 import { HealthMonitorStore } from "../../storage/healthMonitorStore";
-import { BasalStore } from "../../storage/basalStore";
 import { getLatestBasalTimestamp } from "../../lib/healthMonitor";
 import type Insulin from "../../models/events/insulin";
 import { useNow } from "../../state/useNow";
+import { useStream } from "../../state/useStream";
 import { InsulinVariantManager } from "../../managers/insulinVariantManager";
-import WizardManager from "../../managers/wizardManager";
+import { StreamManager } from "../../managers/streamManager";
+import { SessionManager } from "../../managers/sessionManager";
 
 export default function BasalPage() {
   const now = useNow(60);
-  const [updated, incrementUpdate] = useReducer((n) => n + 1, 0);
-  useEffect(() => {
-    populateFastingVelocitiesCache().then(() => incrementUpdate());
-  }, [now]);
-  const fastingVelocity = useMemo(() => getFastingVelocity(), [updated]);
+  const [, streamVersion] = useStream();
+  const fastingVelocity = useMemo(
+    () => getFastingVelocity(),
+    [streamVersion, now],
+  );
   const shotsPerDay = HealthMonitorStore.basalShotsPerDay.value;
   const unitsPerDay = getDailyBasal();
-  const basals = BasalStore.basalDoses.value;
+  const basals = useMemo(() => getRecentBasals(), [streamVersion]);
   const lastBasalTimestamp = getLatestBasalTimestamp();
-  const fastingTime = getFastingLength();
-  const liverOutput = BasalStore.estimatedLiverOutput.value;
+  const fastingTime = useMemo(() => getFastingLength(), [streamVersion, now]);
+  const liverOutput = useMemo(
+    () => estimateLiverOutput(SessionManager.getSessions()),
+    [streamVersion],
+  );
   const sensitivityIndex = liverOutput
     ? getBasalSensitivity(liverOutput, fastingVelocity, unitsPerDay)
     : null;
@@ -53,7 +58,7 @@ export default function BasalPage() {
   const navigate = useNavigate();
   function markBasalInjection(dose: number) {
     if (confirm(`Confirm that you have injected ${dose}u of basal insulin`)) {
-      WizardManager.markBasal(dose, new Date());
+      StreamManager.markBasal(dose, new Date());
       navigate("/");
     }
   }

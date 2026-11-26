@@ -1,4 +1,4 @@
-import Activity from "./types/activitySession";
+import type { Activity } from "./events/activity";
 import Glucose from "./events/glucose";
 import Insulin from "./events/insulin";
 import Meal from "./events/meal";

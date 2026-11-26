@@ -1,10 +1,17 @@
 import { useMemo } from "react";
-import { HealthMonitorStore } from "../../storage/healthMonitorStore";
 import { BackendStore } from "../../storage/backendStore";
 import { PreferencesStore } from "../../storage/preferencesStore";
 import { getPredictedGlucose } from "../../lib/glucosePrediction";
 import { getPredictedGlucoseAccuracyCached } from "../../lib/predictionCache";
-import { getBGVelocity } from "../../lib/healthMonitor";
+import {
+  getBGVelocity,
+  getLatestReadings,
+  getR1Context,
+  getReadingsHistory,
+  getRecentBoluses,
+  getRecentRescues,
+} from "../../lib/healthMonitor";
+import { useStream } from "../../state/useStream";
 
 /** How far past now the forecast line extends. */
 export const FORECAST_HORIZON_MS = 60 * 60 * 1000;
@@ -29,19 +36,25 @@ function finiteOrNull(x: number | undefined): number | null {
 
 /**
  * CGM history, the forecast (r1-corrected unless disabled in settings) and its live accuracy, all from the
- * health-monitor caches. The forecast series is recomputed once per CGM
+ * stream. The forecast series is recomputed once per CGM
  * interval (or when readings/treatments change), not on every clock tick;
  * only the "now" estimate tracks the clock.
  */
 export function useGlucoseForecast(now: Date) {
+  const [stream, streamVersion] = useStream();
   // Short horizon: the exact input every prediction is made from.
-  const [readings] = HealthMonitorStore.readingsCache.useState();
+  const readings = useMemo(() => getLatestReadings(stream), [streamVersion]);
   // Long horizon: display only.
-  const [readingsHistory] = HealthMonitorStore.readingsHistory.useState();
-  const [boluses] = HealthMonitorStore.recentBoluses.useState();
-  const [rescues] = HealthMonitorStore.lastRescues.useState();
-  const [meals] = HealthMonitorStore.recentMeals.useState();
-  const [basalTimes] = HealthMonitorStore.recentBasalTimes.useState();
+  const readingsHistory = useMemo(
+    () => getReadingsHistory(stream, now),
+    [streamVersion],
+  );
+  const boluses = useMemo(() => getRecentBoluses(stream), [streamVersion]);
+  const rescues = useMemo(() => getRecentRescues(stream), [streamVersion]);
+  const { meals, basalTimes } = useMemo(
+    () => getR1Context(stream, now),
+    [streamVersion],
+  );
   const [cgmDelayRaw] = BackendStore.cgmDelay.useState();
   const [useR1] = PreferencesStore.useRSeriesPredictor.useState();
   const stepMs = (cgmDelayRaw && cgmDelayRaw > 0 ? cgmDelayRaw : 5) * 60000;

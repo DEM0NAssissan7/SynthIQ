@@ -11,15 +11,20 @@ export enum InjectionPurpose {
   PreBolus = "PREBOLUS",
 }
 export function toInjectionPurpose(value: unknown): InjectionPurpose {
-  const isValid = Object.values(InjectionPurpose).includes(
-    value as InjectionPurpose,
-  );
+  let cleanValue = value;
 
-  if (!isValid) {
-    throw new Error(`Invalid InjectionPurpose: ${value}`);
+  // Strip wrapping quotes if double-stringified (e.g. '"NOMINAL"')
+  if (typeof cleanValue === "string") {
+    cleanValue = cleanValue.trim().replace(/^["']|["']$/g, "");
   }
 
-  return value as InjectionPurpose;
+  const validValues = Object.values(InjectionPurpose) as string[];
+
+  if (typeof cleanValue !== "string" || !validValues.includes(cleanValue)) {
+    throw new Error(`Invalid InjectionPurpose: ${JSON.stringify(value)}`);
+  }
+
+  return cleanValue as InjectionPurpose;
 }
 export default class Insulin extends MetaEvent implements ScalarMetaEvent {
   _value: number;

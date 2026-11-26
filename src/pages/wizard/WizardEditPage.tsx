@@ -1,4 +1,5 @@
-import { useNavigate } from "react-router";
+import { Navigate, useNavigate } from "react-router";
+import { useMemo } from "react";
 import AddedFoodsDisplay from "../../components/AddedFoodsDisplay";
 import Card from "../../components/Card";
 import FoodSearchDisplay from "../../components/FoodSearchDisplay";
@@ -6,30 +7,37 @@ import GlucoseManager from "../../components/GlucoseManager";
 import InsulinManager from "../../components/InsulinManager";
 import MealAdditionalNutrients from "../../components/MealAdditionalNutrientsCard";
 import { Button } from "react-bootstrap";
-import BloodSugarInput from "../../components/BloodSugarInput";
 import SessionSummary from "../../components/summary/SessionSummary";
-import { WizardStore } from "../../storage/entryStore";
-import { PreferencesStore } from "../../storage/preferencesStore";
+import { SessionManager } from "../../managers/sessionManager";
+import { useStream } from "../../state/useStream";
 import { PageActions, PageLayout } from "../../components/PageLayout";
 
 export default function WizardEditPage() {
-  const [session] = WizardStore.session.useState();
-  const meal = session.meal;
-  const [template] = WizardStore.activeTemplate.useState();
+  const [, streamVersion] = useStream();
+  const session = useMemo(
+    () => SessionManager.getCurrentSession(),
+    [streamVersion],
+  );
+  const template = useMemo(
+    () => (session ? SessionManager.getMealTemplate(session.meal.name) : null),
+    [session],
+  );
+  // The session's meal is a composite: edit the logged meals it is made of
+  const meals = useMemo(
+    () => (session ? SessionManager.getMeals(session) : []),
+    [session],
+  );
 
   const navigate = useNavigate();
+  if (!session || !template) return <Navigate to="/hub" replace />;
   function finishEdit() {
     navigate("/hub");
-  }
-  function setGlucose(val: number) {
-    session.initialGlucose = val;
-    WizardStore.session.write();
   }
   return (
     <PageLayout>
       <SessionSummary template={template} session={session} contained={true} />
-      {meal && (
-        <>
+      {meals.map((meal) => (
+        <div key={meal.uuid}>
           <Card>
             <FoodSearchDisplay meal={meal} />
           </Card>
@@ -41,22 +49,8 @@ export default function WizardEditPage() {
           <Card>
             <MealAdditionalNutrients meal={meal} />
           </Card>
-        </>
-      )}
-
-      <Card>
-        <BloodSugarInput
-          initialGlucose={
-            session.initialGlucose
-              ? session.initialGlucose
-              : PreferencesStore.targetBG.value
-          }
-          setInitialGlucose={setGlucose}
-          pullFromNightscout={false}
-          showAutoButton={false}
-          label="Initial Blood Sugar"
-        />
-      </Card>
+        </div>
+      ))}
 
       <Card>
         <InsulinManager session={session} />
