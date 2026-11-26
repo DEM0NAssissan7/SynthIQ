@@ -1,4 +1,4 @@
-import Activity from "./events/activity";
+import { Activity } from "./events/activity";
 import Glucose from "./events/glucose";
 import Insulin, { InjectionPurpose } from "./events/insulin";
 import Meal from "./events/meal";
@@ -142,7 +142,7 @@ export class Stream extends Subscribable {
     this.removeChildSubscribable(duplicate);
     this.notify();
   }
-  delete(event: MetaEvent) {
+  remove(event: MetaEvent) {
     const duplicate = this.findDuplicate(event);
     if (duplicate === null) return false;
     const index = this.indexOf(duplicate);

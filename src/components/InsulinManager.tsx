@@ -5,6 +5,8 @@ import type Session from "../models/session";
 import { useState } from "react";
 import { InsulinVariantManager } from "../managers/insulinVariantManager";
 import InsulinVariantDropdown from "./InsulinVariantDropdown";
+import { StreamManager } from "../managers/streamManager";
+import { InjectionPurpose } from "../models/events/insulin";
 
 interface InsulinManagerProps {
   session: Session;
@@ -13,7 +15,7 @@ interface InsulinManagerProps {
 export default function InsulinManager({ session }: InsulinManagerProps) {
   const [variant, setVariant] = useState(InsulinVariantManager.getDefault());
   function addInsulin() {
-    session.createInsulin(0, new Date(), variant);
+    StreamManager.markInsulin(0, new Date(), variant, InjectionPurpose.Nominal);
   }
   return (
     <ListGroup>

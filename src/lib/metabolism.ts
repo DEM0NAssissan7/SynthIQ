@@ -1,4 +1,5 @@
 import { InsulinVariantManager } from "../managers/insulinVariantManager";
+import { SessionManager } from "../managers/sessionManager";
 import type Glucose from "../models/events/glucose";
 import type Insulin from "../models/events/insulin";
 import type { InsulinVariant } from "../models/types/insulinVariant";
@@ -7,7 +8,6 @@ import type SugarReading from "../models/types/sugarReading";
 import Unit from "../models/unit";
 import { CalibrationStore } from "../storage/calibrationStore";
 import { PreferencesStore } from "../storage/preferencesStore";
-import { WizardStore } from "../storage/wizardStore";
 import { getBasePredictedGlucose, getRefReading } from "./glucosePrediction";
 import { getTimestampFromOffset } from "./timing";
 import { convertDimensions } from "./util";
@@ -95,7 +95,7 @@ export function getBasalCorrection(velocity: number): number {
 }
 
 export function getApproximatedProfile() {
-  const templates = WizardStore.templates.value;
+  const sessions = SessionManager.getValidSessions();
 
   // The alpha is basically a gradient descent from the general profile
   let alphaCarbs = CalibrationStore.carbsEffect.value;
@@ -104,21 +104,17 @@ export function getApproximatedProfile() {
   const baseLearningRate = 0.00001;
 
   // Don't allow less than 3 valid sessions before making any conclusions
-  for (let template of templates) {
-    const validSessions = template.validSessions;
-    for (let i = validSessions.length - 1; i >= 0; i--) {
-      const session = validSessions[i];
-      const eta = baseLearningRate;
+  for (const session of sessions) {
+    const eta = baseLearningRate;
 
-      const predictedMealRise =
-        alphaCarbs * session.carbs + alphaProtein * session.protein;
-      const actualMealRise = session.mealRise;
-      if (Number.isNaN(actualMealRise)) continue;
-      const error = predictedMealRise - actualMealRise;
+    const predictedMealRise =
+      alphaCarbs * session.carbs + alphaProtein * session.protein;
+    const actualMealRise = session.mealRise;
+    if (Number.isNaN(actualMealRise)) continue;
+    const error = predictedMealRise - actualMealRise;
 
-      alphaCarbs -= eta * error * session.carbs;
-      alphaProtein -= eta * error * session.protein;
-    }
+    alphaCarbs -= eta * error * session.carbs;
+    alphaProtein -= eta * error * session.protein;
   }
 
   return {

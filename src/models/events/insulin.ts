@@ -10,7 +10,7 @@ export enum InjectionPurpose {
   Basal = "BASAL",
   PreBolus = "PREBOLUS",
 }
-function toInjectionPurpose(value: unknown): InjectionPurpose {
+export function toInjectionPurpose(value: unknown): InjectionPurpose {
   const isValid = Object.values(InjectionPurpose).includes(
     value as InjectionPurpose,
   );

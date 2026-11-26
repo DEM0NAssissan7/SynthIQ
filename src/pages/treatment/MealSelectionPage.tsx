@@ -3,7 +3,7 @@ import { Button } from "react-bootstrap";
 import TemplateNameSearch from "../../components/TemplateNameSearch";
 import Card from "../../components/Card";
 import WizardManager from "../../managers/wizardManager";
-import { WizardStore } from "../../storage/wizardStore";
+import { WizardStore } from "../../storage/entryStore";
 import { PageLayout } from "../../components/PageLayout";
 import MdIcon from "../../components/md3/MdIcon";
 

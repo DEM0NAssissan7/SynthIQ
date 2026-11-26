@@ -3,11 +3,10 @@ import { useNavigate, Link } from "react-router";
 import { getLastShot, getDailyBasalPerShot } from "../lib/basal";
 import { getPrettyTime, getHourDiff } from "../lib/timing";
 import { round } from "../lib/util";
-import { BasalStore } from "../storage/basalStore";
 import { HealthMonitorStore } from "../storage/healthMonitorStore";
-import WizardManager from "../managers/wizardManager";
 import Card from "./Card";
 import MdIcon from "./md3/MdIcon";
+import { StreamManager } from "../managers/streamManager";
 
 function formatDose(value: number) {
   const rounded = round(value, 1);
@@ -25,7 +24,7 @@ export default function BasalCard({
   const navigate = useNavigate();
 
   const [firstShotHour] = HealthMonitorStore.basalShotTime.useState();
-  const [basalDoses] = BasalStore.basalDoses.useState();
+  const basalDoses = StreamManager.getStream().basals;
   const [shotsPerDay] = HealthMonitorStore.basalShotsPerDay.useState();
 
   const interval = 24 / shotsPerDay;
@@ -50,7 +49,7 @@ export default function BasalCard({
     if (
       confirm(`Confirm that you have injected ${doseLabel}u of basal insulin`)
     ) {
-      WizardManager.markBasal(typicalBasalDose, new Date());
+      StreamManager.markBasal(typicalBasalDose, new Date());
       setDueForBasal(false);
     }
   }
@@ -120,11 +119,7 @@ export default function BasalCard({
             ? `Mark ${formatDose(typicalBasalDose)}u now`
             : "Open basal page"}
         </Button>
-        <Button
-          variant="secondary"
-          as={Link as any}
-          to="/basal"
-        >
+        <Button variant="secondary" as={Link as any} to="/basal">
           Basal details
         </Button>
       </div>

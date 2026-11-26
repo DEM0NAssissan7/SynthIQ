@@ -1,11 +1,12 @@
 import { useNavigate } from "react-router";
-import { ActivityManager } from "../../managers/activityManager";
 import { useEffect } from "react";
+import { EntryStore } from "../../storage/entryStore";
 
 export default function ActivityRouterPage() {
   const navigate = useNavigate();
   useEffect(() => {
-    ActivityManager.navigateToCurrentPage(navigate);
+    if (EntryStore.activityIsActive.value) navigate("/activity/end");
+    else navigate("/activity/select");
   });
   return <></>;
 }

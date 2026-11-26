@@ -15,8 +15,9 @@ import SugarReading, { getReadingFromNightscout } from "./types/sugarReading";
 import type { Deserializer, Serializer } from "./types/types";
 import Unit from "./unit";
 
-const precisionMS = 10 * 1000;
-const reducePrecision = (x: number, precision: number = precisionMS) =>
+/** Timestamp resolution of a serialized snapshot: readings round-trip rounded to this */
+export const precisionMS = 10 * 1000;
+export const reducePrecision = (x: number, precision: number = precisionMS) =>
   Math.round(x / precision) * precision;
 export default class Snapshot extends Subscribable {
   private rawReadings: SugarReading[] = [];
@@ -30,18 +31,20 @@ export default class Snapshot extends Subscribable {
     this.timeSortedCache = [];
     this.valueSortedCache = [];
   }
-  private add(...r: SugarReading[]) {
-    this.rawReadings.push(...r);
+  private add(readings: SugarReading[]) {
+    // Loop instead of push(...readings): spreading a large array overflows the call stack
+    for (const reading of readings) this.rawReadings.push(reading);
     this.invalidateCaches();
     this.deduplicated = false;
   }
   addReadings(...r: SugarReading[]) {
     // Add reading & notify
-    this.add(...r);
+    this.add(r);
     this.notify();
   }
   absorb(snapshot: Snapshot) {
-    this.addReadings(...snapshot.rawReadings);
+    this.add(snapshot.rawReadings);
+    this.notify();
   }
   contains(timestamp: Date) {
     return timestampIsBetween(timestamp, this.startTime, this.endTime);
@@ -192,7 +195,7 @@ export default class Snapshot extends Subscribable {
         .map((r) => getReadingFromNightscout(r))
         .filter((r) => !isNaN(r.sugar) && !isNaN(r.timestamp.getTime()));
       if (PrivateStore.debugLogs.value) console.log(rawReadings);
-      this.add(...rawReadings);
+      this.add(rawReadings);
       this.deduplicate();
       this.notify();
     } catch (e) {

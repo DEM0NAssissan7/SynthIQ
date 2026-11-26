@@ -34,5 +34,4 @@ export interface Template {
   timestamp: Date;
   score: number;
   size: number;
-  isFirstTime: boolean;
 }

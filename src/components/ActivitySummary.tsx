@@ -1,17 +1,19 @@
 import { useMemo } from "react";
 import { getFormattedTime, getMinuteDiff, getPrettyTime } from "../lib/timing";
-import type { ActivityTemplate } from "../models/activityTemplate";
-import type Activity from "../models/events/activity";
 import { useNow } from "../state/useNow";
 import { roundByHalf } from "../lib/util";
 import { InsulinVariantManager } from "../managers/insulinVariantManager";
 import { RescueVariantManager } from "../managers/rescueVariantManager";
 import { getGlucoseCorrectionCaps } from "../lib/metabolism";
 import MdIcon from "./md3/MdIcon";
+import type { ActivitySession } from "../models/types/activitySession";
+import type { Template } from "../models/types/interfaces";
+import { ActivityManager } from "../managers/activityManager";
+import { EntryStore } from "../storage/entryStore";
 
 interface ActivitySummaryProps {
-  activity: Activity;
-  template: ActivityTemplate;
+  activity: ActivitySession;
+  template: Template;
   currentBG: number | null;
   className?: string;
 }
@@ -33,24 +35,30 @@ export default function ActivitySummary({
         : 0,
     [currentBG, defaultRescueVariant],
   );
+  const name = activity.name;
+  const changeRate = ActivityManager.getChangeRate(name);
+  const length = ActivityManager.getLength(name);
+  const isFirstTime = ActivityManager.isFirstTime(name);
+
+  const [isStarted] = EntryStore.activityIsActive.useState();
 
   const glucoseCorrectionRate = useMemo(
-    () => -template.changeRate / defaultRescueVariant.effect,
+    () => -changeRate / defaultRescueVariant.effect,
     [template, defaultRescueVariant],
   );
 
   const totalGlucoseCorrection = useMemo(
-    () => glucoseCorrectionRate * (template.length / 60) + baseCorrection,
+    () => glucoseCorrectionRate * (length / 60) + baseCorrection,
     [glucoseCorrectionRate, template, baseCorrection],
   );
 
   const insulinCorrectionRate = useMemo(
-    () => template.changeRate / defaultVariant.effect,
+    () => changeRate / defaultVariant.effect,
     [template, defaultVariant],
   );
 
   const insulinCorrectionTotal = useMemo(
-    () => insulinCorrectionRate * (template.length / 60),
+    () => insulinCorrectionRate * (length / 60),
     [insulinCorrectionRate, template],
   );
 
@@ -64,18 +72,18 @@ export default function ActivitySummary({
             <span>{template.name}</span>
           </h2>
           <div className="app-discrete-subtitle">
-            {activity.started ? (
+            {isStarted ? (
               <>
                 Started {getPrettyTime(activity.timestamp)} ·{" "}
                 {getFormattedTime(getMinuteDiff(now, activity.timestamp))} ago
               </>
-            ) : template.isFirstTime ? (
+            ) : isFirstTime ? (
               <span className="fst-italic">First time using this template</span>
             ) : (
               <>
                 Typical duration:{" "}
                 <span className="fw-medium text-body">
-                  {getFormattedTime(Math.round(template.length))}
+                  {getFormattedTime(Math.round(length))}
                 </span>
               </>
             )}
@@ -83,13 +91,13 @@ export default function ActivitySummary({
         </div>
         <span
           className={`badge ${
-            activity.started
+            isStarted
               ? "bg-success-subtle text-success"
               : "bg-secondary-subtle text-secondary-emphasis"
           } fw-semibold px-2 py-0.5 rounded-pill`}
           style={{ fontSize: "0.72rem" }}
         >
-          {activity.started ? "In Progress" : "Template"}
+          {isStarted ? "In Progress" : "Template"}
         </span>
       </div>
 
@@ -98,20 +106,20 @@ export default function ActivitySummary({
         <div className="app-stat-strip-item">
           <span className="stat-label">Duration</span>
           <span className="stat-value">
-            {getFormattedTime(Math.round(template.length))}
+            {getFormattedTime(Math.round(length))}
           </span>
         </div>
         <div className="app-stat-strip-item">
           <span className="stat-label">Impact Rate</span>
           <span className="stat-value">
-            {template.changeRate > 0 ? "+" : ""}
-            {template.changeRate.toFixed(0)} mg/dL/hr
+            {changeRate > 0 ? "+" : ""}
+            {changeRate.toFixed(0)} mg/dL/hr
           </span>
         </div>
         <div className="app-stat-strip-item">
           <span className="stat-label">Hourly Dose</span>
           <span className="stat-value">
-            {template.changeRate < 0
+            {changeRate < 0
               ? `${roundByHalf(glucoseCorrectionRate, true)} ${defaultRescueVariant.name}`
               : `${roundByHalf(insulinCorrectionRate, false)}u ${defaultVariant.name}`}
           </span>
@@ -119,7 +127,7 @@ export default function ActivitySummary({
         <div className="app-stat-strip-item">
           <span className="stat-label">Total Projected</span>
           <span className="stat-value">
-            {template.changeRate < 0
+            {changeRate < 0
               ? `${roundByHalf(totalGlucoseCorrection, true)} ${defaultRescueVariant.name}`
               : `${roundByHalf(insulinCorrectionTotal, false)}u ${defaultVariant.name}`}
           </span>
@@ -127,14 +135,18 @@ export default function ActivitySummary({
       </div>
 
       {/* Active Tracking Status (if started) */}
-      {activity.started && (
+      {isStarted && (
         <div className="app-dosing-banner">
           <span className="dosing-label">Rescue Doses</span>
           <span className="dosing-value">
             {activity.glucose} doses
             {activity.latestRescueTimestamp && (
               <span className="dosing-note">
-                (Last: {getFormattedTime(getMinuteDiff(now, activity.latestRescueTimestamp))} ago)
+                (Last:{" "}
+                {getFormattedTime(
+                  getMinuteDiff(now, activity.latestRescueTimestamp),
+                )}{" "}
+                ago)
               </span>
             )}
           </span>

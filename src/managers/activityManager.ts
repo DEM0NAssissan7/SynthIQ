@@ -1,116 +1,105 @@
-import type { NavigateFunction } from "react-router";
-import { ActivityStore } from "../storage/activityStore";
-import { ActivityTemplate } from "../models/activityTemplate";
-import {
-  ActivityPage,
-  serializeActivityPage,
-} from "../models/types/activityPage";
-import Activity from "../models/events/activity";
-import WizardManager from "./wizardManager";
-import Glucose from "../models/events/glucose";
-import type { RescueVariant } from "../models/types/rescueVariant";
+import { StreamManager } from "./streamManager";
+import { EntryStore } from "../storage/entryStore";
+import { Activity } from "../models/events/activity";
+import { getMinuteDiff, getTimestampFromOffset } from "../lib/timing";
+import { ActivitySession } from "../models/types/activitySession";
+import { convertDimensions, MathUtil } from "../lib/util";
+import Unit from "../models/unit";
+import type { Template } from "../models/types/interfaces";
 
 export namespace ActivityManager {
-  // Navigation
-  export function navigateToCurrentPage(navigate: NavigateFunction) {
-    const pageName = serializeActivityPage(ActivityStore.page.value);
-    navigate(`/activity/${pageName}`);
+  // Fundamental
+  export function getActivitySession(activity: Activity) {
+    const stream = StreamManager.getStream();
+    const subStream = stream.view(
+      activity.timestamp,
+      getTimestampFromOffset(
+        activity.timestamp,
+        activity.value * convertDimensions(Unit.Time.Minute, Unit.Time.Hour),
+      ),
+    );
+    return new ActivitySession(subStream.snapshot, subStream.rescues, activity);
   }
-  export function navigateTo(navigate: NavigateFunction, page: ActivityPage) {
-    ActivityStore.page.value = page;
-    navigateToCurrentPage(navigate);
+  export function getActivitySessions() {
+    const stream = StreamManager.getStream();
+    const activities = stream.activities;
+
+    const activitySessions: ActivitySession[] = [];
+    for (const activity of activities)
+      activitySessions.push(getActivitySession(activity));
+    return activitySessions;
   }
 
-  // Template Management
-  export function createTemplate(name: string) {
-    // Ensure no duplicate templates
-    try {
-      selectTemplate(name);
-      return;
-    } catch (e) {}
+  // Query
+  export function queryActivities(name: string) {
+    return getActivitySessions().filter((a) => a.name === name);
+  }
+  export function isFirstTime(name: string) {
+    return queryActivities(name).length === 0;
+  }
+  export function getChangeRate(name: string) {
+    return MathUtil.median(queryActivities(name).map((a) => a.changeRate));
+  }
+  export function getScore(name: string) {
+    return MathUtil.median(queryActivities(name).map((a) => a.score));
+  }
+  export function getLength(name: string) {
+    return MathUtil.median(queryActivities(name).map((a) => a.length));
+  }
 
-    const newTemplate = new ActivityTemplate(name);
-    const newTemplates = [...ActivityStore.templates.value, newTemplate];
-    ActivityStore.templates.value = newTemplates;
-    selectTemplate(name);
-  }
-  export function selectTemplate(name: string) {
-    const template = getTemplate(name);
-    ActivityStore.template.value = template;
-    ActivityStore.activity.value = new Activity(template.name);
-  }
-  export function getTemplate(name: string): ActivityTemplate {
-    const templates = ActivityStore.templates.value;
-    for (let template of templates) {
-      if (template.name === name) {
-        return template;
+  // Helpers
+  export function getTemplates(): Template[] {
+    const activities: ActivitySession[] = getActivitySessions();
+    const map = new Map();
+    for (const item of activities) {
+      const key = item.name;
+      if (!map.has(key)) {
+        map.set(key, []);
       }
+      map.get(key).push(item);
     }
-    throw new Error(`Cannot select template '${name}': does not exist`);
-  }
-  export function deleteTemplate(name: string) {
-    const templates = ActivityStore.templates.value;
-    for (let i = 0; i < templates.length; i++) {
-      const template = templates[i];
-      if (template.name === name) {
-        templates.splice(i, 1);
-        break;
-      }
-    }
-    ActivityStore.templates.write();
-  }
-  function updateTemplate(template: ActivityTemplate) {
-    const templates = ActivityStore.templates.value;
-    for (let i = 0; i < templates.length; i++) {
-      if (templates[i].name === template.name) {
-        templates[i] = template;
-        break;
-      }
-    }
-    ActivityStore.templates.write();
-  }
+    const sortedActivities = Array.from(map.values());
 
-  // Subevents
-  export function markGlucose(amount: number, variant: RescueVariant) {
-    const glucose = new Glucose(amount, new Date(), variant);
-    const activity = ActivityStore.activity.value;
-
-    if (activity.started) {
-      activity.addGlucose(glucose);
-      ActivityStore.activity.write();
+    const templates: Template[] = [];
+    for (const activities of sortedActivities) {
+      const name = activities[0].name;
+      const template: Template = {
+        name: name,
+        timestamp: activities.reduce(
+          (t: Date, a: ActivitySession) =>
+            a.timestamp.getTime() > t.getTime() ? a : t,
+          new Date(0),
+        ),
+        score: getScore(name),
+        size: queryActivities(name).length,
+      };
+      templates.push(template);
     }
+    return templates;
   }
-
-  // Housekeeping
-  function resetStates() {
-    ActivityStore.template.value = new ActivityTemplate(""); // Reset activity
-    ActivityStore.activity.value = new Activity(""); // Reset activity
-    ActivityStore.page.reset();
+  export function getTemplate(name: string): Template | null {
+    const template = getTemplates().find((a) => a.name === name);
+    return template ?? null;
   }
 
   // Execution
-  export function begin(navigate: NavigateFunction, initialBG: number) {
-    // In the special case that an activity is begun while the user is fasting, we trigger a transition
-    if (WizardManager.isFasting() && WizardManager.shouldTransitionSession()) {
-      WizardManager.transition(initialBG);
-    }
-    ActivityStore.activity.value.initialBG = initialBG;
-    ActivityStore.activity.write();
-    navigateTo(navigate, ActivityPage.End);
+  export function select(name: string) {
+    EntryStore.activityName.value = name;
   }
-  export function cancel(navigate: NavigateFunction) {
-    resetStates();
-    navigate("/hub");
+  export function begin(
+    name: string = EntryStore.activityName.value,
+    timestamp = new Date(),
+  ) {
+    EntryStore.activity.value = new Activity(name, timestamp, 0);
+    EntryStore.activityIsActive.value = true;
   }
-  export function end(navigate: NavigateFunction, finalBG: number) {
-    const activity = ActivityStore.activity.value;
-
-    activity.finalBG = finalBG;
-    WizardManager.markActivity(activity); // Communicate with the wizard to store the activity
-    const template = ActivityStore.template.value;
-    template.addActivity(activity); // Update template afterwards in case a transition took place
-    updateTemplate(template);
-
-    cancel(navigate);
+  export function cancel() {
+    EntryStore.activityIsActive.value = false;
+  }
+  export function end(timestamp = new Date()) {
+    const activity = EntryStore.activity.value;
+    const minutes = getMinuteDiff(timestamp, activity.timestamp);
+    StreamManager.markActivity(minutes, activity.timestamp, activity.name);
+    EntryStore.activityIsActive.value = false;
   }
 }

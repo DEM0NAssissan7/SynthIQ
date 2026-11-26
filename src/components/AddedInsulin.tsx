@@ -5,6 +5,7 @@ import type Insulin from "../models/events/insulin";
 import type Session from "../models/session";
 import useInsulin from "../state/useInsulin";
 import MdIcon from "./md3/MdIcon";
+import { StreamManager } from "../managers/streamManager";
 
 interface AddedInsulinProps {
   insulin: Insulin;
@@ -19,10 +20,10 @@ export default function AddedInsulin({ insulin, session }: AddedInsulinProps) {
 
   const { offset, setUnits, setTimestampFromOffset } = useInsulin(
     insulin,
-    session
+    session,
   );
   function remove() {
-    session.removeInsulin(insulin);
+    StreamManager.remove(insulin);
   }
 
   return (

@@ -1,10 +1,8 @@
 import { useNavigate } from "react-router";
 import TemplateNameSearch from "../../components/TemplateNameSearch";
 import Card from "../../components/Card";
-import { ActivityStore } from "../../storage/activityStore";
 import { ActivityManager } from "../../managers/activityManager";
-import { ActivityPage } from "../../models/types/activityPage";
-import { WizardStore } from "../../storage/wizardStore";
+import { SessionManager } from "../../managers/sessionManager";
 import {
   ActionCard,
   ActionGrid,
@@ -19,20 +17,13 @@ export default function ActivitySelectPage() {
       alert(`Please enter a valid name`);
       throw new Error(`Cannot advance: invalid name`);
     }
-    try {
-      ActivityManager.selectTemplate(name);
-    } catch (e) {
-      alert(`Template named ${name} encountered an error`);
-      console.error(e);
-    }
-    ActivityManager.navigateTo(navigate, ActivityPage.Start);
+    ActivityManager.select(name);
+    navigate("/activity/start");
   }
   function addTemplate() {
+    // A template exists once an activity with its name has been logged
     const name = prompt("Template name:");
-    if (name) {
-      ActivityManager.createTemplate(name);
-      advance(name);
-    }
+    if (name && name.trim()) advance(name.trim());
   }
   function backToHub() {
     navigate("/hub");
@@ -43,8 +34,7 @@ export default function ActivitySelectPage() {
       <Card>
         <TemplateNameSearch
           onInput={(name: string) => advance(name)}
-          onDelete={(name: string) => ActivityManager.deleteTemplate(name)}
-          templates={ActivityStore.templates.value}
+          templates={ActivityManager.getTemplates()}
         />
       </Card>
       <ActionGrid>
@@ -56,7 +46,7 @@ export default function ActivitySelectPage() {
           buttonLabel="Create template"
           onClick={addTemplate}
         />
-        {WizardStore.session.value.started && (
+        {SessionManager.getCurrentSession() && (
           <ActionCard
             icon="arrow_back"
             eyebrow="Session"

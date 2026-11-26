@@ -10,14 +10,15 @@ import MdIcon from "../md3/MdIcon";
 import HealthMonitorStatus from "../../models/types/healthMonitorStatus";
 import { HealthMonitorStore } from "../../storage/healthMonitorStore";
 import { ExpirationStore } from "../../storage/expirationStore";
-import { WizardStore } from "../../storage/wizardStore";
 import { timeToCritical } from "../../lib/healthMonitor";
 import { getDailyBasalPerShot, getLastShot } from "../../lib/basal";
 import { getFormattedTime } from "../../lib/timing";
-import WizardManager from "../../managers/wizardManager";
 import { InsulinExpirationManager } from "../../managers/expirationManager";
 import { formatDose, type GlucoseRange } from "./glucoseFormat";
 import type { GlucosePoint } from "./useGlucoseForecast";
+import { EntryStore } from "../../storage/entryStore";
+import { InjectionPurpose } from "../../models/events/insulin";
+import { StreamManager } from "../../managers/streamManager";
 
 type AlertTone = "low" | "high" | "neutral";
 
@@ -268,7 +269,7 @@ export default function HubAlerts({
         action: {
           label: "Insulin",
           onClick: () => {
-            WizardStore.isPrebolus.value = false;
+            EntryStore.injectionPurpose.value = InjectionPurpose.Nominal;
             navigate("/insulin");
           },
         },
@@ -310,7 +311,7 @@ export default function HubAlerts({
                       `Confirm that you have injected ${formatDose(dose)}u of basal insulin`,
                     )
                   ) {
-                    WizardManager.markBasal(dose, new Date());
+                    StreamManager.markBasal(dose, new Date());
                     onBasalMarked();
                   }
                 },

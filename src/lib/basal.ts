@@ -1,6 +1,6 @@
 import { InsulinVariantManager } from "../managers/insulinVariantManager";
 import { RescueVariantManager } from "../managers/rescueVariantManager";
-import WizardManager from "../managers/wizardManager";
+import { SessionManager } from "../managers/sessionManager";
 import Glucose from "../models/events/glucose";
 import Insulin from "../models/events/insulin";
 import type Session from "../models/session";
@@ -13,6 +13,7 @@ import { BackendStore } from "../storage/backendStore";
 import { BasalStore } from "../storage/basalStore";
 import { HealthMonitorStore } from "../storage/healthMonitorStore";
 import { PrivateStore } from "../storage/privateStore";
+import { StreamStore } from "../storage/streamStore";
 import { getBasalCorrection } from "./metabolism";
 import { getBGVelocities } from "./readingsUtil";
 import RemoteReadings from "./remote/readings";
@@ -86,7 +87,7 @@ function getNonFastingWindows(
 }
 function getSessionWindows(): DateRange[] {
   const hours = InsulinVariantManager.getBasalVariant().duration;
-  let sessions = WizardManager.getAllSessions();
+  let sessions = SessionManager.getSessions();
   sessions.sort(
     (a: any, b: any) => b.timestamp.getTime() - a.timestamp.getTime(),
   );
@@ -163,11 +164,6 @@ export async function populateFastingVelocitiesCache() {
   BasalStore.fastingGlucosesCache.value = getFastingGlucoses(treatments);
   if (PrivateStore.debugLogs.value)
     console.log(BasalStore.fastingGlucosesCache.value);
-
-  // Update global liver output prediction
-  BasalStore.estimatedLiverOutput.value = estimateLiverOutput(
-    WizardManager.getAllSessions(),
-  );
 }
 
 export function getFastingVelocity() {
@@ -202,25 +198,6 @@ export function getFastingLength() {
   return hours;
 }
 
-export function addNewBasal(units: number, timestamp: Date) {
-  const basalVariant = InsulinVariantManager.getBasalVariant();
-  const days = basalVariant.duration / 24;
-  const shotsPerDay = HealthMonitorStore.basalShotsPerDay.value;
-
-  // Detect if user has made changes to dosing pattern
-  const lastShot = getLastShot();
-  let shotsSinceChange = BasalStore.shotsSinceLastChange.value;
-  if (lastShot && Math.abs(lastShot - units) > 0.01) {
-    shotsSinceChange = getRecommendationIndex();
-  }
-  BasalStore.shotsSinceLastChange.value = shotsSinceChange + 1;
-
-  // Add dose to the list of doses
-  const doses: Insulin[] = BasalStore.basalDoses.value;
-  const newBasalDoses = [new Insulin(units, timestamp, basalVariant), ...doses];
-  BasalStore.basalDoses.value = newBasalDoses.slice(0, days * shotsPerDay);
-}
-
 export function getDailyBasal() {
   const doses: Insulin[] = BasalStore.basalDoses.value;
   const shotsPerDay = HealthMonitorStore.basalShotsPerDay.value;
@@ -245,51 +222,23 @@ export function getDailyBasalPerShot() {
 // Shot patterns
 export function getLastShot(): number {
   const shotsPerDay = HealthMonitorStore.basalShotsPerDay.value;
-  const basals = BasalStore.basalDoses.value;
+  const basals = StreamStore.stream.value.basals;
 
-  const insulin = basals[shotsPerDay - 1];
+  const insulin = basals[basals.length - shotsPerDay];
   return insulin ? insulin.value : 0;
 }
+function getShotsSinceChange() {}
 export function dosingChangeComplete() {
-  const shotsSinceChange = BasalStore.shotsSinceLastChange.value;
   const shotsPerDay = HealthMonitorStore.basalShotsPerDay.value;
   const minDays = InsulinVariantManager.getBasalVariant().duration / 24;
 
   const minShots = shotsPerDay * minDays;
-  return shotsSinceChange >= minShots;
+  return getShotsSinceChange() >= minShots;
 }
 function getRecommendationIndex() {
   const shotsPerDay = HealthMonitorStore.basalShotsPerDay.value;
   const shotsSinceChange = BasalStore.shotsSinceLastChange.value;
   return shotsSinceChange % shotsPerDay;
-}
-export function setLastRecommendation(units: number) {
-  // Units per day, not per shot
-  const index = getRecommendationIndex();
-
-  let recommendations = BasalStore.lastRecommendation.value;
-  recommendations[index] = units;
-  BasalStore.lastRecommendation.write();
-}
-export function getLastRecommendation() {
-  const index = getRecommendationIndex();
-
-  return BasalStore.lastRecommendation.value[index];
-}
-export function getRecommendedBasal(): number {
-  const lastShot = getLastShot();
-  if (dosingChangeComplete()) {
-    const shotsPerDay = HealthMonitorStore.basalShotsPerDay.value;
-    const correction = round(getBasalCorrection(getFastingVelocity()), 0);
-
-    const shotCorrection = round(correction / shotsPerDay, 1);
-    const newBasal = lastShot + shotCorrection;
-
-    setLastRecommendation(newBasal);
-    return lastShot + shotCorrection;
-  } else {
-    return getLastRecommendation() > 0 ? getLastRecommendation() : lastShot;
-  }
 }
 type LiverModel = {
   L: number; // mg/dL per hour (intercept when B=0)
@@ -314,63 +263,10 @@ export function estimateLiverModel(
   minBasalDiffPerDay: number = 1, // bump default for stability
   requireNonNegativeS: boolean = true,
 ): LiverModel | null {
-  // ---- Filter + convert ----
-  const pts = sessions
-    .filter(
-      (s) =>
-        !s.isInvalid &&
-        s.fastingVelocity != null &&
-        s.dailyBasal != null &&
-        Number.isFinite(s.fastingVelocity) &&
-        Number.isFinite(s.dailyBasal) &&
-        s.dailyBasal > 0,
-    )
-    .map((s) => ({
-      V: s.fastingVelocity as number,
-      Bhr: (s.dailyBasal as number) / 24.0,
-    }));
-
-  if (pts.length < 2) return null;
-
-  const minDiffHr = minBasalDiffPerDay / 24.0;
-
-  // ---- Step 1: robust slope b from pairwise slopes ----
-  const slopes: number[] = [];
-  for (let i = 0; i < pts.length; i++) {
-    for (let j = i + 1; j < pts.length; j++) {
-      const dB = pts[j].Bhr - pts[i].Bhr;
-      if (Math.abs(dB) < minDiffHr) continue;
-
-      const dV = pts[j].V - pts[i].V;
-      const b = dV / dB; // slope in V vs B_hr
-      if (Number.isFinite(b)) slopes.push(b);
-    }
-  }
-
-  const bMed = MathUtil.median(slopes);
-  if (bMed == null) return null;
-
-  // ---- Step 2: robust intercept a from per-point intercepts ----
-  const intercepts = pts.map((p) => p.V - bMed * p.Bhr);
-  let aMed = MathUtil.median(intercepts);
-  if (aMed == null) return null;
-
-  // Convert to your parameters:
-  // V = a + b*Bhr  =>  L = a,  S = -b
-  let L = aMed;
-  let S = -bMed;
-
-  // Optional: enforce physiology constraint S >= 0 without biasing slope selection
-  if (requireNonNegativeS && S < 0) {
-    // If the estimated relationship says more basal increases V (weird),
-    // clamp S to 0 and set L to robust median of V (since V ≈ L when S=0).
-    S = 0;
-    const Vmed = MathUtil.median(pts.map((p) => p.V));
-    if (Vmed == null) return null;
-    L = Vmed;
-  }
-
-  return { L, S, slope: bMed, n: pts.length };
+  sessions;
+  minBasalDiffPerDay;
+  requireNonNegativeS;
+  throw new Error(`Unsupported`);
 }
 
 /**

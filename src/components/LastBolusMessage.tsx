@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import { getFormattedTime, getMinuteDiff, getPrettyTime } from "../lib/timing";
 import type Insulin from "../models/events/insulin";
-import { WizardStore } from "../storage/wizardStore";
+import { WizardStore } from "../storage/entryStore";
 import { round } from "../lib/util";
 import { HealthMonitorStore } from "../storage/healthMonitorStore";
 import { useNow } from "../state/useNow";

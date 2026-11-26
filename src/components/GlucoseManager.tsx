@@ -3,6 +3,7 @@ import type Session from "../models/session";
 import AddedGlucose from "./AddedGlucose";
 import type Glucose from "../models/events/glucose";
 import { RescueVariantManager } from "../managers/rescueVariantManager";
+import { StreamManager } from "../managers/streamManager";
 
 interface GlucoseManagerProps {
   session: Session;
@@ -10,7 +11,7 @@ interface GlucoseManagerProps {
 
 export default function GlucoseManager({ session }: GlucoseManagerProps) {
   function addGlucose() {
-    session.createGlucose(0, new Date(), RescueVariantManager.getDefault());
+    StreamManager.markRescue(0, new Date(), RescueVariantManager.getDefault());
   }
   return (
     <ListGroup>

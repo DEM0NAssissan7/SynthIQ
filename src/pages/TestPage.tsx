@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { InsulinRetrospectiveOptimizer } from "../lib/insulinRetrospectiveAnalyzer";
-import WizardManager from "../managers/wizardManager";
 import {
   LineChart,
   Line,
@@ -13,7 +12,6 @@ import {
 } from "recharts";
 import { InsulinVariantStore } from "../storage/insulinVariantStore";
 import { RescueVariantStore } from "../storage/rescueVariantStore";
-import { WizardStore } from "../storage/wizardStore";
 import { BackendStore } from "../storage/backendStore";
 import Insulin from "../models/events/insulin";
 import type Session from "../models/session";
@@ -23,14 +21,14 @@ import Card from "../components/Card";
 import MdButton from "../components/md3/MdButton";
 import MdIcon from "../components/md3/MdIcon";
 import { PreferencesStore } from "../storage/preferencesStore";
+import { SessionManager } from "../managers/sessionManager";
 
 export default function TestPage() {
   // Subscribe to templates store so any writes/updates trigger re-render
-  const [templates] = WizardStore.templates.useState();
   const [syncing, setSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
 
-  const sessions = WizardManager.getAllSessions()
+  const sessions = SessionManager.getSessions()
     .slice()
     .filter(
       (a) =>
@@ -69,7 +67,6 @@ export default function TestPage() {
         }
       }
       if (!cancelled && updatedCount > 0) {
-        WizardStore.templates.write();
         setSyncStatus(
           `Synced ${updatedCount} session(s) from Nightscout at ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`,
         );
@@ -99,7 +96,6 @@ export default function TestPage() {
           updatedCount++;
         }
       }
-      WizardStore.templates.write();
       setSyncStatus(
         `Successfully refreshed ${updatedCount} session(s) at ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`,
       );
@@ -284,10 +280,7 @@ export default function TestPage() {
             (d) => d.isCalibration,
           ).length;
           const cgmCount = chartData.length - calibrationCount;
-          const template = templates.find((t) =>
-            t.sessions.some((s) => s.uuid === session.uuid),
-          );
-          const title = template?.name || "Session";
+          const title = session.name || "Session";
           return (
             <Card key={session.uuid} className="mb-3">
               <div className="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-1">

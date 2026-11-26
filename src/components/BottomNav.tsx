@@ -2,8 +2,6 @@ import { useLocation, useNavigate } from "react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { basalIsDue } from "../lib/healthMonitor";
 import { useNow } from "../state/useNow";
-import { WizardStore } from "../storage/wizardStore";
-import { HealthMonitorStore } from "../storage/healthMonitorStore";
 import { PreferencesStore } from "../storage/preferencesStore";
 import type { ThemeMode } from "../lib/themeManager";
 import { checkPwaUpdate } from "../lib/pwaUpdater";
@@ -16,6 +14,9 @@ import MdSegmentedButton from "./md3/MdSegmentedButton";
 import MdChip from "./md3/MdChip";
 import MdPalettePicker from "./md3/MdPalettePicker";
 import MdIcon from "./md3/MdIcon";
+import { EntryStore } from "../storage/entryStore";
+import { InjectionPurpose } from "../models/events/insulin";
+import { StreamStore } from "../storage/streamStore";
 
 interface ToolItem {
   label: string;
@@ -123,8 +124,8 @@ export default function BottomNav() {
   };
 
   const [themeMode, setThemeMode] = PreferencesStore.themeMode.useState();
-  const [meal] = WizardStore.meal.useState();
-  const [boluses] = HealthMonitorStore.recentBoluses.useState();
+  const [meal] = EntryStore.meal.useState();
+  const boluses = StreamStore.stream.value.insulins;
 
   const [dueForBasal, setDueForBasal] = useState(() => basalIsDue());
   useMemo(() => {
@@ -153,7 +154,7 @@ export default function BottomNav() {
   };
 
   const handleInsulinClick = () => {
-    WizardStore.isPrebolus.value = false;
+    EntryStore.injectionPurpose.value = InjectionPurpose.Nominal;
     navigate("/insulin");
   };
 

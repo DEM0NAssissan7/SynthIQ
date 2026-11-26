@@ -15,12 +15,10 @@ import Backend from "./lib/remote/backend";
 import RemoteStorage from "./lib/remote/storage";
 import BasalPage from "./pages/treatment/BasalPage";
 import { BackendStore } from "./storage/backendStore";
-import { WizardStore } from "./storage/wizardStore";
 import ActivityRouterPage from "./pages/activity/ActivityRouterPage";
 import ActivitySelectPage from "./pages/activity/ActivitySelectPage";
 import ActivityStartPage from "./pages/activity/ActivityStartPage";
 import ActivityEndPage from "./pages/activity/ActivityEndPage";
-import { ActivityStore } from "./storage/activityStore";
 import InsulinPage from "./pages/treatment/InsulinPage";
 import HistoryPage from "./pages/HistoryPage";
 import InsulinVariantsPage from "./pages/InsulinVariantsPage";
@@ -41,10 +39,11 @@ import MealPage from "./pages/treatment/MealPage";
 import InsulinRouter from "./pages/treatment/InsulinRouter";
 import PrebolusRouter from "./pages/treatment/PrebolusRouter";
 import { StreamManager } from "./managers/streamManager";
-import { MigrationManager } from "./managers/migrationManager";
-import WizardManager from "./managers/wizardManager";
+import { migrateLegacyToStream } from "./legacy/stream-migration/manager";
 import { StreamStore } from "./storage/streamStore";
-import type Session from "./models/session";
+import { SessionManager } from "./managers/sessionManager";
+import { EntryStore } from "./storage/entryStore";
+import { ActivityManager } from "./managers/activityManager";
 
 function App() {
   useEffect(() => {
@@ -78,16 +77,12 @@ function App() {
   // Migration & population
   useEffect(() => {
     // Update the onboard stream
-    MigrationManager.migrate();
+    migrateLegacyToStream();
     setTimeout(() => {
       StreamManager.populateFromRemote();
     }, 10 * 1000);
     if (PrivateStore.debugLogs.value)
-      console.log(
-        StreamStore.stream.value,
-        StreamManager.getSessions(),
-        WizardManager.getAllSessions(),
-      );
+      console.log(StreamStore.stream.value, SessionManager.getSessions());
   }, []);
 
   const redirectTimer = useNow(
@@ -99,10 +94,13 @@ function App() {
   }, [redirectTimer]);
 
   if (PrivateStore.debugLogs.value) {
-    console.log(WizardStore.session.value);
-    console.log(WizardStore.template.value);
-    console.log(ActivityStore.activity.value);
-    console.log(ActivityStore.template.value);
+    const sessions = SessionManager.getSessions();
+    console.log(sessions.slice());
+    console.log(sessions.slice().sort((a, b) => a.name.localeCompare(b.name)));
+    console.log(EntryStore.activity.value);
+    console.log(
+      ActivityManager.queryActivities(EntryStore.activity.value.name),
+    );
   }
 
   return (

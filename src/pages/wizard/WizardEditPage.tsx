@@ -8,7 +8,7 @@ import MealAdditionalNutrients from "../../components/MealAdditionalNutrientsCar
 import { Button } from "react-bootstrap";
 import BloodSugarInput from "../../components/BloodSugarInput";
 import SessionSummary from "../../components/summary/SessionSummary";
-import { WizardStore } from "../../storage/wizardStore";
+import { WizardStore } from "../../storage/entryStore";
 import { PreferencesStore } from "../../storage/preferencesStore";
 import { PageActions, PageLayout } from "../../components/PageLayout";
 

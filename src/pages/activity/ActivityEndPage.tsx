@@ -1,18 +1,21 @@
 import { useNavigate } from "react-router";
 import { ActivityManager } from "../../managers/activityManager";
-import { ActivityStore } from "../../storage/activityStore";
 import Card from "../../components/Card";
 import ActivitySummary from "../../components/ActivitySummary";
 import { Button } from "react-bootstrap";
 import BloodSugarInput from "../../components/BloodSugarInput";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { PageActions, PageLayout } from "../../components/PageLayout";
+import { EntryStore } from "../../storage/entryStore";
 
 export default function ActivityEndPage() {
   const [currentBG, setCurrentBG] = useState<number | null>(null);
 
-  const activity = ActivityStore.activity.value;
-  const template = ActivityStore.template.value;
+  const [activity] = EntryStore.activity.useState();
+  const activitySession = useMemo(
+    () => ActivityManager.getActivitySession(activity),
+    [activity],
+  );
 
   const navigate = useNavigate();
 
@@ -22,7 +25,7 @@ export default function ActivityEndPage() {
         `Are you sure you want to cancel your activity? This will completely disregard this session, and it will not be stored.`,
       )
     ) {
-      ActivityManager.cancel(navigate);
+      ActivityManager.cancel();
     }
   }
   function end() {
@@ -31,7 +34,7 @@ export default function ActivityEndPage() {
       return;
     }
     if (confirm(`Are you ready to end your activity?`)) {
-      ActivityManager.end(navigate, currentBG);
+      ActivityManager.end(new Date());
     }
   }
   function takeGlucose() {
@@ -40,11 +43,7 @@ export default function ActivityEndPage() {
   return (
     <PageLayout>
       <Card>
-        <ActivitySummary
-          activity={activity}
-          template={template}
-          currentBG={activity.initialBG}
-        />
+        <ActivitySummary activity={activitySession} currentBG={currentBG} />
       </Card>
       <Card>
         <BloodSugarInput

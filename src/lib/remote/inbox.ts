@@ -4,7 +4,7 @@
  * to apply the treatments.
  */
 
-import Activity from "../../models/events/activity";
+import type { Activity } from "../../models/events/activity";
 import Glucose from "../../models/events/glucose";
 import Insulin from "../../models/events/insulin";
 import Meal from "../../models/events/meal";

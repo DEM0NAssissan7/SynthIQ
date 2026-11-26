@@ -9,7 +9,7 @@ import { PageLayout, PageActions } from "../../components/PageLayout";
 import MealSummary from "../../components/summary/MealSummary";
 import WizardManager from "../../managers/wizardManager";
 import { useNow } from "../../state/useNow";
-import { WizardStore } from "../../storage/wizardStore";
+import { WizardStore } from "../../storage/entryStore";
 import Card from "../../components/Card";
 import { PreferencesStore } from "../../storage/preferencesStore";
 import MdIcon from "../../components/md3/MdIcon";

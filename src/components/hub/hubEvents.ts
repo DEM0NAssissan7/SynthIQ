@@ -1,7 +1,7 @@
 import type Insulin from "../../models/events/insulin";
 import type Glucose from "../../models/events/glucose";
 import type Session from "../../models/session";
-import type Activity from "../../models/events/activity";
+import type Activity from "../../models/types/activitySession";
 import { formatClock, formatDose, formatRelative } from "./glucoseFormat";
 import { round } from "../../lib/util";
 

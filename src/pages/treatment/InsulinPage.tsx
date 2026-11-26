@@ -7,7 +7,7 @@ import BloodSugarInput from "../../components/BloodSugarInput";
 import { getCorrectionInsulin } from "../../lib/metabolism";
 import Card from "../../components/Card";
 import MealSummary from "../../components/summary/MealSummary";
-import { WizardStore } from "../../storage/wizardStore";
+import { WizardStore } from "../../storage/entryStore";
 import { PreferencesStore } from "../../storage/preferencesStore";
 import { InsulinVariantManager } from "../../managers/insulinVariantManager";
 import { NumberOptionSelector } from "../../components/NumberOptionSelector";

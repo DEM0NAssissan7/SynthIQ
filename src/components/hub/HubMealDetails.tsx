@@ -2,7 +2,6 @@ import { useNavigate } from "react-router";
 import type Session from "../../models/session";
 import Unit from "../../models/unit";
 import MdIcon from "../md3/MdIcon";
-import { WizardStore } from "../../storage/wizardStore";
 import { round } from "../../lib/util";
 import {
   formatClock,
@@ -39,7 +38,7 @@ export default function HubMealDetails({
   const meal = session.meal;
   if (!meal) return null;
   const mealTime = meal.timestamp.getTime();
-  const isCurrent = WizardStore.session.value.uuid === session.uuid;
+  const isCurrent = !session.completed;
 
   const foods = meal.summedFoods.filter((f) => Math.abs(f.amount) > 0);
   const status = session.isGarbage
@@ -194,8 +193,6 @@ export default function HubMealDetails({
           </div>
         </>
       )}
-
-      {session.notes && <p className="hub-meal-notes">{session.notes}</p>}
 
       {isCurrent && (
         <div className="hub-sheet-actions mt-2">

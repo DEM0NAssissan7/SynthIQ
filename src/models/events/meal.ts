@@ -21,21 +21,13 @@ export default class Meal extends MetaEvent {
     createProteinOffset(), // Protein offset food
     createFatOffset(), // Fat offset food
   ];
-  private _isGarbage: boolean = false;
-
-  get isGarbage() {
-    return this._isGarbage;
-  }
-  set isGarbage(value: boolean) {
-    this._isGarbage = value;
-    this.notify();
-  }
 
   constructor(
     timestamp: Date,
     public name: string,
     public templateUUID: UUID | null = null,
     uuid: UUID | null = null,
+    public isGarbage = false,
   ) {
     super(timestamp, uuid);
   }
@@ -190,6 +182,7 @@ export default class Meal extends MetaEvent {
       o.name,
       o.templateUUID ?? null,
       o.uuid ?? null,
+      o.isGarbage ?? false,
     );
     newMeal.foods = foods;
     newMeal.isGarbage = o.isGarbage ?? false;

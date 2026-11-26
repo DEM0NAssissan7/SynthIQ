@@ -626,7 +626,7 @@ export function analyzeForecastAccuracy(
   };
 
   const allSessions = _sessions
-    .map((s) => Session.deserialize(Session.serialize(s)))
+    .slice()
     .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 
   const skipped: Record<string, number> = {};

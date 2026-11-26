@@ -11,15 +11,17 @@ import RemoteTreatments, {
   glucoseEventType,
   insulinEventType,
 } from "../lib/remote/treatments";
-import { getMinuteDiff } from "../lib/timing";
-import { genUUID } from "../lib/util";
+import { Activity } from "../models/events/activity";
 import Glucose from "../models/events/glucose";
 import Insulin, { InjectionPurpose } from "../models/events/insulin";
 import Meal from "../models/events/meal";
-import type MetaEvent from "../models/events/metaEvent";
-import Session from "../models/session";
+import MetaEvent from "../models/events/metaEvent";
+import type Food from "../models/food";
 import Snapshot from "../models/snapshot";
+import type { InsulinVariant } from "../models/types/insulinVariant";
+import type { RescueVariant } from "../models/types/rescueVariant";
 import { getReadingFromNightscout } from "../models/types/sugarReading";
+import type { UUID } from "../models/types/types";
 import { PrivateStore } from "../storage/privateStore";
 import { StreamStore } from "../storage/streamStore";
 import { InsulinVariantManager } from "./insulinVariantManager";
@@ -96,181 +98,79 @@ export namespace StreamManager {
     StreamStore.stream.write();
     StreamStore.lastRemoteSyncTime.value = now;
   }
-  export function storeSession(s: Session, serialize = true) {
-    if (s.meal) s.meal.uuid = s.uuid > 65536 ? s.uuid : genUUID();
-    const stream = StreamStore.stream.value;
-    stream.snapshot.absorb(s.snapshot);
-    if (s.insulins.length > 0) {
-      const insulin = s.insulins[0];
-      if (s.meal && insulin.timestamp.getTime() < s.mealTimestamp.getTime()) {
-        insulin.purpose = InjectionPurpose.PreBolus;
-      }
-    }
-    stream.push(
-      ...s.insulins,
-      ...s.glucoses,
-      ...s.activities,
-      ...(s.meal !== null ? [s.meal] : []),
-    );
-    if (serialize) StreamStore.stream.write();
+
+  export function getStream() {
+    return StreamStore.stream.value;
   }
 
-  let sessionsCache: Session[] = [];
-  StreamStore.stream.subscribe(() => (sessionsCache = [])); // Invalidate sessions cache upon any modification
-  export function getSessions() {
-    if (sessionsCache.length === 0) buildSessionsCache();
-    return sessionsCache;
+  // Event Management
+  export function modify(event: MetaEvent) {
+    return getStream().modify(event);
   }
-  function buildSessionsCache(
-    sinceTimestamp: Date | null = null,
-    untilTimestamp: Date | null = null,
+  export function remove(event: MetaEvent) {
+    return getStream().remove(event);
+  }
+
+  // Marking
+  export function markInsulin(
+    units: number,
+    timestamp: Date,
+    variant: InsulinVariant,
+    purpose: InjectionPurpose,
   ) {
-    const masterStream =
-      sinceTimestamp === null && untilTimestamp === null
-        ? StreamStore.stream.value
-        : StreamStore.stream.value.view(
-            sinceTimestamp ?? StreamStore.stream.value.beginning,
-            untilTimestamp ?? new Date(),
-          );
-    if (masterStream.isEmpty) return null;
-    masterStream.sortEvents();
-    const meals = masterStream.meals;
-
-    sessionsCache = [];
-    for (let index = 0; index < masterStream.events.length; index++) {
-      const event = masterStream.events[index];
-      if (
-        !(
-          event instanceof Meal ||
-          (event instanceof Insulin &&
-            event.purpose === InjectionPurpose.PreBolus)
-        )
-      )
-        continue;
-      const startTimestamp = event.timestamp;
-      const meal = masterStream.events
-        .slice(index)
-        .find((e) => e instanceof Meal);
-      if (!meal) continue;
-
-      // Now we need to find the next non-merged meal
-      const mealIndex = meals.indexOf(meal);
-      const futureMeals = meals.slice(mealIndex + 1);
-      const nextMeal =
-        futureMeals.find(
-          (m) => getMinuteDiff(m.timestamp, meal.timestamp) > 30,
-        ) ?? null;
-      const nextPrebolus = masterStream.events
-        .slice(index)
-        .find(
-          (e) =>
-            e.timestamp.getTime() > event.timestamp.getTime() &&
-            e instanceof Insulin &&
-            e.purpose === InjectionPurpose.PreBolus,
-        );
-
-      // Assume the session ends at the next meal or the latest event in the stream
-      const fallbackEndTimestamp =
-        masterStream.events[masterStream.events.length - 1].timestamp;
-      let endTimestamp: Date =
-        nextMeal && nextPrebolus
-          ? new Date(
-              Math.min(
-                nextMeal.timestamp.getTime(),
-                nextPrebolus.timestamp.getTime(),
-              ),
-            )
-          : nextMeal
-            ? nextMeal.timestamp
-            : nextPrebolus
-              ? nextPrebolus.timestamp
-              : fallbackEndTimestamp;
-      // Assume that it is finished if we have a next, and not otherwise
-      let isFinished = nextMeal !== null;
-
-      // Now we view the stream so that it only includes the information that is definitely relevant and we determine when the session ends
-      const candidateStream = masterStream.view(
-        startTimestamp,
-        endTimestamp,
-        nextMeal ? false : true,
-      );
-      if (candidateStream.isEmpty) continue;
-      candidateStream.sortEvents();
-      const firstInsulin = candidateStream.insulins.find(
-        (i) => i.timestamp.getTime() >= startTimestamp.getTime(),
-      );
-      const fullSwingTime = Math.max(
-        meal.timestamp.getTime(),
-        firstInsulin?.timestamp.getTime() ?? meal.timestamp.getTime(),
-      );
-      const setEnd = (event: MetaEvent) => {
-        endTimestamp = event.timestamp;
-        isFinished = true;
-      };
-      for (const event of candidateStream.events) {
-        const eventTime = event.timestamp.getTime();
-        // If we have not gone into full swing (i.e. meal and insulin have not been taken) we don't do anything
-        if (eventTime <= fullSwingTime) continue;
-
-        // Now we craft a causally masked substream
-        const subStream = candidateStream.view(startTimestamp, event.timestamp);
-
-        // If this is a prebolus, we don't go any further
-        if (event instanceof Insulin) {
-          if (event.purpose === InjectionPurpose.PreBolus) {
-            setEnd(event);
-            break;
-          }
-        }
-
-        // If we have no insulin at this point
-        const isFasting = !subStream.insulins.reduce(
-          (n, i) => i.getActivityStatus(event.timestamp) || n,
-          false,
-        );
-        if (isFasting) {
-          /**
-           * So, the rationale here is that if any treatment is done after fasting is completed,
-           * we can assume that the user doing another treatment is probably not doing it because
-           * of the meal. It is likely some other benign thing that would be session noise.
-           *  */
-          if (!(event instanceof Insulin)) {
-            setEnd(event);
-            break;
-          }
-        }
-      }
-
-      // Now we assemble the session using the substream
-      const subStream = masterStream.view(startTimestamp, endTimestamp);
-      if (subStream.isEmpty) continue;
-      // We reduce all the meals in the substream
-      const compositeMeal = new Meal(
-        meal.timestamp,
-        meal.name,
-        meal.templateUUID,
-        meal.uuid,
-      );
-      subStream.meals.forEach((m) => compositeMeal.absorb(m));
-      // Now we put together our session
-      const session = new Session();
-      session.meal = compositeMeal;
-      session.insulins = subStream.insulins;
-      session.glucoses = subStream.rescues;
-      session.activities = subStream.activities;
-      session.snapshot = subStream.snapshot;
-      session.completed = isFinished;
-      session.isGarbage = subStream.meals.some((m) => m.isGarbage);
-      session.uuid = compositeMeal.uuid;
-      sessionsCache.push(session);
-
-      // Now we progress the forward pass and skip what we've already looked at
-      // if (!isFinished) break;
-      const endEvent = masterStream.getEventByTimestamp(endTimestamp);
-      if (endEvent) {
-        const newIndex = masterStream.indexOf(endEvent);
-        if (newIndex !== -1) index = newIndex - 1;
-      }
-    }
+    const insulin = new Insulin(units, timestamp, variant, purpose);
+    RemoteTreatments.markInsulin(units, timestamp, variant.name, purpose);
+    getStream().push(insulin);
+  }
+  export function markBasal(units: number, timestamp: Date) {
+    const variant = InsulinVariantManager.getBasalVariant();
+    const insulin = new Insulin(
+      units,
+      timestamp,
+      variant,
+      InjectionPurpose.Basal,
+    );
+    RemoteTreatments.markBasal(units, timestamp);
+    getStream().push(insulin);
+  }
+  export function markMeal(
+    foods: Food[],
+    timestamp: Date,
+    name: string,
+    templateUUID: UUID,
+    isGarbage: boolean,
+  ) {
+    const meal = new Meal(timestamp, name, templateUUID);
+    meal.foods = foods;
+    meal.isGarbage = isGarbage;
+    RemoteTreatments.markMeal(
+      meal.name,
+      meal.carbs,
+      meal.protein,
+      meal.timestamp,
+    );
+    getStream().push(meal);
+  }
+  export function markRescue(
+    value: number,
+    timestamp: Date,
+    variant: RescueVariant,
+  ) {
+    const rescue = new Glucose(value, timestamp, variant);
+    RemoteTreatments.markGlucose(
+      value * variant.carbs,
+      timestamp,
+      variant.name,
+    );
+    getStream().push(rescue);
+  }
+  export function markActivity(
+    durationMinutes: number,
+    timestamp: Date,
+    name: string,
+  ) {
+    const activity = new Activity(name, timestamp, durationMinutes);
+    RemoteTreatments.markActivity(name, timestamp, durationMinutes);
+    getStream().push(activity);
   }
 }

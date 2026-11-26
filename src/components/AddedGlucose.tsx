@@ -5,6 +5,7 @@ import type Session from "../models/session";
 import useGlucose from "../state/useGlucose";
 import type Glucose from "../models/events/glucose";
 import MdIcon from "./md3/MdIcon";
+import { StreamManager } from "../managers/streamManager";
 
 interface AddedGlucoseProps {
   glucose: Glucose;
@@ -19,10 +20,10 @@ export default function AddedGlucose({ glucose, session }: AddedGlucoseProps) {
 
   const { offset, setCaps, setTimestampFromOffset } = useGlucose(
     glucose,
-    session
+    session,
   );
   function remove() {
-    session.removeGlucose(glucose);
+    StreamManager.remove(glucose);
   }
 
   return (

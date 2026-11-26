@@ -1,25 +1,23 @@
 import { Button, ToggleButton } from "react-bootstrap";
 import Card from "../components/Card";
 import { getFullPrettyDate } from "../lib/timing";
-import type MealTemplate from "../models/mealTemplate";
 import type Session from "../models/session";
-import { WizardStore } from "../storage/wizardStore";
 import { useState } from "react";
 import { BasalStore } from "../storage/basalStore";
 import { EmptyState, PageHeader, PageLayout } from "../components/PageLayout";
+import { StreamManager } from "../managers/streamManager";
+import { SessionManager } from "../managers/sessionManager";
 
-function getCSV(templates: MealTemplate[], liverOutput: number): string {
+function getCSV(sessions: Session[]): string {
   let out =
-    "Template Name,Date,Carbs,Protein,Length (hours),Total Insulin Taken,# Insulin Doses,Rescue Doses Taken,InitialBG,FinalBG,Control Score (lower is better),Theoretical Meal Rise (mg/dL),Fasting Velocity (mg/dL per hour),Basal Units per Day (u/day),Sensitivity Index,Invalid\n";
-  for (const t of templates) {
-    for (const s of t.sessions) {
-      out += `${t.name},${getFullPrettyDate(s.timestamp)},${s.carbs},${s.protein},${s.length},${s.insulin},${s.insulins.length},${s.glucose},${s.initialGlucose},${s.finalBG},${s.score},${s.mealRise},${s.fastingVelocity},${s.dailyBasal},${s.getSensitivityIndex(liverOutput)},${s.isInvalid}\n`;
-    }
+    "Template Name,Date,Carbs,Protein,Length (hours),Total Insulin Taken,# Insulin Doses,Rescue Doses Taken,InitialBG,FinalBG,Control Score (lower is better),Theoretical Meal Rise (mg/dL),Invalid\n";
+  for (const s of sessions) {
+    out += `${s.name},${getFullPrettyDate(s.timestamp)},${s.carbs},${s.protein},${s.length},${s.insulin},${s.insulins.length},${s.glucose},${s.initialGlucose},${s.finalBG},${s.score},${s.mealRise},${s.isInvalid}\n`;
   }
   return out;
 }
 
-function SessionCard({ session }: { session: Session; liverOutput: number }) {
+function SessionCard({ session }: { session: Session }) {
   const [, setRerenderFlag] = useState(false);
 
   const backgroundClass = session.isInvalid
@@ -48,8 +46,8 @@ function SessionCard({ session }: { session: Session; liverOutput: number }) {
           value="1"
           size="sm"
           onChange={(e) => {
-            session.isGarbage = e.currentTarget.checked;
-            WizardStore.templates.write();
+            session.meal.isGarbage = e.currentTarget.checked;
+            StreamManager.getStream().modify(session.meal);
             setRerenderFlag((f) => !f);
           }}
         >
@@ -112,36 +110,21 @@ function SessionCard({ session }: { session: Session; liverOutput: number }) {
   );
 }
 
-type SessionTemplatePair = [Session, MealTemplate];
-
 export default function HistoryPage() {
-  const liverOutput = BasalStore.estimatedLiverOutput.value ?? 0;
-  const templates = WizardStore.templates.value;
+  const sessions = SessionManager.getSessions();
 
-  const sessionTemplatePairs: SessionTemplatePair[] = templates
-    .flatMap((template: MealTemplate) => {
-      const sessions = [...template.sessions]
-        .reverse()
-        .filter((session) => session.meal !== null);
-
-      // Assert the pair as a fixed tuple
-      return sessions.map(
-        (session: Session): SessionTemplatePair => [session, template],
-      );
-    })
-    .sort((a, b) => b[0].timestamp.getTime() - a[0].timestamp.getTime());
   return (
     <PageLayout maxWidth="42rem">
       <PageHeader
         eyebrow="Data"
         title="History"
-        subtitle="Review past sessions in a mobile-friendly format or export everything as CSV."
+        subtitle="Review past sessions or export everything as CSV."
         actions={
           <div className="d-grid">
             <Button
               variant="outline-primary"
               onClick={() => {
-                const csv = getCSV(templates, liverOutput);
+                const csv = getCSV(sessions);
                 const blob = new Blob([csv], { type: "text/csv" });
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement("a");
@@ -157,26 +140,20 @@ export default function HistoryPage() {
         }
       />
 
-      {templates.length === 0 && (
-        <EmptyState>No saved meal templates or sessions yet.</EmptyState>
+      {sessions.length === 0 && (
+        <EmptyState>No sessions created yet.</EmptyState>
       )}
 
-      {sessionTemplatePairs.map((pair: SessionTemplatePair, i) => {
-        const [session, template] = pair;
-
+      {sessions.map((session: Session, i) => {
         return (
           <Card key={i}>
             <div className="d-flex justify-content-between align-items-start gap-3 mb-3">
               <div>
-                <h2 className="h5 mb-1">{template.name}</h2>
+                <h2 className="h5 mb-1">{session.name}</h2>
               </div>
             </div>
             <div className="d-grid gap-3">
-              <SessionCard
-                key={session.uuid}
-                session={session}
-                liverOutput={liverOutput}
-              />
+              <SessionCard key={session.uuid} session={session} />
             </div>
           </Card>
         );

@@ -258,8 +258,11 @@ export const SessionSummary: React.FC<SessionSummaryProps> = ({
             {session.activities.map((a, i) => (
               <div key={i} className="app-dose-item">
                 <span className="dose-name">{a.name}</span>
-                <span className="dose-value fw-medium" style={{ fontSize: "0.92rem" }}>
-                  {getFormattedTime(a.length)}
+                <span
+                  className="dose-value fw-medium"
+                  style={{ fontSize: "0.92rem" }}
+                >
+                  {getFormattedTime(a.value)}
                 </span>
               </div>
             ))}
@@ -268,7 +271,7 @@ export const SessionSummary: React.FC<SessionSummaryProps> = ({
       )}
 
       {/* Flags & Notes */}
-      {(template?.isFirstTime || session.isInvalid || session.notes) && (
+      {(template?.isFirstTime || session.isInvalid) && (
         <div className="d-flex flex-column gap-1 pt-1">
           {template?.isFirstTime && (
             <div
@@ -286,14 +289,6 @@ export const SessionSummary: React.FC<SessionSummaryProps> = ({
             >
               <MdIcon name="warning" size={16} />
               <span>Session is currently invalid</span>
-            </div>
-          )}
-          {session.notes && (
-            <div
-              className="text-muted fst-italic"
-              style={{ fontSize: "0.75rem" }}
-            >
-              {session.notes}
             </div>
           )}
         </div>

@@ -15,11 +15,11 @@ import SessionSummary from "../summary/SessionSummary";
 import { useNow } from "../../state/useNow";
 import { PreferencesStore } from "../../storage/preferencesStore";
 import { BackendStore } from "../../storage/backendStore";
-import { HealthMonitorStore } from "../../storage/healthMonitorStore";
-import { BasalStore } from "../../storage/basalStore";
-import { WizardStore } from "../../storage/wizardStore";
-import { ActivityStore } from "../../storage/activityStore";
-import { basalIsDue, populateReadingCache } from "../../lib/healthMonitor";
+import { EntryStore } from "../../storage/entryStore";
+import { basalIsDue, getFingersticks } from "../../lib/healthMonitor";
+import { StreamManager } from "../../managers/streamManager";
+import { SessionManager } from "../../managers/sessionManager";
+import { useStream } from "../../state/useStream";
 import { getFormattedTime, getHourDiff, getMinuteDiff } from "../../lib/timing";
 import { round } from "../../lib/util";
 import {
@@ -128,20 +128,26 @@ export default function HubScreen() {
   const [highBG] = PreferencesStore.highBG.useState();
   const [dangerBG] = PreferencesStore.dangerBG.useState();
   const [decimal] = PreferencesStore.decimalPredictedBG.useState();
-  const [basalDoses] = BasalStore.basalDoses.useState();
-  const [session] = WizardStore.session.useState();
-  const [template] = WizardStore.activeTemplate.useState();
-  const [templates] = WizardStore.templates.useState();
-  const [fingerstickReadings] = HealthMonitorStore.fingersticks.useState();
+  const [stream, streamVersion] = useStream();
+  const basalDoses = useMemo(() => stream.basals, [streamVersion]);
+  const session = useMemo(
+    () => SessionManager.getCurrentSession(),
+    [streamVersion],
+  );
+  const template = useMemo(
+    () => (session ? SessionManager.getMealTemplate(session.meal.name) : null),
+    [session],
+  );
   const fingersticks = useMemo<GlucosePoint[]>(
     () =>
-      fingerstickReadings.map((r) => ({
+      getFingersticks(stream, now).map((r) => ({
         time: r.timestamp.getTime(),
         value: r.sugar,
       })),
-    [fingerstickReadings],
+    [streamVersion],
   );
-  const [currentActivity] = ActivityStore.activity.useState();
+  const [currentActivity] = EntryStore.activity.useState();
+  const [activityIsActive] = EntryStore.activityIsActive.useState();
 
   const range: GlucoseRange = useMemo(
     () => ({
@@ -163,7 +169,6 @@ export default function HubScreen() {
     stepMs,
     boluses,
     rescues,
-    basalTimes,
   } = useGlucoseForecast(now);
 
   // CGM lag: a sensor reading reflects blood glucose about cgmDelay minutes
@@ -198,13 +203,13 @@ export default function HubScreen() {
   }, []);
 
   useEffect(() => {
-    populateReadingCache();
+    StreamManager.populateFromRemote();
   }, []);
 
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
     try {
-      await populateReadingCache();
+      await StreamManager.populateFromRemote();
     } finally {
       setTimeout(() => setIsRefreshing(false), 400);
     }
@@ -214,7 +219,7 @@ export default function HubScreen() {
   const nowMinute = Math.floor(nowMs / 60000);
   useEffect(() => {
     setDueForBasal(basalIsDue());
-  }, [nowMinute, basalDoses]);
+  }, [nowMinute, streamVersion]);
   const onBasalMarked = useCallback(() => setDueForBasal(false), []);
 
   const openSheet = useCallback((s: Sheet) => {
@@ -230,38 +235,25 @@ export default function HubScreen() {
     return Math.min(oldest, nowMinute * 60000 - 3 * 3_600_000);
   }, [plotHistory, nowMinute]);
 
-  // Meals: every session with a meal, from the templates plus the current one.
-  const mealSessions = useMemo<MealSession[]>(() => {
-    const byId = new Map<MealSession["session"]["uuid"], MealSession>();
-    for (const t of templates)
-      for (const s of t._sessions)
-        if (s.meal) byId.set(s.uuid, { session: s, name: t.name });
-    if (session.meal)
-      byId.set(session.uuid, { session, name: template?.name || "Meal" });
-    return Array.from(byId.values()).filter(
-      (m) => m.session.meal!.timestamp.getTime() >= earliestMs,
-    );
-  }, [templates, session, template, earliestMs]);
+  // Meals: every session within the scrollable range.
+  const mealSessions = useMemo<MealSession[]>(
+    () =>
+      SessionManager.getSessions()
+        .filter((s) => s.meal.timestamp.getTime() >= earliestMs)
+        .map((s) => ({ session: s, name: s.meal.name || "Meal" })),
+    [streamVersion, earliestMs],
+  );
 
   const events = useMemo(() => {
-    const activities = [...session.activities];
-    const currentStart =
-      currentActivity.snapshot.initialBG?.timestamp.getTime();
-    if (
-      currentStart !== undefined &&
-      !activities.some(
-        (a) => a.snapshot.initialBG?.timestamp.getTime() === currentStart,
-      )
-    ) {
-      activities.push(currentActivity);
-    }
+    const inRange = (e: { timestamp: Date }) =>
+      e.timestamp.getTime() >= earliestMs;
     return buildHubEvents({
       boluses,
       rescues,
       mealSessions,
-      basalDoses,
-      basalTimes,
-      activities,
+      basalDoses: basalDoses.filter(inRange),
+      activities: stream.activities.filter(inRange),
+      ongoingActivity: activityIsActive ? currentActivity : null,
       nowMs: nowMinute * 60000,
     });
   }, [
@@ -269,8 +261,9 @@ export default function HubScreen() {
     rescues,
     mealSessions,
     basalDoses,
-    basalTimes,
-    session,
+    streamVersion,
+    earliestMs,
+    activityIsActive,
     currentActivity,
     nowMinute,
   ]);
@@ -359,22 +352,21 @@ export default function HubScreen() {
     predicted: "Predicted",
   };
 
-  const latestBasal = basalDoses[0] ?? null;
-  const sessionName =
-    template?.name || (session.meal ? "Meal" : "Active session");
-  const sessionParts = [
-    session.meal && session.meal.carbs > 0
-      ? `${Math.round(session.meal.carbs)}g`
-      : null,
-    `${formatDose(session.insulin)}u`,
-    session.glucose > 0 ? `+${round(session.glucose, 1)}g` : null,
-  ].filter(Boolean);
+  const latestBasal = basalDoses[basalDoses.length - 1] ?? null;
+  const sessionName = session?.meal.name || "Meal";
+  const sessionParts = session
+    ? [
+        session.meal.carbs > 0 ? `${Math.round(session.meal.carbs)}g` : null,
+        `${formatDose(session.insulin)}u`,
+        session.glucose > 0 ? `+${round(session.glucose, 1)}g` : null,
+      ].filter(Boolean)
+    : [];
 
   function setExcluded(value: boolean) {
+    if (!session) return;
     if (value && !confirm("Do you want to mark this session as unreliable?"))
       return;
-    session.isGarbage = value;
-    WizardStore.session.write();
+    SessionManager.setGarbage(session, value);
   }
 
   return (
@@ -537,7 +529,7 @@ export default function HubScreen() {
 
       {/* Dock */}
       <div className="hub-dock">
-        {session.started && (
+        {session && (
           <button
             type="button"
             className="hub-dock-chip"
@@ -693,7 +685,7 @@ export default function HubScreen() {
             </div>
           </>
         )}
-        {sheet?.type === "session" && session.started && (
+        {sheet?.type === "session" && session && template && (
           <>
             <SessionSummary
               session={session}

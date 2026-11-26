@@ -95,6 +95,23 @@ function decompressValue(stored: string): JSONValue {
   return JSON.parse(json);
 }
 
+/**
+ * Read a stored value as plain JSON without registering a StorageEntry.
+ * Unlike StorageNode.add, a missing key is NOT created, so this is safe for
+ * probing legacy keys that may never have existed on this install.
+ * Returns null when the key does not exist.
+ */
+export function readRawEntry(nodeName: string, id: string): JSONValue | null {
+  let raw: string | null | undefined;
+  try {
+    raw = storageBackend.getItem(`${appID}.${nodeName}.${id}`);
+  } catch {
+    return null; // Backend throws when the key does not exist
+  }
+  if (raw === null || raw === undefined) return null;
+  return decompressValue(raw);
+}
+
 export interface KeyInterface<T> {
   get value(): T;
   set value(a: T);

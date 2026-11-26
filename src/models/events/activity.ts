@@ -1,134 +1,36 @@
-import { getMinuteDiff } from "../../lib/timing";
-import { convertDimensions, MathUtil } from "../../lib/util";
-import Snapshot from "../snapshot";
-import type {
-  Deserializer,
-  JSONObject,
-  Serializer,
-  UUID,
-} from "../types/types";
-import Unit from "../unit";
-import Glucose from "./glucose";
+import type { Deserializer, Serializer, UUID } from "../types/types";
 import MetaEvent from "./metaEvent";
+import ScalarMetaEvent from "./scalarEvent";
 
-export default class Activity extends MetaEvent {
-  snapshot: Snapshot = new Snapshot();
-  glucoses: Glucose[] = [];
+export class Activity extends MetaEvent implements ScalarMetaEvent {
+  _value: number;
+  set value(value: number) {
+    this._value = value;
+    this.notify();
+  }
+  get value() {
+    return this._value;
+  }
+
   constructor(
     public name: string,
+    timestamp: Date,
+    durationMinutes: number, // a.k.a the value
     uuid: UUID | null = null,
   ) {
-    super(new Date(), uuid);
+    super(timestamp, uuid);
+    this._value = durationMinutes;
   }
 
-  get timestamp(): Date {
-    const readings = this.snapshot.initialBG;
-    if (!readings)
-      throw new Error(`Cannot get timestamp: failed to get finalBG`);
-    return readings.timestamp;
-  }
-  get endTimestamp(): Date {
-    const readings = this.snapshot.finalBG;
-    if (!readings)
-      throw new Error(`Cannot get end timestamp: failed to get finalBG`);
-    return readings.timestamp;
-  }
-
-  get length() {
-    // Returns the length (in minutes) of the activity
-    return getMinuteDiff(this.endTimestamp, this.timestamp);
-  }
-
-  set initialBG(val: number) {
-    this.snapshot.initialBG = val;
-    this.notify();
-  }
-  get initialBG(): number | null {
-    const reading = this.snapshot.initialBG;
-    if (!reading) return null;
-    return reading.sugar;
-  }
-  get started(): boolean {
-    return this.initialBG !== null;
-  }
-
-  set finalBG(val: number) {
-    this.snapshot.finalBG = val;
-    this.notify();
-  }
-  get finalBG(): number | null {
-    const reading = this.snapshot.finalBG;
-    if (!reading) return null;
-    return reading.sugar;
-  }
-
-  get deltaBG(): number {
-    const initialBG = this.initialBG;
-    const finalBG = this.finalBG;
-    if (!initialBG || !finalBG)
-      throw new Error(`Cannot find deltaBG: no initial or final glucose`);
-    return finalBG - initialBG;
-  }
-
-  get glucose(): number {
-    let glucose = 0;
-    this.glucoses.forEach((g) => (glucose += g.value));
-    return glucose;
-  }
-  get glucoseEffect(): number {
-    let effect = 0;
-    this.glucoses.forEach((g) => (effect += g.value * g.variant.effect));
-    return effect;
-  }
-  get latestRescueTimestamp(): Date {
-    return this.glucoses[this.glucoses.length - 1]?.timestamp ?? new Date();
-  }
-  /**
-   * This value is the rate that BG drops while doing the activity, measured in mg/dL per hour
-   */
-  get changeRate(): number {
-    const initialBG = this.initialBG;
-    const finalBG = this.finalBG;
-    if (!initialBG || !finalBG)
-      throw new Error(`Cannot find deltaBG: no initial or final glucose`);
-    const theoreticalFinalBG = finalBG - this.glucoseEffect;
-    return (
-      (theoreticalFinalBG - initialBG) /
-      (this.length * convertDimensions(Unit.Time.Minute, Unit.Time.Hour))
-    );
-  }
-  /**
-   * Score is a measure of how much the glucose (typically) deviates while doing the activity
-   */
-  get score() {
-    let deviations = this.snapshot.deviations;
-    // deviations.push(this.glucoseEffect);
-    return MathUtil.mean(deviations);
-  }
-
-  // Subevents
-  addGlucose(glucose: Glucose) {
-    this.addChildSubscribable(glucose);
-    this.glucoses.push(glucose);
-    this.notify();
-  }
-
-  static serialize: Serializer<Activity> = (a) => {
+  static serialize: Serializer<Activity> = (a: Activity) => {
     return {
-      snapshot: Snapshot.serialize(a.snapshot),
       name: a.name,
-      glucoses: a.glucoses.map((g) => Glucose.serialize(g)),
+      timestamp: a.timestamp.toString(),
+      value: a.value,
       uuid: a.uuid,
     };
   };
-  static deserialize: Deserializer<Activity> = (o) => {
-    const activity = new Activity(o.name, o.uuid ?? null);
-    activity.snapshot = Snapshot.deserialize(o.snapshot);
-    if (o.glucoses) {
-      o.glucoses.forEach((g: JSONObject) =>
-        activity.addGlucose(Glucose.deserialize(g)),
-      );
-    }
-    return activity;
+  static deserialize: Deserializer<Activity> = (o: any) => {
+    return new Activity(o.name, new Date(o.timestamp), o.value, o.uuid ?? null);
   };
 }

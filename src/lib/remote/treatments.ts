@@ -3,7 +3,7 @@ import { round } from "../util";
 import Backend from "./backend";
 
 export const insulinEventType = "Meal Bolus";
-export const basalEventType = "Basal Insulin";
+export const basalEventType = "Temp Basal";
 export const mealEventType = "Meal";
 export const glucoseEventType = "Carb Correction";
 export const activityEventType = "Exercise";
@@ -31,7 +31,12 @@ class RemoteTreatments {
       `treatments.json?&find[eventType]=${urlSafeEventType}&find[created_at][$gte]=${timestampA.toString()}&find[created_at][$lte]=${timestampB.toString()}`,
     );
   }
-  static markMeal(_carbs: number, _protein: number, timestamp: Date): void {
+  static markMeal(
+    name: string,
+    _carbs: number,
+    _protein: number,
+    timestamp: Date,
+  ): void {
     if (!PreferencesStore.uploadToBackend.value) return;
 
     const carbs = round(_carbs, 1);
@@ -39,7 +44,7 @@ class RemoteTreatments {
     Backend.post(
       "treatments",
       {
-        notes: `${carbs}g / ${protein}g`,
+        notes: `${name}: ${carbs}g / ${protein}g`,
         carbs: carbs,
         protein: protein,
         eventType: mealEventType,
@@ -47,7 +52,12 @@ class RemoteTreatments {
       timestamp,
     );
   }
-  static markInsulin(units: number, timestamp: Date, variant: string): void {
+  static markInsulin(
+    units: number,
+    timestamp: Date,
+    variant: string,
+    purpose: string,
+  ): void {
     if (!PreferencesStore.uploadToBackend.value) return;
 
     Backend.post(
@@ -56,6 +66,7 @@ class RemoteTreatments {
         insulin: units,
         eventType: insulinEventType,
         notes: variant,
+        purpose: purpose,
       },
       timestamp,
     );

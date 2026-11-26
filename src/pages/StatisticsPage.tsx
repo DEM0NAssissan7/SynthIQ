@@ -10,7 +10,6 @@ import RemoteTreatments, {
 } from "../lib/remote/treatments";
 import { InsulinVariantStore } from "../storage/insulinVariantStore";
 import { RescueVariantStore } from "../storage/rescueVariantStore";
-import { WizardStore } from "../storage/wizardStore";
 import { InsulinVariant } from "../models/types/insulinVariant";
 import { RescueVariant } from "../models/types/rescueVariant";
 import {
@@ -20,7 +19,7 @@ import {
   PageHeader,
   PageLayout,
 } from "../components/PageLayout";
-import WizardManager from "../managers/wizardManager";
+import { SessionManager } from "../managers/sessionManager";
 
 const calPerCarb = 4; // kcal per gram of carbs (matching Meal model)
 
@@ -58,7 +57,10 @@ function DataStatistics({ title, data }: DataStatisticsProps) {
           label="Std range"
           value={`${stdmin.toFixed(2)} - ${stdmax.toFixed(2)}`}
         />
-        <MetricPill label="Range" value={`${min.toFixed(2)} - ${max.toFixed(2)}`} />
+        <MetricPill
+          label="Range"
+          value={`${min.toFixed(2)} - ${max.toFixed(2)}`}
+        />
       </MetricGrid>
     </Card>
   );
@@ -70,16 +72,16 @@ interface DaySummary {
   carbs: number;
   protein: number;
   fat: number;
-  mealCalories: number;   // from meals only
+  mealCalories: number; // from meals only
   rescueCalories: number; // from rescue carbs (×4)
-  totalCalories: number;  // mealCalories + rescueCalories
-  bolus: number;          // from sessions
-  extraBolus: number;     // out-of-session boluses
-  totalBolus: number;     // bolus + extraBolus
+  totalCalories: number; // mealCalories + rescueCalories
+  bolus: number; // from sessions
+  extraBolus: number; // out-of-session boluses
+  totalBolus: number; // bolus + extraBolus
   basal: number;
-  glucose: number;        // from sessions
-  extraGlucose: number;   // out-of-session rescues
-  totalGlucose: number;   // glucose + extraGlucose
+  glucose: number; // from sessions
+  extraGlucose: number; // out-of-session rescues
+  totalGlucose: number; // glucose + extraGlucose
   avgScore: number;
 }
 
@@ -105,17 +107,19 @@ function groupSessionsByDay(
     const shifted = new Date(s.timestamp.getTime() - 6 * 60 * 60 * 1000);
     const dateKey = `${shifted.getFullYear()}-${String(shifted.getMonth() + 1).padStart(2, "0")}-${String(shifted.getDate()).padStart(2, "0")}`;
 
-    const entry = dayMap.get(dateKey) || {
-      sessions: 0,
-      carbs: 0,
-      protein: 0,
-      fat: 0,
-      mealCalories: 0,
-      bolus: 0,
-      dailyBasal: null,
-      glucose: 0,
-      scores: [],
-    } as DayEntry;
+    const entry =
+      dayMap.get(dateKey) ||
+      ({
+        sessions: 0,
+        carbs: 0,
+        protein: 0,
+        fat: 0,
+        mealCalories: 0,
+        bolus: 0,
+        dailyBasal: null,
+        glucose: 0,
+        scores: [],
+      } as DayEntry);
 
     entry.sessions += 1;
     entry.carbs += s.carbs;
@@ -123,9 +127,6 @@ function groupSessionsByDay(
     entry.fat += s.fat;
     entry.mealCalories += s.calories;
     entry.bolus += s.insulin;
-    if (s.dailyBasal !== null && entry.dailyBasal === null) {
-      entry.dailyBasal = s.dailyBasal;
-    }
     entry.glucose += s.glucose;
     const sc = s.score;
     if (Number.isFinite(sc)) entry.scores.push(sc);
@@ -212,7 +213,19 @@ function DailyMacros({
   function avgForWindow(windowDays: number | null) {
     const slice = windowDays ? days.slice(0, windowDays) : days;
     const n = slice.length;
-    if (n === 0) return { avgCalories: 0, avgCarbs: 0, avgProtein: 0, avgFat: 0, avgBolus: 0, avgBasal: 0, avgRescue: 0, avgScore: 0, label: `${windowDays ?? "All"}d`, days: n };
+    if (n === 0)
+      return {
+        avgCalories: 0,
+        avgCarbs: 0,
+        avgProtein: 0,
+        avgFat: 0,
+        avgBolus: 0,
+        avgBasal: 0,
+        avgRescue: 0,
+        avgScore: 0,
+        label: `${windowDays ?? "All"}d`,
+        days: n,
+      };
 
     const avgCalories = slice.reduce((s, d) => s + d.totalCalories, 0) / n;
     const avgCarbs = slice.reduce((s, d) => s + d.carbs, 0) / n;
@@ -220,15 +233,32 @@ function DailyMacros({
     const avgFat = slice.reduce((s, d) => s + d.fat, 0) / n;
     const avgBolus = slice.reduce((s, d) => s + d.totalBolus, 0) / n;
     const basalSlice = slice.filter((d) => d.basal > 0);
-    const avgBasal = basalSlice.length > 0
-      ? basalSlice.reduce((s, d) => s + d.basal, 0) / basalSlice.length
-      : 0;
+    const avgBasal =
+      basalSlice.length > 0
+        ? basalSlice.reduce((s, d) => s + d.basal, 0) / basalSlice.length
+        : 0;
     const avgRescue = slice.reduce((s, d) => s + d.totalGlucose, 0) / n;
     const avgScore = slice.reduce((s, d) => s + d.avgScore, 0) / n;
-    return { avgCalories, avgCarbs, avgProtein, avgFat, avgBolus, avgBasal, avgRescue, avgScore, label: `${windowDays ?? "All"}d`, days: n };
+    return {
+      avgCalories,
+      avgCarbs,
+      avgProtein,
+      avgFat,
+      avgBolus,
+      avgBasal,
+      avgRescue,
+      avgScore,
+      label: `${windowDays ?? "All"}d`,
+      days: n,
+    };
   }
 
-  const windows = [avgForWindow(7), avgForWindow(15), avgForWindow(30), avgForWindow(null)];
+  const windows = [
+    avgForWindow(7),
+    avgForWindow(15),
+    avgForWindow(30),
+    avgForWindow(null),
+  ];
   const allTime = windows[3];
 
   return (
@@ -237,16 +267,40 @@ function DailyMacros({
         <div className="fw-semibold mb-3">Daily averages</div>
         <div className="d-flex flex-wrap gap-3 justify-content-between">
           {windows.map((w) => (
-            <div key={w.label} className="flex-fill" style={{ minWidth: "10rem" }}>
-              <div className="small text-uppercase text-muted fw-semibold mb-2">{w.label} ({w.days} days)</div>
+            <div
+              key={w.label}
+              className="flex-fill"
+              style={{ minWidth: "10rem" }}
+            >
+              <div className="small text-uppercase text-muted fw-semibold mb-2">
+                {w.label} ({w.days} days)
+              </div>
               <MetricGrid>
-                <MetricPill label="Calories" value={`${w.avgCalories.toFixed(0)} kcal`} />
-                <MetricPill label="Carbs" value={`${w.avgCarbs.toFixed(1)} g`} />
-                <MetricPill label="Protein" value={`${w.avgProtein.toFixed(1)} g`} />
+                <MetricPill
+                  label="Calories"
+                  value={`${w.avgCalories.toFixed(0)} kcal`}
+                />
+                <MetricPill
+                  label="Carbs"
+                  value={`${w.avgCarbs.toFixed(1)} g`}
+                />
+                <MetricPill
+                  label="Protein"
+                  value={`${w.avgProtein.toFixed(1)} g`}
+                />
                 <MetricPill label="Fat" value={`${w.avgFat.toFixed(1)} g`} />
-                <MetricPill label="Bolus" value={`${w.avgBolus.toFixed(2)} u`} />
-                <MetricPill label="Basal" value={`${w.avgBasal.toFixed(2)} u`} />
-                <MetricPill label="Rescue" value={`${w.avgRescue.toFixed(1)} g`} />
+                <MetricPill
+                  label="Bolus"
+                  value={`${w.avgBolus.toFixed(2)} u`}
+                />
+                <MetricPill
+                  label="Basal"
+                  value={`${w.avgBasal.toFixed(2)} u`}
+                />
+                <MetricPill
+                  label="Rescue"
+                  value={`${w.avgRescue.toFixed(1)} g`}
+                />
                 <MetricPill label="Score" value={w.avgScore.toFixed(2)} />
               </MetricGrid>
             </div>
@@ -291,7 +345,11 @@ function DailyMacros({
             <tfoot>
               <tr className="table-active fw-semibold">
                 <td className="text-nowrap">Avg</td>
-                <td className="text-end">{(days.reduce((s, d) => s + d.sessions, 0) / days.length).toFixed(1)}</td>
+                <td className="text-end">
+                  {(
+                    days.reduce((s, d) => s + d.sessions, 0) / days.length
+                  ).toFixed(1)}
+                </td>
                 <td className="text-end">{allTime.avgCalories.toFixed(0)}</td>
                 <td className="text-end">{allTime.avgCarbs.toFixed(1)}</td>
                 <td className="text-end">{allTime.avgProtein.toFixed(1)}</td>
@@ -310,13 +368,7 @@ function DailyMacros({
 }
 
 export default function StatisticsPage() {
-  const [templates] = WizardStore.templates.useState();
-
-  const allSessions = useMemo(
-    () => WizardManager.getAllSessions(),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [templates],
-  );
+  const allSessions = SessionManager.getSessions();
 
   const carbs = useMemo(() => allSessions.map((s) => s.carbs), [allSessions]);
   const protein = useMemo(
@@ -355,9 +407,9 @@ export default function StatisticsPage() {
   const [extraBolusByDay, setExtraBolusByDay] = useState<Map<string, number>>(
     () => new Map(),
   );
-  const [extraGlucoseByDay, setExtraGlucoseByDay] = useState<Map<string, number>>(
-    () => new Map(),
-  );
+  const [extraGlucoseByDay, setExtraGlucoseByDay] = useState<
+    Map<string, number>
+  >(() => new Map());
   const [remoteLoading, setRemoteLoading] = useState(false);
   const [remoteError, setRemoteError] = useState(false);
 
@@ -383,14 +435,18 @@ export default function StatisticsPage() {
 
         // --- Extra boluses ---
         const bolusMap = new Map<string, number>();
-        for (const t of (insulinTreatments as any[])) {
+        for (const t of insulinTreatments as any[]) {
           const dose = t.insulin;
           if (!dose || dose <= 0) continue;
-          const tMs = Math.round(new Date(t.created_at).getTime() / 60000) * 60000;
+          const tMs =
+            Math.round(new Date(t.created_at).getTime() / 60000) * 60000;
           if (sessionInsulinTimestamps.has(tMs)) continue;
           let matched = false;
           for (const ts of sessionInsulinTimestamps) {
-            if (Math.abs(tMs - ts) <= 120000) { matched = true; break; }
+            if (Math.abs(tMs - ts) <= 120000) {
+              matched = true;
+              break;
+            }
           }
           if (matched) continue;
           const dayKey = get6amDateKey(new Date(t.created_at));
@@ -400,14 +456,18 @@ export default function StatisticsPage() {
 
         // --- Extra rescues ---
         const glucoseMap = new Map<string, number>();
-        for (const t of (glucoseTreatments as any[])) {
+        for (const t of glucoseTreatments as any[]) {
           const grams = t.carbs;
           if (!grams || grams <= 0) continue;
-          const tMs = Math.round(new Date(t.created_at).getTime() / 60000) * 60000;
+          const tMs =
+            Math.round(new Date(t.created_at).getTime() / 60000) * 60000;
           if (sessionGlucoseTimestamps.has(tMs)) continue;
           let matched = false;
           for (const ts of sessionGlucoseTimestamps) {
-            if (Math.abs(tMs - ts) <= 120000) { matched = true; break; }
+            if (Math.abs(tMs - ts) <= 120000) {
+              matched = true;
+              break;
+            }
           }
           if (matched) continue;
           const dayKey = get6amDateKey(new Date(t.created_at));
@@ -439,10 +499,11 @@ export default function StatisticsPage() {
   const [rescueVariants, setRescueVariants] = useState<RescueVariant[]>(
     originalRescueVariants,
   );
+  const sessions = SessionManager.getSessions();
 
   function optimizeForVariant(...names: string[]) {
     const optimized = optimizeVariants(
-      WizardStore.templates.value,
+      sessions,
       originalInsulinVariants,
       originalRescueVariants,
       names,
@@ -474,7 +535,9 @@ export default function StatisticsPage() {
 
       {remoteLoading && (
         <Card>
-          <div className="small text-muted">Fetching out-of-session data from Nightscout…</div>
+          <div className="small text-muted">
+            Fetching out-of-session data from Nightscout…
+          </div>
         </Card>
       )}
       {remoteError && (
@@ -510,7 +573,10 @@ export default function StatisticsPage() {
 
       <Card>
         <div className="d-grid mb-3">
-          <Button onClick={() => optimizeForVariant()} variant="outline-primary">
+          <Button
+            onClick={() => optimizeForVariant()}
+            variant="outline-primary"
+          >
             Optimize All Variants
           </Button>
         </div>
@@ -525,7 +591,9 @@ export default function StatisticsPage() {
             >
               <div>
                 <div className="fw-semibold">{v.name}</div>
-                <div className="small text-muted">{v.effect} mg/dL per unit</div>
+                <div className="small text-muted">
+                  {v.effect} mg/dL per unit
+                </div>
               </div>
               <Button
                 onClick={() => optimizeForVariant(v.name)}
@@ -568,7 +636,8 @@ export default function StatisticsPage() {
             <div key={v.name} className="rounded-4 border p-3 bg-light-subtle">
               <div className="fw-semibold">{v.name}</div>
               <div className="small text-muted">
-                {v.effect} mg/dL per unit from {originalInsulinVariants[i].effect}
+                {v.effect} mg/dL per unit from{" "}
+                {originalInsulinVariants[i].effect}
               </div>
             </div>
           ))}
@@ -576,7 +645,8 @@ export default function StatisticsPage() {
             <div key={v.name} className="rounded-4 border p-3 bg-light-subtle">
               <div className="fw-semibold">{v.name}</div>
               <div className="small text-muted">
-                {v.effect} mg/dL/{v.unitLetter} from {originalRescueVariants[i].effect}
+                {v.effect} mg/dL/{v.unitLetter} from{" "}
+                {originalRescueVariants[i].effect}
               </div>
             </div>
           ))}

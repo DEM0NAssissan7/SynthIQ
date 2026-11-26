@@ -1,5 +1,4 @@
 import type Meal from "../models/events/meal";
-import type MealTemplate from "../models/mealTemplate";
 import type Session from "../models/session";
 import { InsulinVariant } from "../models/types/insulinVariant";
 import { RescueVariant } from "../models/types/rescueVariant";
@@ -83,7 +82,7 @@ function getEffectPenalty(
   return MathUtil.mean(penalties);
 }
 export function optimizeVariants(
-  templates: MealTemplate[],
+  sessions: Session[],
   _insulinVariants: InsulinVariant[],
   _rescueVariants: RescueVariant[],
   targetNames: string[],
@@ -95,9 +94,15 @@ export function optimizeVariants(
     RescueVariant.deserialize(RescueVariant.serialize(v)),
   );
 
+  const grouped = sessions.reduce<Record<string, Session[]>>((acc, session) => {
+    (acc[session.name] ??= []).push(session);
+    return acc;
+  }, {});
+  const groupedSessions: Session[][] = Object.values(grouped);
+
   const groupedSplitSessions: Session[][][] = [];
-  for (const template of templates) {
-    groupedSplitSessions.push(splitIdenticalMeals(template.validSessions));
+  for (const sessions of groupedSessions) {
+    groupedSplitSessions.push(splitIdenticalMeals(sessions));
   }
 
   const allVariants: AffectableVariant[] = [
