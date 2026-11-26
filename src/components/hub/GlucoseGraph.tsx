@@ -61,7 +61,10 @@ interface View {
 
 interface Props {
   history: GlucosePoint[];
-  /** Meter readings, drawn as their own markers (not part of the CGM line). */
+  /**
+   * Measured blood sugars (meter readings and manual entries, told apart by
+   * `type`), drawn as their own markers (not part of the CGM line).
+   */
   fingersticks: GlucosePoint[];
   forecast: GlucosePoint[];
   anchorTime: number | null;
@@ -1305,11 +1308,14 @@ export default function GlucoseGraph({
       );
     }
 
-    // Fingersticks: a blood drop at the meter value, with the value above.
+    // Measured blood sugars: a blood drop at the value, with the value above.
+    // Meter readings (Nightscout) are a solid drop; manual entries (typed in
+    // by the user) are the same drop in outline, so they read as self-reported.
     for (const f of fingersticks) {
       const fx = px(f.time);
       if (fx < -12 || fx > W + 12) continue;
       const fy = py(f.value);
+      const manual = f.type === ReadingType.Manual;
       // Teardrop, tip up: circle of radius r centred at (fx, fy + r * 0.35).
       const r = 5;
       const cy = fy + r * 0.35;
@@ -1335,14 +1341,27 @@ export default function GlucoseGraph({
         cy - r * 2,
       );
       ctx.closePath();
-      ctx.fillStyle = pal.error;
-      ctx.fill();
-      ctx.lineWidth = 1.5;
-      ctx.strokeStyle = pal.bg;
-      ctx.stroke();
+      if (manual) {
+        // Halo first so the outline stays legible over the CGM line.
+        ctx.fillStyle = pal.bg;
+        ctx.fill();
+        ctx.lineWidth = 3.5;
+        ctx.strokeStyle = pal.bg;
+        ctx.stroke();
+        ctx.lineWidth = 1.75;
+        ctx.strokeStyle = pal.error;
+        ctx.stroke();
+      } else {
+        ctx.fillStyle = pal.error;
+        ctx.fill();
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = pal.bg;
+        ctx.stroke();
+      }
       ctx.font = `700 10px ${pal.font}`;
       ctx.textAlign = "center";
       ctx.lineWidth = 3;
+      ctx.strokeStyle = pal.bg;
       ctx.strokeText(String(Math.round(f.value)), fx, cy - r * 2 - 4);
       ctx.fillStyle = pal.text;
       ctx.fillText(String(Math.round(f.value)), fx, cy - r * 2 - 4);
