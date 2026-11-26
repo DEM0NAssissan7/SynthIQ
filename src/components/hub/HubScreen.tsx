@@ -67,6 +67,13 @@ type Sheet =
   | { type: "session" };
 
 /** Arrow rotated continuously with the CGM rate: flat at 0, vertical at ±2 mg/dL/min. */
+/** Signed whole-mg/dL change, with a true minus sign; 0 shows as "±0". */
+function formatDelta(delta: number): string {
+  const d = Math.round(delta);
+  if (d === 0) return "±0";
+  return d > 0 ? `+${d}` : `\u2212${-d}`;
+}
+
 function TrendArrow({ velocity, color }: { velocity: number; color: string }) {
   const perMin = velocity / 60;
   const angle = -Math.max(-1, Math.min(1, perMin / 2)) * 90;
@@ -225,8 +232,7 @@ export default function HubScreen() {
 
   // Earliest time the graph can scroll back to.
   const earliestMs = useMemo(() => {
-    const oldest =
-      history.length > 0 ? history[0].time : nowMinute * 60000;
+    const oldest = history.length > 0 ? history[0].time : nowMinute * 60000;
     return Math.min(oldest, nowMinute * 60000 - 3 * 3_600_000);
   }, [history, nowMinute]);
 
@@ -316,8 +322,7 @@ export default function HubScreen() {
         consider(p, p.type === ReadingType.Manual ? "manual" : "fingerstick");
       return best;
     }
-    const last =
-      forecast.length > 0 ? forecast[forecast.length - 1].time : 0;
+    const last = forecast.length > 0 ? forecast[forecast.length - 1].time : 0;
     const t = Math.min(Math.round(scrubTime / 60000) * 60000, last);
     const v = interpolateAt(forecast, t);
     if (v === null) return null;
@@ -332,6 +337,17 @@ export default function HubScreen() {
       : scrub.time
     : null;
   const isStale = anchor !== null && nowMs - anchor.time > stepMs * 3;
+  // Change since the previous CGM reading. Shown only when the graph connects
+  // the two (same stepMs * 3 gap as the CGM line), so it is never a delta
+  // across a data gap.
+  const lastDelta = useMemo(() => {
+    if (!anchor) return null;
+    let prev: GlucosePoint | null = null;
+    for (const p of history)
+      if (p.time < anchor.time && (!prev || p.time > prev.time)) prev = p;
+    if (!prev || anchor.time - prev.time > stepMs * 3) return null;
+    return anchor.value - prev.value;
+  }, [anchor, history, stepMs]);
   const shownValue = scrub ? scrub.value : predictedNow;
   const status = getGlucoseStatus(shownValue, range);
   const trend =
@@ -448,8 +464,7 @@ export default function HubScreen() {
               <span className={`hub-meta-cgm ${isStale ? "is-stale" : ""}`}>
                 CGM {formatBG(anchor.value, false)} ·{" "}
                 {getFormattedTime(Math.round(minutesAgo))} ago
-                {Math.abs(velocity) >= 1 &&
-                  ` · ${velocity > 0 ? "+" : ""}${Math.round(velocity)}/hr`}
+                {lastDelta !== null && ` · ${formatDelta(lastDelta)}`}
               </span>
               <div className="hub-meta-actions">
                 {accuracy && (
