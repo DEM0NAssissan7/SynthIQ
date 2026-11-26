@@ -19,10 +19,6 @@ import MdIcon from "../../components/md3/MdIcon";
 export default function MealPage() {
   const [meal] = EntryStore.meal.useState();
   const [, streamVersion] = useStream();
-  const template = useMemo(
-    () => SessionManager.getMealTemplate(meal.name),
-    [meal.name, streamVersion],
-  );
   // Only a meal that starts its own session can be pre-bolused
   const showPreBolus = useMemo(
     () => SessionManager.startsNewSession(),
@@ -90,7 +86,6 @@ export default function MealPage() {
 
       <Card>
         <MealSummary
-          template={template}
           meal={meal}
           mealName={meal.name}
           currentBG={initialGlucose}

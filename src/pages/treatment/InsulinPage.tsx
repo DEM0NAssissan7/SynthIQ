@@ -84,16 +84,6 @@ export default function InsulinPage() {
     () => (isPrebolus ? scratchpadMeal : (session?.meal ?? null)),
     [isPrebolus, scratchpadMeal, session],
   );
-  // The pre-bolused meal is still a draft; otherwise the meal is the session's
-  const template = useMemo(
-    () => SessionManager.getMealTemplate(scratchpadMeal.name),
-    [scratchpadMeal.name, streamVersion],
-  );
-  const activeTemplate = useMemo(
-    () => (session ? SessionManager.getMealTemplate(session.meal.name) : null),
-    [session],
-  );
-  const mealTemplate = isPrebolus ? template : activeTemplate;
 
   const isFirstPostMealInjection = useMemo(
     () =>
@@ -104,13 +94,14 @@ export default function InsulinPage() {
     [isPrebolus, session],
   );
 
+  // The pre-bolused meal is still a draft; otherwise the meal is the session's
   const baseSession = useMemo(
-    () => (meal && mealTemplate ? mealTemplate.getBaseSession(meal) : null),
-    [mealTemplate, meal],
+    () => (meal ? SessionManager.getBaseSession(meal) : null),
+    [meal, streamVersion],
   );
   const baseSessions = useMemo(
-    () => (meal && mealTemplate ? mealTemplate.getBaseSessions(meal) : []),
-    [mealTemplate, meal],
+    () => (meal ? SessionManager.getBaseSessions(meal) : []),
+    [meal, streamVersion],
   );
   const [variant, setVariant] = useState(InsulinVariantManager.getDefault());
 
@@ -144,7 +135,8 @@ export default function InsulinPage() {
       ) {
         // TODO: Use date selector
         const timestamp = new Date();
-        if (currentGlucose) StreamManager.markReading(currentGlucose, timestamp);
+        if (currentGlucose)
+          StreamManager.markReading(currentGlucose, timestamp);
         StreamManager.markInsulin(
           insulin,
           timestamp,
@@ -295,19 +287,17 @@ export default function InsulinPage() {
       {meal && !meal.isEmpty && (!session?.insulinMarked || isPrebolus) && (
         <Card>
           <MealSummary
-            template={template}
             meal={meal}
-            mealName={template.name}
+            mealName={meal.name}
             currentBG={currentGlucose}
           />
         </Card>
       )}
-      {session && activeTemplate && !session.insulinMarked && (
+      {session && !session.insulinMarked && (
         <Card>
           <MealSummary
-            template={activeTemplate}
             meal={session.meal}
-            mealName={activeTemplate.name}
+            mealName={session.name}
             session={session}
             currentBG={currentGlucose}
           />

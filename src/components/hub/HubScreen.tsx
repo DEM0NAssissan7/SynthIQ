@@ -134,10 +134,6 @@ export default function HubScreen() {
     () => SessionManager.getCurrentSession(),
     [streamVersion],
   );
-  const template = useMemo(
-    () => (session ? SessionManager.getMealTemplate(session.meal.name) : null),
-    [session],
-  );
   const fingersticks = useMemo<GlucosePoint[]>(
     () =>
       getFingersticks(stream, now).map((r) => ({
@@ -693,13 +689,9 @@ export default function HubScreen() {
             </div>
           </>
         )}
-        {sheet?.type === "session" && session && template && (
+        {sheet?.type === "session" && session && (
           <>
-            <SessionSummary
-              session={session}
-              template={template}
-              contained={false}
-            />
+            <SessionSummary session={session} contained={false} />
             <div className="hub-sheet-actions mt-3">
               <button
                 type="button"

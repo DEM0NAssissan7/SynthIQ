@@ -18,10 +18,6 @@ export default function WizardEditPage() {
     () => SessionManager.getCurrentSession(),
     [streamVersion],
   );
-  const template = useMemo(
-    () => (session ? SessionManager.getMealTemplate(session.meal.name) : null),
-    [session],
-  );
   // The session's meal is a composite: edit the logged meals it is made of
   const meals = useMemo(
     () => (session ? SessionManager.getMeals(session) : []),
@@ -29,13 +25,13 @@ export default function WizardEditPage() {
   );
 
   const navigate = useNavigate();
-  if (!session || !template) return <Navigate to="/hub" replace />;
+  if (!session) return <Navigate to="/hub" replace />;
   function finishEdit() {
     navigate("/hub");
   }
   return (
     <PageLayout>
-      <SessionSummary template={template} session={session} contained={true} />
+      <SessionSummary session={session} contained={true} />
       {meals.map((meal) => (
         <div key={meal.uuid}>
           <Card>

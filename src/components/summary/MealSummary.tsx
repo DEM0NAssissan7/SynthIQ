@@ -1,8 +1,6 @@
 import React, { useMemo } from "react";
 import type Meal from "../../models/events/meal";
-import type MealTemplate from "../../models/mealTemplate";
 import { round } from "../../lib/util";
-import { CalibrationStore } from "../../storage/calibrationStore";
 import { InsulinVariantManager } from "../../managers/insulinVariantManager";
 import Insulin from "../../models/events/insulin";
 import { useNow } from "../../state/useNow";
@@ -11,12 +9,12 @@ import Card from "../Card";
 import MdIcon from "../md3/MdIcon";
 import type Session from "../../models/session";
 import { getIdealInsulins, getProfileInsulin } from "../../lib/insulinPipeline";
+import { SessionManager } from "../../managers/sessionManager";
 
 export interface MealSummaryProps {
   meal: Meal;
   mealName: string;
   session?: Session;
-  template: MealTemplate;
   contained?: boolean;
   className?: string;
   statusBadge?: React.ReactNode;
@@ -32,7 +30,6 @@ export const MealSummary: React.FC<MealSummaryProps> = ({
   meal,
   mealName,
   session,
-  template,
   contained = false,
   className = "",
   statusBadge,
@@ -40,47 +37,33 @@ export const MealSummary: React.FC<MealSummaryProps> = ({
 }) => {
   const now = useNow(60);
   const defaultVariant = InsulinVariantManager.getDefault();
-  const displayName = mealName || template?.name || "Meal";
-  const baseSession = template?.getBaseSession(meal);
+  const displayName = mealName || "Meal";
+  const baseSession = SessionManager.getBaseSession(meal);
   const initialBG = useMemo(
     () => (session ? (session.initialGlucose ?? currentBG) : currentBG),
     [session, currentBG],
   );
 
-  // Calculate Profile Insulin (with template or direct from calibration store)
+  // Calculate Profile Insulin
   const { profileInsulin, profileCarbInsulin, profileProteinInsulin } =
     useMemo(() => {
-      if (template) {
-        const carbsIns = getProfileInsulin(meal.carbs, 0, defaultVariant);
-        const proteinIns = getProfileInsulin(0, meal.protein, defaultVariant);
-        return {
-          profileInsulin: carbsIns + proteinIns,
-          profileCarbInsulin: carbsIns,
-          profileProteinInsulin: proteinIns,
-        };
-      }
-      const carbsEffect = CalibrationStore.carbsEffect.value || 0;
-      const proteinEffect = CalibrationStore.proteinEffect.value || 0;
-      const variantEffect = defaultVariant?.effect || 1;
-      const carbsIns = (meal.carbs * carbsEffect) / variantEffect;
-      const proteinIns = (meal.protein * proteinEffect) / variantEffect;
+      const carbsIns = getProfileInsulin(meal.carbs, 0, defaultVariant);
+      const proteinIns = getProfileInsulin(0, meal.protein, defaultVariant);
       return {
         profileInsulin: carbsIns + proteinIns,
         profileCarbInsulin: carbsIns,
         profileProteinInsulin: proteinIns,
       };
-    }, [template, meal.carbs, meal.protein, defaultVariant]);
+    }, [meal.carbs, meal.protein, defaultVariant]);
 
   // Calculate Optimal Insulins
   const optimalInsulins: Insulin[] | null = useMemo(() => {
-    if (!template) return null;
     const idealInsulins = getIdealInsulins(initialBG, meal, baseSession);
-    if (idealInsulins.length > 0 && !template.isFirstTime) {
+    if (idealInsulins.length > 0 && !SessionManager.isFirstTime(meal.name)) {
       return idealInsulins;
     }
     return null;
   }, [
-    template,
     meal,
     profileInsulin,
     now,

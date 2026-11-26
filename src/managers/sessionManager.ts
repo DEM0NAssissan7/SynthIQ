@@ -2,9 +2,15 @@ import { getMinuteDiff } from "../lib/timing";
 import Insulin, { InjectionPurpose } from "../models/events/insulin";
 import Meal from "../models/events/meal";
 import type MetaEvent from "../models/events/metaEvent";
-import MealTemplate from "../models/mealTemplate";
 import Session from "../models/session";
 import { StreamStore } from "../storage/streamStore";
+import type { Template } from "../models/types/interfaces";
+import type { UUID } from "../models/types/types";
+import { MathUtil } from "../lib/util";
+import {
+  getBaseSessionFrom,
+  getBaseSessionsFrom,
+} from "../lib/helpers/getBaseSessions";
 
 export namespace SessionManager {
   /** A meal within this many minutes of a session's meal is part of that session */
@@ -196,6 +202,37 @@ export namespace SessionManager {
   export function querySessions(name: string) {
     return getAllSessionsByName(name).filter((s) => !s.isInvalid);
   }
+  /**
+   * The sessions dosing advice for meals named `name` is drawn from: their
+   * own, or every session if there is no valid one of their own (or no name).
+   */
+  export function getPool(name: string) {
+    if (name === unnamedMealName || querySessions(name).length === 0)
+      return getSessions();
+    return getAllSessionsByName(name);
+  }
+  export function isFirstTime(name: string) {
+    return getPool(name).length === 0;
+  }
+  export function getLatestSession(name: string): Session | null {
+    const sessions = querySessions(name);
+    return sessions[sessions.length - 1] ?? null;
+  }
+  export function getScore(name: string) {
+    return MathUtil.median(querySessions(name).map((s) => s.score));
+  }
+  /** The template UUID the meals named `name` were last logged with */
+  export function getTemplateUUID(name: string): UUID | null {
+    const sessions = getAllSessionsByName(name);
+    return sessions[sessions.length - 1]?.meal.templateUUID ?? null;
+  }
+  /** Every past session of this same meal, or the single most similar one if there are none */
+  export function getBaseSessions(meal: Meal, timestamp = new Date()) {
+    return getBaseSessionsFrom(meal, getPool(meal.name), timestamp);
+  }
+  export function getBaseSession(meal: Meal, timestamp = new Date()) {
+    return getBaseSessionFrom(meal, getPool(meal.name), timestamp);
+  }
 
   // Live session
   /**
@@ -254,40 +291,38 @@ export namespace SessionManager {
     StreamStore.stream.write();
   }
 
-  // Templates
-  /**
-   * The template for meals named `name`: their sessions, as the pool dosing
-   * advice is drawn from. A meal with no valid session of its own, or with no
-   * name, draws from every session instead.
-   */
-  export function getMealTemplate(name: string): MealTemplate {
-    const template = new MealTemplate(name);
-    const own = getAllSessionsByName(name);
-    own.forEach((s) => template.addSession(s));
-    const latest = own[own.length - 1];
-    if (latest?.meal.templateUUID != null)
-      template.UUID = latest.meal.templateUUID;
-    if (name === unnamedMealName || !own.some((s) => !s.isInvalid))
-      template.auxillarySessions = getSessions().filter(
-        (s) => s.meal.name !== name,
-      );
-    return template;
-  }
-  /** One template per named meal, from the sessions of that meal alone */
-  export function getMealTemplates(): MealTemplate[] {
-    const byName = new Map<string, MealTemplate>();
-    for (const session of getSessions()) {
-      const name = session.meal.name;
-      if (!name) continue;
-      let template = byName.get(name);
-      if (!template) {
-        template = new MealTemplate(name);
-        byName.set(name, template);
+  // Helpers
+  export function getTemplates(): Template[] {
+    const sessions: Session[] = getSessions();
+    const map = new Map<string, Session[]>();
+    for (const item of sessions) {
+      const key = item.meal.name;
+      if (!map.has(key)) {
+        map.set(key, []);
       }
-      template.addSession(session);
-      if (session.meal.templateUUID != null)
-        template.UUID = session.meal.templateUUID;
+      map.get(key)!.push(item);
     }
-    return Array.from(byName.values());
+    const sortedSessions = Array.from(map.values());
+
+    const templates: Template[] = [];
+    for (const sessions of sortedSessions) {
+      const name = sessions[0].meal.name;
+      const template: Template = {
+        name: name,
+        timestamp: sessions.reduce(
+          (t: Date, s: Session) =>
+            s.timestamp.getTime() > t.getTime() ? s.timestamp : t,
+          new Date(0),
+        ),
+        score: getScore(name),
+        size: getAllSessionsByName(name).length,
+      };
+      templates.push(template);
+    }
+    return templates;
+  }
+  export function getTemplate(name: string): Template | null {
+    const template = getTemplates().find((a) => a.name === name);
+    return template ?? null;
   }
 }

@@ -14,9 +14,12 @@ export default function MealSelectionPage() {
   /** Start the meal draft for `name`, pre-filled with the foods of its latest valid session */
   function advance(name: string | null) {
     const mealName = name ?? SessionManager.unnamedMealName;
-    const template = SessionManager.getMealTemplate(mealName);
-    const meal = new Meal(new Date(), mealName, template.UUID);
-    const latestSession = name ? template.latestSession : null;
+    const meal = new Meal(
+      new Date(),
+      mealName,
+      SessionManager.getTemplateUUID(mealName),
+    );
+    const latestSession = name ? SessionManager.getLatestSession(name) : null;
     if (latestSession)
       meal.foods = Meal.deserialize(Meal.serialize(latestSession.meal)).foods;
     EntryStore.meal.value = meal;
@@ -60,7 +63,7 @@ export default function MealSelectionPage() {
 
       <Card>
         <TemplateNameSearch
-          templates={SessionManager.getMealTemplates()}
+          templates={SessionManager.getTemplates()}
           onInput={(name: string) => advance(name)}
         />
       </Card>

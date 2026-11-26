@@ -11,7 +11,10 @@
  */
 
 import Insulin from "../models/events/insulin";
-import MealTemplate from "../models/mealTemplate";
+import {
+  getBaseSessionFrom,
+  getBaseSessionsFrom,
+} from "./helpers/getBaseSessions";
 import Session from "../models/session";
 import type { InsulinVariant } from "../models/types/insulinVariant";
 import type { RescueVariant } from "../models/types/rescueVariant";
@@ -194,17 +197,16 @@ function withClock<T>(now: Date, fn: () => T): T {
 }
 
 function selectBases(session: Session, pool: Session[]) {
-  const template = new MealTemplate("Forecast accuracy");
   // Only sessions that had completely finished by the time this one started
-  template._sessions = pool.filter(
+  const finished = pool.filter(
     (s) =>
       s.uuid !== session.uuid &&
       s.snapshot.readings.length > 0 &&
       s.snapshot.endTime.getTime() < session.timestamp.getTime(),
   );
   return withClock(session.timestamp, () => ({
-    bases: template.getBaseSessions(session.meal!, session.timestamp),
-    profileBase: template.getBaseSession(session.meal!, session.timestamp),
+    bases: getBaseSessionsFrom(session.meal, finished, session.timestamp),
+    profileBase: getBaseSessionFrom(session.meal, finished, session.timestamp),
   }));
 }
 

@@ -1,6 +1,5 @@
 import React, { useMemo } from "react";
 import type Session from "../../models/session";
-import type MealTemplate from "../../models/mealTemplate";
 import { round } from "../../lib/util";
 import {
   getFormattedTime,
@@ -11,10 +10,10 @@ import { useNow } from "../../state/useNow";
 import MealSummary from "./MealSummary";
 import Card from "../Card";
 import MdIcon from "../md3/MdIcon";
+import { SessionManager } from "../../managers/sessionManager";
 
 export interface SessionSummaryProps {
   session: Session;
-  template: MealTemplate;
   currentBG?: number;
   contained?: boolean;
   showMealSummary?: boolean;
@@ -28,13 +27,14 @@ function formatDose(value: number) {
 
 export const SessionSummary: React.FC<SessionSummaryProps> = ({
   session,
-  template,
   currentBG,
   contained = false,
   showMealSummary = true,
   className = "",
 }) => {
   const now = useNow(60);
+  const name = session.name;
+  const isFirstTime = SessionManager.isFirstTime(name);
 
   const elapsedMinutes = useMemo(
     () => getMinuteDiff(now, session.timestamp),
@@ -76,8 +76,7 @@ export const SessionSummary: React.FC<SessionSummaryProps> = ({
       {showMealSummary && session.meal ? (
         <MealSummary
           meal={session.meal}
-          mealName={template?.name || "Meal"}
-          template={template}
+          mealName={name || "Meal"}
           contained={false}
           statusBadge={
             <span
@@ -95,9 +94,7 @@ export const SessionSummary: React.FC<SessionSummaryProps> = ({
       ) : (
         <div className="app-discrete-header">
           <div>
-            <h2 className="app-discrete-title">
-              {template?.name || "Active Session"}
-            </h2>
+            <h2 className="app-discrete-title">{name || "Active Session"}</h2>
             <div className="app-discrete-subtitle">
               Started {getPrettyTime(session.timestamp)} · {durationFormatted}
             </div>
@@ -271,9 +268,9 @@ export const SessionSummary: React.FC<SessionSummaryProps> = ({
       )}
 
       {/* Flags & Notes */}
-      {(template?.isFirstTime || session.isInvalid) && (
+      {(isFirstTime || session.isInvalid) && (
         <div className="d-flex flex-column gap-1 pt-1">
-          {template?.isFirstTime && (
+          {isFirstTime && (
             <div
               className="text-warning-emphasis d-flex align-items-center gap-1"
               style={{ fontSize: "0.75rem" }}
