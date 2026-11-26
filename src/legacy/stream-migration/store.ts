@@ -1,12 +1,15 @@
 import type { JSONValue } from "../../models/types/types";
-import StorageNode, { readRawEntry } from "../../storage/storageNode";
+import StorageNode, {
+  readRawEntry,
+  removeRawEntry,
+} from "../../storage/storageNode";
 
 /**
  * Raw access to the pre-stream ("wizard") storage keys.
  *
  * Nothing here deserializes into app classes: legacy data is read as plain
  * JSON so the migration keeps working after Session / MealTemplate change or
- * disappear. These keys are only ever read, never written.
+ * disappear. These keys are only ever read, then deleted once migrated.
  */
 const LEGACY_NODE = "wizard";
 
@@ -70,9 +73,61 @@ export namespace LegacyActivityStore {
 }
 
 /**
+ * Every key of the pre-stream stores whose data now lives in the stream (or
+ * was a cache of it), by node. Keys of these nodes that current stores still
+ * own (e.g. basal.minTimeSinceMeal) are not listed.
+ */
+const LEGACY_KEYS: Record<string, string[]> = {
+  wizard: [
+    "templates",
+    "currentTemplate",
+    "activeTemplate",
+    "page",
+    "isPrebolus",
+    "session",
+    "meal",
+  ],
+  activity: ["templates", "template", "activity", "page"],
+  basal: [
+    "doses",
+    "fastingVelocitiesCache",
+    "fastingVelocitiesCacheLastUpdated",
+    "fastingGlucosesCache",
+    "lastRecommendation",
+    "shotsSinceLastChange",
+    "estimatedLiverOutput",
+  ],
+  healthMonitor: [
+    "readingsCache",
+    "readingsHistory",
+    "fingersticks",
+    "lastRescues",
+    "recentBoluses",
+    "recentMeals",
+    "recentBasalTimes",
+    "monitorStatusCache",
+    "currentBG",
+  ],
+  nightscout: ["inboxCache"],
+  migration: ["namedMeals", "migratedSessionsToStream"], // The pre-stream MigrationManager
+};
+/** Delete every legacy key. Returns how many keys were checked. */
+export function purgeLegacyKeys(): number {
+  let count = 0;
+  for (const [node, ids] of Object.entries(LEGACY_KEYS))
+    for (const id of ids) {
+      removeRawEntry(node, id);
+      count++;
+    }
+  return count;
+}
+
+/**
  * Bump STREAM_MIGRATION_VERSION whenever the conversion logic changes so that
  * every install re-runs it. Re-running is safe: Stream.push merges events that
- * are already present (same type + same timestamp).
+ * are already present (same type + same timestamp). Note that installs which
+ * already migrated have had their legacy keys purged, so a re-run there finds
+ * nothing to convert.
  */
 export const STREAM_MIGRATION_VERSION = 3;
 

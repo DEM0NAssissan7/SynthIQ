@@ -8,6 +8,7 @@
 
 import RemoteReadings from "../lib/remote/readings";
 import RemoteTreatments, {
+  basalEventType,
   glucoseEventType,
   insulinEventType,
 } from "../lib/remote/treatments";
@@ -47,68 +48,83 @@ export namespace StreamManager {
 
     // Readings
     const snapshot = new Snapshot();
+    const insulins: Insulin[] = [];
+    const rescues: Glucose[] = [];
     try {
-      const remoteReadings = await RemoteReadings.getReadings(
+      // Pull the relevant stuff from the remote
+      // CGM and meter readings live at different endpoints: the CGM one
+      // never returns fingersticks
+      const remoteReadings = [
+        ...(await RemoteReadings.getReadings(lastSyncTime, now)),
+        ...(await RemoteReadings.getMeterReadings(lastSyncTime, now)),
+      ];
+      const allTreatments = await RemoteTreatments.getTreatments(
         lastSyncTime,
         now,
       );
+      // If nothing was actually synchronized, we don't bother
+      if (remoteReadings.length === 0 && allTreatments.length === 0) {
+        return;
+      }
+
       const rawReadings = remoteReadings
         .filter((r) => r && (r.sgv != null || r.mbg != null))
         .map((r) => getReadingFromNightscout(r))
         .filter((r) => !isNaN(r.sugar) && !isNaN(r.timestamp.getTime()));
       if (PrivateStore.debugLogs.value) console.log(rawReadings);
-      snapshot.addReadings(...rawReadings);
+      // One at a time: spreading a full resync overflows the call stack
+      for (const reading of rawReadings) snapshot.addReadings(reading);
       snapshot.deduplicate();
+
+      // Treatments
+      for (const treatment of allTreatments) {
+        if (!treatment.timestamp) continue;
+        switch (treatment.eventType) {
+          case insulinEventType:
+          case basalEventType:
+          case "Basal Insulin":
+            if (
+              typeof treatment.insulin !== "number" ||
+              !treatment.insulin ||
+              Number.isNaN(treatment.insulin)
+            )
+              break;
+            const isBasal =
+              treatment.eventType === basalEventType ||
+              treatment.eventType === "Basal Insulin";
+            insulins.push(
+              new Insulin(
+                treatment.insulin,
+                treatment.timestamp,
+                InsulinVariantManager.getVariant(treatment.notes),
+                !isBasal ? InjectionPurpose.Nominal : InjectionPurpose.Basal,
+              ),
+            );
+            break;
+          case glucoseEventType:
+            if (!treatment.carbs || Number.isNaN(treatment.carbs)) break;
+            const variant = RescueVariantManager.getVariant(treatment.notes);
+            rescues.push(
+              new Glucose(
+                treatment.carbs / variant.carbs,
+                treatment.timestamp,
+                variant,
+              ),
+            );
+            break;
+        }
+      }
+
+      const stream = StreamStore.stream.value;
+      stream.snapshot.absorb(snapshot);
+      stream.push(...insulins, ...rescues);
+      StreamStore.stream.write();
+      StreamStore.lastRemoteSyncTime.value = now;
     } catch (e) {
       if (PrivateStore.debugLogs.value) {
         console.error("Stream cloud pull error:", e);
       }
     }
-
-    // Treatments
-    const allTreatments = await RemoteTreatments.getTreatments(
-      lastSyncTime,
-      now,
-    );
-    const insulins: Insulin[] = [];
-    const rescues: Glucose[] = [];
-    for (const treatment of allTreatments) {
-      if (!treatment.timestamp) continue;
-      switch (treatment.eventType) {
-        case insulinEventType:
-          if (
-            typeof treatment.insulin !== "number" ||
-            !treatment.insulin ||
-            Number.isNaN(treatment.insulin)
-          )
-            break;
-          insulins.push(
-            new Insulin(
-              treatment.insulin,
-              treatment.timestamp,
-              InsulinVariantManager.getVariant(treatment.notes),
-            ),
-          );
-          break;
-        case glucoseEventType:
-          if (!treatment.carbs || Number.isNaN(treatment.carbs)) break;
-          const variant = RescueVariantManager.getVariant(treatment.notes);
-          rescues.push(
-            new Glucose(
-              treatment.carbs / variant.carbs,
-              treatment.timestamp,
-              variant,
-            ),
-          );
-          break;
-      }
-    }
-
-    const stream = StreamStore.stream.value;
-    stream.snapshot.absorb(snapshot);
-    stream.push(...insulins, ...rescues);
-    StreamStore.stream.write();
-    StreamStore.lastRemoteSyncTime.value = now;
   }
 
   export function getStream() {

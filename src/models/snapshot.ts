@@ -19,21 +19,27 @@ import Unit from "./unit";
 export const precisionMS = 10 * 1000;
 export const reducePrecision = (x: number, precision: number = precisionMS) =>
   Math.round(x / precision) * precision;
+/**
+ * Whether a reading is a blood sugar at all. Anything outside this range is
+ * not a measurement: e.g. uploaders write an `sgv: 0` placeholder entry next
+ * to every fingerstick. Such readings are never kept, in memory or in storage.
+ */
+export const isStorableReading = (r: SugarReading) =>
+  r.sugar > 20 && r.sugar < 600;
+
 export default class Snapshot extends Subscribable {
   private rawReadings: SugarReading[] = [];
-
-  private readingsCache: SugarReading[] = [];
-  private timeSortedCache: SugarReading[] = [];
   private valueSortedCache: SugarReading[] = [];
   private deduplicated = false;
+  private isSorted: boolean = false;
   private invalidateCaches() {
-    this.readingsCache = [];
-    this.timeSortedCache = [];
+    this.isSorted = false;
     this.valueSortedCache = [];
   }
   private add(readings: SugarReading[]) {
     // Loop instead of push(...readings): spreading a large array overflows the call stack
-    for (const reading of readings) this.rawReadings.push(reading);
+    for (const reading of readings)
+      if (isStorableReading(reading)) this.rawReadings.push(reading);
     this.invalidateCaches();
     this.deduplicated = false;
   }
@@ -53,10 +59,19 @@ export default class Snapshot extends Subscribable {
     const snapshot = new Snapshot();
     const timeA = timestampA.getTime();
     const timeB = timestampB.getTime();
-    for (const reading of this.timeSorted) {
-      const readingTime = reading.timestamp.getTime();
-      if (readingTime < timeA - precisionMS / 2) continue;
-      if (readingTime > timeB + precisionMS / 2) break;
+    const readings = this.readings;
+    // Binary search for the first reading in range: views are taken constantly
+    let low = 0;
+    let high = readings.length;
+    while (low < high) {
+      const mid = (low + high) >> 1;
+      if (readings[mid].timestamp.getTime() < timeA - precisionMS / 2)
+        low = mid + 1;
+      else high = mid;
+    }
+    for (let i = low; i < readings.length; i++) {
+      const reading = readings[i];
+      if (reading.timestamp.getTime() > timeB + precisionMS / 2) break;
       snapshot.rawReadings.push(reading);
     }
     return snapshot;
@@ -73,7 +88,7 @@ export default class Snapshot extends Subscribable {
     const time = timestamp.getTime();
     const readings = calibrationOnly
       ? this.timeSortedCalibrations
-      : this.timeSorted;
+      : this.readings;
     if (readings.length <= 0)
       throw new Error(`Cannot get reading: readings is empty`);
     if (reverse) {
@@ -110,16 +125,18 @@ export default class Snapshot extends Subscribable {
     this.notify();
   }
   get readings(): SugarReading[] {
-    // This is for when we implement smoothing
-    if (this.readingsCache.length === 0) {
-      this.readingsCache = this.rawReadings;
+    if (!this.isSorted) {
+      this.rawReadings.sort(
+        (a, b) => a.timestamp.getTime() - b.timestamp.getTime(),
+      );
+      this.isSorted = true;
     }
-    return this.readingsCache;
+    return this.rawReadings;
   }
   /** The newest `count` readings, newest first */
   latest(count: number, calibrations = true): SugarReading[] {
     const latest: SugarReading[] = [];
-    const timeSorted = this.timeSorted;
+    const timeSorted = this.readings;
     for (let i = timeSorted.length - 1; i >= 0; i--) {
       if (latest.length >= count) break;
       const reading = timeSorted[i];
@@ -140,16 +157,6 @@ export default class Snapshot extends Subscribable {
   }
   private get numericalReadings() {
     return this.readings.map((r) => r.sugar);
-  }
-  private get timeSorted() {
-    if (this.timeSortedCache.length === 0) {
-      // Sorts it from oldest -> latest
-      // We prioritize using calibrations in this case because on the user-end it is much easier to mark the beginning and end glucose rather than the peaks
-      this.timeSortedCache = this.readings
-        .slice()
-        .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
-    }
-    return this.timeSortedCache;
   }
   private get timeSortedCalibrations(): SugarReading[] {
     return this.calibrations
@@ -189,20 +196,15 @@ export default class Snapshot extends Subscribable {
   }
   deduplicate() {
     if (this.deduplicated) return;
-    const deduplicated: SugarReading[] = [];
+    const byTime = new Map<number, SugarReading>();
     this.rawReadings.forEach((reading) => {
       const readingTime = reading.timestamp.getTime();
-      const existing = deduplicated.find(
-        (r) => r.timestamp.getTime() === readingTime,
-      );
-      if (existing) {
-        // If either reading was marked as calibration, keep calibration flag
-        if (reading.isCalibration) existing.isCalibration = true;
-        return;
-      }
-      deduplicated.push(reading);
+      const existing = byTime.get(readingTime);
+      // A calibration beats a CGM reading at the same time: its value is the measured one
+      if (!existing || (reading.isCalibration && !existing.isCalibration))
+        byTime.set(readingTime, reading);
     });
-    this.rawReadings = deduplicated;
+    this.rawReadings = Array.from(byTime.values());
     this.invalidateCaches();
     this.deduplicated = true;
   }
@@ -233,11 +235,11 @@ export default class Snapshot extends Subscribable {
 
   get initialBG(): SugarReading | null {
     if (!this.isValid) return null;
-    return this.isValid ? this.timeSorted[0] : null;
+    return this.isValid ? this.readings[0] : null;
   }
   set initialBG(value: number) {
-    if (this.isValid && this.timeSorted[0].isCalibration) {
-      this.timeSorted[0].sugar = value;
+    if (this.isValid && this.readings[0].isCalibration) {
+      this.readings[0].sugar = value;
       this.invalidateCaches();
       this.notify();
     } else {
@@ -246,7 +248,7 @@ export default class Snapshot extends Subscribable {
   }
 
   get finalBG(): SugarReading | null {
-    return this.isValid ? this.timeSorted[this.timeSorted.length - 1] : null;
+    return this.isValid ? this.readings[this.readings.length - 1] : null;
   }
   set finalBG(value: number) {
     this.createContemporaryCalibration(value);
@@ -323,7 +325,7 @@ export default class Snapshot extends Subscribable {
 
   // Timestamp stuff
   get startTime(): Date {
-    const timeSorted = this.timeSorted;
+    const timeSorted = this.readings;
     if (timeSorted.length === 0)
       throw new Error(`Cannot get start time: no readings`);
     const reading = timeSorted[0];
@@ -331,7 +333,7 @@ export default class Snapshot extends Subscribable {
     return reading.timestamp;
   }
   get endTime(): Date {
-    const timeSorted = this.timeSorted;
+    const timeSorted = this.readings;
     const reading = timeSorted[timeSorted.length - 1];
     if (!reading) throw new Error(`Cannot get end time: unknown error`);
     return reading.timestamp;
@@ -344,7 +346,7 @@ export default class Snapshot extends Subscribable {
     s.deduplicate();
     const readings = s.rawReadings
       .slice()
-      .filter((r) => r.sugar > 20 && r.sugar < 600)
+      .filter(isStorableReading)
       .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
     const firstReading = readings[0];
     if (firstReading) {
@@ -377,6 +379,7 @@ export default class Snapshot extends Subscribable {
       baseTime: baseTime,
       timeJump: timeJump,
       deduplicated: s.deduplicated,
+      isSorted: s.isSorted,
     };
   };
   static deserialize: Deserializer<Snapshot> = (o) => {
@@ -394,6 +397,7 @@ export default class Snapshot extends Subscribable {
     );
     snapshot.rawReadings = readings;
     snapshot.deduplicated = o.deduplicated ?? false;
+    snapshot.isSorted = o.isSorted ?? false;
     return snapshot;
   };
 }

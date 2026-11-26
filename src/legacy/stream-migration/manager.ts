@@ -29,6 +29,7 @@ import {
   type TemplateInfo,
 } from "./serializers";
 import {
+  purgeLegacyKeys,
   LegacyActivityStore,
   LegacyCacheStores,
   LegacyWizardStore,
@@ -50,6 +51,8 @@ export interface StreamMigrationReport {
   resumedActivity: boolean;
   /** A meal was being composed at upgrade time and was resumed in EntryStore */
   resumedMeal: boolean;
+  /** The legacy keys were deleted (only after a fully successful migration) */
+  purgedLegacyKeys: boolean;
 }
 
 /** Every legacy session found in storage, in priority order, each paired with its template */
@@ -143,14 +146,16 @@ function mergeIntoStream(
 /**
  * Copy all legacy (template / stored session) data into the stream.
  *
- * Runs once per STREAM_MIGRATION_VERSION. Legacy keys are left untouched, so a
- * failed or buggy migration can be fixed and re-run from the original data.
- * The version is only recorded if every session converted; otherwise it is
- * retried on the next launch.
+ * Runs once per STREAM_MIGRATION_VERSION. Only a fully successful migration
+ * is recorded, and only then are the legacy keys deleted (they hold nothing
+ * the stream does not). A failed one leaves them untouched, so it can be fixed
+ * and re-run from the original data on the next launch.
  */
 export function migrateLegacyToStream(): StreamMigrationReport | null {
-  if (StreamMigrationStore.version.value >= STREAM_MIGRATION_VERSION)
+  if (StreamMigrationStore.version.value >= STREAM_MIGRATION_VERSION) {
+    purgeLegacyKeys(); // Installs that migrated before keys were purged
     return null;
+  }
 
   const report: StreamMigrationReport = {
     sessions: 0,
@@ -163,6 +168,7 @@ export function migrateLegacyToStream(): StreamMigrationReport | null {
     uuidsReassigned: 0,
     resumedActivity: false,
     resumedMeal: false,
+    purgedLegacyKeys: false,
   };
 
   const isFirstRun = StreamMigrationStore.version.value === 0;
@@ -220,8 +226,13 @@ export function migrateLegacyToStream(): StreamMigrationReport | null {
     }
   }
 
-  if (report.failedSessions === 0 && report.failedSources.length === 0)
+  if (report.failedSessions === 0 && report.failedSources.length === 0) {
+    // Persist first: a write that fails throws here, before anything is deleted
+    StreamStore.stream.write();
     StreamMigrationStore.version.value = STREAM_MIGRATION_VERSION;
+    purgeLegacyKeys();
+    report.purgedLegacyKeys = true;
+  }
 
   console.info("Stream migration report", report);
   return report;

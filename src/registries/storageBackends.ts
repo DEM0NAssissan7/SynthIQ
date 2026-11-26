@@ -24,6 +24,13 @@ namespace StorageBackends {
         memoryStorage.set(key, value);
       }
     },
+    removeItem: (key: string): void => {
+      if (typeof window !== "undefined" && window.localStorage) {
+        localStorage.removeItem(key);
+      } else {
+        memoryStorage.delete(key);
+      }
+    },
     get size(): number {
       if (typeof window !== "undefined" && window.localStorage) {
         let total = 0;

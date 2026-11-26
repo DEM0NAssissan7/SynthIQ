@@ -6,6 +6,17 @@ import { convertDimensions } from "../util";
 import Backend from "./backend";
 
 class RemoteReadings {
+  /** Entries to ask for so that every reading between two times is returned */
+  private static getCount(timeA: number, timeB: number) {
+    const durationMinutes =
+      Math.abs(timeB - timeA) *
+      convertDimensions(Unit.Time.Millis, Unit.Time.Minute);
+    return Math.max(
+      20,
+      Math.ceil(durationMinutes / (BackendStore.minutesPerReading.value || 5)) +
+        10,
+    );
+  }
   static async getSugarAt(timestamp: Date) {
     return await this.getReadings(
       timestamp,
@@ -44,14 +55,7 @@ class RemoteReadings {
     const minDate = new Date(minTime);
     const maxDate = new Date(maxTime);
 
-    const durationMinutes =
-      (maxTime - minTime) *
-      convertDimensions(Unit.Time.Millis, Unit.Time.Minute);
-    const count = Math.max(
-      20,
-      Math.ceil(durationMinutes / (BackendStore.minutesPerReading.value || 5)) +
-        10,
-    );
+    const count = this.getCount(minTime, maxTime);
 
     // Nightscout date range queries:
     // In Nightscout MongoDB, `date` is a numeric epoch field. Querying `find[date][$gte]=<val>` fails
@@ -90,12 +94,14 @@ class RemoteReadings {
   /**
    * Meter (fingerstick) entries between two times. Queried by dateString for
    * the same reason as getReadings (numeric date queries match nothing).
+   * Meter readings are sparser than CGM readings, so the CGM count bounds them.
    */
   static async getMeterReadings(timestampA: Date, timestampB: Date) {
     const from = new Date(Math.min(timestampA.getTime(), timestampB.getTime()));
     const to = new Date(Math.max(timestampA.getTime(), timestampB.getTime()));
+    const count = this.getCount(from.getTime(), to.getTime());
     const res = await Backend.get(
-      `entries/mbg.json?find[dateString][$gte]=${from.toISOString()}&find[dateString][$lte]=${to.toISOString()}&count=200`,
+      `entries/mbg.json?find[dateString][$gte]=${from.toISOString()}&find[dateString][$lte]=${to.toISOString()}&count=${count}`,
     );
     return Array.isArray(res) ? res : [];
   }

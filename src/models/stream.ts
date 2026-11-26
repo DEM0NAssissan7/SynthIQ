@@ -8,15 +8,27 @@ import Subscribable from "./subscribable";
 import SugarReading from "./types/sugarReading";
 import type { Deserializer, Serializer } from "./types/types";
 
+/** An event with no valid timestamp cannot be placed in the stream (and would break its ordering) */
+const isPlaceable = (e: MetaEvent) => !Number.isNaN(e.timestamp.getTime());
+
 export class Stream extends Subscribable {
+  /**
+   * @param subscribe Notify on changes to the snapshot and events. Only the
+   * stream that owns its events subscribes to them: a view borrows the owner's
+   * events, and subscribing to them would keep every view alive for as long as
+   * the events live.
+   */
   constructor(
     public snapshot: Snapshot,
     public events: MetaEvent[] = [],
+    subscribe = true,
   ) {
     super();
+    this.events = events.filter(isPlaceable);
     this.sortEvents();
+    if (!subscribe) return;
     this.addChildSubscribable(snapshot);
-    this.addChildSubscribable(...events);
+    this.addChildSubscribable(...this.events);
   }
 
   // Unified timestamp system
@@ -112,6 +124,7 @@ export class Stream extends Subscribable {
   }
   push(...incoming: MetaEvent[]) {
     for (const e of incoming) {
+      if (!isPlaceable(e)) continue;
       const existing = this.findDuplicate(e); // same type + same timestamp
       if (!existing) {
         this.events.push(e);
@@ -171,7 +184,7 @@ export class Stream extends Subscribable {
       if (inclusive ? time > timeB : time >= timeB) return false;
       return true;
     });
-    return new Stream(snapshot, events);
+    return new Stream(snapshot, events, false); // Read-only window: see constructor
   }
 
   // Serialization

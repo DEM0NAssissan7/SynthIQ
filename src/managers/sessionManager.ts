@@ -112,8 +112,12 @@ export namespace SessionManager {
         // If we have not gone into full swing (i.e. meal and insulin have not been taken) we don't do anything
         if (eventTime <= fullSwingTime) continue;
 
-        // Now we craft a causally masked substream
-        const subStream = candidateStream.view(startTimestamp, event.timestamp);
+        // Causal mask: only the insulin taken before this event
+        const priorInsulins = candidateStream.insulins.filter(
+          (i) =>
+            i.timestamp.getTime() >= startTimestamp.getTime() &&
+            i.timestamp.getTime() < eventTime,
+        );
 
         // If this is a prebolus, we don't go any further
         if (event instanceof Insulin) {
@@ -124,7 +128,7 @@ export namespace SessionManager {
         }
 
         // If we have no insulin at this point
-        const isFasting = !subStream.insulins.reduce(
+        const isFasting = !priorInsulins.reduce(
           (n, i) => i.getActivityStatus(event.timestamp) || n,
           false,
         );

@@ -112,6 +112,14 @@ export function readRawEntry(nodeName: string, id: string): JSONValue | null {
   return decompressValue(raw);
 }
 
+/**
+ * Delete a stored value that no StorageEntry owns (e.g. a key from a removed
+ * store). Deleting a key that does not exist does nothing.
+ */
+export function removeRawEntry(nodeName: string, id: string) {
+  storageBackend.removeItem(`${appID}.${nodeName}.${id}`);
+}
+
 export interface KeyInterface<T> {
   get value(): T;
   set value(a: T);
