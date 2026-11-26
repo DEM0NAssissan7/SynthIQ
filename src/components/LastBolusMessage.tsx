@@ -71,8 +71,8 @@ function useHoldToDelete() {
 
 /**
  * Insulin on board and its breakdown. Totals use the same functions as the
- * hub's IOB chip and strip (every bolus given before `nowMs`, including the
- * small remainder of doses past their duration), so the numbers always match.
+ * hub's IOB chip and strip (boluses given before `nowMs` and still within
+ * their duration), so the numbers always match.
  */
 export default function LastBolusMessage({ nowMs }: { nowMs?: number }) {
   const [stream, streamVersion] = useStream();
@@ -88,11 +88,8 @@ export default function LastBolusMessage({ nowMs }: { nowMs?: number }) {
   const activeBoluses = given
     .filter((insulin) => insulin.getActivityStatus(now))
     .sort((a, b) => b.iob(now) - a.iob(now));
-  // What doses past their duration still contribute (by the model, ~6% each).
-  const olderRemainder =
-    totalIOBNow - activeBoluses.reduce((sum, b) => sum + b.iob(now), 0);
 
-  if (activeBoluses.length === 0 && totalIOBNow < 0.05) {
+  if (activeBoluses.length === 0) {
     return (
       <div className="text-muted small py-1">
         No active insulin currently on board.
@@ -199,26 +196,6 @@ export default function LastBolusMessage({ nowMs }: { nowMs?: number }) {
         <div className="text-muted small px-1 mt-1">
           Press and hold a dose to delete it.
         </div>
-        {olderRemainder >= 0.05 && (
-          <div className="app-dose-item">
-            <span className="dose-name">
-              <MdIcon name="history" className="text-muted" size={18} />
-              <span>
-                Older doses
-                <span className="dose-sub ms-1">· past their duration</span>
-              </span>
-            </span>
-            <span className="dose-value">
-              {formatDose(olderRemainder)}u{" "}
-              <span
-                className="text-muted fw-normal"
-                style={{ fontSize: "0.82rem" }}
-              >
-                IOB
-              </span>
-            </span>
-          </div>
-        )}
       </div>
     </div>
   );
