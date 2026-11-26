@@ -16,6 +16,7 @@ import {
   type GlucoseRange,
 } from "./glucoseFormat";
 import { interpolateAt, type GlucosePoint } from "./useGlucoseForecast";
+import { ReadingType } from "../../models/types/sugarReading";
 import {
   eventIcon,
   eventKindPlural,
@@ -49,7 +50,7 @@ const MIN_TICK_PX = 64;
 export interface ScrubPoint {
   time: number;
   value: number;
-  source: "cgm" | "calibration" | "fingerstick" | "predicted";
+  source: "cgm" | "fingerstick" | "manual" | "predicted";
 }
 
 interface View {
@@ -1243,7 +1244,7 @@ export default function GlucoseGraph({
     for (const p of vHistory) {
       const cx = px(p.time);
       const cy = py(p.value);
-      if (p.isCalibration) {
+      if (p.type !== undefined && p.type !== ReadingType.Normal) {
         ctx.beginPath();
         ctx.moveTo(cx, cy - 5);
         ctx.lineTo(cx + 5, cy);

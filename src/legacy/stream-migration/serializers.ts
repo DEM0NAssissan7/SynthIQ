@@ -7,7 +7,7 @@ import Snapshot, {
   precisionMS,
   reducePrecision,
 } from "../../models/snapshot";
-import SugarReading from "../../models/types/sugarReading";
+import SugarReading, { ReadingType } from "../../models/types/sugarReading";
 import type { UUID } from "../../models/types/types";
 import { getMinuteDiff } from "../../lib/timing";
 
@@ -69,10 +69,11 @@ export interface LegacySessionData {
   activities: Activity[];
   snapshot: Snapshot;
   /**
-   * The blood sugar the session started at, if it was entered (a calibration).
-   * It beats any other calibration at the same instant: see convertLegacySession.
+   * The blood sugar the session started at, if it was measured (legacy: a
+   * "calibration", the flag every non-CGM reading carried). It beats any other
+   * measurement at the same instant: see convertLegacySession.
    */
-  initialCalibration: SugarReading | null;
+  initialMeasurement: SugarReading | null;
   /** Activities that were dropped because they had no readings (and therefore no start or end) */
   droppedActivities: number;
 }
@@ -122,7 +123,7 @@ export function asSession(o: unknown): LegacySessionJSON | null {
  *   Very old sessions with several meals were treated as garbage, so every one
  *   of those meals is kept but marked garbage.
  * - The first insulin is tagged PREBOLUS if it was taken before the meal.
- * - Its initial calibration is returned apart, to beat a disagreeing copy.
+ * - Its initial measurement is returned apart, to beat a disagreeing copy.
  * - The insulins on board at the session's start are kept too (as NOMINAL):
  *   doses logged outside any session survive only there. They are added after
  *   the pre-bolus tagging and the identity key, so they affect neither.
@@ -192,7 +193,8 @@ export function convertLegacySession(
   // initial one could be corrected afterwards (session editing), so where the
   // two disagree it holds the correction.
   const first = snapshot.readings.find(isStorableReading);
-  const initialCalibration = first?.isCalibration ? first : null;
+  const initialMeasurement =
+    first && first.type !== ReadingType.Normal ? first : null;
   for (const s of asArray(o.snapshots))
     snapshot.absorb(Snapshot.deserialize(s));
   for (const s of activityReadings) snapshot.absorb(s);
@@ -217,7 +219,7 @@ export function convertLegacySession(
     activityGlucoses,
     activities,
     snapshot,
-    initialCalibration,
+    initialMeasurement,
     droppedActivities,
   };
 }
@@ -327,7 +329,7 @@ export function legacyFacts(
     activityGlucoses: facts.activityGlucoses ?? [],
     activities: facts.activities ?? [],
     snapshot: facts.snapshot ?? new Snapshot(),
-    initialCalibration: facts.initialCalibration ?? null,
+    initialMeasurement: facts.initialMeasurement ?? null,
     droppedActivities: facts.droppedActivities ?? 0,
   };
 }

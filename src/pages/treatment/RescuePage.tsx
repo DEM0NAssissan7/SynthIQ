@@ -35,12 +35,13 @@ import { SessionManager } from "../../managers/sessionManager";
 import { useStream } from "../../state/useStream";
 import MdIcon from "../../components/md3/MdIcon";
 import { estimateDynamicISF } from "../../lib/helpers/estimateDynamicISF";
+import { useEnteredBG } from "../../state/useEnteredBG";
 
 export default function RescuePage() {
   const [stream, streamVersion] = useStream();
   const isFasting = useMemo(() => SessionManager.isFasting(), [streamVersion]);
 
-  const [currentBG, setCurrentBG] = useState<number | null>(null);
+  const [currentBG, setCurrentBG, currentReading] = useEnteredBG();
   const [variant, setVariant] = useState(RescueVariantManager.getDefault());
   const readings = useMemo(() => getLatestReadings(stream), [streamVersion]);
   const insulinsOnBoard = useMemo(
@@ -109,7 +110,7 @@ export default function RescuePage() {
     }
     if (confirm(`Confirm that you have taken ${amount} ${variant.name}`)) {
       const timestamp = new Date();
-      if (currentBG) StreamManager.markReading(currentBG, timestamp);
+      StreamManager.markReading(currentReading);
       StreamManager.markRescue(amount, timestamp, variant);
       goBack();
     }

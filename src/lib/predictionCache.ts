@@ -29,9 +29,7 @@ const accuracyCache = new Map<
 
 function readingsKey(readings: SugarReading[]): string {
   return readings
-    .map(
-      (r) => `${r.timestamp.getTime()}:${r.sugar}:${r.isCalibration ? 1 : 0}`,
-    )
+    .map((r) => `${r.timestamp.getTime()}:${r.sugar}:${r.type}`)
     .join(",");
 }
 

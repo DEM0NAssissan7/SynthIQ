@@ -49,7 +49,7 @@ export function createWindows(
    * because this function only wants to return the optimal MEAL insulin, not cumUlative.
    */
 
-  if (insulins.length === 0 || !_snapshot.hasCalibrations) return [];
+  if (insulins.length === 0 || !_snapshot.hasMeasurements) return [];
 
   // Treatment windows creation
   const windows: TreatmentWindow[] = [];

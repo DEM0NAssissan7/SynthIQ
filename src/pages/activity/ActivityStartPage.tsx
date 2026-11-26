@@ -7,11 +7,12 @@ import Card from "../../components/Card";
 import ActivitySummary from "../../components/ActivitySummary";
 import { Button } from "react-bootstrap";
 import BloodSugarInput from "../../components/BloodSugarInput";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { PageActions, PageLayout } from "../../components/PageLayout";
+import { useEnteredBG } from "../../state/useEnteredBG";
 
 export default function ActivityStartPage() {
-  const [currentBG, setCurrentBG] = useState<number | null>(null);
+  const [currentBG, setCurrentBG, currentReading] = useEnteredBG();
 
   const [name] = EntryStore.activityName.useState();
   // The activity as it would be if started now, for its template's figures
@@ -29,7 +30,7 @@ export default function ActivityStartPage() {
     }
     if (confirm(`Are you ready to start your activity?`)) {
       const timestamp = new Date();
-      StreamManager.markReading(currentBG, timestamp);
+      StreamManager.markReading(currentReading);
       ActivityManager.begin(name, timestamp);
       navigate("/activity/end");
     }

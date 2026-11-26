@@ -25,6 +25,7 @@ import { PreferencesStore } from "../storage/preferencesStore";
 import { InsulinExpirationManager } from "../managers/expirationManager";
 import { StreamManager } from "../managers/streamManager";
 import type { Stream } from "../models/stream";
+import { ReadingType } from "../models/types/sugarReading";
 
 /**
  * Everything here is derived from the stream. Readings and treatments reach
@@ -67,10 +68,10 @@ export function getReadingsHistory(
   const start = getTimestampFromOffset(now, -readingsHistoryHours);
   return stream.snapshot
     .view(start, now)
-    .readings.filter((r) => !r.isCalibration && isPlausible(r))
+    .readings.filter((r) => r.type === ReadingType.Normal && isPlausible(r))
     .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 }
-/** Calibrations (fingersticks and entered BGs) over the history window, oldest first */
+/** Measured blood sugars (meter calibrations from Nightscout and manual entries) over the history window, oldest first */
 export function getFingersticks(
   stream: Stream = StreamManager.getStream(),
   now = new Date(),
@@ -78,7 +79,7 @@ export function getFingersticks(
   const start = getTimestampFromOffset(now, -readingsHistoryHours);
   return stream.snapshot
     .view(start, now)
-    .readings.filter((r) => r.isCalibration)
+    .readings.filter((r) => r.type !== ReadingType.Normal)
     .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 }
 export function getLatestReading(

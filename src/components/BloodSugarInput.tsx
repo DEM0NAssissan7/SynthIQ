@@ -5,12 +5,13 @@ import { useNow } from "../state/useNow";
 import { CacheStore } from "../storage/cacheStore";
 import { getMinuteDiff } from "../lib/timing";
 import { PreferencesStore } from "../storage/preferencesStore";
-import SugarReading from "../models/types/sugarReading";
+import SugarReading, { ReadingType } from "../models/types/sugarReading";
 import MdIcon from "./md3/MdIcon";
 
 interface BloodSugarInputProps {
   initialGlucose: number | null;
-  setInitialGlucose: (value: number) => void;
+  /** The value shown, and the reading it came from (null when there is none) */
+  setInitialGlucose: (value: number, reading: SugarReading | null) => void;
   pullFromNightscout?: boolean;
   showAutoButton?: boolean;
   label?: string;
@@ -33,19 +34,26 @@ export default function BloodSugarInput({
     return minutesSince <= sugarSaveTime;
   }, [now, sugarSaveTime]);
 
-  function setGlucose(bg: number, isCalibration = false) {
-    if (cacheIsValid && CacheStore.lastBG.value.isCalibration && !isCalibration)
+  /** `force` lets a CGM value replace a recent measured one */
+  function setGlucose(reading: SugarReading, force = false) {
+    // A CGM value does not replace a measured BG from within the save window
+    if (
+      !force &&
+      cacheIsValid &&
+      CacheStore.lastBG.value.type !== ReadingType.Normal &&
+      reading.type === ReadingType.Normal
+    )
       return;
-    setInitialGlucose(bg);
-    if (bg)
-      CacheStore.lastBG.value = new SugarReading(bg, new Date(), isCalibration);
+    const isReading = reading.sugar > 0;
+    setInitialGlucose(reading.sugar, isReading ? reading : null);
+    if (isReading) CacheStore.lastBG.value = reading;
   }
 
   function pullCurrentGlucose(force = false) {
     setIsPulling(true);
     RemoteReadings.getCurrentSugar()
       .then((g) => {
-        if (g) setGlucose(g.sugar, g.isCalibration || force);
+        if (g) setGlucose(g, force);
       })
       .finally(() => {
         setTimeout(() => setIsPulling(false), 400);
@@ -54,9 +62,10 @@ export default function BloodSugarInput({
 
   useEffect(() => {
     const lastBG = CacheStore.lastBG.value;
-    setInitialGlucose(lastBG.sugar);
+    setInitialGlucose(lastBG.sugar, cacheIsValid ? lastBG : null);
     if (pullFromNightscout) pullCurrentGlucose();
-    else setGlucose(cacheIsValid ? lastBG.sugar : 0);
+    else if (cacheIsValid) setGlucose(lastBG);
+    else setInitialGlucose(0, null);
   }, []);
 
   const glucoseStatus = useMemo(() => {
@@ -130,7 +139,14 @@ export default function BloodSugarInput({
           className="border-start-0 border-end-0 fw-semibold"
           onChange={(e) => {
             const value = parseFloat(e.target.value);
-            setGlucose(!isNaN(value) ? value : 0, true);
+            // Typed in: a manual entry
+            setGlucose(
+              new SugarReading(
+                !isNaN(value) ? value : 0,
+                new Date(),
+                ReadingType.Manual,
+              ),
+            );
           }}
         />
         <span className="input-group-text border-start-0 text-muted small pe-3">

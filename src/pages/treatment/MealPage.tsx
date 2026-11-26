@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { Button } from "react-bootstrap";
 import { useNavigate } from "react-router";
 import AddedFoodsDisplay from "../../components/AddedFoodsDisplay";
@@ -15,6 +15,7 @@ import { StreamManager } from "../../managers/streamManager";
 import Meal from "../../models/events/meal";
 import Card from "../../components/Card";
 import MdIcon from "../../components/md3/MdIcon";
+import { useEnteredBG } from "../../state/useEnteredBG";
 
 export default function MealPage() {
   const [meal] = EntryStore.meal.useState();
@@ -25,7 +26,7 @@ export default function MealPage() {
     [streamVersion],
   );
 
-  const [initialGlucose, setInitialGlucose] = useState<number | null>(null); // We are not wanting to modify the actual targetbg, so we do not use the store state
+  const [initialGlucose, setInitialGlucose, initialReading] = useEnteredBG(); // We are not wanting to modify the actual targetbg, so we do not use the store state
   const navigate = useNavigate();
   function selectDifferent() {
     // We have to reset the meal because it would happen anyways - don't want stale state
@@ -39,7 +40,7 @@ export default function MealPage() {
     }
     if (confirm("Are you ready to start eating?")) {
       const timestamp = new Date();
-      if (initialGlucose) StreamManager.markReading(initialGlucose, timestamp);
+      StreamManager.markReading(initialReading);
       StreamManager.markMeal(
         meal.foods,
         timestamp,
@@ -96,7 +97,7 @@ export default function MealPage() {
         <Card>
           <BloodSugarInput
             initialGlucose={initialGlucose}
-            setInitialGlucose={(g) => setInitialGlucose(g)}
+            setInitialGlucose={setInitialGlucose}
             pullFromNightscout={true}
           />
         </Card>

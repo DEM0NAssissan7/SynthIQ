@@ -4,7 +4,7 @@ import Card from "../../components/Card";
 import ActivitySummary from "../../components/ActivitySummary";
 import { Button } from "react-bootstrap";
 import BloodSugarInput from "../../components/BloodSugarInput";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { PageActions, PageLayout } from "../../components/PageLayout";
 import { EntryStore } from "../../storage/entryStore";
 import { StreamManager } from "../../managers/streamManager";
@@ -12,9 +12,10 @@ import { Activity } from "../../models/events/activity";
 import { getMinuteDiff } from "../../lib/timing";
 import { useNow } from "../../state/useNow";
 import { useStream } from "../../state/useStream";
+import { useEnteredBG } from "../../state/useEnteredBG";
 
 export default function ActivityEndPage() {
-  const [currentBG, setCurrentBG] = useState<number | null>(null);
+  const [currentBG, setCurrentBG, currentReading] = useEnteredBG();
 
   const [activity] = EntryStore.activity.useState();
   const now = useNow(60);
@@ -52,7 +53,7 @@ export default function ActivityEndPage() {
     }
     if (confirm(`Are you ready to end your activity?`)) {
       const timestamp = new Date();
-      StreamManager.markReading(currentBG, timestamp);
+      StreamManager.markReading(currentReading);
       ActivityManager.end(timestamp);
       navigate("/hub");
     }

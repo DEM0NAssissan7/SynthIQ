@@ -5,7 +5,7 @@ import type { UUID } from "../../models/types/types";
 import { genUUID } from "../../lib/util";
 import Meal from "../../models/events/meal";
 import { InjectionPurpose } from "../../models/events/insulin";
-import SugarReading from "../../models/types/sugarReading";
+import SugarReading, { ReadingType } from "../../models/types/sugarReading";
 import { InsulinVariantManager } from "../../managers/insulinVariantManager";
 import { StreamStore } from "../../storage/streamStore";
 import { EntryStore } from "../../storage/entryStore";
@@ -120,7 +120,12 @@ function mergeIntoStream(
   const readings = new Snapshot(); // Detached: absorbing into it writes nothing
   for (const s of sessions) {
     readings.absorb(s.snapshot);
-    for (const e of [...s.meals, ...s.insulins, ...s.glucoses, ...s.activities]) {
+    for (const e of [
+      ...s.meals,
+      ...s.insulins,
+      ...s.glucoses,
+      ...s.activities,
+    ]) {
       const existing = byKey.get(eventKey(e));
       if (existing) {
         e.uuid = existing.uuid;
@@ -140,29 +145,37 @@ function mergeIntoStream(
     }
   }
 
-  // One reading per instant; a session's initial calibration wins (see convertLegacySession)
+  // One reading per instant; a session's initial measurement wins (see convertLegacySession)
   readings.deduplicate();
   for (const s of sessions)
-    if (s.initialCalibration)
-      readings.setCalibration(
-        s.initialCalibration.timestamp,
-        s.initialCalibration.sugar,
+    if (s.initialMeasurement)
+      readings.setMeasurement(
+        s.initialMeasurement.timestamp,
+        s.initialMeasurement.sugar,
+        s.initialMeasurement.type,
       );
 
   // One absorb + one push, so the stream is written twice rather than once per session
   stream.snapshot.absorb(readings);
   // A stream that already held a session's start (e.g. a re-import into a
   // migrated install) keeps its own copy on absorb: correct the ones that differ
-  const streamCalibrations = new Map<number, number>();
+  const streamMeasurements = new Map<number, number>();
   for (const r of stream.snapshot.readings)
-    if (r.isCalibration && !streamCalibrations.has(r.timestamp.getTime()))
-      streamCalibrations.set(r.timestamp.getTime(), r.sugar);
+    if (
+      r.type !== ReadingType.Normal &&
+      !streamMeasurements.has(r.timestamp.getTime())
+    )
+      streamMeasurements.set(r.timestamp.getTime(), r.sugar);
   for (const s of sessions) {
-    const initial = s.initialCalibration;
+    const initial = s.initialMeasurement;
     if (!initial) continue;
-    const held = streamCalibrations.get(initial.timestamp.getTime());
+    const held = streamMeasurements.get(initial.timestamp.getTime());
     if (held !== undefined && held !== initial.sugar)
-      stream.snapshot.setCalibration(initial.timestamp, initial.sugar);
+      stream.snapshot.setMeasurement(
+        initial.timestamp,
+        initial.sugar,
+        initial.type,
+      );
   }
   stream.push(...batch);
   stream.sortEvents(); // push appends; the persisted copy is re-sorted on load
@@ -218,7 +231,11 @@ export function migrateLegacyToStream(): StreamMigrationReport | null {
       data = convertLegacySession(session, template);
     } catch (e) {
       report.failedSessions++;
-      console.error("Stream migration: failed to convert legacy session", e, session);
+      console.error(
+        "Stream migration: failed to convert legacy session",
+        e,
+        session,
+      );
       continue;
     }
     if (accept(data)) report.sessions++;
@@ -336,13 +353,14 @@ function collectLegacyStoreSources(): {
           ...asArray(LegacyCacheStores.readingsCache()),
           ...asArray(LegacyCacheStores.fingersticks()),
         ];
-        // The last entered BG is a real reading only when it was typed in
-        // (calibration). Otherwise it is a CGM value copied at the time of the
-        // pull, not at the time of the reading, which the CGM caches hold.
+        // The last entered BG is a real reading only when it was a
+        // measurement (legacy: a "calibration"). Otherwise it is a CGM value
+        // copied at the time of the pull, not at the time of the reading,
+        // which the CGM caches hold.
         const lastBG = LegacyCacheStores.lastBG();
         if (lastBG !== null) {
           const reading = SugarReading.deserialize(lastBG);
-          if (reading.isCalibration) readings.push(lastBG);
+          if (reading.type !== ReadingType.Normal) readings.push(lastBG);
         }
         return [
           legacyFacts("store:readings", {

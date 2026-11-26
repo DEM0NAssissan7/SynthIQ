@@ -5,7 +5,7 @@
 import Glucose from "../models/events/glucose";
 import Insulin from "../models/events/insulin";
 import { InsulinVariant } from "../models/types/insulinVariant";
-import SugarReading from "../models/types/sugarReading";
+import SugarReading, { ReadingType } from "../models/types/sugarReading";
 import { RescueVariant } from "../models/types/rescueVariant";
 import Unit from "../models/unit";
 import { convertDimensions, MathUtil } from "./util";
@@ -73,7 +73,7 @@ export function getBasePredictedGlucose(
     // totalBG = disturbanceBG - insulinEffect, so disturbanceBG = totalBG + insulinEffect
     return {
       sugar: reading.sugar + insulinEffect,
-      isCalibration: reading.isCalibration,
+      type: reading.type,
       timestamp: reading.timestamp,
     };
   });
@@ -158,10 +158,10 @@ export function getPredictedGlucoseAccuracy(
 ) {
   if (_readings.length <= 0) return null;
   const removeCalibrations =
-    _readings.filter((a) => !a.isCalibration).length > 2;
+    _readings.filter((a) => a.type === ReadingType.Normal).length > 2;
   const sortedReadings = _readings
     .slice()
-    .filter((r) => !r.isCalibration || !removeCalibrations)
+    .filter((r) => r.type === ReadingType.Normal || !removeCalibrations)
     .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
   const n = sortedReadings.length;
 
@@ -409,9 +409,9 @@ export function getPredictedGlucose(
   useR1: boolean = true,
 ): number | null {
   const removeCalibrations =
-    _readings.filter((r) => !r.isCalibration).length > 2;
+    _readings.filter((r) => r.type === ReadingType.Normal).length > 2;
   const readings = _readings.filter(
-    (r) => !r.isCalibration || !removeCalibrations,
+    (r) => r.type === ReadingType.Normal || !removeCalibrations,
   );
   if (!useR1) {
     return getBasePredictedGlucose(readings, timestamp, insulins, rescues);

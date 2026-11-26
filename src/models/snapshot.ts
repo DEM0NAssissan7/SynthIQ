@@ -11,7 +11,10 @@ import { convertDimensions, MathUtil } from "../lib/util";
 import { PreferencesStore } from "../storage/preferencesStore";
 import { PrivateStore } from "../storage/privateStore";
 import Subscribable from "./subscribable";
-import SugarReading, { getReadingFromNightscout } from "./types/sugarReading";
+import SugarReading, {
+  getReadingFromNightscout,
+  ReadingType,
+} from "./types/sugarReading";
 import type { Deserializer, Serializer } from "./types/types";
 import Unit from "./unit";
 
@@ -76,18 +79,18 @@ export default class Snapshot extends Subscribable {
     }
     return snapshot;
   }
-  looseView(timestampA: Date, timestampB: Date, calibrations = false) {
+  looseView(timestampA: Date, timestampB: Date, measurements = false) {
     // A looser version of view that takes advantage of the getReading to ensure that there's a bit of leeway
-    const leftReading = this.getReading(timestampA, calibrations);
-    const rightReading = this.getReading(timestampB, calibrations);
+    const leftReading = this.getReading(timestampA, measurements);
+    const rightReading = this.getReading(timestampB, measurements);
     if (!leftReading || !rightReading) return null;
     return this.view(leftReading.timestamp, rightReading.timestamp);
   }
-  getReading(timestamp: Date, calibrationOnly = false, reverse = false) {
+  getReading(timestamp: Date, measuredOnly = false, reverse = false) {
     // Shows what the user had seen at `timestamp` from their CGM/meter
     const time = timestamp.getTime();
-    const readings = calibrationOnly
-      ? this.timeSortedCalibrations
+    const readings = measuredOnly
+      ? this.timeSortedMeasurements
       : this.readings;
     if (readings.length <= 0)
       throw new Error(`Cannot get reading: readings is empty`);
@@ -107,9 +110,9 @@ export default class Snapshot extends Subscribable {
     }
     return retval;
   }
-  getSmoothed(timestamp: Date, calibrationOnly = false) {
-    const readingA = this.getReading(timestamp, calibrationOnly, false);
-    const readingB = this.getReading(timestamp, calibrationOnly, true);
+  getSmoothed(timestamp: Date, measuredOnly = false) {
+    const readingA = this.getReading(timestamp, measuredOnly, false);
+    const readingB = this.getReading(timestamp, measuredOnly, true);
     const dt = readingB.timestamp.getTime() - readingA.timestamp.getTime();
     // Exactly on a reading, or past the end of the snapshot
     if (dt === 0) return readingA.sugar;
@@ -134,13 +137,13 @@ export default class Snapshot extends Subscribable {
     return this.rawReadings;
   }
   /** The newest `count` readings, newest first */
-  latest(count: number, calibrations = true): SugarReading[] {
+  latest(count: number, measurements = true): SugarReading[] {
     const latest: SugarReading[] = [];
     const timeSorted = this.readings;
     for (let i = timeSorted.length - 1; i >= 0; i--) {
       if (latest.length >= count) break;
       const reading = timeSorted[i];
-      if (!calibrations && reading.isCalibration) continue;
+      if (!measurements && reading.type !== ReadingType.Normal) continue;
       latest.push(reading);
     }
     return latest;
@@ -148,25 +151,30 @@ export default class Snapshot extends Subscribable {
   get isEmpty(): boolean {
     return this.rawReadings.length <= 0;
   }
-  get hasCalibrations(): boolean {
-    return this.calibrations.length > 0;
+  get hasMeasurements(): boolean {
+    return this.measurements.length > 0;
   }
-  private get calibrations(): SugarReading[] {
-    // We filter through raw readings because calibrations don't need to be smoothed
-    return this.rawReadings.filter((r) => r.isCalibration);
+  /**
+   * Measured blood sugars, as opposed to CGM readings: meter calibrations
+   * (from Nightscout) and manual entries. They anchor what a snapshot starts
+   * and ends at.
+   */
+  private get measurements(): SugarReading[] {
+    // We filter through raw readings because measurements don't need to be smoothed
+    return this.rawReadings.filter((r) => r.type !== ReadingType.Normal);
   }
   private get numericalReadings() {
     return this.readings.map((r) => r.sugar);
   }
-  private get timeSortedCalibrations(): SugarReading[] {
-    return this.calibrations
+  private get timeSortedMeasurements(): SugarReading[] {
+    return this.measurements
       .slice()
       .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
   }
   private get valueSorted() {
     if (this.valueSortedCache.length === 0) {
       // Sorts it from lowest -> highest
-      // We don't prioritize calibrations because user won't know when BG peaks
+      // We don't prioritize measurements because user won't know when BG peaks
       this.valueSortedCache = this.readings
         .slice()
         .sort((a, b) => a.sugar - b.sugar);
@@ -177,22 +185,23 @@ export default class Snapshot extends Subscribable {
   private get isValid() {
     return this.rawReadings.length !== 0;
   }
-  /** Set the calibration at `timestamp`: the existing one is corrected, or a new one added */
-  setCalibration(timestamp: Date, value: number) {
+  /** Set the measurement at `timestamp`: the existing one is corrected, or a new one added */
+  setMeasurement(timestamp: Date, value: number, type: ReadingType) {
     const time = timestamp.getTime();
     const existing = this.rawReadings.find(
-      (r) => r.isCalibration && r.timestamp.getTime() === time,
+      (r) => r.type !== ReadingType.Normal && r.timestamp.getTime() === time,
     );
     if (!existing) {
-      this.addReadings(new SugarReading(value, timestamp, true));
+      this.addReadings(new SugarReading(value, timestamp, type));
       return;
     }
     existing.sugar = value;
+    existing.type = type;
     this.invalidateCaches();
     this.notify();
   }
-  private createContemporaryCalibration(value: number) {
-    this.addReadings(new SugarReading(value, new Date(), true));
+  private createContemporaryManual(value: number) {
+    this.addReadings(new SugarReading(value, new Date(), ReadingType.Manual));
   }
   deduplicate() {
     if (this.deduplicated) return;
@@ -200,8 +209,12 @@ export default class Snapshot extends Subscribable {
     this.rawReadings.forEach((reading) => {
       const readingTime = reading.timestamp.getTime();
       const existing = byTime.get(readingTime);
-      // A calibration beats a CGM reading at the same time: its value is the measured one
-      if (!existing || (reading.isCalibration && !existing.isCalibration))
+      // A measurement beats a CGM reading at the same time: its value is the measured one
+      if (
+        !existing ||
+        (reading.type !== ReadingType.Normal &&
+          existing.type === ReadingType.Normal)
+      )
         byTime.set(readingTime, reading);
     });
     this.rawReadings = Array.from(byTime.values());
@@ -238,12 +251,12 @@ export default class Snapshot extends Subscribable {
     return this.isValid ? this.readings[0] : null;
   }
   set initialBG(value: number) {
-    if (this.isValid && this.readings[0].isCalibration) {
+    if (this.isValid && this.readings[0].type !== ReadingType.Normal) {
       this.readings[0].sugar = value;
       this.invalidateCaches();
       this.notify();
     } else {
-      this.createContemporaryCalibration(value);
+      this.createContemporaryManual(value);
     }
   }
 
@@ -251,7 +264,7 @@ export default class Snapshot extends Subscribable {
     return this.isValid ? this.readings[this.readings.length - 1] : null;
   }
   set finalBG(value: number) {
-    this.createContemporaryCalibration(value);
+    this.createContemporaryManual(value);
     this.pullReadings();
   }
 
@@ -372,7 +385,7 @@ export default class Snapshot extends Subscribable {
         const clone = new SugarReading(
           r.sugar,
           new Date(offsetMs),
-          r.isCalibration,
+          r.type,
         );
         return SugarReading.serialize(clone);
       }),

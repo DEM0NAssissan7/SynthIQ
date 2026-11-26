@@ -20,6 +20,7 @@ import { basalIsDue, getFingersticks } from "../../lib/healthMonitor";
 import { StreamManager } from "../../managers/streamManager";
 import { SessionManager } from "../../managers/sessionManager";
 import { useStream } from "../../state/useStream";
+import { ReadingType } from "../../models/types/sugarReading";
 import { getFormattedTime, getHourDiff, getMinuteDiff } from "../../lib/timing";
 import { round } from "../../lib/util";
 import {
@@ -139,6 +140,7 @@ export default function HubScreen() {
       getFingersticks(stream, now).map((r) => ({
         time: r.timestamp.getTime(),
         value: r.sugar,
+        type: r.type,
       })),
     [streamVersion],
   );
@@ -309,9 +311,9 @@ export default function HubScreen() {
         )
           best = { time: p.time, value: p.value, source };
       };
-      for (const p of history)
-        consider(p, p.isCalibration ? "calibration" : "cgm");
-      for (const p of plotFingersticks) consider(p, "fingerstick");
+      for (const p of history) consider(p, "cgm");
+      for (const p of plotFingersticks)
+        consider(p, p.type === ReadingType.Manual ? "manual" : "fingerstick");
       return best;
     }
     const last =
@@ -327,7 +329,7 @@ export default function HubScreen() {
   const glucoseMinutesAgo = minutesAgo + lagMs / 60000;
   // Fingersticks are drawn lagMs ahead; the caption shows when it was taken.
   const scrubShownTime = scrub
-    ? scrub.source === "fingerstick"
+    ? scrub.source === "fingerstick" || scrub.source === "manual"
       ? scrub.time - lagMs
       : scrub.time
     : null;
@@ -348,8 +350,8 @@ export default function HubScreen() {
 
   const sourceLabel: Record<ScrubPoint["source"], string> = {
     cgm: "CGM reading",
-    calibration: "Calibration",
     fingerstick: "Fingerstick",
+    manual: "Manual entry",
     predicted: "Predicted",
   };
 

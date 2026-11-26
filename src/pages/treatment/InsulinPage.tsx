@@ -36,6 +36,7 @@ import {
   getIdealInsulins,
   type InsulinPipeline,
 } from "../../lib/insulinPipeline";
+import { useEnteredBG } from "../../state/useEnteredBG";
 
 interface DoseBreakdownItemProps {
   name: string;
@@ -112,7 +113,7 @@ export default function InsulinPage() {
   }
 
   // Inputted Insulin
-  const [currentGlucose, setCurrentGlucose] = useState<number | null>(null);
+  const [currentGlucose, setCurrentGlucose, currentReading] = useEnteredBG();
   const currentBG =
     currentGlucose ??
     (isFirstPostMealInjection ? (session?.initialGlucose ?? null) : null);
@@ -135,8 +136,7 @@ export default function InsulinPage() {
       ) {
         // TODO: Use date selector
         const timestamp = new Date();
-        if (currentGlucose)
-          StreamManager.markReading(currentGlucose, timestamp);
+        StreamManager.markReading(currentReading);
         StreamManager.markInsulin(
           insulin,
           timestamp,

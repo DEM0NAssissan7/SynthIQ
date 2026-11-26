@@ -5,6 +5,7 @@ import type Insulin from "../models/events/insulin";
 import type Session from "../models/session";
 import type { Stream } from "../models/stream";
 import type SugarReading from "../models/types/sugarReading";
+import { ReadingType } from "../models/types/sugarReading";
 import type { DateRange } from "../models/types/types";
 import Unit from "../models/unit";
 import { BackendStore } from "../storage/backendStore";
@@ -36,8 +37,8 @@ function getNonFastingWindows(
   stream.meals.forEach((m) => push(m.timestamp, minTimeSinceMeal));
   stream.insulins.forEach((i) => push(i.timestamp, i.duration));
   if (!ignoreGlucose)
-    stream.rescues.forEach((g) =>
-      push(g.timestamp, g.variant.duration / 60), // Convert from minutes to hours
+    stream.rescues.forEach(
+      (g) => push(g.timestamp, g.variant.duration / 60), // Convert from minutes to hours
     );
   stream.activities.forEach((a) => push(a.timestamp, a.value / 60));
   nonFasting.push(...getSessionWindows());
@@ -66,14 +67,17 @@ function isFasting(timestamp: Date, nonFasting: DateRange[]): boolean {
 function getFastingStream(): Stream {
   const hours = InsulinVariantManager.getBasalVariant().duration;
   const now = new Date();
-  return StreamStore.stream.value.view(getTimestampFromOffset(now, -hours), now);
+  return StreamStore.stream.value.view(
+    getTimestampFromOffset(now, -hours),
+    now,
+  );
 }
 function getFastingVelocities(stream: Stream): number[] {
   let nonFasting = getNonFastingWindows(stream); // A set of date pairs to describe when we are not fasting
 
   if (PrivateStore.debugLogs.value) console.log(nonFasting);
   const readings = stream.snapshot.readings
-    .filter((r) => !r.isCalibration)
+    .filter((r) => r.type === ReadingType.Normal) // CGM readings only
     .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
   let velocities: number[] = [];
   let currentSet: SugarReading[] = [];
@@ -135,9 +139,7 @@ export function getFastingLength(
 export function getRecentBasals(): Insulin[] {
   const days = InsulinVariantManager.getBasalVariant().duration / 24;
   const shotsPerDay = HealthMonitorStore.basalShotsPerDay.value;
-  return StreamStore.stream.value.basals
-    .slice(-days * shotsPerDay)
-    .reverse();
+  return StreamStore.stream.value.basals.slice(-days * shotsPerDay).reverse();
 }
 export function getDailyBasal() {
   const doses: Insulin[] = getRecentBasals();
@@ -178,8 +180,7 @@ function getShotsSinceChange() {
   let shots = 0;
   for (let i = basals.length - 1; i >= shotsPerDay; i--) {
     shots++;
-    if (Math.abs(basals[i].value - basals[i - shotsPerDay].value) > 0.01)
-      break;
+    if (Math.abs(basals[i].value - basals[i - shotsPerDay].value) > 0.01) break;
   }
   return shots;
 }

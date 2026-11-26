@@ -12,6 +12,7 @@ import {
   getRecentRescues,
 } from "../../lib/healthMonitor";
 import { useStream } from "../../state/useStream";
+import { ReadingType } from "../../models/types/sugarReading";
 
 /** How far past now the forecast line extends. */
 export const FORECAST_HORIZON_MS = 60 * 60 * 1000;
@@ -19,7 +20,7 @@ export const FORECAST_HORIZON_MS = 60 * 60 * 1000;
 export interface GlucosePoint {
   time: number;
   value: number;
-  isCalibration?: boolean;
+  type?: ReadingType;
 }
 
 export interface ForecastAccuracy {
@@ -79,7 +80,7 @@ export function useGlucoseForecast(now: Date) {
         byTime.set(time, {
           time,
           value: r.sugar,
-          isCalibration: r.isCalibration,
+          type: r.type,
         });
       }
     }
@@ -96,7 +97,7 @@ export function useGlucoseForecast(now: Date) {
         r.sugar > 0 &&
         (!newest || time > newest.time)
       )
-        newest = { time, value: r.sugar, isCalibration: r.isCalibration };
+        newest = { time, value: r.sugar, type: r.type };
     }
     return newest;
   }, [readings]);

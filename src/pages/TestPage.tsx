@@ -16,7 +16,7 @@ import { BackendStore } from "../storage/backendStore";
 import Insulin from "../models/events/insulin";
 import type Session from "../models/session";
 import { round } from "../lib/util";
-import SugarReading from "../models/types/sugarReading";
+import SugarReading, { ReadingType } from "../models/types/sugarReading";
 import Card from "../components/Card";
 import MdButton from "../components/md3/MdButton";
 import MdIcon from "../components/md3/MdIcon";
@@ -40,14 +40,14 @@ export default function TestPage() {
     .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
     .slice(0, 30);
 
-  // Auto-sync: on mount, if sessions only have calibrations and Nightscout is configured, pull CGM readings
+  // Auto-sync: on mount, if sessions only have measurements and Nightscout is configured, pull CGM readings
   useEffect(() => {
     let cancelled = false;
     async function autoSyncMissingReadings() {
       if (!BackendStore.url.value) return;
       const needsSync = sessions.filter(
         (s) =>
-          !s.snapshot.readings.some((r) => !r.isCalibration) &&
+          !s.snapshot.readings.some((r) => r.type === ReadingType.Normal) &&
           s.snapshot.initialBG &&
           s.snapshot.finalBG,
       );
@@ -147,7 +147,7 @@ export default function TestPage() {
         );
       });
       const optimals = readings.map((r) => {
-        const reading = new SugarReading(r.sugar, r.timestamp, r.isCalibration);
+        const reading = new SugarReading(r.sugar, r.timestamp, r.type);
         deltaInsulins.forEach((i) => {
           reading.sugar -=
             i.batemanIntegral(i.timestamp, reading.timestamp) *
@@ -171,7 +171,7 @@ export default function TestPage() {
               optimals[i]?.sugar != null
                 ? optimals[i].sugar - initialBGoffset
                 : 0,
-            isCalibration: reading.isCalibration,
+            isMeasurement: reading.type !== ReadingType.Normal,
           };
         }),
         insulins: deltaInsulins.map((insulin) => [
@@ -240,7 +240,7 @@ export default function TestPage() {
                 boxShadow: "0 0 0 1px #ff9800",
               }}
             />
-            Calibrations (Fingersticks)
+            Measurements (fingersticks &amp; manual)
           </span>
           <span className="d-inline-flex align-items-center gap-1">
             <span
@@ -277,7 +277,7 @@ export default function TestPage() {
       ) : (
         data.map(({ session, data: chartData, insulins }) => {
           const calibrationCount = chartData.filter(
-            (d) => d.isCalibration,
+            (d) => d.isMeasurement,
           ).length;
           const cgmCount = chartData.length - calibrationCount;
           const title = session.name || "Session";
@@ -349,7 +349,7 @@ export default function TestPage() {
                     strokeWidth={2}
                     dot={(props: any) => {
                       const { cx, cy, payload } = props;
-                      if (payload?.isCalibration) {
+                      if (payload?.isMeasurement) {
                         return (
                           <circle
                             key={`cal-${cx}-${cy}`}
