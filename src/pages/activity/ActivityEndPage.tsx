@@ -53,7 +53,7 @@ export default function ActivityEndPage() {
     }
     if (confirm(`Are you ready to end your activity?`)) {
       const timestamp = new Date();
-      StreamManager.markReading(currentReading);
+      StreamManager.markReading(currentReading, timestamp);
       ActivityManager.end(timestamp);
       navigate("/hub");
     }

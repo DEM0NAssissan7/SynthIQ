@@ -110,7 +110,7 @@ export default function RescuePage() {
     }
     if (confirm(`Confirm that you have taken ${amount} ${variant.name}`)) {
       const timestamp = new Date();
-      StreamManager.markReading(currentReading);
+      StreamManager.markReading(currentReading, timestamp);
       StreamManager.markRescue(amount, timestamp, variant);
       goBack();
     }

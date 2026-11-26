@@ -37,7 +37,7 @@ export namespace SessionManager {
             sinceTimestamp ?? StreamStore.stream.value.beginning,
             untilTimestamp ?? new Date(),
           );
-    if (masterStream.isEmpty) return null;
+    if (masterStream.events.length === 0) return null;
     masterStream.sortEvents();
     const meals = masterStream.meals;
 
@@ -75,9 +75,10 @@ export namespace SessionManager {
             e.purpose === InjectionPurpose.PreBolus,
         );
 
-      // Assume the session ends at the next meal or the latest event in the stream
-      const fallbackEndTimestamp =
-        masterStream.events[masterStream.events.length - 1].timestamp;
+      // Assume the session ends at the next meal (or pre-bolus). With neither,
+      // nothing has ended it yet: it runs to the end of the stream, its latest
+      // event or reading, and grows as readings arrive
+      const fallbackEndTimestamp = masterStream.end;
       let endTimestamp: Date =
         nextMeal && nextPrebolus
           ? new Date(
@@ -93,6 +94,8 @@ export namespace SessionManager {
               : fallbackEndTimestamp;
       // Assume that it is finished if we have a next, and not otherwise
       let isFinished = nextMeal !== null;
+      // Still running: ends at the end of the stream, so includes what is there
+      let isOpen = !nextMeal && !nextPrebolus;
 
       // Now we view the stream so that it only includes the information that is definitely relevant and we determine when the session ends
       const candidateStream = masterStream.view(
@@ -100,7 +103,7 @@ export namespace SessionManager {
         endTimestamp,
         nextMeal ? false : true,
       );
-      if (candidateStream.isEmpty) continue;
+      if (candidateStream.events.length === 0) continue;
       candidateStream.sortEvents();
       const firstInsulin = candidateStream.insulins.find(
         (i) => i.timestamp.getTime() >= startTimestamp.getTime(),
@@ -112,6 +115,7 @@ export namespace SessionManager {
       const setEnd = (event: MetaEvent) => {
         endTimestamp = event.timestamp;
         isFinished = true;
+        isOpen = false;
       };
       for (const event of candidateStream.events) {
         const eventTime = event.timestamp.getTime();
@@ -151,9 +155,10 @@ export namespace SessionManager {
         }
       }
 
-      // Now we assemble the session using the substream
-      const subStream = masterStream.view(startTimestamp, endTimestamp);
-      if (subStream.isEmpty) continue;
+      // Now we assemble the session using the substream. A session is its
+      // events: it can exist before any reading falls inside it
+      const subStream = masterStream.view(startTimestamp, endTimestamp, isOpen);
+      if (subStream.events.length === 0) continue;
       // We reduce all the meals in the substream
       const compositeMeal = new Meal(
         meal.timestamp,
@@ -175,8 +180,9 @@ export namespace SessionManager {
       sessionsCache.push(session);
       sessionMeals.set(session, subStream.meals);
 
-      // Now we progress the forward pass and skip what we've already looked at
-      // if (!isFinished) break;
+      // Now we progress the forward pass and skip what we've already looked at.
+      // A running session has taken in the rest of the stream: nothing follows it
+      if (isOpen) break;
       const endEvent = masterStream.getEventByTimestamp(endTimestamp);
       if (endEvent) {
         const newIndex = masterStream.indexOf(endEvent);

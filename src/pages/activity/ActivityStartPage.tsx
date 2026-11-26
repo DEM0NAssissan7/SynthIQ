@@ -30,7 +30,7 @@ export default function ActivityStartPage() {
     }
     if (confirm(`Are you ready to start your activity?`)) {
       const timestamp = new Date();
-      StreamManager.markReading(currentReading);
+      StreamManager.markReading(currentReading, timestamp);
       ActivityManager.begin(name, timestamp);
       navigate("/activity/end");
     }

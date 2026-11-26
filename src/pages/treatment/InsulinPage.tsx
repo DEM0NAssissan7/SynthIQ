@@ -136,7 +136,7 @@ export default function InsulinPage() {
       ) {
         // TODO: Use date selector
         const timestamp = new Date();
-        StreamManager.markReading(currentReading);
+        StreamManager.markReading(currentReading, timestamp);
         StreamManager.markInsulin(
           insulin,
           timestamp,

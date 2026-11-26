@@ -142,18 +142,22 @@ export namespace StreamManager {
 
   // Marking
   /**
-   * A blood sugar the user entered. Only a manual entry is a new reading: a
-   * CGM or meter value came from Nightscout and is in the stream already. The
-   * same entry recorded twice (e.g. restored on another page) is kept once.
+   * The blood sugar the user entered for an action (a meal, dose, rescue...),
+   * recorded as their blood sugar at `timestamp`, the action's time. Only a
+   * manual entry is a new reading: a CGM or meter value came from Nightscout
+   * and is in the stream already.
    */
-  export function markReading(reading: SugarReading | null) {
+  export function markReading(reading: SugarReading | null, timestamp: Date) {
     if (!reading || reading.type !== ReadingType.Manual) return;
-    const time = reducePrecision(reading.timestamp.getTime()); // As the snapshot stores it
+    const time = reducePrecision(timestamp.getTime()); // As the snapshot stores it
     const stream = getStream();
     const recorded = stream.snapshot.readings.some(
       (r) => r.type === ReadingType.Manual && r.timestamp.getTime() === time,
     );
-    if (!recorded) stream.addReadings(reading);
+    if (!recorded)
+      stream.addReadings(
+        new SugarReading(reading.sugar, timestamp, ReadingType.Manual),
+      );
   }
   export function markInsulin(
     units: number,

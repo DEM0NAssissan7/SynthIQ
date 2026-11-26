@@ -40,7 +40,7 @@ export default function MealPage() {
     }
     if (confirm("Are you ready to start eating?")) {
       const timestamp = new Date();
-      StreamManager.markReading(initialReading);
+      StreamManager.markReading(initialReading, timestamp);
       StreamManager.markMeal(
         meal.foods,
         timestamp,

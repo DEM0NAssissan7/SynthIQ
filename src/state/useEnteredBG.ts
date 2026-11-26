@@ -4,7 +4,8 @@ import type SugarReading from "../models/types/sugarReading";
 /**
  * A blood sugar from BloodSugarInput: its value, and the reading it came
  * from (null when there is none). Record it with StreamManager.markReading,
- * which keeps only manual entries: pulled ones are in the stream already.
+ * at the time of the action it was entered for: only manual entries are new
+ * readings, pulled ones are in the stream already.
  */
 export function useEnteredBG(): [
   number | null,
