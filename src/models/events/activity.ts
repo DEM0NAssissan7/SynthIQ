@@ -25,12 +25,13 @@ export class Activity extends MetaEvent implements ScalarMetaEvent {
   static serialize: Serializer<Activity> = (a: Activity) => {
     return {
       name: a.name,
-      timestamp: a.timestamp.toString(),
+      timestamp: a.timestamp.getTime(),
       value: a.value,
       uuid: a.uuid,
     };
   };
   static deserialize: Deserializer<Activity> = (o: any) => {
+    // Older streams stored the timestamp as a date string, which `new Date` also reads
     return new Activity(o.name, new Date(o.timestamp), o.value, o.uuid ?? null);
   };
 }

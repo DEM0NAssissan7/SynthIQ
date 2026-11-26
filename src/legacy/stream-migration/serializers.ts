@@ -2,7 +2,11 @@ import { Activity } from "../../models/events/activity";
 import Glucose from "../../models/events/glucose";
 import Insulin, { InjectionPurpose } from "../../models/events/insulin";
 import Meal from "../../models/events/meal";
-import Snapshot, { reducePrecision } from "../../models/snapshot";
+import Snapshot, {
+  isStorableReading,
+  precisionMS,
+  reducePrecision,
+} from "../../models/snapshot";
 import SugarReading from "../../models/types/sugarReading";
 import type { UUID } from "../../models/types/types";
 import { getMinuteDiff } from "../../lib/timing";
@@ -17,6 +21,7 @@ import { getMinuteDiff } from "../../lib/timing";
 export interface LegacySessionJSON {
   uuid?: UUID;
   isGarbage?: boolean;
+  notes?: string;
   snapshot?: unknown;
   snapshots?: unknown[]; // Very old format: several snapshots per session
   meal?: unknown;
@@ -24,6 +29,8 @@ export interface LegacySessionJSON {
   insulins?: unknown[];
   glucoses?: unknown[];
   activities?: unknown[];
+  /** The recent boluses at the session's start: some were logged outside any session and exist nowhere else */
+  onBoardInsulins?: unknown[];
 }
 /**
  * Legacy activity (pre-stream `Activity`): it had no timestamp or duration of
@@ -54,8 +61,18 @@ export interface LegacySessionData {
   meals: Meal[];
   insulins: Insulin[];
   glucoses: Glucose[];
+  /**
+   * Rescues recorded inside activities. Most are copies of a rescue recorded
+   * elsewhere: see resolveActivityGlucoses, which keeps only the rest.
+   */
+  activityGlucoses: Glucose[];
   activities: Activity[];
   snapshot: Snapshot;
+  /**
+   * The blood sugar the session started at, if it was entered (a calibration).
+   * It beats any other calibration at the same instant: see convertLegacySession.
+   */
+  initialCalibration: SugarReading | null;
   /** Activities that were dropped because they had no readings (and therefore no start or end) */
   droppedActivities: number;
 }
@@ -100,9 +117,15 @@ export function asSession(o: unknown): LegacySessionJSON | null {
  * Mirrors what the legacy Session.deserialize + MigrationManager did, minus the
  * Session object:
  * - Meals take the template's name / UUID and the session's garbage flag.
+ *   The session's notes go on its first meal only: a session's meal is the
+ *   composite of its meals, and composing concatenates their notes.
  *   Very old sessions with several meals were treated as garbage, so every one
  *   of those meals is kept but marked garbage.
  * - The first insulin is tagged PREBOLUS if it was taken before the meal.
+ * - Its initial calibration is returned apart, to beat a disagreeing copy.
+ * - The insulins on board at the session's start are kept too (as NOMINAL):
+ *   doses logged outside any session survive only there. They are added after
+ *   the pre-bolus tagging and the identity key, so they affect neither.
  * - Activities are converted with convertLegacyActivity; ones without
  *   readings are dropped.
  */
@@ -133,6 +156,7 @@ export function convertLegacySession(
   let droppedActivities = 0;
   const activities: Activity[] = [];
   const activityReadings: Snapshot[] = [];
+  const activityGlucoses: Glucose[] = [];
   for (const a of asArray(o.activities)) {
     const converted = convertLegacyActivity(asActivity(a) ?? {});
     if (!converted) {
@@ -141,12 +165,15 @@ export function convertLegacySession(
     }
     activities.push(converted.activity);
     activityReadings.push(converted.snapshot);
+    activityGlucoses.push(...converted.glucoses);
   }
 
-  // Pre-bolus: the session's first insulin, if it came before the meal
   const firstMeal = meals
     .slice()
     .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())[0];
+  if (firstMeal && o.notes && !firstMeal.notes) firstMeal.notes = o.notes;
+
+  // Pre-bolus: the session's first insulin, if it came before the meal
   const firstInsulin = insulins[0];
   if (
     firstMeal &&
@@ -160,6 +187,12 @@ export function convertLegacySession(
   const snapshot = o.snapshot
     ? Snapshot.deserialize(o.snapshot)
     : new Snapshot();
+  // At a session change the legacy app wrote the same entered BG twice: as the
+  // old session's final reading and the new session's initial one. Only the
+  // initial one could be corrected afterwards (session editing), so where the
+  // two disagree it holds the correction.
+  const first = snapshot.readings.find(isStorableReading);
+  const initialCalibration = first?.isCalibration ? first : null;
   for (const s of asArray(o.snapshots))
     snapshot.absorb(Snapshot.deserialize(s));
   for (const s of activityReadings) snapshot.absorb(s);
@@ -172,13 +205,19 @@ export function convertLegacySession(
   const earliest = times.length > 0 ? Math.min(...times) : null;
   const key = `${o.uuid ?? "?"}@${earliest ?? "empty"}`;
 
+  const onBoardInsulins = asArray(o.onBoardInsulins).map((a) =>
+    Insulin.deserialize(a),
+  );
+
   return {
     key,
     meals,
-    insulins,
+    insulins: [...insulins, ...onBoardInsulins],
     glucoses,
+    activityGlucoses,
     activities,
     snapshot,
+    initialCalibration,
     droppedActivities,
   };
 }
@@ -188,18 +227,14 @@ export function convertLegacySession(
  *
  * - timestamp = the snapshot's initial reading, duration = minutes until its
  *   final reading (the same minute rounding ActivityManager.end uses).
- * - The activity's own `glucoses` are NOT migrated. They were only ever added
- *   by WizardManager.markGlucose, which logged the same rescue (to the meal
- *   session and to Nightscout) under a separate `new Date()` taken a few ms
- *   apart, so migrating them would duplicate every rescue taken during an
- *   activity. The stream gets those rescues from the session / Nightscout,
- *   and an ActivitySession now picks up whatever rescues fall in its window.
+ * - The activity's own `glucoses` are returned apart: they need
+ *   resolveActivityGlucoses before they can join the stream.
  *
  * Returns null when the activity has no readings, so no start or end.
  */
 export function convertLegacyActivity(
   o: LegacyActivityJSON,
-): { activity: Activity; snapshot: Snapshot } | null {
+): { activity: Activity; snapshot: Snapshot; glucoses: Glucose[] } | null {
   if (!o.snapshot) return null;
   const snapshot = Snapshot.deserialize(o.snapshot);
   const start = snapshot.initialBG;
@@ -211,7 +246,34 @@ export function convertLegacyActivity(
     getMinuteDiff(end.timestamp, start.timestamp),
     o.uuid ?? null,
   );
-  return { activity, snapshot };
+  const glucoses = asArray(o.glucoses).map((g) => Glucose.deserialize(g));
+  return { activity, snapshot, glucoses };
+}
+
+/**
+ * The rescues recorded inside activities that are not copies of another
+ * rescue. WizardManager.markGlucose recorded every rescue in the meal session
+ * (if one was running) and in the recent rescues, and then, in the same call,
+ * in the running activity under its own `new Date()`: the same rescue, a few
+ * ms later. With no session running, the activity copy can be the only one
+ * left. So an activity rescue is a copy when a rescue of the same amount and
+ * variant precedes it within the stream's timestamp resolution.
+ */
+export function resolveActivityGlucoses(
+  activityGlucoses: Glucose[],
+  rescues: Glucose[],
+): Glucose[] {
+  const isCopy = (g: Glucose) =>
+    rescues.some((r) => {
+      const lag = g.timestamp.getTime() - r.timestamp.getTime();
+      return (
+        lag >= 0 &&
+        lag <= precisionMS &&
+        r.value === g.value &&
+        r.variant.name === g.variant.name
+      );
+    });
+  return activityGlucoses.filter((g) => !isCopy(g));
 }
 
 /**
@@ -236,16 +298,14 @@ export function convertLegacyActivityArchive(
         dropped++;
         continue;
       }
-      const { activity, snapshot } = converted;
-      data.push({
-        key: `activity:${o.uuid ?? "?"}@${activity.timestamp.getTime()}`,
-        meals: [],
-        insulins: [],
-        glucoses: [],
-        activities: [activity],
-        snapshot,
-        droppedActivities: 0,
-      });
+      const { activity, snapshot, glucoses } = converted;
+      data.push(
+        legacyFacts(`activity:${o.uuid ?? "?"}@${activity.timestamp.getTime()}`, {
+          activityGlucoses: glucoses,
+          activities: [activity],
+          snapshot,
+        }),
+      );
     }
   return { data, dropped };
 }
@@ -264,8 +324,10 @@ export function legacyFacts(
     meals: facts.meals ?? [],
     insulins: facts.insulins ?? [],
     glucoses: facts.glucoses ?? [],
+    activityGlucoses: facts.activityGlucoses ?? [],
     activities: facts.activities ?? [],
     snapshot: facts.snapshot ?? new Snapshot(),
+    initialCalibration: facts.initialCalibration ?? null,
     droppedActivities: facts.droppedActivities ?? 0,
   };
 }
@@ -339,6 +401,7 @@ export function convertLegacyInbox(
       const converted = convertLegacyActivity(asActivity(m.activity) ?? {});
       if (converted) {
         facts.activities.push(converted.activity);
+        facts.activityGlucoses.push(...converted.glucoses);
         facts.snapshot.absorb(converted.snapshot);
       } else facts.droppedActivities++;
     }

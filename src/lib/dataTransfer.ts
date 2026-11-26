@@ -1,4 +1,5 @@
 import StorageNode, { nodes } from "../storage/storageNode";
+import { importLegacyKeys } from "../legacy/stream-migration/store";
 
 declare global {
   interface Window {
@@ -105,4 +106,7 @@ export async function importData(file: File) {
   nodeObjects.map((o: any) => {
     nodes.forEach((n: StorageNode) => n.import(o));
   });
+  // A pre-stream export: its treatments are in stores that no longer exist.
+  // Last, so an imported migration version cannot override the re-arm.
+  importLegacyKeys(nodeObjects);
 }

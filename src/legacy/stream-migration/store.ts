@@ -2,6 +2,7 @@ import type { JSONValue } from "../../models/types/types";
 import StorageNode, {
   readRawEntry,
   removeRawEntry,
+  writeRawEntry,
 } from "../../storage/storageNode";
 
 /**
@@ -123,13 +124,36 @@ export function purgeLegacyKeys(): number {
 }
 
 /**
+ * Restore the legacy keys of an exported data file (StorageNode.export
+ * format). No StorageEntry owns them any more, so a plain import would drop
+ * them: they are written raw and the migration is re-armed, so the next launch
+ * migrates them into the stream (and then deletes them). Returns how many keys
+ * were restored.
+ */
+export function importLegacyKeys(
+  nodeObjects: { name: string; keys: { id: string; value: JSONValue }[] }[],
+): number {
+  let count = 0;
+  for (const node of nodeObjects) {
+    const ids = LEGACY_KEYS[node.name] ?? [];
+    for (const key of node.keys)
+      if (ids.includes(key.id)) {
+        writeRawEntry(node.name, key.id, key.value);
+        count++;
+      }
+  }
+  if (count > 0) StreamMigrationStore.version.value = 0;
+  return count;
+}
+
+/**
  * Bump STREAM_MIGRATION_VERSION whenever the conversion logic changes so that
  * every install re-runs it. Re-running is safe: Stream.push merges events that
  * are already present (same type + same timestamp). Note that installs which
  * already migrated have had their legacy keys purged, so a re-run there finds
  * nothing to convert.
  */
-export const STREAM_MIGRATION_VERSION = 3;
+export const STREAM_MIGRATION_VERSION = 4;
 
 export namespace StreamMigrationStore {
   const node = new StorageNode("migration");

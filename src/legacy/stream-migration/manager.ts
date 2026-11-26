@@ -24,6 +24,7 @@ import {
   convertLegacyRescues,
   convertLegacySession,
   legacyFacts,
+  resolveActivityGlucoses,
   type LegacySessionData,
   type LegacySessionJSON,
   type TemplateInfo,
@@ -45,6 +46,8 @@ export interface StreamMigrationReport {
   eventsAdded: number;
   eventsMerged: number;
   uuidsReassigned: number;
+  /** Rescues found only inside activities (not copies of another rescue) */
+  activityOnlyRescues: number;
   /** Non-session stores that failed to convert (the migration is retried) */
   failedSources: string[];
   /** An activity was in progress at upgrade time and was resumed in EntryStore */
@@ -137,8 +140,30 @@ function mergeIntoStream(
     }
   }
 
+  // One reading per instant; a session's initial calibration wins (see convertLegacySession)
+  readings.deduplicate();
+  for (const s of sessions)
+    if (s.initialCalibration)
+      readings.setCalibration(
+        s.initialCalibration.timestamp,
+        s.initialCalibration.sugar,
+      );
+
   // One absorb + one push, so the stream is written twice rather than once per session
   stream.snapshot.absorb(readings);
+  // A stream that already held a session's start (e.g. a re-import into a
+  // migrated install) keeps its own copy on absorb: correct the ones that differ
+  const streamCalibrations = new Map<number, number>();
+  for (const r of stream.snapshot.readings)
+    if (r.isCalibration && !streamCalibrations.has(r.timestamp.getTime()))
+      streamCalibrations.set(r.timestamp.getTime(), r.sugar);
+  for (const s of sessions) {
+    const initial = s.initialCalibration;
+    if (!initial) continue;
+    const held = streamCalibrations.get(initial.timestamp.getTime());
+    if (held !== undefined && held !== initial.sugar)
+      stream.snapshot.setCalibration(initial.timestamp, initial.sugar);
+  }
   stream.push(...batch);
   stream.sortEvents(); // push appends; the persisted copy is re-sorted on load
 }
@@ -162,6 +187,7 @@ export function migrateLegacyToStream(): StreamMigrationReport | null {
     duplicateSessions: 0,
     failedSessions: 0,
     failedSources: [],
+    activityOnlyRescues: 0,
     droppedActivities: 0,
     eventsAdded: 0,
     eventsMerged: 0,
@@ -210,6 +236,19 @@ export function migrateLegacyToStream(): StreamMigrationReport | null {
       console.error(`Stream migration: failed to convert ${source.name}`, e);
     }
   }
+
+  // Rescues recorded inside activities: only those that are not copies
+  const activityRescues = resolveActivityGlucoses(
+    converted.flatMap((c) => c.activityGlucoses),
+    [
+      ...StreamStore.stream.value.rescues,
+      ...converted.flatMap((c) => c.glucoses),
+    ],
+  );
+  report.activityOnlyRescues = activityRescues.length;
+  converted.push(
+    legacyFacts("activity-rescues", { glucoses: activityRescues }),
+  );
 
   mergeIntoStream(StreamStore.stream.value, converted, report);
 

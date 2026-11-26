@@ -28,6 +28,7 @@ export default class Meal extends MetaEvent {
     public templateUUID: UUID | null = null,
     uuid: UUID | null = null,
     public isGarbage = false,
+    public notes: string = "",
   ) {
     super(timestamp, uuid);
   }
@@ -160,6 +161,7 @@ export default class Meal extends MetaEvent {
     this.fatOffset += meal.fatOffset;
     this.foods.push(...meal.addedFoods);
     this.isGarbage = this.isGarbage || meal.isGarbage;
+    this.notes = this.notes + meal.notes;
     this.notify();
   }
 
@@ -172,6 +174,7 @@ export default class Meal extends MetaEvent {
       uuid: meal.uuid,
       templateUUID: meal.templateUUID,
       isGarbage: meal.isGarbage,
+      notes: meal.notes,
     };
   };
   static deserialize: Deserializer<Meal> = (o) => {
@@ -183,6 +186,7 @@ export default class Meal extends MetaEvent {
       o.templateUUID ?? null,
       o.uuid ?? null,
       o.isGarbage ?? false,
+      o.notes ?? "",
     );
     newMeal.foods = foods;
     newMeal.isGarbage = o.isGarbage ?? false;
