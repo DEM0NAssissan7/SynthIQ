@@ -9,6 +9,7 @@
 import RemoteReadings from "../lib/remote/readings";
 import RemoteTreatments, {
   basalEventType,
+  getEventType,
   glucoseEventType,
   insulinEventType,
 } from "../lib/remote/treatments";
@@ -128,6 +129,7 @@ export namespace StreamManager {
     }
   }
 
+  // Fundamentals
   export function getStream() {
     return StreamStore.stream.value;
   }
@@ -137,7 +139,11 @@ export namespace StreamManager {
     return getStream().modify(event);
   }
   export function remove(event: MetaEvent) {
-    return getStream().remove(event);
+    const removed = getStream().remove(event);
+    const eventType = getEventType(event);
+    if (removed && eventType)
+      RemoteTreatments.removeTreatment(eventType, event.timestamp);
+    return removed;
   }
 
   // Marking

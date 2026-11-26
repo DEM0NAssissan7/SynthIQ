@@ -67,6 +67,19 @@ class Backend {
       credentials: "omit",
     });
   }
+  private static async deleteRequest(api: string) {
+    return await fetch(this.getApiPath(api), {
+      headers: {
+        accept: "*/*",
+        "api-secret": PrivateStore.apiSecret.value,
+        "x-requested-with": "XMLHttpRequest",
+      },
+      referrerPolicy: "strict-origin-when-cross-origin",
+      method: "DELETE",
+      mode: "cors",
+      credentials: "omit",
+    });
+  }
   static async executeRequest(request: RequestQueue) {
     const api = request.api;
     const payload = request.payload;
@@ -79,6 +92,9 @@ class Backend {
         break;
       case RequestType.PUT:
         a = await this.putRequest(api, payload);
+        break;
+      case RequestType.DELETE:
+        a = await this.deleteRequest(api);
         break;
       case RequestType.GET:
         return await this.get(api);
@@ -124,6 +140,11 @@ class Backend {
         new RequestQueue(RequestType.PUT, api, payload)
       );
     }
+  }
+  /** Queued like a post, so a delete made offline is sent once back online (in order) */
+  static async delete(api: string) {
+    addRequest(RequestType.DELETE, api);
+    await this.fulfillRequests();
   }
   static async fulfillRequests() {
     for (const request of BackendStore.queue.value) {

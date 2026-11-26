@@ -1,6 +1,11 @@
+import { Activity } from "react";
+import Glucose from "../../models/events/glucose";
+import Insulin, { InjectionPurpose } from "../../models/events/insulin";
+import Meal from "../../models/events/meal";
+import type MetaEvent from "../../models/events/metaEvent";
 import { PreferencesStore } from "../../storage/preferencesStore";
 import { round } from "../util";
-import Backend from "./backend";
+import Backend, { selfID } from "./backend";
 
 export const insulinEventType = "Meal Bolus";
 export const basalEventType = "Temp Basal";
@@ -8,6 +13,16 @@ export const mealEventType = "Meal";
 export const glucoseEventType = "Carb Correction";
 export const activityEventType = "Exercise";
 export const expirationRenewalType = "Medication Renewal";
+export function getEventType(event: MetaEvent) {
+  if (event instanceof Insulin && event.purpose !== InjectionPurpose.Basal)
+    return insulinEventType;
+  if (event instanceof Insulin && event.purpose === InjectionPurpose.Basal)
+    return basalEventType;
+  if (event instanceof Glucose) return glucoseEventType;
+  if (event instanceof Meal) return mealEventType;
+  if (event instanceof Activity) return activityEventType;
+  return null;
+}
 
 class RemoteTreatments {
   static async getTreatments(timestampA: Date, timestampB: Date) {
@@ -108,6 +123,23 @@ class RemoteTreatments {
       },
       timestamp,
     );
+  }
+  /**
+   * Remove a treatment this app uploaded. Uploads carry the event's own
+   * timestamp as `created_at`, so the event's type and timestamp identify its
+   * upload; `enteredBy` restricts it to this app's uploads, so a treatment
+   * from another uploader at the same instant is never touched.
+   */
+  static removeTreatment(eventType: string, timestamp: Date): void {
+    if (!PreferencesStore.uploadToBackend.value) return;
+
+    const find = [
+      // `$eq`: Nightscout's date filter rejects a bare date match
+      `find[created_at][$eq]=${encodeURIComponent(timestamp.toISOString())}`,
+      `find[eventType]=${encodeURIComponent(eventType)}`,
+      `find[enteredBy]=${encodeURIComponent(selfID)}`,
+    ].join("&");
+    Backend.delete(`treatments/?${find}`);
   }
   static markExpirationRenewal(name: string, timestamp: Date) {
     if (!PreferencesStore.uploadToBackend.value) return;

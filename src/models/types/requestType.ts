@@ -2,6 +2,7 @@ enum RequestType {
   GET,
   POST,
   PUT,
+  DELETE,
 }
 export default RequestType;
 
@@ -10,6 +11,7 @@ const requestTypeMap: requestTypeMapKey[] = [
   [RequestType.GET, "GET"],
   [RequestType.POST, "POST"],
   [RequestType.PUT, "PUT"],
+  [RequestType.DELETE, "DELETE"],
 ];
 export function stringifyRequestType(t: RequestType): string {
   for (let m of requestTypeMap) {
