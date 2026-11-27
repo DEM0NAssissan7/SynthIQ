@@ -8,6 +8,7 @@ import { InjectionPurpose } from "../../models/events/insulin";
 import SugarReading, { ReadingType } from "../../models/types/sugarReading";
 import { InsulinVariantManager } from "../../managers/insulinVariantManager";
 import { StreamStore } from "../../storage/streamStore";
+import { StreamManager } from "../../managers/streamManager";
 import { EntryStore } from "../../storage/entryStore";
 import {
   asActivity,
@@ -284,7 +285,7 @@ export function migrateLegacyToStream(): StreamMigrationReport | null {
 
   if (report.failedSessions === 0 && report.failedSources.length === 0) {
     // Persist first: a write that fails throws here, before anything is deleted
-    StreamStore.streamMain.write();
+    StreamManager.compact();
     StreamMigrationStore.version.value = STREAM_MIGRATION_VERSION;
     purgeLegacyKeys();
     report.purgedLegacyKeys = true;

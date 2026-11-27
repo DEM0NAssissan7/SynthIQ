@@ -58,6 +58,17 @@ export default class Snapshot extends Subscribable {
     this.add(r);
     this.notify();
   }
+  /** Add readings, replacing any already at the same instant */
+  upsert(readings: SugarReading[]) {
+    const incoming = new Snapshot();
+    incoming.add(readings);
+    const byTime = new Map<number, SugarReading>();
+    for (const r of this.rawReadings) byTime.set(r.timestamp.getTime(), r);
+    for (const r of incoming.rawReadings) byTime.set(r.timestamp.getTime(), r);
+    this.rawReadings = Array.from(byTime.values());
+    this.invalidateCaches();
+    this.notify();
+  }
   absorb(...snapshots: Snapshot[]) {
     snapshots.forEach((snapshot) => this.add(snapshot.rawReadings));
     this.notify();

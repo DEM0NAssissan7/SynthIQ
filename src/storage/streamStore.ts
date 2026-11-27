@@ -1,5 +1,6 @@
 import { Stream } from "../models/stream";
 import StorageNode from "./storageNode";
+import type { UUID } from "../models/types/types";
 
 export namespace StreamStore {
   const node = new StorageNode("stream");
@@ -29,14 +30,6 @@ export namespace StreamStore {
     Stream.serialize,
     Stream.deserialize,
   );
-  {
-    const callback = () => {
-      streamDelta.write();
-    };
-    streamDelta.subscribe((value: Stream) => {
-      value.unsubscribe(callback);
-      value.subscribe(callback);
-    });
-    streamDelta.notify();
-  }
+  /** Uuids of the main stream's events removed since the last compaction */
+  export const streamDeltaRemoved = node.add<UUID[]>("streamDeltaRemoved", []);
 }

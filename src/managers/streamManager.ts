@@ -34,24 +34,79 @@ import { StreamStore } from "../storage/streamStore";
 import { InsulinVariantManager } from "./insulinVariantManager";
 import { RescueVariantManager } from "./rescueVariantManager";
 
-function buildCompositeStream() {
-  const streamMain = StreamStore.streamMain.value;
-  const streamDelta = StreamStore.streamDelta.value;
-  const lastDeltaSyncTimestamp = StreamStore.lastDeltaSyncTimestamp.value;
+/**
+ * Storage is split in two (a log-structured layout): the main stream, written
+ * in full only on compaction, and a small delta, written on every change. The
+ * delta is everything that differs from the main stream as stored: events
+ * added or changed, uuids removed, readings added or changed. It is derived
+ * from that difference, never from timestamps, so no change can be missed
+ * whatever its time (a backfilled reading, an edit to an old meal...).
+ *
+ * In memory there is one stream for the whole run: the main stream as
+ * stored, with the delta replayed on top. It is never replaced, so everything
+ * subscribed to it stays subscribed.
+ */
+const stream: Stream = StreamStore.streamMain.value;
+
+function serializeEvent(e: MetaEvent): string {
+  if (e instanceof Insulin) return JSON.stringify(Insulin.serialize(e));
+  if (e instanceof Glucose) return JSON.stringify(Glucose.serialize(e));
+  if (e instanceof Meal) return JSON.stringify(Meal.serialize(e));
+  if (e instanceof Activity) return JSON.stringify(Activity.serialize(e));
+  throw new Error(`Cannot serialize event: unknown type`);
+}
+
+/** The main stream as stored: what the delta is the difference from */
+type Baseline = {
+  events: Map<UUID, string>;
+  readings: Map<number, SugarReading>;
+};
+function takeBaseline(): Baseline {
+  stream.snapshot.deduplicate(); // One reading per instant, as stored
+  return {
+    events: new Map(stream.events.map((e) => [e.uuid, serializeEvent(e)])),
+    readings: new Map(
+      stream.snapshot.readings.map((r) => [
+        r.timestamp.getTime(),
+        new SugarReading(r.sugar, r.timestamp, r.type), // A copy: readings can be corrected in place
+      ]),
+    ),
+  };
+}
+
+/** Apply the stored delta to the stream. Idempotent, so a delta that was already compacted changes nothing. */
+function replayDelta() {
+  const delta = StreamStore.streamDelta.value;
+  for (const event of delta.events)
+    if (!stream.modify(event)) stream.push(event);
+  const removed = new Set(StreamStore.streamDeltaRemoved.value);
+  for (const event of stream.events.filter((e) => removed.has(e.uuid)))
+    stream.remove(event);
+  stream.snapshot.upsert(delta.snapshot.readings);
+}
+
+let baseline = takeBaseline();
+replayDelta();
+
+/** Write the delta: everything that differs from the stored main stream */
+function writeDelta() {
+  stream.snapshot.deduplicate(); // As it would be stored
+  const events = stream.events.filter(
+    (e) => baseline.events.get(e.uuid) !== serializeEvent(e),
+  );
+  const present = new Set(stream.events.map((e) => e.uuid));
+  const removed = [...baseline.events.keys()].filter((u) => !present.has(u));
   const snapshot = new Snapshot();
-  snapshot.absorb(streamMain.snapshot, streamDelta.snapshot);
-  const events: MetaEvent[] = [...streamMain.events, ...streamDelta.events];
-  const stream = new Stream(snapshot, events);
-  stream.subscribe(() => {
-    const newStream = stream.view(lastDeltaSyncTimestamp);
-    streamDelta.absorb(newStream);
-  });
-  return stream;
+  for (const r of stream.snapshot.readings) {
+    const stored = baseline.readings.get(r.timestamp.getTime());
+    if (!stored || stored.sugar !== r.sugar || stored.type !== r.type)
+      snapshot.addReadings(r);
+  }
+  // A storage copy: it must not subscribe to the live events
+  StreamStore.streamDelta.value = new Stream(snapshot, events, false);
+  StreamStore.streamDeltaRemoved.value = removed;
 }
-let stream: Stream = buildCompositeStream();
-function rebuildStream() {
-  stream = buildCompositeStream();
-}
+stream.subscribe(writeDelta);
 
 export class StreamManager {
   static get stream() {
@@ -154,44 +209,36 @@ export namespace StreamManager {
   }
 
   // Log write managemnt
+  /** Compact if the schedule says it is due */
   export function syncDelta() {
     const now = new Date();
     const syncHours = StreamStore.syncHoursSchedule.value;
     const lastSyncTimestamp = StreamStore.lastDeltaSyncTimestamp.value;
     if (getHourDiff(now, lastSyncTimestamp) < syncHours) return; // Don't sync too early
-    const main = StreamStore.streamMain.value;
-    const delta = StreamStore.streamDelta.value;
-    main.absorb(delta);
-    StreamStore.streamMain.write();
-    StreamStore.streamDelta.value = new Stream(); // Reset the delta stream
-    StreamStore.lastDeltaSyncTimestamp.value = now;
+    compact();
+  }
+  /**
+   * Write the whole stream as the main stream, then clear the delta. Main is
+   * written first: a crash in between leaves the old delta, which replays
+   * onto the new main as a no-op.
+   */
+  export function compact() {
+    StreamStore.streamMain.write(); // The stream is the main stream's value
+    baseline = takeBaseline();
+    StreamStore.streamDelta.value = new Stream();
+    StreamStore.streamDeltaRemoved.value = [];
+    StreamStore.lastDeltaSyncTimestamp.value = new Date();
   }
 
   // Event Management
   export function modify(event: MetaEvent) {
-    const mainModified = StreamStore.streamMain.value.modify(event);
-    const deltaModified = StreamStore.streamDelta.value.modify(event);
-    const modified = mainModified || deltaModified;
-    if (!modified) return false;
-    rebuildStream();
-    if (!stream.contains(event))
-      throw new Error(
-        `Catastrophic modification error in the composite stream`,
-      );
-    return;
+    return stream.modify(event);
   }
   export function remove(event: MetaEvent) {
-    const mainRemoved = StreamStore.streamMain.value.remove(event);
-    const deltaRemoved = StreamStore.streamDelta.value.remove(event);
-    const removed = deltaRemoved || mainRemoved;
+    const removed = stream.remove(event);
     if (!removed) return false;
     const eventType = getEventType(event);
-    if (removed && eventType)
-      RemoteTreatments.removeTreatment(eventType, event.timestamp);
-    // Rebuild the stream afterwards
-    rebuildStream();
-    if (stream.contains(event))
-      throw new Error(`Catastrophic removal error in the composite stream`);
+    if (eventType) RemoteTreatments.removeTreatment(eventType, event.timestamp);
     return removed;
   }
 
