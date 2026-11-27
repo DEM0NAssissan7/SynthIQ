@@ -73,30 +73,26 @@ export const eventKindName: Record<HubEventKind, string> = {
   activity: "Activity",
 };
 
-/** True while a bolus counts toward IOB at `at`: given, and within its duration. */
-function countsAt(b: Insulin, at: Date): boolean {
-  return at.getTime() >= b.timestamp.getTime() && b.getActivityStatus(at);
-}
-
-/**
- * Insulin on board at time `t` (ms): the sum over boluses that are given and
- * still within their duration. Doses past their duration count as zero.
- */
+/** Insulin on board from all boluses at time `t` (ms). */
 export function totalIOB(boluses: Insulin[], t: number): number {
   const at = new Date(t);
   let sum = 0;
-  for (const b of boluses) if (countsAt(b, at)) sum += b.iob(at);
+  for (const b of boluses) {
+    if (t >= b.timestamp.getTime()) sum += b.iob(at);
+  }
   return sum;
 }
 
 /**
- * Insulin activity at time `t` (ms): the summed absorption rate (u/hr) of the
- * boluses counted by totalIOB, i.e. the Bateman density whose integral gives IOB.
+ * Insulin activity at time `t` (ms): the summed absorption rate (u/hr) of all
+ * boluses, i.e. the Bateman density whose integral gives IOB.
  */
 export function totalActivity(boluses: Insulin[], t: number): number {
   const at = new Date(t);
   let sum = 0;
-  for (const b of boluses) if (countsAt(b, at)) sum += b.absorptionRate(at);
+  for (const b of boluses) {
+    if (t >= b.timestamp.getTime()) sum += b.absorptionRate(at);
+  }
   return sum;
 }
 
