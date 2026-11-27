@@ -1,11 +1,10 @@
-import { getHourDiff, getTimestampFromOffset } from "../lib/timing";
+import { getHourDiff } from "../lib/timing";
 import { convertDimensions, MathUtil } from "../lib/util";
 import Glucose from "./events/glucose";
 import Insulin from "./events/insulin";
 import Meal from "./events/meal";
 import type MetaEvent from "./events/metaEvent";
 import Unit from "./unit";
-import RemoteReadings from "../lib/remote/readings";
 import Snapshot from "./snapshot";
 import Subscribable from "./subscribable";
 import { PreferencesStore } from "../storage/preferencesStore";
@@ -328,11 +327,6 @@ export default class Session extends Subscribable {
     return true;
   }
 
-  getObservedReadings() {
-    if (!this.endTimestamp) return Promise.resolve([]);
-    return RemoteReadings.getReadings(this.timestamp, this.endTimestamp);
-  }
-
   // Score (lower is better)
   get score(): number {
     const deviations = [...this.snapshot.deviations];
@@ -341,12 +335,4 @@ export default class Session extends Subscribable {
     return MathUtil.mean(deviations);
   }
 
-  // Glucose statistics stuff
-  async getLastReadings(hours: number) {
-    // Give the last readings from [hours] before the end until the actual end
-    let timestampB = new Date();
-    if (this.endTimestamp) timestampB = this.endTimestamp;
-    const timestampA = getTimestampFromOffset(timestampB, -hours);
-    return RemoteReadings.getReadings(timestampA, timestampB);
-  }
 }

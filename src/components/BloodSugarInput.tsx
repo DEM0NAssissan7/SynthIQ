@@ -1,12 +1,12 @@
 import { Button, Form } from "react-bootstrap";
 import { useEffect, useMemo, useState } from "react";
-import RemoteReadings from "../lib/remote/readings";
 import { useNow } from "../state/useNow";
 import { CacheStore } from "../storage/cacheStore";
 import { getMinuteDiff } from "../lib/timing";
 import { PreferencesStore } from "../storage/preferencesStore";
 import SugarReading, { ReadingType } from "../models/types/sugarReading";
 import MdIcon from "./md3/MdIcon";
+import { getLatestReading } from "../lib/healthMonitor";
 
 interface BloodSugarInputProps {
   initialGlucose: number | null;
@@ -51,13 +51,9 @@ export default function BloodSugarInput({
 
   function pullCurrentGlucose(force = false) {
     setIsPulling(true);
-    RemoteReadings.getCurrentSugar()
-      .then((g) => {
-        if (g) setGlucose(g, force);
-      })
-      .finally(() => {
-        setTimeout(() => setIsPulling(false), 400);
-      });
+    const BG = getLatestReading();
+    if (BG) setGlucose(BG, force);
+    setIsPulling(false);
   }
 
   useEffect(() => {

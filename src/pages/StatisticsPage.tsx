@@ -1,13 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "react-bootstrap";
 import Card from "../components/Card";
 import { MathUtil } from "../lib/util";
 import { getApproximatedProfile } from "../lib/metabolism";
 import { optimizeVariants } from "../lib/variantOptimizer";
-import RemoteTreatments, {
-  glucoseEventType,
-  insulinEventType,
-} from "../lib/remote/treatments";
+import { useStream } from "../state/useStream";
 import { InsulinVariantStore } from "../storage/insulinVariantStore";
 import { RescueVariantStore } from "../storage/rescueVariantStore";
 import { InsulinVariant } from "../models/types/insulinVariant";
@@ -166,15 +163,6 @@ function groupSessionsByDay(
 function get6amDateKey(d: Date): string {
   const shifted = new Date(d.getTime() - 6 * 60 * 60 * 1000);
   return `${shifted.getFullYear()}-${String(shifted.getMonth() + 1).padStart(2, "0")}-${String(shifted.getDate()).padStart(2, "0")}`;
-}
-
-/** Build a set of session event timestamps (ms, rounded to nearest minute) */
-function buildTimestampSet(items: { timestamp: Date }[]): Set<number> {
-  const set = new Set<number>();
-  for (const item of items) {
-    set.add(Math.round(item.timestamp.getTime() / 60000) * 60000);
-  }
-  return set;
 }
 
 function DailyMacros({
@@ -395,97 +383,36 @@ export default function StatisticsPage() {
   );
 
   // --- Out-of-session tracking ---
-  const sessionInsulinTimestamps = useMemo(
-    () => buildTimestampSet(allSessions.flatMap((s) => s.insulins)),
-    [allSessions],
-  );
-  const sessionGlucoseTimestamps = useMemo(
-    () => buildTimestampSet(allSessions.flatMap((s) => s.glucoses)),
-    [allSessions],
-  );
-
-  const [extraBolusByDay, setExtraBolusByDay] = useState<Map<string, number>>(
-    () => new Map(),
-  );
-  const [extraGlucoseByDay, setExtraGlucoseByDay] = useState<
-    Map<string, number>
-  >(() => new Map());
-  const [remoteLoading, setRemoteLoading] = useState(false);
-  const [remoteError, setRemoteError] = useState(false);
-
-  useEffect(() => {
-    if (dailySummaries.length === 0) return;
+  // Doses and rescues in the stream that no session took in, over the days shown
+  const [stream, streamVersion] = useStream();
+  const { extraBolusByDay, extraGlucoseByDay } = useMemo(() => {
+    const extraBolusByDay = new Map<string, number>();
+    const extraGlucoseByDay = new Map<string, number>();
+    if (dailySummaries.length === 0) return { extraBolusByDay, extraGlucoseByDay };
 
     const dates = dailySummaries.map((d) => d.date);
     const earliest = new Date(dates[dates.length - 1] + "T06:00:00");
     const latest = new Date(dates[0] + "T06:00:00");
-    const fetchFrom = new Date(earliest.getTime() - 24 * 60 * 60 * 1000);
-    const fetchTo = new Date(latest.getTime() + 24 * 60 * 60 * 1000);
+    const from = new Date(earliest.getTime() - 24 * 60 * 60 * 1000);
+    const to = new Date(latest.getTime() + 24 * 60 * 60 * 1000);
+    const window = stream.view(from, to, true);
 
-    let cancelled = false;
-    setRemoteLoading(true);
-    setRemoteError(false);
-
-    Promise.all([
-      RemoteTreatments.getTreatmentByType(insulinEventType, fetchFrom, fetchTo),
-      RemoteTreatments.getTreatmentByType(glucoseEventType, fetchFrom, fetchTo),
-    ])
-      .then(([insulinTreatments, glucoseTreatments]) => {
-        if (cancelled) return;
-
-        // --- Extra boluses ---
-        const bolusMap = new Map<string, number>();
-        for (const t of insulinTreatments as any[]) {
-          const dose = t.insulin;
-          if (!dose || dose <= 0) continue;
-          const tMs =
-            Math.round(new Date(t.created_at).getTime() / 60000) * 60000;
-          if (sessionInsulinTimestamps.has(tMs)) continue;
-          let matched = false;
-          for (const ts of sessionInsulinTimestamps) {
-            if (Math.abs(tMs - ts) <= 120000) {
-              matched = true;
-              break;
-            }
-          }
-          if (matched) continue;
-          const dayKey = get6amDateKey(new Date(t.created_at));
-          bolusMap.set(dayKey, (bolusMap.get(dayKey) ?? 0) + dose);
-        }
-        if (!cancelled) setExtraBolusByDay(bolusMap);
-
-        // --- Extra rescues ---
-        const glucoseMap = new Map<string, number>();
-        for (const t of glucoseTreatments as any[]) {
-          const grams = t.carbs;
-          if (!grams || grams <= 0) continue;
-          const tMs =
-            Math.round(new Date(t.created_at).getTime() / 60000) * 60000;
-          if (sessionGlucoseTimestamps.has(tMs)) continue;
-          let matched = false;
-          for (const ts of sessionGlucoseTimestamps) {
-            if (Math.abs(tMs - ts) <= 120000) {
-              matched = true;
-              break;
-            }
-          }
-          if (matched) continue;
-          const dayKey = get6amDateKey(new Date(t.created_at));
-          glucoseMap.set(dayKey, (glucoseMap.get(dayKey) ?? 0) + grams);
-        }
-        if (!cancelled) setExtraGlucoseByDay(glucoseMap);
-      })
-      .catch(() => {
-        if (!cancelled) setRemoteError(true);
-      })
-      .finally(() => {
-        if (!cancelled) setRemoteLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [dailySummaries, sessionInsulinTimestamps, sessionGlucoseTimestamps]);
+    const inSession = new Set(
+      allSessions.flatMap((s) => [...s.insulins, ...s.glucoses]).map((e) => e.uuid),
+    );
+    for (const insulin of window.insulins) {
+      if (insulin.value <= 0 || inSession.has(insulin.uuid)) continue;
+      const dayKey = get6amDateKey(insulin.timestamp);
+      extraBolusByDay.set(dayKey, (extraBolusByDay.get(dayKey) ?? 0) + insulin.value);
+    }
+    for (const rescue of window.rescues) {
+      const grams = rescue.value * rescue.variant.carbs;
+      if (grams <= 0 || inSession.has(rescue.uuid)) continue;
+      const dayKey = get6amDateKey(rescue.timestamp);
+      extraGlucoseByDay.set(dayKey, (extraGlucoseByDay.get(dayKey) ?? 0) + grams);
+    }
+    return { extraBolusByDay, extraGlucoseByDay };
+  }, [dailySummaries, allSessions, streamVersion]);
 
   // --- End out-of-session tracking ---
 
@@ -532,21 +459,6 @@ export default function StatisticsPage() {
         extraBolusByDay={extraBolusByDay}
         extraGlucoseByDay={extraGlucoseByDay}
       />
-
-      {remoteLoading && (
-        <Card>
-          <div className="small text-muted">
-            Fetching out-of-session data from Nightscout…
-          </div>
-        </Card>
-      )}
-      {remoteError && (
-        <Card>
-          <div className="small text-warning">
-            Couldn't fetch out-of-session data from Nightscout.
-          </div>
-        </Card>
-      )}
 
       <DataStatistics title="Carbs (g)" data={carbs} />
       <DataStatistics title="Protein (g)" data={protein} />

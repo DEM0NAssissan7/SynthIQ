@@ -36,16 +36,6 @@ class RemoteTreatments {
       });
     });
   }
-  static async getTreatmentByType(
-    eventType: string,
-    timestampA: Date,
-    timestampB: Date,
-  ) {
-    const urlSafeEventType = eventType.replace(/ /g, "+");
-    return await Backend.get(
-      `treatments.json?&find[eventType]=${urlSafeEventType}&find[created_at][$gte]=${timestampA.toString()}&find[created_at][$lte]=${timestampB.toString()}`,
-    );
-  }
   static markMeal(
     name: string,
     _carbs: number,

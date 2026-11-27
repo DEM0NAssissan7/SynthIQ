@@ -1,7 +1,5 @@
-import { getReadingFromNightscout } from "../../models/types/sugarReading";
 import Unit from "../../models/unit";
 import { BackendStore } from "../../storage/backendStore";
-import { getTimestampFromOffset } from "../timing";
 import { convertDimensions } from "../util";
 import Backend from "./backend";
 
@@ -15,25 +13,6 @@ class RemoteReadings {
       20,
       Math.ceil(durationMinutes / (BackendStore.minutesPerReading.value || 5)) +
         10,
-    );
-  }
-  static async getSugarAt(timestamp: Date) {
-    return await this.getReadings(
-      timestamp,
-      getTimestampFromOffset(
-        timestamp,
-        2 *
-          BackendStore.minutesPerReading.value *
-          convertDimensions(Unit.Time.Minute, Unit.Time.Hour),
-      ),
-    ).then((a) => {
-      if (a.length === 0) return null;
-      if (a) return a[a.length - 1];
-    });
-  }
-  static async getCurrentSugar() {
-    return await Backend.get("entries.json").then((a) =>
-      a && a[0] ? getReadingFromNightscout(a[0]) : null,
     );
   }
   static async getReadings(
@@ -104,9 +83,6 @@ class RemoteReadings {
       `entries/mbg.json?find[dateString][$gte]=${from.toISOString()}&find[dateString][$lte]=${to.toISOString()}&count=${count}`,
     );
     return Array.isArray(res) ? res : [];
-  }
-  static async getLatestReadings(count: number = 10) {
-    return await Backend.get(`entries/sgv.json?count=${count}`);
   }
 }
 

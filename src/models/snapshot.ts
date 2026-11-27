@@ -5,16 +5,11 @@
  * those values based on what it's been given. We can also use smoothing if necessary
  */
 
-import RemoteReadings from "../lib/remote/readings";
 import { timestampIsBetween } from "../lib/timing";
 import { convertDimensions, MathUtil } from "../lib/util";
 import { PreferencesStore } from "../storage/preferencesStore";
-import { PrivateStore } from "../storage/privateStore";
 import Subscribable from "./subscribable";
-import SugarReading, {
-  getReadingFromNightscout,
-  ReadingType,
-} from "./types/sugarReading";
+import SugarReading, { ReadingType } from "./types/sugarReading";
 import type { Deserializer, Serializer } from "./types/types";
 import Unit from "./unit";
 
@@ -238,30 +233,6 @@ export default class Snapshot extends Subscribable {
     this.deduplicated = true;
   }
 
-  async pullReadings() {
-    // Pull readings from backend
-    if (!this.initialBG || !this.finalBG)
-      throw new Error(`Cannot pull glucose readings: snapshot incomplete`);
-    try {
-      const remoteReadings = await RemoteReadings.getReadings(
-        this.initialBG.timestamp,
-        this.finalBG.timestamp,
-      );
-      const rawReadings = remoteReadings
-        .filter((r) => r && (r.sgv != null || r.mbg != null))
-        .map((r) => getReadingFromNightscout(r))
-        .filter((r) => !isNaN(r.sugar) && !isNaN(r.timestamp.getTime()));
-      if (PrivateStore.debugLogs.value) console.log(rawReadings);
-      this.add(rawReadings);
-      this.deduplicate();
-      this.notify();
-    } catch (e) {
-      if (PrivateStore.debugLogs.value) {
-        console.error("Snapshot.pullReadings error:", e);
-      }
-    }
-  }
-
   get initialBG(): SugarReading | null {
     if (!this.isValid) return null;
     return this.isValid ? this.readings[0] : null;
@@ -281,7 +252,6 @@ export default class Snapshot extends Subscribable {
   }
   set finalBG(value: number) {
     this.createContemporaryManual(value);
-    this.pullReadings();
   }
 
   get minBG(): SugarReading | null {

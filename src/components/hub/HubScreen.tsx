@@ -204,10 +204,6 @@ export default function HubScreen() {
     };
   }, []);
 
-  useEffect(() => {
-    StreamManager.populateFromRemote();
-  }, []);
-
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
     try {

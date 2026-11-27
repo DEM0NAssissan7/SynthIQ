@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useReducer } from "react";
+import { useState, useMemo } from "react";
 import { Button, Form, InputGroup } from "react-bootstrap";
 import { useNavigate } from "react-router";
 import BloodSugarInput from "../../components/BloodSugarInput";
@@ -55,35 +55,22 @@ export default function RescuePage() {
       ? roundByHalf(getGlucoseCorrectionCaps(currentBG, variant), false)
       : 0;
   }, [currentBG, variant]);
-  const [intelligentCorrection, setIntelligentCorrection] = useState(0);
-
+  // From the stream as it stands: the app's sync updates it, and the page with it
   const now = useNow();
-  const [updated, update] = useReducer((a) => a + 1, 0);
-  useEffect(() => {
-    StreamManager.populateFromRemote().then(update);
-  }, [now]);
-  useEffect(() => {
-    StreamManager.populateFromRemote().then(() => {
-      const actingMinutes = HealthMonitorStore.dropTime.value;
-      const readings = getLatestReadings();
-      const insulinsOnBoard = getRecentBoluses();
-
-      setIntelligentCorrection(
-        roundByHalf(
-          getIntelligentGlucoseCorrection(
-            currentBG ?? PreferencesStore.targetBG.value,
-            actingMinutes,
-            variant,
-            readings,
-            insulinsOnBoard,
-            rescues,
-          ),
-          true,
-        ),
-      );
-    });
-    setIntelligentCorrection(correction); // Fallback if there is no CGM data
-  }, [currentBG, variant, updated, correction, rescues]);
+  const intelligentCorrection = useMemo(() => {
+    if (readings.length === 0) return correction; // Fallback if there is no CGM data
+    return roundByHalf(
+      getIntelligentGlucoseCorrection(
+        currentBG ?? PreferencesStore.targetBG.value,
+        HealthMonitorStore.dropTime.value,
+        variant,
+        readings,
+        insulinsOnBoard,
+        rescues,
+      ),
+      true,
+    );
+  }, [currentBG, variant, readings, insulinsOnBoard, rescues, correction, now]);
   const dynamicISF = useMemo(
     () => estimateDynamicISF(readings, insulinsOnBoard, rescues),
     [readings, insulinsOnBoard, rescues],

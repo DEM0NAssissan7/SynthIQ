@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { InsulinRetrospectiveOptimizer } from "../lib/insulinRetrospectiveAnalyzer";
 import {
   LineChart,
@@ -17,6 +17,7 @@ import Insulin from "../models/events/insulin";
 import type Session from "../models/session";
 import { round } from "../lib/util";
 import SugarReading, { ReadingType } from "../models/types/sugarReading";
+import { StreamManager } from "../managers/streamManager";
 import Card from "../components/Card";
 import MdButton from "../components/md3/MdButton";
 import MdIcon from "../components/md3/MdIcon";
@@ -40,45 +41,6 @@ export default function TestPage() {
     .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
     .slice(0, 30);
 
-  // Auto-sync: on mount, if sessions only have measurements and Nightscout is configured, pull CGM readings
-  useEffect(() => {
-    let cancelled = false;
-    async function autoSyncMissingReadings() {
-      if (!BackendStore.url.value) return;
-      const needsSync = sessions.filter(
-        (s) =>
-          !s.snapshot.readings.some((r) => r.type === ReadingType.Normal) &&
-          s.snapshot.initialBG &&
-          s.snapshot.finalBG,
-      );
-      if (needsSync.length === 0) return;
-      setSyncing(true);
-      setSyncStatus(
-        `Auto-syncing CGM readings for ${needsSync.length} session(s)...`,
-      );
-      let updatedCount = 0;
-      for (const session of needsSync) {
-        if (cancelled) break;
-        try {
-          await session.snapshot.pullReadings();
-          updatedCount++;
-        } catch (e) {
-          console.error("Auto-sync pullReadings error:", e);
-        }
-      }
-      if (!cancelled && updatedCount > 0) {
-        setSyncStatus(
-          `Synced ${updatedCount} session(s) from Nightscout at ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`,
-        );
-      }
-      if (!cancelled) setSyncing(false);
-    }
-    autoSyncMissingReadings();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   const handleManualSync = async () => {
     if (!BackendStore.url.value) {
       alert(
@@ -89,15 +51,10 @@ export default function TestPage() {
     setSyncing(true);
     setSyncStatus("Pulling latest CGM readings from Nightscout...");
     try {
-      let updatedCount = 0;
-      for (const session of sessions) {
-        if (session.snapshot.initialBG && session.snapshot.finalBG) {
-          await session.snapshot.pullReadings();
-          updatedCount++;
-        }
-      }
+      // Sessions are views of the stream: syncing the stream refreshes them all
+      await StreamManager.populateFromRemote();
       setSyncStatus(
-        `Successfully refreshed ${updatedCount} session(s) at ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`,
+        `Synced from Nightscout at ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`,
       );
     } catch (e) {
       console.error("Manual sync failed:", e);
