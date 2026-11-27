@@ -1,8 +1,11 @@
 import type { GeneralSubscriptionCallback } from "./types/types";
 
 export default class Subscribable {
-  subscriptions: GeneralSubscriptionCallback[] = [];
-  childSubscriptions = new Map<Subscribable, GeneralSubscriptionCallback>();
+  private subscriptions: GeneralSubscriptionCallback[] = [];
+  private childSubscriptions = new Map<
+    Subscribable,
+    GeneralSubscriptionCallback
+  >();
 
   // Subscriptions
   subscribe(callback: GeneralSubscriptionCallback) {
@@ -14,6 +17,9 @@ export default class Subscribable {
   }
   notify() {
     this.subscriptions.forEach((f) => f());
+  }
+  clearSubscriptions() {
+    this.subscriptions = [];
   }
 
   addChildSubscribable(...subs: Subscribable[]) {

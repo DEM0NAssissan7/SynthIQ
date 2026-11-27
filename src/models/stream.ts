@@ -19,7 +19,7 @@ export class Stream extends Subscribable {
    * the events live.
    */
   constructor(
-    public snapshot: Snapshot,
+    public snapshot: Snapshot = new Snapshot(),
     public events: MetaEvent[] = [],
     subscribe = true,
   ) {
@@ -29,6 +29,16 @@ export class Stream extends Subscribable {
     if (!subscribe) return;
     this.addChildSubscribable(snapshot);
     this.addChildSubscribable(...this.events);
+  }
+  absorb(...streams: Stream[]) {
+    const snapshot = new Snapshot();
+    const events: MetaEvent[] = [];
+    streams.forEach((stream) => {
+      snapshot.absorb(stream.snapshot);
+      events.push(...stream.events);
+    });
+    this.snapshot.absorb(snapshot);
+    this.push(...events);
   }
 
   // Unified timestamp system
@@ -111,6 +121,10 @@ export class Stream extends Subscribable {
     );
     return existing ?? null;
   }
+  contains(event: MetaEvent) {
+    const duplicate = this.findDuplicate(event);
+    return duplicate === null ? false : true;
+  }
   indexOf(event: MetaEvent) {
     for (let i = 0; i < this.events.length; i++)
       if (this.events[i].uuid === event.uuid) return i;
@@ -143,17 +157,14 @@ export class Stream extends Subscribable {
   }
   modify(event: MetaEvent) {
     const duplicate = this.findDuplicate(event);
-    if (duplicate === null) {
-      // Silently push because there is no duplicate event
-      this.push(event);
-      return;
-    }
+    if (duplicate === null) return false;
     const index = this.indexOf(duplicate);
-    if (index === -1) return;
+    if (index === -1) return false;
     this.events[index] = event;
     this.addChildSubscribable(event);
     this.removeChildSubscribable(duplicate);
     this.notify();
+    return true;
   }
   remove(event: MetaEvent) {
     const duplicate = this.findDuplicate(event);
@@ -174,14 +185,14 @@ export class Stream extends Subscribable {
   // Snapshot wrappers
   addReadings = (...r: SugarReading[]) => this.snapshot.addReadings(...r);
 
-  view(timestampA: Date, timestampB: Date, inclusive = false): Stream {
-    const timeA = timestampA.getTime();
-    const timeB = timestampB.getTime();
-    const snapshot = this.snapshot.view(timestampA, timestampB);
+  view(since: Date, until: Date | null = null, inclusive = false): Stream {
+    const timeA = since.getTime();
+    const timeB = until?.getTime() ?? null;
+    const snapshot = this.snapshot.view(since, until);
     const events = this.events.filter((e: MetaEvent) => {
       const time = e.timestamp.getTime();
       if (time < timeA) return false;
-      if (inclusive ? time > timeB : time >= timeB) return false;
+      if (timeB && (inclusive ? time > timeB : time >= timeB)) return false;
       return true;
     });
     return new Stream(snapshot, events, false); // Read-only window: see constructor

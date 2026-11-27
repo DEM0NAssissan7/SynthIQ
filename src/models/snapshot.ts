@@ -58,17 +58,17 @@ export default class Snapshot extends Subscribable {
     this.add(r);
     this.notify();
   }
-  absorb(snapshot: Snapshot) {
-    this.add(snapshot.rawReadings);
+  absorb(...snapshots: Snapshot[]) {
+    snapshots.forEach((snapshot) => this.add(snapshot.rawReadings));
     this.notify();
   }
   contains(timestamp: Date) {
     return timestampIsBetween(timestamp, this.startTime, this.endTime);
   }
-  view(timestampA: Date, timestampB: Date): Snapshot {
+  view(since: Date, until: Date | null = null): Snapshot {
     const snapshot = new Snapshot();
-    const timeA = timestampA.getTime();
-    const timeB = timestampB.getTime();
+    const timeA = since.getTime();
+    const timeB = until?.getTime() ?? null;
     const readings = this.readings;
     // Binary search for the first reading in range: views are taken constantly
     let low = 0;
@@ -81,7 +81,7 @@ export default class Snapshot extends Subscribable {
     }
     for (let i = low; i < readings.length; i++) {
       const reading = readings[i];
-      if (reading.timestamp.getTime() > timeB + precisionMS / 2) break;
+      if (timeB && reading.timestamp.getTime() > timeB + precisionMS / 2) break;
       snapshot.rawReadings.push(reading);
     }
     return snapshot;
@@ -96,9 +96,7 @@ export default class Snapshot extends Subscribable {
   getReading(timestamp: Date, measuredOnly = false, reverse = false) {
     // Shows what the user had seen at `timestamp` from their CGM/meter
     const time = timestamp.getTime();
-    const readings = measuredOnly
-      ? this.timeSortedMeasurements
-      : this.readings;
+    const readings = measuredOnly ? this.timeSortedMeasurements : this.readings;
     if (readings.length <= 0)
       throw new Error(`Cannot get reading: readings is empty`);
     if (reverse) {
@@ -389,11 +387,7 @@ export default class Snapshot extends Subscribable {
         // Create a *new* Date for the serialized value; do not touch r.timestamp
         const offsetMs =
           reducePrecision(r.timestamp.getTime()) - baseTime - timeJump * i;
-        const clone = new SugarReading(
-          r.sugar,
-          new Date(offsetMs),
-          r.type,
-        );
+        const clone = new SugarReading(r.sugar, new Date(offsetMs), r.type);
         return SugarReading.serialize(clone);
       }),
       baseTime: baseTime,

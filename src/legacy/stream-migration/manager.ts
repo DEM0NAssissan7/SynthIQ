@@ -258,7 +258,7 @@ export function migrateLegacyToStream(): StreamMigrationReport | null {
   const activityRescues = resolveActivityGlucoses(
     converted.flatMap((c) => c.activityGlucoses),
     [
-      ...StreamStore.stream.value.rescues,
+      ...StreamStore.streamMain.value.rescues,
       ...converted.flatMap((c) => c.glucoses),
     ],
   );
@@ -267,7 +267,7 @@ export function migrateLegacyToStream(): StreamMigrationReport | null {
     legacyFacts("activity-rescues", { glucoses: activityRescues }),
   );
 
-  mergeIntoStream(StreamStore.stream.value, converted, report);
+  mergeIntoStream(StreamStore.streamMain.value, converted, report);
 
   // 3. Work in progress at upgrade time. Neither is a stream event yet, so
   //    each is resumed as its EntryStore draft. Only on the first run: the
@@ -284,7 +284,7 @@ export function migrateLegacyToStream(): StreamMigrationReport | null {
 
   if (report.failedSessions === 0 && report.failedSources.length === 0) {
     // Persist first: a write that fails throws here, before anything is deleted
-    StreamStore.stream.write();
+    StreamStore.streamMain.write();
     StreamMigrationStore.version.value = STREAM_MIGRATION_VERSION;
     purgeLegacyKeys();
     report.purgedLegacyKeys = true;
@@ -387,7 +387,7 @@ function resumeDrafts(report: StreamMigrationReport) {
     const live = asActivity(LegacyActivityStore.activity());
     const resumed = live ? convertLegacyActivity(live) : null;
     if (resumed && resumed.activity.name) {
-      StreamStore.stream.value.snapshot.absorb(resumed.snapshot);
+      StreamStore.streamMain.value.snapshot.absorb(resumed.snapshot);
       resumed.activity.value = 0;
       EntryStore.activity.value = resumed.activity;
       EntryStore.activityIsActive.value = true;

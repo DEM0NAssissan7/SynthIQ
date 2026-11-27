@@ -3,7 +3,6 @@ import Insulin, { InjectionPurpose } from "../models/events/insulin";
 import Meal from "../models/events/meal";
 import type MetaEvent from "../models/events/metaEvent";
 import Session from "../models/session";
-import { StreamStore } from "../storage/streamStore";
 import type { Template } from "../models/types/interfaces";
 import type { UUID } from "../models/types/types";
 import { MathUtil } from "../lib/util";
@@ -11,6 +10,7 @@ import {
   getBaseSessionFrom,
   getBaseSessionsFrom,
 } from "../lib/helpers/getBaseSessions";
+import { StreamManager } from "./streamManager";
 
 export namespace SessionManager {
   /** A meal within this many minutes of a session's meal is part of that session */
@@ -21,7 +21,7 @@ export namespace SessionManager {
   let sessionsCache: Session[] = [];
   /** The stream meals each session was assembled from (its meal is their composite) */
   let sessionMeals = new Map<Session, Meal[]>();
-  StreamStore.stream.subscribe(() => {
+  StreamManager.stream.subscribe(() => {
     // Invalidate sessions cache upon any modification
     sessionsCache = [];
     sessionMeals = new Map();
@@ -32,9 +32,9 @@ export namespace SessionManager {
   ) {
     const masterStream =
       sinceTimestamp === null && untilTimestamp === null
-        ? StreamStore.stream.value
-        : StreamStore.stream.value.view(
-            sinceTimestamp ?? StreamStore.stream.value.beginning,
+        ? StreamManager.stream
+        : StreamManager.stream.view(
+            sinceTimestamp ?? StreamManager.stream.beginning,
             untilTimestamp ?? new Date(),
           );
     if (masterStream.events.length === 0) return null;
@@ -257,7 +257,7 @@ export namespace SessionManager {
    * the current session if it comes within `mealMergeMinutes` of its meal.
    */
   export function startsNewSession(timestamp = new Date()): boolean {
-    const stream = StreamStore.stream.value;
+    const stream = StreamManager.stream;
     stream.sortEvents();
     const preboluses = stream.insulins.filter(
       (i) => i.purpose === InjectionPurpose.PreBolus,
@@ -294,7 +294,6 @@ export namespace SessionManager {
   /** Mark (or unmark) a session as garbage: a session is garbage if any of its meals is */
   export function setGarbage(session: Session, isGarbage: boolean) {
     for (const meal of getMeals(session)) meal.isGarbage = isGarbage;
-    StreamStore.stream.write();
   }
 
   // Helpers

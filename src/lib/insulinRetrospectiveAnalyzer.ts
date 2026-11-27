@@ -297,6 +297,7 @@ export namespace InsulinRetrospectiveOptimizer {
 
     // Create the windows
     const windows = createWindows(insulins, snapshot, glucoses);
+    if (windows.length === 0) return [insulins, windows, insulins];
     // Set parameters
     const targetBG = initialBG ? PreferencesStore.targetBG.value : null;
     const minBG = PreferencesStore.lowBG.value;

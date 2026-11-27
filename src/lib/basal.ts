@@ -1,5 +1,6 @@
 import { InsulinVariantManager } from "../managers/insulinVariantManager";
 import { SessionManager } from "../managers/sessionManager";
+import { StreamManager } from "../managers/streamManager";
 import type Glucose from "../models/events/glucose";
 import type Insulin from "../models/events/insulin";
 import type Session from "../models/session";
@@ -12,7 +13,6 @@ import { BackendStore } from "../storage/backendStore";
 import { BasalStore } from "../storage/basalStore";
 import { HealthMonitorStore } from "../storage/healthMonitorStore";
 import { PrivateStore } from "../storage/privateStore";
-import { StreamStore } from "../storage/streamStore";
 import { getBGVelocities } from "./readingsUtil";
 import { getTimestampFromOffset, timestampIsBetween } from "./timing";
 import { convertDimensions, MathUtil } from "./util";
@@ -67,10 +67,7 @@ function isFasting(timestamp: Date, nonFasting: DateRange[]): boolean {
 function getFastingStream(): Stream {
   const hours = InsulinVariantManager.getBasalVariant().duration;
   const now = new Date();
-  return StreamStore.stream.value.view(
-    getTimestampFromOffset(now, -hours),
-    now,
-  );
+  return StreamManager.stream.view(getTimestampFromOffset(now, -hours), now);
 }
 function getFastingVelocities(stream: Stream): number[] {
   let nonFasting = getNonFastingWindows(stream); // A set of date pairs to describe when we are not fasting
@@ -139,7 +136,7 @@ export function getFastingLength(
 export function getRecentBasals(): Insulin[] {
   const days = InsulinVariantManager.getBasalVariant().duration / 24;
   const shotsPerDay = HealthMonitorStore.basalShotsPerDay.value;
-  return StreamStore.stream.value.basals.slice(-days * shotsPerDay).reverse();
+  return StreamManager.stream.basals.slice(-days * shotsPerDay).reverse();
 }
 export function getDailyBasal() {
   const doses: Insulin[] = getRecentBasals();
@@ -165,7 +162,7 @@ export function getDailyBasalPerShot() {
 // Shot patterns
 export function getLastShot(): number {
   const shotsPerDay = HealthMonitorStore.basalShotsPerDay.value;
-  const basals = StreamStore.stream.value.basals;
+  const basals = StreamManager.stream.basals;
 
   const insulin = basals[basals.length - shotsPerDay];
   return insulin ? insulin.value : 0;
@@ -176,7 +173,7 @@ export function getLastShot(): number {
  */
 function getShotsSinceChange() {
   const shotsPerDay = HealthMonitorStore.basalShotsPerDay.value;
-  const basals = StreamStore.stream.value.basals;
+  const basals = StreamManager.stream.basals;
   let shots = 0;
   for (let i = basals.length - 1; i >= shotsPerDay; i--) {
     shots++;

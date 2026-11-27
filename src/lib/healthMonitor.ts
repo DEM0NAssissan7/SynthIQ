@@ -56,13 +56,13 @@ function isPlausible(reading: SugarReading) {
  * (fingersticks, entered BGs) are excluded, as the CGM feed never had them.
  */
 export function getLatestReadings(
-  stream: Stream = StreamManager.getStream(),
+  stream: Stream = StreamManager.stream,
 ): SugarReading[] {
   return stream.snapshot.latest(numLatestReadings, false).filter(isPlausible);
 }
 /** Up to `readingsHistoryHours` of CGM readings before `now`, newest first. For display. */
 export function getReadingsHistory(
-  stream: Stream = StreamManager.getStream(),
+  stream: Stream = StreamManager.stream,
   now = new Date(),
 ): SugarReading[] {
   const start = getTimestampFromOffset(now, -readingsHistoryHours);
@@ -73,7 +73,7 @@ export function getReadingsHistory(
 }
 /** Measured blood sugars (meter calibrations from Nightscout and manual entries) over the history window, oldest first */
 export function getFingersticks(
-  stream: Stream = StreamManager.getStream(),
+  stream: Stream = StreamManager.stream,
   now = new Date(),
 ): SugarReading[] {
   const start = getTimestampFromOffset(now, -readingsHistoryHours);
@@ -83,12 +83,12 @@ export function getFingersticks(
     .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 }
 export function getLatestReading(
-  stream: Stream = StreamManager.getStream(),
+  stream: Stream = StreamManager.stream,
 ): SugarReading | null {
   return getLatestReadings(stream)[0] ?? null;
 }
 export function getCurrentBG(
-  stream: Stream = StreamManager.getStream(),
+  stream: Stream = StreamManager.stream,
 ): number | null {
   return getLatestReading(stream)?.sugar ?? null;
 }
@@ -128,7 +128,7 @@ export function timeToCritical() {
 
 // Rescue Glucose
 /** The newest `numRecentTreatments` rescues, newest first */
-export function getRecentRescues(stream: Stream = StreamManager.getStream()) {
+export function getRecentRescues(stream: Stream = StreamManager.stream) {
   return stream.rescues.slice(-numRecentTreatments).reverse();
 }
 export function getLastRescue() {
@@ -147,7 +147,7 @@ export function getLastRescueCaps() {
 }
 
 function getLatestBasal() {
-  const basals = StreamManager.getStream().basals;
+  const basals = StreamManager.stream.basals;
   return basals[basals.length - 1] ?? null;
 }
 export function getLatestBasalTimestamp() {
@@ -158,7 +158,7 @@ export function getLatestBasalTimestamp() {
 
 // Insulin Bolus
 /** The newest `numRecentTreatments` boluses (everything but basal), newest first */
-export function getRecentBoluses(stream: Stream = StreamManager.getStream()) {
+export function getRecentBoluses(stream: Stream = StreamManager.stream) {
   return stream.insulins.slice(-numRecentTreatments).reverse();
 }
 export function getLatestBolus() {
@@ -186,7 +186,7 @@ export function getTimeSinceLastBolus() {
 // r1 context
 /** Meals and basal times over the last `r1ContextHours`, oldest first, as the r1 feature builder expects */
 export function getR1Context(
-  stream: Stream = StreamManager.getStream(),
+  stream: Stream = StreamManager.stream,
   now = new Date(),
 ) {
   const window = stream.view(getTimestampFromOffset(now, -r1ContextHours), now);

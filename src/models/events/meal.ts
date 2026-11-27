@@ -27,10 +27,18 @@ export default class Meal extends MetaEvent {
     public name: string,
     public templateUUID: UUID | null = null,
     uuid: UUID | null = null,
-    public isGarbage = false,
+    public _isGarbage = false,
     public notes: string = "",
   ) {
     super(timestamp, uuid);
+  }
+
+  get isGarbage() {
+    return this._isGarbage;
+  }
+  set isGarbage(value: boolean) {
+    this._isGarbage = value;
+    this.notify();
   }
 
   // Carbs offset
@@ -160,7 +168,7 @@ export default class Meal extends MetaEvent {
     this.proteinOffset += meal.proteinOffset;
     this.fatOffset += meal.fatOffset;
     this.foods.push(...meal.addedFoods);
-    this.isGarbage = this.isGarbage || meal.isGarbage;
+    this._isGarbage = this._isGarbage || meal._isGarbage;
     this.notes = this.notes + meal.notes;
     this.notify();
   }
@@ -173,7 +181,7 @@ export default class Meal extends MetaEvent {
       name: meal.name,
       uuid: meal.uuid,
       templateUUID: meal.templateUUID,
-      isGarbage: meal.isGarbage,
+      isGarbage: meal._isGarbage,
       notes: meal.notes,
     };
   };
@@ -189,7 +197,7 @@ export default class Meal extends MetaEvent {
       o.notes ?? "",
     );
     newMeal.foods = foods;
-    newMeal.isGarbage = o.isGarbage ?? false;
+    newMeal._isGarbage = o.isGarbage ?? false;
     return newMeal;
   };
 

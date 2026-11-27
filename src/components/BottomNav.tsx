@@ -16,7 +16,7 @@ import MdPalettePicker from "./md3/MdPalettePicker";
 import MdIcon from "./md3/MdIcon";
 import { EntryStore } from "../storage/entryStore";
 import { InjectionPurpose } from "../models/events/insulin";
-import { StreamStore } from "../storage/streamStore";
+import { StreamManager } from "../managers/streamManager";
 
 interface ToolItem {
   label: string;
@@ -125,7 +125,7 @@ export default function BottomNav() {
 
   const [themeMode, setThemeMode] = PreferencesStore.themeMode.useState();
   const [meal] = EntryStore.meal.useState();
-  const boluses = StreamStore.stream.value.insulins;
+  const boluses = StreamManager.stream.insulins;
 
   const [dueForBasal, setDueForBasal] = useState(() => basalIsDue());
   useMemo(() => {

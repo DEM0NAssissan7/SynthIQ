@@ -10,7 +10,7 @@ import type { Template } from "../models/types/interfaces";
 export namespace ActivityManager {
   // Fundamental
   export function getActivitySession(activity: Activity) {
-    const stream = StreamManager.getStream();
+    const stream = StreamManager.stream;
     const subStream = stream.view(
       activity.timestamp,
       getTimestampFromOffset(
@@ -21,7 +21,7 @@ export namespace ActivityManager {
     return new ActivitySession(subStream.snapshot, subStream.rescues, activity);
   }
   export function getActivitySessions() {
-    const stream = StreamManager.getStream();
+    const stream = StreamManager.stream;
     const activities = stream.activities;
 
     const activitySessions: ActivitySession[] = [];

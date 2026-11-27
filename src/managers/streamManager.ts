@@ -13,6 +13,7 @@ import RemoteTreatments, {
   glucoseEventType,
   insulinEventType,
 } from "../lib/remote/treatments";
+import { getHourDiff } from "../lib/timing";
 import { Activity } from "../models/events/activity";
 import Glucose from "../models/events/glucose";
 import Insulin, { InjectionPurpose } from "../models/events/insulin";
@@ -20,6 +21,7 @@ import Meal from "../models/events/meal";
 import MetaEvent from "../models/events/metaEvent";
 import type Food from "../models/food";
 import Snapshot, { reducePrecision } from "../models/snapshot";
+import { Stream } from "../models/stream";
 import type { InsulinVariant } from "../models/types/insulinVariant";
 import type { RescueVariant } from "../models/types/rescueVariant";
 import SugarReading, {
@@ -32,6 +34,30 @@ import { StreamStore } from "../storage/streamStore";
 import { InsulinVariantManager } from "./insulinVariantManager";
 import { RescueVariantManager } from "./rescueVariantManager";
 
+function buildCompositeStream() {
+  const streamMain = StreamStore.streamMain.value;
+  const streamDelta = StreamStore.streamDelta.value;
+  const lastDeltaSyncTimestamp = StreamStore.lastDeltaSyncTimestamp.value;
+  const snapshot = new Snapshot();
+  snapshot.absorb(streamMain.snapshot, streamDelta.snapshot);
+  const events: MetaEvent[] = [...streamMain.events, ...streamDelta.events];
+  const stream = new Stream(snapshot, events);
+  stream.subscribe(() => {
+    const newStream = stream.view(lastDeltaSyncTimestamp);
+    streamDelta.absorb(newStream);
+  });
+  return stream;
+}
+let stream: Stream = buildCompositeStream();
+function rebuildStream() {
+  stream = buildCompositeStream();
+}
+
+export class StreamManager {
+  static get stream() {
+    return stream;
+  }
+}
 export namespace StreamManager {
   /**
    * Pull every reading and treatment logged on Nightscout since the last sync
@@ -117,10 +143,8 @@ export namespace StreamManager {
         }
       }
 
-      const stream = StreamStore.stream.value;
       stream.snapshot.absorb(snapshot);
       stream.push(...insulins, ...rescues);
-      StreamStore.stream.write();
       StreamStore.lastRemoteSyncTime.value = now;
     } catch (e) {
       if (PrivateStore.debugLogs.value) {
@@ -129,20 +153,45 @@ export namespace StreamManager {
     }
   }
 
-  // Fundamentals
-  export function getStream() {
-    return StreamStore.stream.value;
+  // Log write managemnt
+  export function syncDelta() {
+    const now = new Date();
+    const syncHours = StreamStore.syncHoursSchedule.value;
+    const lastSyncTimestamp = StreamStore.lastDeltaSyncTimestamp.value;
+    if (getHourDiff(now, lastSyncTimestamp) < syncHours) return; // Don't sync too early
+    const main = StreamStore.streamMain.value;
+    const delta = StreamStore.streamDelta.value;
+    main.absorb(delta);
+    StreamStore.streamMain.write();
+    StreamStore.streamDelta.value = new Stream(); // Reset the delta stream
+    StreamStore.lastDeltaSyncTimestamp.value = now;
   }
 
   // Event Management
   export function modify(event: MetaEvent) {
-    return getStream().modify(event);
+    const mainModified = StreamStore.streamMain.value.modify(event);
+    const deltaModified = StreamStore.streamDelta.value.modify(event);
+    const modified = mainModified || deltaModified;
+    if (!modified) return false;
+    rebuildStream();
+    if (!stream.contains(event))
+      throw new Error(
+        `Catastrophic modification error in the composite stream`,
+      );
+    return;
   }
   export function remove(event: MetaEvent) {
-    const removed = getStream().remove(event);
+    const mainRemoved = StreamStore.streamMain.value.remove(event);
+    const deltaRemoved = StreamStore.streamDelta.value.remove(event);
+    const removed = deltaRemoved || mainRemoved;
+    if (!removed) return false;
     const eventType = getEventType(event);
     if (removed && eventType)
       RemoteTreatments.removeTreatment(eventType, event.timestamp);
+    // Rebuild the stream afterwards
+    rebuildStream();
+    if (stream.contains(event))
+      throw new Error(`Catastrophic removal error in the composite stream`);
     return removed;
   }
 
@@ -156,7 +205,6 @@ export namespace StreamManager {
   export function markReading(reading: SugarReading | null, timestamp: Date) {
     if (!reading || reading.type !== ReadingType.Manual) return;
     const time = reducePrecision(timestamp.getTime()); // As the snapshot stores it
-    const stream = getStream();
     const recorded = stream.snapshot.readings.some(
       (r) => r.type === ReadingType.Manual && r.timestamp.getTime() === time,
     );
@@ -173,7 +221,7 @@ export namespace StreamManager {
   ) {
     const insulin = new Insulin(units, timestamp, variant, purpose);
     RemoteTreatments.markInsulin(units, timestamp, variant.name, purpose);
-    getStream().push(insulin);
+    stream.push(insulin);
   }
   export function markBasal(units: number, timestamp: Date) {
     const variant = InsulinVariantManager.getBasalVariant();
@@ -184,7 +232,7 @@ export namespace StreamManager {
       InjectionPurpose.Basal,
     );
     RemoteTreatments.markBasal(units, timestamp);
-    getStream().push(insulin);
+    stream.push(insulin);
   }
   export function markMeal(
     foods: Food[],
@@ -202,7 +250,7 @@ export namespace StreamManager {
       meal.protein,
       meal.timestamp,
     );
-    getStream().push(meal);
+    stream.push(meal);
   }
   export function markRescue(
     value: number,
@@ -215,7 +263,7 @@ export namespace StreamManager {
       timestamp,
       variant.name,
     );
-    getStream().push(rescue);
+    stream.push(rescue);
   }
   export function markActivity(
     durationMinutes: number,
@@ -224,6 +272,6 @@ export namespace StreamManager {
   ) {
     const activity = new Activity(name, timestamp, durationMinutes);
     RemoteTreatments.markActivity(name, timestamp, durationMinutes);
-    getStream().push(activity);
+    stream.push(activity);
   }
 }

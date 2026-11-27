@@ -77,11 +77,15 @@ function App() {
   useEffect(() => {
     // Update the onboard stream
     migrateLegacyToStream();
-    setTimeout(() => {
-      StreamManager.populateFromRemote();
-    }, 10 * 1000);
+    StreamManager.syncDelta(); // Synchronize hot delta to main
+    StreamManager.populateFromRemote();
     if (PrivateStore.debugLogs.value)
-      console.log(StreamStore.stream.value, SessionManager.getSessions());
+      console.log(
+        StreamManager.stream,
+        StreamStore.streamDelta.value,
+        StreamStore.streamMain.value,
+        SessionManager.getSessions(),
+      );
   }, []);
 
   const redirectTimer = useNow(

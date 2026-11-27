@@ -1,4 +1,3 @@
-import Snapshot from "../models/snapshot";
 import { Stream } from "../models/stream";
 import StorageNode from "./storageNode";
 
@@ -11,20 +10,33 @@ export namespace StreamStore {
     (a) => a.getTime(),
     (o) => new Date(o),
   );
-  export const stream = node.add(
+  export const lastDeltaSyncTimestamp = node.add(
+    "lastDeltaSyncTimestamp",
+    new Date(),
+    (a) => a.getTime(),
+    (o) => new Date(o),
+  );
+  export const syncHoursSchedule = node.add("syncHoursSchedule", 36);
+  export const streamMain = node.add(
     "stream",
-    new Stream(new Snapshot(), []),
+    new Stream(),
+    Stream.serialize,
+    Stream.deserialize,
+  );
+  export const streamDelta = node.add(
+    "streamDelta",
+    new Stream(),
     Stream.serialize,
     Stream.deserialize,
   );
   {
     const callback = () => {
-      stream.write();
+      streamDelta.write();
     };
-    stream.subscribe((value: Stream) => {
+    streamDelta.subscribe((value: Stream) => {
       value.unsubscribe(callback);
       value.subscribe(callback);
     });
-    stream.notify();
+    streamDelta.notify();
   }
 }

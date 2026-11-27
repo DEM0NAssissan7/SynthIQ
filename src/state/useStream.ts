@@ -1,6 +1,6 @@
 import { useEffect, useReducer } from "react";
 import type { Stream } from "../models/stream";
-import { StreamStore } from "../storage/streamStore";
+import { StreamManager } from "../managers/streamManager";
 
 /**
  * The stream, and a version that changes whenever the stream does. The stream
@@ -10,8 +10,8 @@ import { StreamStore } from "../storage/streamStore";
 export function useStream(): [Stream, number] {
   const [version, bump] = useReducer((n: number) => n + 1, 0);
   useEffect(() => {
-    StreamStore.stream.subscribe(bump);
-    return () => StreamStore.stream.unsubscribe(bump);
+    StreamManager.stream.subscribe(bump);
+    return () => StreamManager.stream.unsubscribe(bump);
   }, []);
-  return [StreamStore.stream.value, version];
+  return [StreamManager.stream, version];
 }
