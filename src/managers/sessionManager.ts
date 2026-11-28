@@ -209,7 +209,9 @@ export namespace SessionManager {
     return sessions.filter((s) => s.meal.name === name);
   }
   export function querySessions(name: string) {
-    return getAllSessionsByName(name).filter((s) => !s.isInvalid);
+    return getAllSessionsByName(name)
+      .filter((s) => !s.isInvalid)
+      .filter((s) => s.completed);
   }
   /**
    * The sessions dosing advice for meals named `name` is drawn from: their
@@ -217,8 +219,8 @@ export namespace SessionManager {
    */
   export function getPool(name: string) {
     if (name === unnamedMealName || querySessions(name).length === 0)
-      return getSessions();
-    return getAllSessionsByName(name);
+      return getSessions().filter((s) => s.completed);
+    return getAllSessionsByName(name).filter((s) => s.completed);
   }
   export function isFirstTime(name: string) {
     return getPool(name).length === 0;
