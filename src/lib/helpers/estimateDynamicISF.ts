@@ -5,7 +5,8 @@ import type SugarReading from "../../models/types/sugarReading";
 import Unit from "../../models/unit";
 import { BasalStore } from "../../storage/basalStore";
 import { getTimestampFromOffset } from "../timing";
-import { convertDimensions, MathUtil } from "../util";
+import { convertDimensions, firstIndexWhere, MathUtil } from "../util";
+import { BackendStore } from "../../storage/backendStore";
 import { hasTreatmentOverlap } from "./hasOverlap";
 
 export function estimateDynamicMetabolicActivity(
@@ -48,6 +49,33 @@ export function estimateDynamicMetabolicActivity(
     return deltas;
   })();
   const avgDelta = MathUtil.mean(readingTimeDeltas);
+
+  // Treatments in time order, so each window only checks those that can touch it
+  const byTime = (a: { timestamp: Date }, b: { timestamp: Date }) =>
+    a.timestamp.getTime() - b.timestamp.getTime();
+  const sortedRescues = rescues.slice().sort(byTime);
+  const sortedMeals = meals.slice().sort(byTime);
+  const sortedInsulins = insulins.slice().sort(byTime);
+  const cgmDelay =
+    BackendStore.cgmDelay.value *
+    convertDimensions(Unit.Time.Minute, Unit.Time.Millis);
+  const longestRescue =
+    sortedRescues.reduce((m, r) => Math.max(m, r.variant.duration), 0) *
+    convertDimensions(Unit.Time.Minute, Unit.Time.Millis);
+  const mealSpan =
+    BasalStore.minTimeSinceMeal.value *
+    convertDimensions(Unit.Time.Hour, Unit.Time.Millis);
+  /** The treatments that started strictly between two times */
+  const startedBetween = <T extends { timestamp: Date }>(
+    sorted: T[],
+    from: number,
+    to: number,
+  ) =>
+    sorted.slice(
+      firstIndexWhere(sorted, (e) => e.timestamp.getTime() > from),
+      firstIndexWhere(sorted, (e) => e.timestamp.getTime() >= to),
+    );
+
   for (let i = 0; i < filteredReadings.length - 1; i++) {
     const reading = filteredReadings[i];
     const nextReading = filteredReadings[i + 1];
@@ -57,9 +85,17 @@ export function estimateDynamicMetabolicActivity(
       convertDimensions(Unit.Time.Millis, Unit.Time.Hour);
     if (dt > avgDelta * 2) continue;
     const deltaBG = nextReading.sugar - reading.sugar;
+    // A treatment acts on a reading from its start plus the CGM delay until
+    // the end of its span, so only these can act on either reading
+    const startTime = reading.timestamp.getTime() - cgmDelay;
+    const endTime = nextReading.timestamp.getTime() - cgmDelay;
 
     // Check if either reading is being influenced by rescue
-    const isRescueBound = rescues.reduce(
+    const isRescueBound = startedBetween(
+      sortedRescues,
+      startTime - longestRescue,
+      endTime,
+    ).reduce(
       (val, rescue) =>
         val ||
         hasTreatmentOverlap(reading.timestamp, rescue, Unit.Time.Minute) ||
@@ -69,7 +105,11 @@ export function estimateDynamicMetabolicActivity(
     // If we are being influenced by a rescue, keep going and ignore
     if (isRescueBound) continue;
     // Check if either reading is being influenced by a meal
-    const isMealBound = meals.reduce((val, meal) => {
+    const isMealBound = startedBetween(
+      sortedMeals,
+      startTime - mealSpan,
+      endTime,
+    ).reduce((val, meal) => {
       const simulatedTreatment = {
         timestamp: meal.timestamp,
         variant: { duration: BasalStore.minTimeSinceMeal.value },
@@ -91,12 +131,20 @@ export function estimateDynamicMetabolicActivity(
     // If we are meal-bound, we don't bother
     if (isMealBound) continue;
 
-    // See how many units were absorbe
-    const unitsAbsorbed = insulins.reduce(
-      (n, insulin) =>
-        n + insulin.batemanIntegral(reading.timestamp, nextReading.timestamp),
-      0,
-    );
+    // See how many units were absorbe. A dose taken after the window absorbs nothing in it
+    const unitsAbsorbed = sortedInsulins
+      .slice(
+        0,
+        firstIndexWhere(
+          sortedInsulins,
+          (e) => e.timestamp.getTime() >= nextReading.timestamp.getTime(),
+        ),
+      )
+      .reduce(
+        (n, insulin) =>
+          n + insulin.batemanIntegral(reading.timestamp, nextReading.timestamp),
+        0,
+      );
     // Note: batemanIntegral without the 3rd parameter being true will yeild the insulin absorbed in the window
     if (unitsAbsorbed <= 0.005) {
       // If basically no insulin is absorbed, we consider it fasting
