@@ -19,6 +19,27 @@ export function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
 
+// Search
+/**
+ * Binary search: the index of the first item for which `isAtOrPast` holds, or
+ * `array.length` if none does. The array must be ordered so that it fails up
+ * to some point and holds from there on (e.g. "at or after time X" on a
+ * time-sorted array).
+ */
+export function firstIndexWhere<T>(
+  array: readonly T[],
+  isAtOrPast: (item: T) => boolean,
+): number {
+  let low = 0;
+  let high = array.length;
+  while (low < high) {
+    const mid = (low + high) >> 1;
+    if (isAtOrPast(array[mid])) high = mid;
+    else low = mid + 1;
+  }
+  return low;
+}
+
 // Number Generation
 export function genUUID(): UUID {
   return Math.round(random(0, 2 ** 32));

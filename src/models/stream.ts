@@ -7,6 +7,7 @@ import Snapshot from "./snapshot";
 import Subscribable from "./subscribable";
 import SugarReading from "./types/sugarReading";
 import type { Deserializer, Serializer } from "./types/types";
+import { firstIndexWhere } from "../lib/util";
 
 /** An event with no valid timestamp cannot be placed in the stream (and would break its ordering) */
 const isPlaceable = (e: MetaEvent) => !Number.isNaN(e.timestamp.getTime());
@@ -87,6 +88,7 @@ export class Stream extends Subscribable {
   private ofType<T extends MetaEvent>(
     ctor: abstract new (...args: any[]) => T,
   ): T[] {
+    this.sortEvents(); // Callers take the latest from the end
     return this.events.filter((e): e is T => e instanceof ctor);
   }
   get allInsulins() {
@@ -133,10 +135,6 @@ export class Stream extends Subscribable {
     for (let i = 0; i < this.events.length; i++)
       if (this.events[i].uuid === event.uuid) return i;
     return -1;
-  }
-  getEventByTimestamp(timestamp: Date) {
-    const time = timestamp.getTime();
-    return this.events.find((e) => e.timestamp.getTime() === time) ?? null;
   }
   push(...incoming: MetaEvent[]) {
     for (const e of incoming) {
@@ -196,11 +194,14 @@ export class Stream extends Subscribable {
     const snapshot = this.snapshot.view(since, until);
     this.sortEvents();
     const events: MetaEvent[] = [];
-    for (const event of this.events) {
-      const time = event.timestamp.getTime();
-      if (time < timeA) continue;
+    const start = firstIndexWhere(
+      this.events,
+      (e) => e.timestamp.getTime() >= timeA,
+    );
+    for (let i = start; i < this.events.length; i++) {
+      const time = this.events[i].timestamp.getTime();
       if (timeB && (inclusive ? time > timeB : time >= timeB)) break;
-      events.push(event);
+      events.push(this.events[i]);
     }
     return new Stream(snapshot, events, false); // Read-only window: see constructor
   }

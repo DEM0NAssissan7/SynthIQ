@@ -5,7 +5,7 @@ import type MetaEvent from "../models/events/metaEvent";
 import Session from "../models/session";
 import type { Template } from "../models/types/interfaces";
 import type { UUID } from "../models/types/types";
-import { MathUtil } from "../lib/util";
+import { firstIndexWhere, MathUtil } from "../lib/util";
 import {
   getBaseSessionFrom,
   getBaseSessionsFrom,
@@ -185,11 +185,12 @@ export namespace SessionManager {
       // Now we progress the forward pass and skip what we've already looked at.
       // A running session has taken in the rest of the stream: nothing follows it
       if (isOpen) break;
-      const endEvent = masterStream.getEventByTimestamp(endTimestamp);
-      if (endEvent) {
-        const newIndex = masterStream.indexOf(endEvent);
-        if (newIndex !== -1) index = newIndex - 1;
-      }
+      // The session ends at an event: continue from it
+      index =
+        firstIndexWhere(
+          masterStream.events,
+          (e) => e.timestamp.getTime() >= endTimestamp.getTime(),
+        ) - 1;
     }
   }
 

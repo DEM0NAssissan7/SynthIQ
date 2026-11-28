@@ -6,7 +6,7 @@
  */
 
 import { timestampIsBetween } from "../lib/timing";
-import { convertDimensions, MathUtil } from "../lib/util";
+import { convertDimensions, firstIndexWhere, MathUtil } from "../lib/util";
 import { PreferencesStore } from "../storage/preferencesStore";
 import Subscribable from "./subscribable";
 import SugarReading, { ReadingType } from "./types/sugarReading";
@@ -77,15 +77,11 @@ export default class Snapshot extends Subscribable {
     const timeB = until?.getTime() ?? null;
     const readings = this.readings;
     // Binary search for the first reading in range: views are taken constantly
-    let low = 0;
-    let high = readings.length;
-    while (low < high) {
-      const mid = (low + high) >> 1;
-      if (readings[mid].timestamp.getTime() < timeA - precisionMS / 2)
-        low = mid + 1;
-      else high = mid;
-    }
-    for (let i = low; i < readings.length; i++) {
+    const start = firstIndexWhere(
+      readings,
+      (r) => r.timestamp.getTime() >= timeA - precisionMS / 2,
+    );
+    for (let i = start; i < readings.length; i++) {
       const reading = readings[i];
       if (timeB && reading.timestamp.getTime() > timeB + precisionMS / 2) break;
       snapshot.rawReadings.push(reading);
