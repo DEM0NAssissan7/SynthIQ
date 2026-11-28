@@ -16,7 +16,6 @@ export namespace BackendStore {
   export const skipSetup = node.add<boolean>("skipSetup", false);
 
   // CGM
-  export const minutesPerReading = node.add<number>("minutesPerReading", 5);
   export const cgmDelay = node.add<number>("cgmDelay", 5);
 
   // Meals

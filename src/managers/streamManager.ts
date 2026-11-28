@@ -125,8 +125,17 @@ export namespace StreamManager {
     syncInFlight = sync().finally(() => (syncInFlight = null));
     return syncInFlight;
   }
+  /**
+   * Uploads reach Nightscout minutes after they are taken (up to ~8 seen), so
+   * each sync reads back this far before the last one. Readings and treatments
+   * read twice are merged with their copies, so the overlap changes nothing else.
+   */
+  const syncOverlapMinutes = 15;
   async function sync() {
-    const lastSyncTime = StreamStore.lastRemoteSyncTime.value;
+    const lastSyncTime = new Date(
+      StreamStore.lastRemoteSyncTime.value.getTime() -
+        syncOverlapMinutes * 60 * 1000,
+    );
     const now = new Date();
 
     // Readings

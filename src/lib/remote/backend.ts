@@ -5,6 +5,8 @@ import { PrivateStore } from "../../storage/privateStore";
 
 // Developer options
 const errorLogging = false;
+/** Documents per request in getAll: a full page means there may be more */
+const pageSize = 1000;
 
 // Request Queue Management
 function addRequest(
@@ -126,6 +128,37 @@ class Backend {
     } catch (e) {
       if (errorLogging) console.error(e);
     }
+  }
+  /**
+   * Every document of `path` whose `field` lies between two times, fetched
+   * newest first a page at a time until a page comes back short. Throws if a
+   * request fails, so a sync never advances past what it did not receive.
+   */
+  static async getAll(
+    path: string,
+    field: "dateString" | "date" | "created_at",
+    from: number,
+    to: number,
+  ): Promise<any[]> {
+    const format = (t: number) =>
+      field === "date" ? `${t}` : new Date(t).toISOString();
+    const timeOf = (d: any) =>
+      field === "created_at" ? Date.parse(d.created_at) : Number(d.date);
+    const all = new Map<string, any>();
+    let until = to;
+    while (true) {
+      const page = await this.get(
+        `${path}?find[${field}][$gte]=${format(from)}&find[${field}][$lte]=${format(until)}&count=${pageSize}`,
+      );
+      if (!Array.isArray(page))
+        throw new Error(`Nightscout: GET ${path} failed`);
+      const known = all.size;
+      for (const d of page) all.set(d._id, d);
+      // A short page is the last; a page with nothing new cannot go further back
+      if (page.length < pageSize || all.size === known) break;
+      until = page.reduce((t, d) => Math.min(t, timeOf(d)), until);
+    }
+    return Array.from(all.values());
   }
   static async post(api: string, payload: any, timestamp: Date) {
     addRequest(RequestType.POST, api, payload, timestamp);

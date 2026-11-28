@@ -25,15 +25,17 @@ export function getEventType(event: MetaEvent) {
 }
 
 class RemoteTreatments {
+  /** Every treatment between two times. Throws if Nightscout could not be read. */
   static async getTreatments(timestampA: Date, timestampB: Date) {
-    return await Backend.get(
-      `treatments.json?find[created_at][$gte]=${timestampA.toString()}&find[created_at][$lte]=${timestampB.toString()}`,
-    ).then((a: any[]) => {
-      if (typeof a !== "object") return [];
-      return a.map((b: any) => {
-        b.timestamp = new Date(b.created_at);
-        return b;
-      });
+    const treatments = await Backend.getAll(
+      "treatments.json",
+      "created_at",
+      timestampA.getTime(),
+      timestampB.getTime(),
+    );
+    return treatments.map((b: any) => {
+      b.timestamp = new Date(b.created_at);
+      return b;
     });
   }
   static markMeal(

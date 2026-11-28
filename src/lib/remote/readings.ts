@@ -1,20 +1,7 @@
-import Unit from "../../models/unit";
-import { BackendStore } from "../../storage/backendStore";
-import { convertDimensions } from "../util";
 import Backend from "./backend";
 
 class RemoteReadings {
-  /** Entries to ask for so that every reading between two times is returned */
-  private static getCount(timeA: number, timeB: number) {
-    const durationMinutes =
-      Math.abs(timeB - timeA) *
-      convertDimensions(Unit.Time.Millis, Unit.Time.Minute);
-    return Math.max(
-      20,
-      Math.ceil(durationMinutes / (BackendStore.minutesPerReading.value || 5)) +
-        10,
-    );
-  }
+  /** Every CGM reading between two times. Throws if Nightscout could not be read. */
   static async getReadings(
     timestampA: Date,
     timestampB: Date,
@@ -27,62 +14,33 @@ class RemoteReadings {
       type?: string;
     }[]
   > {
-    const timeA = timestampA.getTime();
-    const timeB = timestampB.getTime();
-    const minTime = Math.min(timeA, timeB);
-    const maxTime = Math.max(timeA, timeB);
-    const minDate = new Date(minTime);
-    const maxDate = new Date(maxTime);
-
-    const count = this.getCount(minTime, maxTime);
+    const from = Math.min(timestampA.getTime(), timestampB.getTime());
+    const to = Math.max(timestampA.getTime(), timestampB.getTime());
 
     // Nightscout date range queries:
     // In Nightscout MongoDB, `date` is a numeric epoch field. Querying `find[date][$gte]=<val>` fails
     // in standard Nightscout instances because Express query strings parse all parameters as strings,
     // which yields 0 matches in BSON numeric comparisons.
     // Querying by ISO `find[dateString][$gte]=...` matches the string field properly.
-    const queryDateString = `find[dateString][$gte]=${minDate.toISOString()}&find[dateString][$lte]=${maxDate.toISOString()}&count=${count}`;
-
-    try {
-      let res = await Backend.get(`entries/sgv.json?${queryDateString}`);
-      if (Array.isArray(res) && res.length > 0) {
-        return res;
-      }
-      // Fallback 1: Query entries.json using dateString
-      res = await Backend.get(`entries.json?${queryDateString}`);
-      if (Array.isArray(res) && res.length > 0) {
-        return res;
-      }
-      // Fallback 2: Query entries/sgv.json using numeric epoch
-      const queryDateNumeric = `find[date][$gte]=${minTime}&find[date][$lte]=${maxTime}&count=${count}`;
-      res = await Backend.get(`entries/sgv.json?${queryDateNumeric}`);
-      if (Array.isArray(res) && res.length > 0) {
-        return res;
-      }
-      // Fallback 3: Query entries.json using numeric epoch
-      res = await Backend.get(`entries.json?${queryDateNumeric}`);
-      if (Array.isArray(res)) {
-        return res;
-      }
-      return [];
-    } catch (e) {
-      console.error("RemoteReadings.getReadings failed:", e);
-      return [];
-    }
+    let res = await Backend.getAll("entries/sgv.json", "dateString", from, to);
+    if (res.length > 0) return res;
+    // Fallback 1: Query entries.json using dateString
+    res = await Backend.getAll("entries.json", "dateString", from, to);
+    if (res.length > 0) return res;
+    // Fallback 2: Query entries/sgv.json using numeric epoch
+    res = await Backend.getAll("entries/sgv.json", "date", from, to);
+    if (res.length > 0) return res;
+    // Fallback 3: Query entries.json using numeric epoch
+    return await Backend.getAll("entries.json", "date", from, to);
   }
   /**
    * Meter (fingerstick) entries between two times. Queried by dateString for
    * the same reason as getReadings (numeric date queries match nothing).
-   * Meter readings are sparser than CGM readings, so the CGM count bounds them.
    */
   static async getMeterReadings(timestampA: Date, timestampB: Date) {
-    const from = new Date(Math.min(timestampA.getTime(), timestampB.getTime()));
-    const to = new Date(Math.max(timestampA.getTime(), timestampB.getTime()));
-    const count = this.getCount(from.getTime(), to.getTime());
-    const res = await Backend.get(
-      `entries/mbg.json?find[dateString][$gte]=${from.toISOString()}&find[dateString][$lte]=${to.toISOString()}&count=${count}`,
-    );
-    return Array.isArray(res) ? res : [];
+    const from = Math.min(timestampA.getTime(), timestampB.getTime());
+    const to = Math.max(timestampA.getTime(), timestampB.getTime());
+    return await Backend.getAll("entries/mbg.json", "dateString", from, to);
   }
 }
 
