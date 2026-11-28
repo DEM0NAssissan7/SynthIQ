@@ -6,7 +6,24 @@ import MdIcon from "./md3/MdIcon";
 interface AddedFoodsDisplayProps {
   meal: Meal;
 }
+const nameOrder = new Intl.Collator(undefined, {
+  sensitivity: "base",
+  numeric: true,
+});
+
 export default function AddedFoodsDisplay({ meal }: AddedFoodsDisplayProps) {
+  // Alphabetical by name. Each row is keyed by its name (plus which repeat it
+  // is), not its position, so a row keeps its typed-in amount when a food
+  // added later sorts in above it.
+  const seen = new Map<string, number>();
+  const sortedFoods = meal.addedFoods
+    .sort((a, b) => nameOrder.compare(a.name, b.name))
+    .map((food) => {
+      const n = seen.get(food.name) ?? 0;
+      seen.set(food.name, n + 1);
+      return { food, key: `${food.name}#${n}` };
+    });
+
   return (
     <div>
       <div className="d-flex justify-content-between align-items-center mb-2">
@@ -31,8 +48,8 @@ export default function AddedFoodsDisplay({ meal }: AddedFoodsDisplayProps) {
         </EmptyState>
       ) : (
         <div className="app-food-list">
-          {meal.addedFoods.map((food, i) => (
-            <AddedFood key={i} food={food} meal={meal} />
+          {sortedFoods.map(({ food, key }) => (
+            <AddedFood key={key} food={food} meal={meal} />
           ))}
         </div>
       )}
