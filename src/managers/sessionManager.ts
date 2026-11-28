@@ -11,6 +11,7 @@ import {
   getBaseSessionsFrom,
 } from "../lib/helpers/getBaseSessions";
 import { StreamManager } from "./streamManager";
+import { PrivateStore } from "../storage/privateStore";
 
 export namespace SessionManager {
   /** A meal within this many minutes of a session's meal is part of that session */
@@ -30,6 +31,7 @@ export namespace SessionManager {
     sinceTimestamp: Date | null = null,
     untilTimestamp: Date | null = null,
   ) {
+    if (PrivateStore.debugLogs.value) console.log(`Building sessions...`);
     const masterStream =
       sinceTimestamp === null && untilTimestamp === null
         ? StreamManager.stream
@@ -43,6 +45,7 @@ export namespace SessionManager {
 
     sessionsCache = [];
     sessionMeals = new Map();
+    const fallbackEndTimestamp = masterStream.end;
     for (let index = 0; index < masterStream.events.length; index++) {
       const event = masterStream.events[index];
       if (
@@ -78,7 +81,6 @@ export namespace SessionManager {
       // Assume the session ends at the next meal (or pre-bolus). With neither,
       // nothing has ended it yet: it runs to the end of the stream, its latest
       // event or reading, and grows as readings arrive
-      const fallbackEndTimestamp = masterStream.end;
       let endTimestamp: Date =
         nextMeal && nextPrebolus
           ? new Date(

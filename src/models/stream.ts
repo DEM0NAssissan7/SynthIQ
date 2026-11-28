@@ -18,6 +18,7 @@ export class Stream extends Subscribable {
    * events, and subscribing to them would keep every view alive for as long as
    * the events live.
    */
+  eventsAreSorted = false;
   constructor(
     public snapshot: Snapshot = new Snapshot(),
     public events: MetaEvent[] = [],
@@ -27,6 +28,7 @@ export class Stream extends Subscribable {
     this.events = events.filter(isPlaceable);
     this.sortEvents();
     if (!subscribe) return;
+    this.subscribe(() => (this.eventsAreSorted = false));
     this.addChildSubscribable(snapshot);
     this.addChildSubscribable(...this.events);
   }
@@ -108,16 +110,18 @@ export class Stream extends Subscribable {
 
   // Event management
   sortEvents() {
+    if (this.eventsAreSorted) return;
     this.events.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+    this.eventsAreSorted = true;
   }
   findDuplicate(event: MetaEvent) {
     const uuid = event.uuid;
     const time = event.timestamp.getTime();
     const constr = event.constructor;
     const existing = this.events.find(
-      (r) =>
-        r.uuid === uuid ||
-        (r.timestamp.getTime() === time && r.constructor === constr),
+      (e) =>
+        e.uuid === uuid ||
+        (e.timestamp.getTime() === time && e.constructor === constr),
     );
     return existing ?? null;
   }
@@ -132,9 +136,7 @@ export class Stream extends Subscribable {
   }
   getEventByTimestamp(timestamp: Date) {
     const time = timestamp.getTime();
-    for (const event of this.events)
-      if (event.timestamp.getTime() === time) return event;
-    return null;
+    return this.events.find((e) => e.timestamp.getTime() === time) ?? null;
   }
   push(...incoming: MetaEvent[]) {
     for (const e of incoming) {
@@ -153,6 +155,7 @@ export class Stream extends Subscribable {
         existing.purpose = e.purpose; // a tag beats no tag
       }
     }
+    this.eventsAreSorted = false;
     this.notify();
   }
   modify(event: MetaEvent) {
@@ -163,6 +166,7 @@ export class Stream extends Subscribable {
     this.events[index] = event;
     this.addChildSubscribable(event);
     this.removeChildSubscribable(duplicate);
+    this.eventsAreSorted = false;
     this.notify();
     return true;
   }
@@ -174,6 +178,7 @@ export class Stream extends Subscribable {
     this.events.splice(index, 1);
     this.removeChildSubscribable(duplicate);
     this.notify();
+    this.eventsAreSorted = false;
     return true;
   }
 
@@ -189,12 +194,14 @@ export class Stream extends Subscribable {
     const timeA = since.getTime();
     const timeB = until?.getTime() ?? null;
     const snapshot = this.snapshot.view(since, until);
-    const events = this.events.filter((e: MetaEvent) => {
-      const time = e.timestamp.getTime();
-      if (time < timeA) return false;
-      if (timeB && (inclusive ? time > timeB : time >= timeB)) return false;
-      return true;
-    });
+    this.sortEvents();
+    const events: MetaEvent[] = [];
+    for (const event of this.events) {
+      const time = event.timestamp.getTime();
+      if (time < timeA) continue;
+      if (timeB && (inclusive ? time > timeB : time >= timeB)) break;
+      events.push(event);
+    }
     return new Stream(snapshot, events, false); // Read-only window: see constructor
   }
 
